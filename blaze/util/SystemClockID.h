@@ -40,7 +40,7 @@
 // Includes
 //*************************************************************************************************
 
-#include <memory>
+#include <boost/shared_ptr.hpp>
 
 
 namespace blaze {
@@ -66,7 +66,7 @@ class SystemClock;
 /*!\brief Handle for the system clock of the Blaze library.
 // \ingroup util
 */
-typedef std::shared_ptr<SystemClock>  SystemClockID;
+typedef boost::shared_ptr<SystemClock>  SystemClockID;
 //*************************************************************************************************
 
 
@@ -74,7 +74,7 @@ typedef std::shared_ptr<SystemClock>  SystemClockID;
 /*!\brief Handle for the system clock of the Blaze library.
 // \ingroup util
 */
-typedef std::shared_ptr<const SystemClock>  ConstSystemClockID;
+typedef boost::shared_ptr<const SystemClock>  ConstSystemClockID;
 //*************************************************************************************************
 
 } // namespace blaze

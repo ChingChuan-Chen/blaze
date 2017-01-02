@@ -412,23 +412,19 @@ namespace blaze {
    DiagonalMatrix< HybridMatrix<float,3UL,3UL,rowMajor> > E;
    DiagonalMatrix< StaticMatrix<float,3UL,3UL,columnMajor> > F;
 
-   E = A + B;     // Matrix addition and assignment to a row-major diagonal matrix (includes runtime check)
-   F = C - D;     // Matrix subtraction and assignment to a column-major diagonal matrix (only compile time check)
-   F = A * D;     // Matrix multiplication between a dense and a sparse matrix (includes runtime check)
+   E = A + B;     // Matrix addition and assignment to a row-major diagonal matrix
+   F = C - D;     // Matrix subtraction and assignment to a column-major diagonal matrix
+   F = A * D;     // Matrix multiplication between a dense and a sparse matrix
 
    C *= 2.0;      // In-place scaling of matrix C
-   E  = 2.0 * B;  // Scaling of matrix B (includes runtime check)
-   F  = C * 2.0;  // Scaling of matrix C (only compile time check)
+   E  = 2.0 * B;  // Scaling of matrix B
+   F  = C * 2.0;  // Scaling of matrix C
 
-   E += A - B;    // Addition assignment (includes runtime check)
-   F -= C + D;    // Subtraction assignment (only compile time check)
-   F *= A * D;    // Multiplication assignment (includes runtime check)
+   E += A - B;    // Addition assignment
+   F -= C + D;    // Subtraction assignment
+   F *= A * D;    // Multiplication assignment
    \endcode
 
-// Note that it is possible to assign any kind of matrix to a diagonal matrix. In case the matrix
-// to be assigned is not diagonal at compile time, a runtime check is performed.
-//
-//
 // \n \section diagonalmatrix_block_structured Block-Structured Diagonal Matrices
 //
 // It is also possible to use block-structured diagonal matrices:
@@ -446,9 +442,9 @@ namespace blaze {
 // manipulate elements in the lower and upper part of the matrix:
 
    \code
-   const StaticMatrix<int,3UL,3UL> B( { { 1, -4,  5 },
-                                        { 6,  8, -3 },
-                                        { 2, -1,  2 } } )
+   const StaticMatrix<int,3UL,3UL> B( 1, -4,  5,
+                                      6,  8, -3,
+                                      2, -1,  2 )
 
    A.insert( 2, 2, B );  // Inserting the diagonal elements (2,2)
    A(2,4)(1,1) = -5;     // Invalid manipulation of upper matrix element; Results in an exception

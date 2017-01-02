@@ -40,6 +40,8 @@
 // Includes
 //*************************************************************************************************
 
+#include <blaze/util/constraints/ConstraintTest.h>
+#include <blaze/util/Suffix.h>
 #include <blaze/util/TypeList.h>
 
 
@@ -52,6 +54,22 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_SOFT_TYPE_RESTRICTION_FAILED;
+template<> struct CONSTRAINT_SOFT_TYPE_RESTRICTION_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the data type.
 // \ingroup constraints
 //
@@ -59,7 +77,10 @@ namespace blaze {
 // error is created.
 */
 #define BLAZE_CONSTRAINT_SOFT_TYPE_RESTRICTION(T,TYPELIST) \
-   static_assert( ::blaze::ContainsRelated<TYPELIST,T>::value, "Unapproved type detected" )
+   typedef \
+      ::blaze::CONSTRAINT_TEST< \
+         ::blaze::CONSTRAINT_SOFT_TYPE_RESTRICTION_FAILED< ::blaze::ContainsRelated<TYPELIST,T>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_SOFT_TYPE_RESTRICTION_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -72,6 +93,22 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_TYPE_RESTRICTION_FAILED;
+template<> struct CONSTRAINT_TYPE_RESTRICTION_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the data type.
 // \ingroup constraints
 //
@@ -79,7 +116,10 @@ namespace blaze {
 // error is created.
 */
 #define BLAZE_CONSTRAINT_TYPE_RESTRICTION(T,TYPELIST) \
-   static_assert( ::blaze::Contains<TYPELIST,T>::value, "Unapproved type detected" )
+   typedef \
+      ::blaze::CONSTRAINT_TEST< \
+         ::blaze::CONSTRAINT_TYPE_RESTRICTION_FAILED< ::blaze::Contains<TYPELIST,T>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_TYPE_RESTRICTION_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 } // namespace blaze

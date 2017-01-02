@@ -1,6 +1,6 @@
 //=================================================================================================
 /*!
-//  \file src/main/DMatTDMatAdd.cpp
+//  \file src/blaze/DMatTDMatAdd.cpp
 //  \brief Source file for the dense matrix/transpose dense matrix addition benchmark
 //
 //  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved

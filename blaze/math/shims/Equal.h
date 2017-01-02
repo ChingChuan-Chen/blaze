@@ -41,8 +41,8 @@
 //*************************************************************************************************
 
 #include <cmath>
+#include <boost/math/special_functions/next.hpp>
 #include <blaze/math/Accuracy.h>
-#include <blaze/math/Functions.h>
 #include <blaze/util/Complex.h>
 
 
@@ -70,7 +70,7 @@ namespace blaze {
 */
 template< typename T1    // Type of the left-hand side value/object
         , typename T2 >  // Type of the right-hand side value/object
-inline constexpr bool equal( const T1& a, const T2& b )
+inline bool equal( const T1& a, const T2& b )
 {
    return a == b;
 }
@@ -97,8 +97,13 @@ inline constexpr bool equal( const T1& a, const T2& b )
 */
 inline bool equal( float a, float b )
 {
-   const float acc( static_cast<float>( accuracy ) );
-   return ( std::fabs( a - b ) <= max( acc, acc * std::fabs( a ) ) );
+   using boost::math::float_advance;
+
+   const int distance( 6 );
+
+   return ( std::fabs( a - b ) <= 1E-6 ) ||
+          ( a < b && b <= float_advance( a, distance ) ) ||
+          ( b < a && a <= float_advance( b, distance ) );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -198,8 +203,13 @@ inline bool equal( double a, float b )
 */
 inline bool equal( double a, double b )
 {
-   const double acc( static_cast<double>( accuracy ) );
-   return ( std::fabs( a - b ) <= max( acc, acc * std::fabs( a ) ) );
+   using boost::math::float_advance;
+
+   const int distance( 4 );
+
+   return ( std::fabs( a - b ) <= accuracy ) ||
+          ( a < b && b <= float_advance( a, distance ) ) ||
+          ( b < a && a <= float_advance( b, distance ) );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -225,7 +235,7 @@ inline bool equal( double a, double b )
 */
 inline bool equal( double a, long double b )
 {
-   return equal( a, static_cast<double>( b ) );
+   return std::fabs( a - b ) <= ( 1E-8L * std::fabs( b ) );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -303,8 +313,13 @@ inline bool equal( long double a, double b )
 */
 inline bool equal( long double a, long double b )
 {
-   const long double acc( static_cast<long double>( accuracy ) );
-   return ( std::fabs( a - b ) <= max( acc, acc * std::fabs( a ) ) );
+   using boost::math::float_advance;
+
+   const int distance( 4 );
+
+   return ( std::fabs( a - b ) <= accuracy ) ||
+          ( a < b && b <= float_advance( a, distance ) ) ||
+          ( b < a && a <= float_advance( b, distance ) );
 }
 /*! \endcond */
 //*************************************************************************************************

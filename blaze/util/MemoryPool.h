@@ -42,6 +42,7 @@
 
 #include <vector>
 #include <blaze/util/Assert.h>
+#include <blaze/util/Byte.h>
 #include <blaze/util/NonCopyable.h>
 #include <blaze/util/Types.h>
 
@@ -72,8 +73,8 @@ class MemoryPool : private NonCopyable
    /*!\brief A single element of the free list of the memory pool.
    */
    union FreeObject {
-      FreeObject* next_;              //!< Pointer to the next free object.
-      byte_t dummy_[ sizeof(Type) ];  //!< Dummy array to create an object of the appropriate size.
+      FreeObject* next_;            //!< Pointer to the next free object.
+      byte dummy_[ sizeof(Type) ];  //!< Dummy array to create an object of the appropriate size.
    };
    //**********************************************************************************************
 
@@ -276,8 +277,8 @@ inline bool MemoryPool<Type,Blocksize>::checkMemory( FreeObject* toRelease ) con
       if( toRelease >= it->rawMemory_ && toRelease < it->rawMemory_+Blocksize )
       {
          // Alignment check
-         const byte_t* const ptr1( reinterpret_cast<const byte_t*>(toRelease) );
-         const byte_t* const ptr2( reinterpret_cast<const byte_t*>(it->rawMemory_) );
+         const byte* const ptr1( reinterpret_cast<const byte*>(toRelease) );
+         const byte* const ptr2( reinterpret_cast<const byte*>(it->rawMemory_) );
 
          if( ( ptr1 - ptr2 ) % sizeof(FreeObject) != 0 ) return false;
 

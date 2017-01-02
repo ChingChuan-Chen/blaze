@@ -40,7 +40,8 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/util/IntegralConstant.h>
+#include <blaze/util/FalseType.h>
+#include <blaze/util/TrueType.h>
 
 
 namespace blaze {
@@ -56,7 +57,7 @@ namespace blaze {
 // \ingroup type_traits
 //
 // This type trait determines the rank of the given template argument. In case the given type
-// is an array type, the nested \a value member constant is set to the number of dimensions
+// is an array type, the nested \a value member enumeration is set to the number of dimensions
 // of \a T. Otherwise \a value is set to 0.
 
    \code
@@ -69,8 +70,15 @@ namespace blaze {
    \endcode
 */
 template< typename T >
-struct Rank : public IntegralConstant<size_t,0UL>
-{};
+struct Rank
+{
+ public:
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   enum { value = 0 };
+   /*! \endcond */
+   //**********************************************************************************************
+};
 //*************************************************************************************************
 
 
@@ -78,8 +86,13 @@ struct Rank : public IntegralConstant<size_t,0UL>
 /*! \cond BLAZE_INTERNAL */
 //! Specialization of the Rank type trait for empty arrays.
 template< typename T >
-struct Rank<T[]> : public IntegralConstant<size_t,1UL+Rank<T>::value>
-{};
+struct Rank<T[]>
+{
+ public:
+   //**********************************************************************************************
+   enum { value = 1 + Rank<T>::value };
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -88,8 +101,13 @@ struct Rank<T[]> : public IntegralConstant<size_t,1UL+Rank<T>::value>
 /*! \cond BLAZE_INTERNAL */
 //! Specialization of the Rank type trait for non-empty arrays.
 template< typename T, unsigned int N >
-struct Rank<T[N]> : public IntegralConstant<size_t,1UL+Rank<T>::value>
-{};
+struct Rank<T[N]>
+{
+ public:
+   //**********************************************************************************************
+   enum { value = 1 + Rank<T>::value };
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 

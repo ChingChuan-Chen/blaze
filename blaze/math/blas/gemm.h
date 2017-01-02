@@ -41,8 +41,7 @@
 //*************************************************************************************************
 
 #include <boost/cast.hpp>
-#include <blaze/math/Aliases.h>
-#include <blaze/math/constraints/BLASCompatible.h>
+#include <blaze/math/constraints/BlasCompatible.h>
 #include <blaze/math/constraints/Computation.h>
 #include <blaze/math/constraints/ConstDataAccess.h>
 #include <blaze/math/constraints/MutableDataAccess.h>
@@ -53,7 +52,6 @@
 #include <blaze/system/Inline.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/Complex.h>
-#include <blaze/util/StaticAssert.h>
 
 
 namespace blaze {
@@ -196,11 +194,7 @@ BLAZE_ALWAYS_INLINE void gemm( CBLAS_ORDER order, CBLAS_TRANSPOSE transA, CBLAS_
                                int lda, const complex<float>* B, int ldb, complex<float> beta,
                                complex<float>* C, int ldc )
 {
-   BLAZE_STATIC_ASSERT( sizeof( complex<float> ) == 2UL*sizeof( float ) );
-
-   cblas_cgemm( order, transA, transB, m, n, k, reinterpret_cast<const float*>( &alpha ),
-                reinterpret_cast<const float*>( A ), lda, reinterpret_cast<const float*>( B ),
-                ldb, reinterpret_cast<const float*>( &beta ), reinterpret_cast<float*>( C ), ldc );
+   cblas_cgemm( order, transA, transB, m, n, k, &alpha, A, lda, B, ldb, &beta, C, ldc );
 }
 #endif
 //*************************************************************************************************
@@ -236,11 +230,7 @@ BLAZE_ALWAYS_INLINE void gemm( CBLAS_ORDER order, CBLAS_TRANSPOSE transA, CBLAS_
                                int lda, const complex<double>* B, int ldb, complex<double> beta,
                                complex<double>* C, int ldc )
 {
-   BLAZE_STATIC_ASSERT( sizeof( complex<double> ) == 2UL*sizeof( double ) );
-
-   cblas_zgemm( order, transA, transB, m, n, k, reinterpret_cast<const double*>( &alpha ),
-                reinterpret_cast<const double*>( A ), lda, reinterpret_cast<const double*>( B ),
-                ldb, reinterpret_cast<const double*>( &beta ), reinterpret_cast<double*>( C ), ldc );
+   cblas_zgemm( order, transA, transB, m, n, k, &alpha, A, lda, B, ldb, &beta, C, ldc );
 }
 #endif
 //*************************************************************************************************
@@ -283,9 +273,9 @@ BLAZE_ALWAYS_INLINE void gemm( DenseMatrix<MT1,SO1>& C, const DenseMatrix<MT2,SO
    BLAZE_CONSTRAINT_MUST_HAVE_CONST_DATA_ACCESS  ( MT2 );
    BLAZE_CONSTRAINT_MUST_HAVE_CONST_DATA_ACCESS  ( MT3 );
 
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT1> );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT2> );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT3> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( typename MT1::ElementType );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( typename MT2::ElementType );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( typename MT3::ElementType );
 
    const int m  ( numeric_cast<int>( (~A).rows() )    );
    const int n  ( numeric_cast<int>( (~B).columns() ) );

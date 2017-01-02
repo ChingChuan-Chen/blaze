@@ -41,16 +41,15 @@
 //*************************************************************************************************
 
 #include <vector>
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/ColumnMajorMatrix.h>
 #include <blaze/math/constraints/Computation.h>
 #include <blaze/math/constraints/RowMajorMatrix.h>
 #include <blaze/math/constraints/SparseMatrix.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/SparseMatrix.h>
 #include <blaze/math/traits/SubmatrixTrait.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/EnableIf.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/typetraits/IsNumeric.h>
 
@@ -75,17 +74,17 @@ class SMatTransposer : public SparseMatrix< SMatTransposer<MT,SO>, SO >
 {
  public:
    //**Type definitions****************************************************************************
-   typedef SMatTransposer<MT,SO>  This;            //!< Type of this SMatTransposer instance.
-   typedef TransposeType_<MT>     ResultType;      //!< Result type for expression template evaluations.
-   typedef MT                     OppositeType;    //!< Result type with opposite storage order for expression template evaluations.
-   typedef ResultType_<MT>        TransposeType;   //!< Transpose type for expression template evaluations.
-   typedef ElementType_<MT>       ElementType;     //!< Resulting element type.
-   typedef ReturnType_<MT>        ReturnType;      //!< Return type for expression template evaluations.
-   typedef const This&            CompositeType;   //!< Data type for composite expression templates.
-   typedef Reference_<MT>         Reference;       //!< Reference to a non-constant matrix value.
-   typedef ConstReference_<MT>    ConstReference;  //!< Reference to a constant matrix value.
-   typedef Iterator_<MT>          Iterator;        //!< Iterator over non-constant elements.
-   typedef ConstIterator_<MT>     ConstIterator;   //!< Iterator over constant elements.
+   typedef SMatTransposer<MT,SO>        This;            //!< Type of this SMatTransposer instance.
+   typedef typename MT::TransposeType   ResultType;      //!< Result type for expression template evaluations.
+   typedef MT                           OppositeType;    //!< Result type with opposite storage order for expression template evaluations.
+   typedef typename MT::ResultType      TransposeType;   //!< Transpose type for expression template evaluations.
+   typedef typename MT::ElementType     ElementType;     //!< Resulting element type.
+   typedef typename MT::ReturnType      ReturnType;      //!< Return type for expression template evaluations.
+   typedef const This&                  CompositeType;   //!< Data type for composite expression templates.
+   typedef typename MT::Reference       Reference;       //!< Reference to a non-constant matrix value.
+   typedef typename MT::ConstReference  ConstReference;  //!< Reference to a constant matrix value.
+   typedef typename MT::Iterator        Iterator;        //!< Iterator over non-constant elements.
+   typedef typename MT::ConstIterator   ConstIterator;   //!< Iterator over constant elements.
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
@@ -93,7 +92,7 @@ class SMatTransposer : public SparseMatrix< SMatTransposer<MT,SO>, SO >
    /*! The \a smpAssignable compilation flag indicates whether the matrix can be used in SMP
        (shared memory parallel) assignments (both on the left-hand and right-hand side of the
        assignment). */
-   enum : bool { smpAssignable = MT::smpAssignable };
+   enum { smpAssignable = MT::smpAssignable };
    //**********************************************************************************************
 
    //**Constructor*********************************************************************************
@@ -101,7 +100,7 @@ class SMatTransposer : public SparseMatrix< SMatTransposer<MT,SO>, SO >
    //
    // \param sm The sparse matrix operand.
    */
-   explicit inline SMatTransposer( MT& sm ) noexcept
+   explicit inline SMatTransposer( MT& sm )
       : sm_( sm )  // The sparse matrix operand
    {}
    //**********************************************************************************************
@@ -243,7 +242,7 @@ class SMatTransposer : public SparseMatrix< SMatTransposer<MT,SO>, SO >
    // \return Reference to this SMatTransposer.
    */
    template< typename Other >  // Data type of the right-hand side scalar
-   inline EnableIf_< IsNumeric<Other>, SMatTransposer >& operator*=( Other rhs )
+   inline typename EnableIf< IsNumeric<Other>, SMatTransposer >::Type& operator*=( Other rhs )
    {
       (~sm_) *= rhs;
       return *this;
@@ -257,10 +256,10 @@ class SMatTransposer : public SparseMatrix< SMatTransposer<MT,SO>, SO >
    // \param rhs The right-hand side scalar value for the division.
    // \return Reference to this SMatTransposer.
    //
-   // \note A division by zero is only checked by an user assert.
+   // \note: A division by zero is only checked by an user assert.
    */
    template< typename Other >  // Data type of the right-hand side scalar
-   inline EnableIf_< IsNumeric<Other>, SMatTransposer >& operator/=( Other rhs )
+   inline typename EnableIf< IsNumeric<Other>, SMatTransposer >::Type& operator/=( Other rhs )
    {
       BLAZE_USER_ASSERT( rhs != Other(0), "Division by zero detected" );
 
@@ -274,7 +273,7 @@ class SMatTransposer : public SparseMatrix< SMatTransposer<MT,SO>, SO >
    //
    // \return The number of rows of the matrix.
    */
-   inline size_t rows() const noexcept {
+   inline size_t rows() const {
       return sm_.columns();
    }
    //**********************************************************************************************
@@ -284,7 +283,7 @@ class SMatTransposer : public SparseMatrix< SMatTransposer<MT,SO>, SO >
    //
    // \return The number of columns of the matrix.
    */
-   inline size_t columns() const noexcept {
+   inline size_t columns() const {
       return sm_.rows();
    }
    //**********************************************************************************************
@@ -294,7 +293,7 @@ class SMatTransposer : public SparseMatrix< SMatTransposer<MT,SO>, SO >
    //
    // \return The capacity of the matrix.
    */
-   inline size_t capacity() const noexcept {
+   inline size_t capacity() const {
       return sm_.capacity();
    }
    //**********************************************************************************************
@@ -305,7 +304,7 @@ class SMatTransposer : public SparseMatrix< SMatTransposer<MT,SO>, SO >
    // \param i The index of the row/column.
    // \return The current capacity of row/column \a i.
    */
-   inline size_t capacity( size_t i ) const noexcept {
+   inline size_t capacity( size_t i ) const {
       return sm_.capacity( i );
    }
    //**********************************************************************************************
@@ -417,7 +416,7 @@ class SMatTransposer : public SparseMatrix< SMatTransposer<MT,SO>, SO >
    // value is a default value (for instance 0 in case of an integral element type) the value is
    // not appended. Per default the values are not tested.
    //
-   // \note Although append() does not allocate new memory, it still invalidates all iterators
+   // \note: Although append() does not allocate new memory, it still invalidates all iterators
    // returned by the end() functions!
    */
    inline void append( size_t i, size_t j, const ElementType& value, bool check=false ) {
@@ -435,7 +434,7 @@ class SMatTransposer : public SparseMatrix< SMatTransposer<MT,SO>, SO >
    // After completion of row/column \a i via the append() function, this function can be called to
    // finalize row/column \a i and prepare the next row/column for insertion process via append().
    //
-   // \note Although finalize() does not allocate new memory, it still invalidates all iterators
+   // \note: Although finalize() does not allocate new memory, it still invalidates all iterators
    // returned by the end() functions!
    */
    inline void finalize( size_t i ) {
@@ -448,7 +447,7 @@ class SMatTransposer : public SparseMatrix< SMatTransposer<MT,SO>, SO >
    //
    // \return \a true in case the matrix's invariants are intact, \a false otherwise.
    */
-   inline bool isIntact() const noexcept {
+   inline bool isIntact() const {
       return isIntact( sm_ );
    }
    //**********************************************************************************************
@@ -460,7 +459,7 @@ class SMatTransposer : public SparseMatrix< SMatTransposer<MT,SO>, SO >
    // \return \a true in case the alias corresponds to this matrix, \a false if not.
    */
    template< typename Other >  // Data type of the foreign expression
-   inline bool canAlias( const Other* alias ) const noexcept
+   inline bool canAlias( const Other* alias ) const
    {
       return sm_.canAlias( alias );
    }
@@ -473,7 +472,7 @@ class SMatTransposer : public SparseMatrix< SMatTransposer<MT,SO>, SO >
    // \return \a true in case the alias corresponds to this matrix, \a false if not.
    */
    template< typename Other >  // Data type of the foreign expression
-   inline bool isAliased( const Other* alias ) const noexcept
+   inline bool isAliased( const Other* alias ) const
    {
       return sm_.isAliased( alias );
    }
@@ -484,7 +483,7 @@ class SMatTransposer : public SparseMatrix< SMatTransposer<MT,SO>, SO >
    //
    // \return \a true in case the matrix can be used in SMP assignments, \a false if not.
    */
-   inline bool canSMPAssign() const noexcept
+   inline bool canSMPAssign() const
    {
       return sm_.canSMPAssign();
    }
@@ -510,7 +509,7 @@ class SMatTransposer : public SparseMatrix< SMatTransposer<MT,SO>, SO >
       BLAZE_INTERNAL_ASSERT( sm_.rows() == (~rhs).columns()     , "Invalid number of columns" );
       BLAZE_INTERNAL_ASSERT( sm_.capacity() >= (~rhs).nonZeros(), "Capacity not sufficient"   );
 
-      typedef ConstIterator_<MT2>  RhsIterator;
+      typedef typename MT2::ConstIterator  RhsIterator;
 
       const size_t m( rows() );
 
@@ -542,7 +541,7 @@ class SMatTransposer : public SparseMatrix< SMatTransposer<MT,SO>, SO >
       BLAZE_INTERNAL_ASSERT( sm_.rows() == (~rhs).columns()     , "Invalid number of columns" );
       BLAZE_INTERNAL_ASSERT( sm_.capacity() >= (~rhs).nonZeros(), "Capacity not sufficient"   );
 
-      typedef ConstIterator_<MT2>  RhsIterator;
+      typedef typename MT2::ConstIterator  RhsIterator;
 
       const size_t m( rows() );
       const size_t n( columns() );
@@ -605,17 +604,17 @@ class SMatTransposer<MT,true> : public SparseMatrix< SMatTransposer<MT,true>, tr
 {
  public:
    //**Type definitions****************************************************************************
-   typedef SMatTransposer<MT,true>  This;            //!< Type of this SMatTransposer instance.
-   typedef TransposeType_<MT>       ResultType;      //!< Result type for expression template evaluations.
-   typedef MT                       OppositeType;    //!< Result type with opposite storage order for expression template evaluations.
-   typedef ResultType_<MT>          TransposeType;   //!< Transpose type for expression template evaluations.
-   typedef ElementType_<MT>         ElementType;     //!< Resulting element type.
-   typedef ReturnType_<MT>          ReturnType;      //!< Return type for expression template evaluations.
-   typedef const This&              CompositeType;   //!< Data type for composite expression templates.
-   typedef Reference_<MT>           Reference;       //!< Reference to a non-constant matrix value.
-   typedef ConstReference_<MT>      ConstReference;  //!< Reference to a constant matrix value.
-   typedef Iterator_<MT>            Iterator;        //!< Iterator over non-constant elements.
-   typedef ConstIterator_<MT>       ConstIterator;   //!< Iterator over constant elements.
+   typedef SMatTransposer<MT,true>      This;            //!< Type of this SMatTransposer instance.
+   typedef typename MT::TransposeType   ResultType;      //!< Result type for expression template evaluations.
+   typedef MT                           OppositeType;    //!< Result type with opposite storage order for expression template evaluations.
+   typedef typename MT::ResultType      TransposeType;   //!< Transpose type for expression template evaluations.
+   typedef typename MT::ElementType     ElementType;     //!< Resulting element type.
+   typedef typename MT::ReturnType      ReturnType;      //!< Return type for expression template evaluations.
+   typedef const This&                  CompositeType;   //!< Data type for composite expression templates.
+   typedef typename MT::Reference       Reference;       //!< Reference to a non-constant matrix value.
+   typedef typename MT::ConstReference  ConstReference;  //!< Reference to a constant matrix value.
+   typedef typename MT::Iterator        Iterator;        //!< Iterator over non-constant elements.
+   typedef typename MT::ConstIterator   ConstIterator;   //!< Iterator over constant elements.
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
@@ -623,7 +622,7 @@ class SMatTransposer<MT,true> : public SparseMatrix< SMatTransposer<MT,true>, tr
    /*! The \a smpAssignable compilation flag indicates whether the matrix can be used in SMP
        (shared memory parallel) assignments (both on the left-hand and right-hand side of the
        assignment). */
-   enum : bool { smpAssignable = MT::smpAssignable };
+   enum { smpAssignable = MT::smpAssignable };
    //**********************************************************************************************
 
    //**Constructor*********************************************************************************
@@ -631,7 +630,7 @@ class SMatTransposer<MT,true> : public SparseMatrix< SMatTransposer<MT,true>, tr
    //
    // \param sm The sparse matrix operand.
    */
-   explicit inline SMatTransposer( MT& sm ) noexcept
+   explicit inline SMatTransposer( MT& sm )
       : sm_( sm )  // The sparse matrix operand
    {}
    //**********************************************************************************************
@@ -743,7 +742,7 @@ class SMatTransposer<MT,true> : public SparseMatrix< SMatTransposer<MT,true>, tr
    // \return Reference to this SMatTransposer.
    */
    template< typename Other >  // Data type of the right-hand side scalar
-   inline EnableIf_< IsNumeric<Other>, SMatTransposer >& operator*=( Other rhs )
+   inline typename EnableIf< IsNumeric<Other>, SMatTransposer >::Type& operator*=( Other rhs )
    {
       (~sm_) *= rhs;
       return *this;
@@ -757,10 +756,10 @@ class SMatTransposer<MT,true> : public SparseMatrix< SMatTransposer<MT,true>, tr
    // \param rhs The right-hand side scalar value for the division.
    // \return Reference to this SMatTransposer.
    //
-   // \note A division by zero is only checked by an user assert.
+   // \note: A division by zero is only checked by an user assert.
    */
    template< typename Other >  // Data type of the right-hand side scalar
-   inline EnableIf_< IsNumeric<Other>, SMatTransposer >& operator/=( Other rhs )
+   inline typename EnableIf< IsNumeric<Other>, SMatTransposer >::Type& operator/=( Other rhs )
    {
       BLAZE_USER_ASSERT( rhs != Other(0), "Division by zero detected" );
 
@@ -774,7 +773,7 @@ class SMatTransposer<MT,true> : public SparseMatrix< SMatTransposer<MT,true>, tr
    //
    // \return The number of rows of the matrix.
    */
-   inline size_t rows() const noexcept {
+   inline size_t rows() const {
       return sm_.columns();
    }
    //**********************************************************************************************
@@ -784,7 +783,7 @@ class SMatTransposer<MT,true> : public SparseMatrix< SMatTransposer<MT,true>, tr
    //
    // \return The number of columns of the matrix.
    */
-   inline size_t columns() const noexcept {
+   inline size_t columns() const {
       return sm_.rows();
    }
    //**********************************************************************************************
@@ -794,7 +793,7 @@ class SMatTransposer<MT,true> : public SparseMatrix< SMatTransposer<MT,true>, tr
    //
    // \return The capacity of the matrix.
    */
-   inline size_t capacity() const noexcept {
+   inline size_t capacity() const {
       return sm_.capacity();
    }
    //**********************************************************************************************
@@ -805,7 +804,7 @@ class SMatTransposer<MT,true> : public SparseMatrix< SMatTransposer<MT,true>, tr
    // \param j The index of the column.
    // \return The current capacity of column \a j.
    */
-   inline size_t capacity( size_t j ) const noexcept {
+   inline size_t capacity( size_t j ) const {
       return sm_.capacity( j );
    }
    //**********************************************************************************************
@@ -914,7 +913,7 @@ class SMatTransposer<MT,true> : public SparseMatrix< SMatTransposer<MT,true>, tr
    // value is a default value (for instance 0 in case of an integral element type) the value is
    // not appended. Per default the values are not tested.
    //
-   // \note Although append() does not allocate new memory, it still invalidates all iterators
+   // \note: Although append() does not allocate new memory, it still invalidates all iterators
    // returned by the end() functions!
    */
    void append( size_t i, size_t j, const ElementType& value, bool check=false ) {
@@ -932,7 +931,7 @@ class SMatTransposer<MT,true> : public SparseMatrix< SMatTransposer<MT,true>, tr
    // After completion of column \a i via the append() function, this function can be called to
    // finalize column \a i and prepare the next row/column for insertion process via append().
    //
-   // \note Although finalize() does not allocate new memory, it still invalidates all iterators
+   // \note: Although finalize() does not allocate new memory, it still invalidates all iterators
    // returned by the end() functions!
    */
    inline void finalize( size_t j ) {
@@ -945,7 +944,7 @@ class SMatTransposer<MT,true> : public SparseMatrix< SMatTransposer<MT,true>, tr
    //
    // \return \a true in case the matrix's invariants are intact, \a false otherwise.
    */
-   inline bool isIntact() const noexcept {
+   inline bool isIntact() const {
       return isIntact( sm_ );
    }
    //**********************************************************************************************
@@ -957,7 +956,7 @@ class SMatTransposer<MT,true> : public SparseMatrix< SMatTransposer<MT,true>, tr
    // \return \a true in case the alias corresponds to this matrix, \a false if not.
    */
    template< typename Other >  // Data type of the foreign expression
-   inline bool canAlias( const Other* alias ) const noexcept
+   inline bool canAlias( const Other* alias ) const
    {
       return sm_.canAlias( alias );
    }
@@ -970,7 +969,7 @@ class SMatTransposer<MT,true> : public SparseMatrix< SMatTransposer<MT,true>, tr
    // \return \a true in case the alias corresponds to this matrix, \a false if not.
    */
    template< typename Other >  // Data type of the foreign expression
-   inline bool isAliased( const Other* alias ) const noexcept
+   inline bool isAliased( const Other* alias ) const
    {
       return sm_.isAliased( alias );
    }
@@ -981,7 +980,7 @@ class SMatTransposer<MT,true> : public SparseMatrix< SMatTransposer<MT,true>, tr
    //
    // \return \a true in case the matrix can be used in SMP assignments, \a false if not.
    */
-   inline bool canSMPAssign() const noexcept
+   inline bool canSMPAssign() const
    {
       return sm_.canSMPAssign();
    }
@@ -1007,7 +1006,7 @@ class SMatTransposer<MT,true> : public SparseMatrix< SMatTransposer<MT,true>, tr
       BLAZE_INTERNAL_ASSERT( sm_.rows() == (~rhs).columns()     , "Invalid number of columns" );
       BLAZE_INTERNAL_ASSERT( sm_.capacity() >= (~rhs).nonZeros(), "Capacity not sufficient"   );
 
-      typedef ConstIterator_<MT2>  RhsIterator;
+      typedef typename MT2::ConstIterator  RhsIterator;
 
       const size_t m( rows() );
       const size_t n( columns() );
@@ -1053,7 +1052,7 @@ class SMatTransposer<MT,true> : public SparseMatrix< SMatTransposer<MT,true>, tr
       BLAZE_INTERNAL_ASSERT( sm_.rows() == (~rhs).columns()     , "Invalid number of columns" );
       BLAZE_INTERNAL_ASSERT( sm_.capacity() >= (~rhs).nonZeros(), "Capacity not sufficient"   );
 
-      typedef ConstIterator_<MT2>  RhsIterator;
+      typedef typename MT2::ConstIterator  RhsIterator;
 
       const size_t n( columns() );
 
@@ -1118,7 +1117,7 @@ inline void reset( SMatTransposer<MT,SO>& m )
 */
 template< typename MT  // Type of the sparse matrix
         , bool SO >    // Storage order
-inline bool isIntact( const SMatTransposer<MT,SO>& m ) noexcept
+inline bool isIntact( const SMatTransposer<MT,SO>& m )
 {
    return m.isIntact();
 }
@@ -1139,7 +1138,7 @@ inline bool isIntact( const SMatTransposer<MT,SO>& m ) noexcept
 template< typename MT, bool SO >
 struct SubmatrixTrait< SMatTransposer<MT,SO> >
 {
-   using Type = SubmatrixTrait_< ResultType_< SMatTransposer<MT,SO> > >;
+   typedef typename SubmatrixTrait< typename SMatTransposer<MT,SO>::ResultType >::Type  Type;
 };
 /*! \endcond */
 //*************************************************************************************************

@@ -73,6 +73,8 @@ class OperationTest
    //**Test functions******************************************************************************
    /*!\name Test functions */
    //@{
+   void testIsTrue();
+   void testIsFalse();
    void testIsEven();
    void testIsOdd();
    void testIsMultipleOf();

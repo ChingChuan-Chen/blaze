@@ -42,7 +42,7 @@
 
 #include <blaze/math/traits/DMatInvExprTrait.h>
 #include <blaze/math/traits/TDMatInvExprTrait.h>
-#include <blaze/math/typetraits/IsBLASCompatible.h>
+#include <blaze/math/typetraits/IsBlasCompatible.h>
 #include <blaze/math/typetraits/IsDenseMatrix.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blaze/math/typetraits/UnderlyingElement.h>
@@ -50,12 +50,13 @@
 #include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsComplex.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsFloatingPoint.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -82,56 +83,45 @@ struct InvExprTrait
  private:
    //**struct Scalar*******************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   struct Scalar { using Type = T; };
+   struct Scalar { typedef T  Type; };
    /*! \endcond */
    //**********************************************************************************************
 
    //**struct Failure******************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   struct Failure { using Type = INVALID_TYPE; };
+   struct Failure { typedef INVALID_TYPE  Type; };
    /*! \endcond */
    //**********************************************************************************************
 
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Tmp = If_< And< IsDenseMatrix<T>, IsBLASCompatible< UnderlyingElement_<T> > >
-                  , If_< IsRowMajorMatrix<T>
-                       , DMatInvExprTrait<T>
-                       , TDMatInvExprTrait<T> >
-                  , If_< Or< IsFloatingPoint<T>
-                           , And< IsComplex<T>, IsFloatingPoint< UnderlyingElement_<T> > > >
-                       , Scalar
-                       , Failure > >;
+   typedef typename UnderlyingElement<T>::Type  ElementType;
+
+   typedef typename If< And< IsDenseMatrix<T>
+                           , IsBlasCompatible<ElementType> >
+                      , typename If< IsRowMajorMatrix<T>
+                                   , DMatInvExprTrait<T>
+                                   , TDMatInvExprTrait<T>
+                                   >::Type
+                      , typename If< Or< IsFloatingPoint<T>,
+                                         And< IsComplex<T>, IsFloatingPoint<ElementType> > >
+                                   , Scalar
+                                   , Failure
+                                   >::Type
+                      >::Type  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<T>::Type >::Type  Type1;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<T>, IsVolatile<T>, IsReference<T> >
-                            , InvExprTrait< Decay_<T> >
-                            , Tmp >::Type;
+   typedef typename If< Or< IsConst<T>, IsVolatile<T>, IsReference<T> >
+                      , InvExprTrait<Type1>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the InvExprTrait class template.
-// \ingroup math_traits
-//
-// The InvExprTrait_ alias declaration provides a convenient shortcut to access the nested \a Type
-// of the InvExprTrait class template. For instance, given the type \a T the following two type
-// definitions are identical:
-
-   \code
-   using Type1 = typename InvExprTrait<T>::Type;
-   using Type2 = InvExprTrait_<T>;
-   \endcode
-*/
-template< typename T >  // Type of the inversion operand
-using InvExprTrait_ = typename InvExprTrait<T>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

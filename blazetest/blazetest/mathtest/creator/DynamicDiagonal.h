@@ -43,7 +43,6 @@
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/DiagonalMatrix.h>
 #include <blazetest/mathtest/creator/Default.h>
-#include <blazetest/mathtest/creator/Policies.h>
 #include <blazetest/system/Types.h>
 
 
@@ -88,11 +87,7 @@ class Creator< blaze::DiagonalMatrix< blaze::DynamicMatrix<T,SO> > >
    /*!\name Operators */
    //@{
    // No explicitly declared copy assignment operator.
-
    const blaze::DiagonalMatrix< blaze::DynamicMatrix<T,SO> > operator()() const;
-
-   template< typename CP >
-   const blaze::DiagonalMatrix< blaze::DynamicMatrix<T,SO> > operator()( const CP& policy ) const;
    //@}
    //**********************************************************************************************
 
@@ -163,27 +158,10 @@ template< typename T  // Element type of the dynamic matrix
 inline const blaze::DiagonalMatrix< blaze::DynamicMatrix<T,SO> >
    Creator< blaze::DiagonalMatrix< blaze::DynamicMatrix<T,SO> > >::operator()() const
 {
-   return (*this)( Default() );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Returns a randomly created diagonal dynamic matrix.
-//
-// \param policy The creation policy for the elements of fundamental data type.
-// \return The randomly generated diagonal dynamic matrix.
-*/
-template< typename T     // Element type of the dynamic matrix
-        , bool SO >      // Storage order of the dynamic matrix
-template< typename CP >  // Creation policy
-inline const blaze::DiagonalMatrix< blaze::DynamicMatrix<T,SO> >
-   Creator< blaze::DiagonalMatrix< blaze::DynamicMatrix<T,SO> > >::operator()( const CP& policy ) const
-{
    blaze::DiagonalMatrix< blaze::DynamicMatrix<T,SO> > matrix( n_ );
 
    for( size_t i=0UL; i<n_; ++i )
-      matrix(i,i) = ec_( policy );
+      matrix(i,i) = ec_();
 
    return matrix;
 }

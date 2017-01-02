@@ -42,8 +42,10 @@
 
 #include <blaze/math/typetraits/IsUniLower.h>
 #include <blaze/math/typetraits/IsUniUpper.h>
+#include <blaze/util/FalseType.h>
 #include <blaze/util/mpl/And.h>
-#include <blaze/util/IntegralConstant.h>
+#include <blaze/util/mpl/If.h>
+#include <blaze/util/TrueType.h>
 
 
 namespace blaze {
@@ -60,9 +62,9 @@ namespace blaze {
 //
 // This type trait tests whether or not the given template parameter is an identity matrix type
 // (i.e. a matrix type that is guaranteed to be an identity matrix at compile time). In case the
-// type is an identity matrix type, the \a value member constant is set to \a true, the nested
-// type definition \a Type is \a TrueType, and the class derives from \a TrueType. Otherwise
-// \a value is set to \a false, \a Type is \a FalseType, and the class derives from \a FalseType.
+// type is an identity matrix type, the \a value member enumeration is set to 1, the nested type
+// definition \a Type is \a TrueType, and the class derives from \a TrueType. Otherwise \a value
+// is set to 0, \a Type is \a FalseType, and the class derives from \a FalseType.
 
    \code
    using blaze::rowMajor;
@@ -87,8 +89,16 @@ namespace blaze {
    \endcode
 */
 template< typename T >
-struct IsIdentity : public BoolConstant< And< IsUniLower<T>, IsUniUpper<T> >::value >
-{};
+struct IsIdentity : public If< And< IsUniLower<T>, IsUniUpper<T> >, TrueType, FalseType >::Type
+{
+ public:
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   enum { value = IsUniLower<T>::value && IsUniUpper<T>::value };
+   typedef typename If< And< IsUniLower<T>, IsUniUpper<T> >, TrueType, FalseType >::Type  Type;
+   /*! \endcond */
+   //**********************************************************************************************
+};
 //*************************************************************************************************
 
 
@@ -98,8 +108,14 @@ struct IsIdentity : public BoolConstant< And< IsUniLower<T>, IsUniUpper<T> >::va
 // \ingroup math_type_traits
 */
 template< typename T >
-struct IsIdentity< const T > : public IsIdentity<T>
-{};
+struct IsIdentity< const T > : public IsIdentity<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = IsIdentity<T>::value };
+   typedef typename IsIdentity<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -110,8 +126,14 @@ struct IsIdentity< const T > : public IsIdentity<T>
 // \ingroup math_type_traits
 */
 template< typename T >
-struct IsIdentity< volatile T > : public IsIdentity<T>
-{};
+struct IsIdentity< volatile T > : public IsIdentity<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = IsIdentity<T>::value };
+   typedef typename IsIdentity<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -122,8 +144,14 @@ struct IsIdentity< volatile T > : public IsIdentity<T>
 // \ingroup math_type_traits
 */
 template< typename T >
-struct IsIdentity< const volatile T > : public IsIdentity<T>
-{};
+struct IsIdentity< const volatile T > : public IsIdentity<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = IsIdentity<T>::value };
+   typedef typename IsIdentity<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 

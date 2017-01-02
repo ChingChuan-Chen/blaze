@@ -108,7 +108,7 @@ class TaskQueue
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-   inline void swap( TaskQueue& tq ) noexcept;
+   inline void swap( TaskQueue& tq ) /* throw() */;
    //@}
    //**********************************************************************************************
 
@@ -270,7 +270,7 @@ inline void TaskQueue::clear()
 // \return void
 // \exception no-throw guarantee.
 */
-inline void TaskQueue::swap( TaskQueue& tq ) noexcept
+inline void TaskQueue::swap( TaskQueue& tq ) /* throw() */
 {
    tasks_.swap( tq.tasks_ );
 }
@@ -288,7 +288,7 @@ inline void TaskQueue::swap( TaskQueue& tq ) noexcept
 //*************************************************************************************************
 /*!\name TaskQueue operators */
 //@{
-inline void swap( TaskQueue& a, TaskQueue& b ) noexcept;
+inline void swap( TaskQueue& a, TaskQueue& b ) /* throw() */;
 //@}
 //*************************************************************************************************
 
@@ -301,7 +301,7 @@ inline void swap( TaskQueue& a, TaskQueue& b ) noexcept;
 // \return void
 // \exception no-throw guarantee.
 */
-inline void swap( TaskQueue& a, TaskQueue& b ) noexcept
+inline void swap( TaskQueue& a, TaskQueue& b ) /* throw() */
 {
    a.swap( b );
 }

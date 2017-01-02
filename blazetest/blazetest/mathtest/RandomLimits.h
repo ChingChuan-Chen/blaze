@@ -78,8 +78,8 @@ struct RandomLimits
    //**Limit functions*****************************************************************************
    /*!\name Limit functions */
    //@{
-   static inline Type min() noexcept;
-   static inline Type max() noexcept;
+   static inline Type min();
+   static inline Type max();
    //@}
    //**********************************************************************************************
 
@@ -106,12 +106,12 @@ struct RandomLimits
 // \return The smallest allowed initialization value.
 */
 template< typename Type >
-inline Type RandomLimits<Type>::min() noexcept
+inline Type RandomLimits<Type>::min()
 {
-   if( blaze::IsFloatingPoint<Type>::value )
-      return Type(-1);
-   else if( blaze::IsSigned<Type>::value )
+   if( blaze::IsSigned<Type>::value )
       return Type(-10);
+   else if( blaze::IsFloatingPoint<Type>::value )
+      return Type(-1);
    else
       return Type(0);
 }
@@ -124,7 +124,7 @@ inline Type RandomLimits<Type>::min() noexcept
 // \return The largest allowed initialization value.
 */
 template< typename Type >
-inline Type RandomLimits<Type>::max() noexcept
+inline Type RandomLimits<Type>::max()
 {
    if( blaze::IsFloatingPoint<Type>::value )
       return Type(1);

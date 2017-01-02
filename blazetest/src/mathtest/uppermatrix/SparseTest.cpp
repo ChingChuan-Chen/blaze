@@ -39,11 +39,11 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <blaze/math/Column.h>
-#include <blaze/math/Row.h>
+#include <blaze/math/SparseColumn.h>
+#include <blaze/math/SparseRow.h>
+#include <blaze/math/SparseSubmatrix.h>
 #include <blaze/math/StaticMatrix.h>
 #include <blaze/math/StaticVector.h>
-#include <blaze/math/Submatrix.h>
 #include <blaze/util/Complex.h>
 #include <blazetest/mathtest/uppermatrix/SparseTest.h>
 
@@ -81,11 +81,11 @@ SparseTest::SparseTest()
    testSet();
    testInsert();
    testAppend();
+   testErase();
    testResize();
    testReserve();
    testTrim();
    testSwap();
-   testErase();
    testFind();
    testLowerBound();
    testUpperBound();
@@ -176,57 +176,6 @@ void SparseTest::testConstructors()
       upper1(2,2) =  3;
 
       const UT upper2( upper1 );
-
-      checkRows    ( upper2, 3UL );
-      checkColumns ( upper2, 3UL );
-      checkCapacity( upper2, 5UL );
-      checkNonZeros( upper2, 5UL );
-      checkNonZeros( upper2, 0UL, 3UL );
-      checkNonZeros( upper2, 1UL, 1UL );
-      checkNonZeros( upper2, 2UL, 1UL );
-
-      if( upper2(0,0) != 1 || upper2(0,1) != -4 || upper2(0,2) != 7 ||
-          upper2(1,0) != 0 || upper2(1,1) !=  2 || upper2(1,2) != 0 ||
-          upper2(2,0) != 0 || upper2(2,1) !=  0 || upper2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper2 << "\n"
-             << "   Expected result:\n( 1 -4  7 )\n( 0  2  0 )\n( 0  0  3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Row-major UpperMatrix move constructor (0x0)";
-
-      UT upper1;
-      UT upper2( std::move( upper1 ) );
-
-      checkRows    ( upper2, 0UL );
-      checkColumns ( upper2, 0UL );
-      checkNonZeros( upper2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Row-major UpperMatrix move constructor (3x3)";
-
-      UT upper1( 3UL );
-      upper1(0,0) =  1;
-      upper1(0,1) = -4;
-      upper1(0,2) =  7;
-      upper1(1,1) =  2;
-      upper1(2,2) =  3;
-
-      UT upper2( std::move( upper1 ) );
 
       checkRows    ( upper2, 3UL );
       checkColumns ( upper2, 3UL );
@@ -444,57 +393,6 @@ void SparseTest::testConstructors()
 
 
    //=====================================================================================
-   // Column-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Column-major UpperMatrix move constructor (0x0)";
-
-      OUT upper1;
-      OUT upper2( std::move( upper1 ) );
-
-      checkRows    ( upper2, 0UL );
-      checkColumns ( upper2, 0UL );
-      checkNonZeros( upper2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Column-major UpperMatrix move constructor (3x3)";
-
-      OUT upper1( 3UL );
-      upper1(0,0) =  1;
-      upper1(0,1) = -4;
-      upper1(0,2) =  7;
-      upper1(1,1) =  2;
-      upper1(2,2) =  3;
-
-      OUT upper2( std::move( upper1 ) );
-
-      checkRows    ( upper2, 3UL );
-      checkColumns ( upper2, 3UL );
-      checkCapacity( upper2, 5UL );
-      checkNonZeros( upper2, 5UL );
-      checkNonZeros( upper2, 0UL, 1UL );
-      checkNonZeros( upper2, 1UL, 2UL );
-      checkNonZeros( upper2, 2UL, 2UL );
-
-      if( upper2(0,0) != 1 || upper2(0,1) != -4 || upper2(0,2) != 7 ||
-          upper2(1,0) != 0 || upper2(1,1) !=  2 || upper2(1,2) != 0 ||
-          upper2(2,0) != 0 || upper2(2,1) !=  0 || upper2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper2 << "\n"
-             << "   Expected result:\n( 1 -4  7 )\n( 0  2  0 )\n( 0  0  3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major conversion constructor
    //=====================================================================================
 
@@ -648,59 +546,6 @@ void SparseTest::testAssignment()
 
       UT upper2;
       upper2 = upper1;
-
-      checkRows    ( upper2, 3UL );
-      checkColumns ( upper2, 3UL );
-      checkNonZeros( upper2, 5UL );
-      checkNonZeros( upper2, 0UL, 3UL );
-      checkNonZeros( upper2, 1UL, 1UL );
-      checkNonZeros( upper2, 2UL, 1UL );
-
-      if( upper2(0,0) != 1 || upper2(0,1) != -4 || upper2(0,2) != 7 ||
-          upper2(1,0) != 0 || upper2(1,1) !=  2 || upper2(1,2) != 0 ||
-          upper2(2,0) != 0 || upper2(2,1) !=  0 || upper2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper2 << "\n"
-             << "   Expected result:\n( 1 -4  7 )\n( 0  2  0 )\n( 0  0  3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Row-major UpperMatrix move assignment (0x0)";
-
-      UT upper1, upper2;
-
-      upper2 = std::move( upper1 );
-
-      checkRows    ( upper2, 0UL );
-      checkColumns ( upper2, 0UL );
-      checkNonZeros( upper2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Row-major UpperMatrix move assignment (3x3)";
-
-      UT upper1( 3UL );
-      upper1(0,0) =  1;
-      upper1(0,1) = -4;
-      upper1(0,2) =  7;
-      upper1(1,1) =  2;
-      upper1(1,2) =  0;
-      upper1(2,2) =  3;
-
-      UT upper2;
-      upper2 = std::move( upper1 );
 
       checkRows    ( upper2, 3UL );
       checkColumns ( upper2, 3UL );
@@ -1170,59 +1015,6 @@ void SparseTest::testAssignment()
 
       OUT upper2;
       upper2 = upper1;
-
-      checkRows    ( upper2, 3UL );
-      checkColumns ( upper2, 3UL );
-      checkNonZeros( upper2, 5UL );
-      checkNonZeros( upper2, 0UL, 1UL );
-      checkNonZeros( upper2, 1UL, 2UL );
-      checkNonZeros( upper2, 2UL, 2UL );
-
-      if( upper2(0,0) != 1 || upper2(0,1) != -4 || upper2(0,2) != 7 ||
-          upper2(1,0) != 0 || upper2(1,1) !=  2 || upper2(1,2) != 0 ||
-          upper2(2,0) != 0 || upper2(2,1) !=  0 || upper2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper2 << "\n"
-             << "   Expected result:\n( 1 -4  7 )\n( 0  2  0 )\n( 0  0  3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Column-major UpperMatrix move assignment (0x0)";
-
-      OUT upper1, upper2;
-
-      upper2 = std::move( upper1 );
-
-      checkRows    ( upper2, 0UL );
-      checkColumns ( upper2, 0UL );
-      checkNonZeros( upper2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Column-major UpperMatrix move assignment (3x3)";
-
-      OUT upper1( 3UL );
-      upper1(0,0) =  1;
-      upper1(0,1) = -4;
-      upper1(0,2) =  7;
-      upper1(1,1) =  2;
-      upper1(1,2) =  0;
-      upper1(2,2) =  3;
-
-      OUT upper2;
-      upper2 = std::move( upper1 );
 
       checkRows    ( upper2, 3UL );
       checkColumns ( upper2, 3UL );
@@ -7649,530 +7441,6 @@ void SparseTest::testAppend()
 
 
 //*************************************************************************************************
-/*!\brief Test of the \c resize() member function of the UpperMatrix specialization.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c resize() member function of the UpperMatrix
-// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void SparseTest::testResize()
-{
-   //=====================================================================================
-   // Row-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Row-major UpperMatrix::resize()";
-
-      // Initialization check
-      UT upper;
-
-      checkRows    ( upper, 0UL );
-      checkColumns ( upper, 0UL );
-      checkNonZeros( upper, 0UL );
-
-      // Resizing to 2x2
-      upper.resize( 2UL );
-
-      checkRows    ( upper, 2UL );
-      checkColumns ( upper, 2UL );
-      checkNonZeros( upper, 0UL );
-      checkNonZeros( upper, 0UL, 0UL );
-      checkNonZeros( upper, 1UL, 0UL );
-
-      // Resizing to 4x4 and preserving the elements
-      upper(0,0) = 1;
-      upper(0,1) = 2;
-      upper(1,1) = 3;
-      upper.resize( 4UL, true );
-
-      checkRows    ( upper, 4UL );
-      checkColumns ( upper, 4UL );
-      checkCapacity( upper, 3UL );
-      checkNonZeros( upper, 3UL );
-      checkNonZeros( upper, 0UL, 2UL );
-      checkNonZeros( upper, 1UL, 1UL );
-      checkNonZeros( upper, 2UL, 0UL );
-      checkNonZeros( upper, 3UL, 0UL );
-
-      // Resizing to 2x2
-      upper(2,2) = 4;
-      upper.resize( 2UL );
-
-      checkRows    ( upper, 2UL );
-      checkColumns ( upper, 2UL );
-      checkCapacity( upper, 3UL );
-      checkNonZeros( upper, 3UL );
-      checkNonZeros( upper, 0UL, 2UL );
-      checkNonZeros( upper, 1UL, 1UL );
-
-      // Resizing to 0x0
-      upper.resize( 0UL );
-
-      checkRows    ( upper, 0UL );
-      checkColumns ( upper, 0UL );
-      checkNonZeros( upper, 0UL );
-   }
-
-
-   //=====================================================================================
-   // Column-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Column-major UpperMatrix::resize()";
-
-      // Initialization check
-      OUT upper;
-
-      checkRows    ( upper, 0UL );
-      checkColumns ( upper, 0UL );
-      checkNonZeros( upper, 0UL );
-
-      // Resizing to 2x2
-      upper.resize( 2UL );
-
-      checkRows    ( upper, 2UL );
-      checkColumns ( upper, 2UL );
-      checkNonZeros( upper, 0UL );
-      checkNonZeros( upper, 0UL, 0UL );
-      checkNonZeros( upper, 1UL, 0UL );
-
-      // Resizing to 4x4 and preserving the elements
-      upper(0,0) = 1;
-      upper(0,1) = 2;
-      upper(1,1) = 3;
-      upper.resize( 4UL, true );
-
-      checkRows    ( upper,  4UL );
-      checkColumns ( upper,  4UL );
-      checkCapacity( upper, 3UL );
-      checkNonZeros( upper, 3UL );
-      checkNonZeros( upper, 0UL, 1UL );
-      checkNonZeros( upper, 1UL, 2UL );
-      checkNonZeros( upper, 2UL, 0UL );
-      checkNonZeros( upper, 3UL, 0UL );
-
-      // Resizing to 2x2
-      upper(2,2) = 4;
-      upper.resize( 2UL );
-
-      checkRows    ( upper, 2UL );
-      checkColumns ( upper, 2UL );
-      checkCapacity( upper, 4UL );
-      checkNonZeros( upper, 3UL );
-      checkNonZeros( upper, 0UL, 1UL );
-      checkNonZeros( upper, 1UL, 2UL );
-
-      // Resizing to 0x0
-      upper.resize( 0UL );
-
-      checkRows    ( upper, 0UL );
-      checkColumns ( upper, 0UL );
-      checkNonZeros( upper, 0UL );
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Test of the \c reserve() member function of the UpperMatrix specialization.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c reserve() member function of the UpperMatrix
-// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void SparseTest::testReserve()
-{
-   //=====================================================================================
-   // Row-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Row-major UpperMatrix::reserve()";
-
-      // Initialization check
-      UT upper;
-
-      checkRows    ( upper, 0UL );
-      checkColumns ( upper, 0UL );
-      checkNonZeros( upper, 0UL );
-
-      // Increasing the capacity of the matrix
-      upper.reserve( 10UL );
-
-      checkRows    ( upper,  0UL );
-      checkColumns ( upper,  0UL );
-      checkCapacity( upper, 10UL );
-      checkNonZeros( upper,  0UL );
-
-      // Further increasing the capacity of the matrix
-      upper.reserve( 20UL );
-
-      checkRows    ( upper,  0UL );
-      checkColumns ( upper,  0UL );
-      checkCapacity( upper, 20UL );
-      checkNonZeros( upper,  0UL );
-   }
-
-
-   //=====================================================================================
-   // Column-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Column-major UpperMatrix::reserve()";
-
-      // Initialization check
-      OUT upper;
-
-      checkRows    ( upper, 0UL );
-      checkColumns ( upper, 0UL );
-      checkNonZeros( upper, 0UL );
-
-      // Increasing the capacity of the matrix
-      upper.reserve( 10UL );
-
-      checkRows    ( upper,  0UL );
-      checkColumns ( upper,  0UL );
-      checkCapacity( upper, 10UL );
-      checkNonZeros( upper,  0UL );
-
-      // Further increasing the capacity of the matrix
-      upper.reserve( 20UL );
-
-      checkRows    ( upper,  0UL );
-      checkColumns ( upper,  0UL );
-      checkCapacity( upper, 20UL );
-      checkNonZeros( upper,  0UL );
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Test of the \c trim() member function of the UpperMatrix specialization.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c trim() member function of the UpperMatrix
-// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void SparseTest::testTrim()
-{
-   //=====================================================================================
-   // Row-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Row-major UpperMatrix::trim()";
-
-      // Initialization check
-      UT upper( 3UL );
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkNonZeros( upper, 0UL );
-
-      // Increasing the row capacity of the matrix
-      upper.reserve( 0UL, 10UL );
-      upper.reserve( 1UL, 15UL );
-      upper.reserve( 2UL, 20UL );
-
-      checkRows    ( upper,  3UL );
-      checkColumns ( upper,  3UL );
-      checkCapacity( upper, 45UL );
-      checkCapacity( upper,  0UL, 10UL );
-      checkCapacity( upper,  1UL, 15UL );
-      checkCapacity( upper,  2UL, 20UL );
-
-      // Trimming the matrix
-      upper.trim();
-
-      checkRows    ( upper,  3UL );
-      checkColumns ( upper,  3UL );
-      checkCapacity( upper, 45UL );
-      checkCapacity( upper,  0UL, 0UL );
-      checkCapacity( upper,  1UL, 0UL );
-      checkCapacity( upper,  2UL, 0UL );
-   }
-
-   {
-      test_ = "Row-major UpperMatrix::trim( size_t )";
-
-      // Initialization check
-      UT upper( 3UL, 3UL );
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkNonZeros( upper, 0UL );
-
-      // Increasing the row capacity of the matrix
-      upper.reserve( 0UL, 10UL );
-      upper.reserve( 1UL, 15UL );
-      upper.reserve( 2UL, 20UL );
-
-      checkRows    ( upper,  3UL );
-      checkColumns ( upper,  3UL );
-      checkCapacity( upper, 45UL );
-      checkCapacity( upper,  0UL, 10UL );
-      checkCapacity( upper,  1UL, 15UL );
-      checkCapacity( upper,  2UL, 20UL );
-
-      // Trimming the 0th row
-      upper.trim( 0UL );
-
-      checkRows    ( upper,  3UL );
-      checkColumns ( upper,  3UL );
-      checkCapacity( upper, 45UL );
-      checkCapacity( upper,  0UL,  0UL );
-      checkCapacity( upper,  1UL, 25UL );
-      checkCapacity( upper,  2UL, 20UL );
-
-      // Trimming the 1st row
-      upper.trim( 1UL );
-
-      checkRows    ( upper,  3UL );
-      checkColumns ( upper,  3UL );
-      checkCapacity( upper, 45UL );
-      checkCapacity( upper,  0UL,  0UL );
-      checkCapacity( upper,  1UL,  0UL );
-      checkCapacity( upper,  2UL, 45UL );
-
-      // Trimming the 2nd row
-      upper.trim( 2UL );
-
-      checkRows    ( upper,  3UL );
-      checkColumns ( upper,  3UL );
-      checkCapacity( upper, 45UL );
-      checkCapacity( upper,  0UL, 0UL );
-      checkCapacity( upper,  1UL, 0UL );
-      checkCapacity( upper,  2UL, 0UL );
-   }
-
-
-   //=====================================================================================
-   // Column-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Column-major UpperMatrix::trim()";
-
-      // Initialization check
-      OUT upper( 3UL );
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkNonZeros( upper, 0UL );
-
-      // Increasing the row capacity of the matrix
-      upper.reserve( 0UL, 10UL );
-      upper.reserve( 1UL, 15UL );
-      upper.reserve( 2UL, 20UL );
-
-      checkRows    ( upper,  3UL );
-      checkColumns ( upper,  3UL );
-      checkCapacity( upper, 45UL );
-      checkCapacity( upper,  0UL, 10UL );
-      checkCapacity( upper,  1UL, 15UL );
-      checkCapacity( upper,  2UL, 20UL );
-
-      // Trimming the matrix
-      upper.trim();
-
-      checkRows    ( upper,  3UL );
-      checkColumns ( upper,  3UL );
-      checkCapacity( upper, 45UL );
-      checkCapacity( upper,  0UL, 0UL );
-      checkCapacity( upper,  1UL, 0UL );
-      checkCapacity( upper,  2UL, 0UL );
-   }
-
-   {
-      test_ = "Column-major UpperMatrix::trim( size_t )";
-
-      // Initialization check
-      OUT upper( 3UL, 3UL );
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkNonZeros( upper, 0UL );
-
-      // Increasing the column capacity of the matrix
-      upper.reserve( 0UL, 10UL );
-      upper.reserve( 1UL, 15UL );
-      upper.reserve( 2UL, 20UL );
-
-      checkRows    ( upper,  3UL );
-      checkColumns ( upper,  3UL );
-      checkCapacity( upper, 45UL );
-      checkCapacity( upper,  0UL, 10UL );
-      checkCapacity( upper,  1UL, 15UL );
-      checkCapacity( upper,  2UL, 20UL );
-
-      // Trimming the 0th column
-      upper.trim( 0UL );
-
-      checkRows    ( upper,  3UL );
-      checkColumns ( upper,  3UL );
-      checkCapacity( upper, 45UL );
-      checkCapacity( upper,  0UL,  0UL );
-      checkCapacity( upper,  1UL, 25UL );
-      checkCapacity( upper,  2UL, 20UL );
-
-      // Trimming the 1st column
-      upper.trim( 1UL );
-
-      checkRows    ( upper,  3UL );
-      checkColumns ( upper,  3UL );
-      checkCapacity( upper, 45UL );
-      checkCapacity( upper,  0UL,  0UL );
-      checkCapacity( upper,  1UL,  0UL );
-      checkCapacity( upper,  2UL, 45UL );
-
-      // Trimming the 2nd column
-      upper.trim( 2UL );
-
-      checkRows    ( upper,  3UL );
-      checkColumns ( upper,  3UL );
-      checkCapacity( upper, 45UL );
-      checkCapacity( upper,  0UL, 0UL );
-      checkCapacity( upper,  1UL, 0UL );
-      checkCapacity( upper,  2UL, 0UL );
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Test of the \c swap() functionality of the UpperMatrix specialization.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c swap() function of the UpperMatrix specialization.
-// In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void SparseTest::testSwap()
-{
-   //=====================================================================================
-   // Row-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Row-major UpperMatrix swap";
-
-      UT upper1( 2UL );
-      upper1(0,0) = 1;
-      upper1(0,1) = 2;
-      upper1(1,1) = 3;
-
-      UT upper2( 2UL );
-      upper2(0,0) = 4;
-      upper2(0,1) = 5;
-      upper2(1,1) = 0;
-
-      swap( upper1, upper2 );
-
-      checkRows    ( upper1, 2UL );
-      checkColumns ( upper1, 2UL );
-      checkCapacity( upper1, 2UL );
-      checkNonZeros( upper1, 2UL );
-      checkNonZeros( upper1, 0UL, 2UL );
-      checkNonZeros( upper1, 1UL, 0UL );
-
-      if( upper1(0,0) != 4 || upper1(0,1) != 5 || upper1(1,0) != 0 || upper1(1,1) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Swapping the first matrix failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper1 << "\n"
-             << "   Expected result:\n( 4 5 )\n( 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      checkRows    ( upper2, 2UL );
-      checkColumns ( upper2, 2UL );
-      checkCapacity( upper2, 4UL );
-      checkNonZeros( upper2, 3UL );
-      checkNonZeros( upper2, 0UL, 2UL );
-      checkNonZeros( upper2, 1UL, 1UL );
-
-      if( upper2(0,0) != 1 || upper2(0,1) != 2 || upper2(1,0) != 0 || upper2(1,1) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Swapping the second matrix failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper2 << "\n"
-             << "   Expected result:\n( 1 2 )\n( 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Column-major UpperMatrix swap";
-
-      OUT upper1( 2UL );
-      upper1(0,0) = 1;
-      upper1(0,1) = 2;
-      upper1(1,1) = 3;
-
-      OUT upper2( 2UL );
-      upper2(0,0) = 4;
-      upper2(0,1) = 5;
-      upper2(1,1) = 0;
-
-      swap( upper1, upper2 );
-
-      checkRows    ( upper1, 2UL );
-      checkColumns ( upper1, 2UL );
-      checkCapacity( upper1, 2UL );
-      checkNonZeros( upper1, 2UL );
-      checkNonZeros( upper1, 0UL, 1UL );
-      checkNonZeros( upper1, 1UL, 1UL );
-
-      if( upper1(0,0) != 4 || upper1(0,1) != 5 || upper1(1,0) != 0 || upper1(1,1) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Swapping the first matrix failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper1 << "\n"
-             << "   Expected result:\n( 4 5 )\n( 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      checkRows    ( upper2, 2UL );
-      checkColumns ( upper2, 2UL );
-      checkCapacity( upper2, 4UL );
-      checkNonZeros( upper2, 3UL );
-      checkNonZeros( upper2, 0UL, 1UL );
-      checkNonZeros( upper2, 1UL, 2UL );
-
-      if( upper2(0,0) != 1 || upper2(0,1) != 2 || upper2(1,0) != 0 || upper2(1,1) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Swapping the second matrix failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper2 << "\n"
-             << "   Expected result:\n( 1 2 )\n( 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
 /*!\brief Test of the \c erase() member function of the UpperMatrix specialization.
 //
 // \return void
@@ -8717,191 +7985,6 @@ void SparseTest::testErase()
 
 
    //=====================================================================================
-   // Row-major erase function with predicate
-   //=====================================================================================
-
-   {
-      test_ = "Row-major UpperMatrix::erase( Predicate )";
-
-      // Initialization check
-      UT upper( 4UL, 8UL );
-      upper(0,0) = 1;
-      upper(0,2) = 2;
-      upper(0,3) = 3;
-      upper(1,2) = 4;
-      upper(1,3) = 5;
-      upper(2,2) = 6;
-      upper(2,3) = 7;
-      upper(3,3) = 8;
-
-      checkRows    ( upper, 4UL );
-      checkColumns ( upper, 4UL );
-      checkCapacity( upper, 8UL );
-      checkNonZeros( upper, 8UL );
-      checkNonZeros( upper, 0UL, 3UL );
-      checkNonZeros( upper, 1UL, 2UL );
-      checkNonZeros( upper, 2UL, 2UL );
-      checkNonZeros( upper, 3UL, 1UL );
-
-      if( upper(0,0) != 1 || upper(0,2) != 2 || upper(0,3) != 3 ||
-          upper(1,2) != 4 || upper(1,3) != 5 ||
-          upper(2,2) != 6 || upper(2,3) != 7 ||
-          upper(3,3) != 8 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 1 0 2 3 )\n( 0 0 4 5 )\n( 0 0 6 7 )\n( 0 0 0 8 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing a selection of elements
-      upper.erase( []( int value ){ return value == 1 || value == 4 || value == 7; } );
-
-      checkRows    ( upper, 4UL );
-      checkColumns ( upper, 4UL );
-      checkCapacity( upper, 8UL );
-      checkNonZeros( upper, 5UL );
-      checkNonZeros( upper, 0UL, 2UL );
-      checkNonZeros( upper, 1UL, 1UL );
-      checkNonZeros( upper, 2UL, 1UL );
-      checkNonZeros( upper, 3UL, 1UL );
-
-      if( upper(0,2) != 2 || upper(0,3) != 3 ||
-          upper(1,3) != 5 ||
-          upper(2,2) != 6 ||
-          upper(3,3) != 8 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 0 2 3 )\n( 0 0 0 5 )\n( 0 0 6 0 )\n( 0 0 0 8 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase all elements with value 1
-      upper.erase( []( int value ){ return value == 1; } );
-
-      checkRows    ( upper, 4UL );
-      checkColumns ( upper, 4UL );
-      checkCapacity( upper, 8UL );
-      checkNonZeros( upper, 5UL );
-      checkNonZeros( upper, 0UL, 2UL );
-      checkNonZeros( upper, 1UL, 1UL );
-      checkNonZeros( upper, 2UL, 1UL );
-      checkNonZeros( upper, 3UL, 1UL );
-
-      if( upper(0,2) != 2 || upper(0,3) != 3 ||
-          upper(1,3) != 5 ||
-          upper(2,2) != 6 ||
-          upper(3,3) != 8 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing all element with value 1 failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 0 2 3 )\n( 0 0 0 5 )\n( 0 0 6 0 )\n( 0 0 0 8 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major iterator-range-based erase function with predicate
-   //=====================================================================================
-
-   {
-      test_ = "Row-major UpperMatrix::erase( size_t, Iterator, Iterator, Predicate )";
-
-      // Initialization check
-      UT upper( 4UL, 8UL );
-      upper(0,0) = 1;
-      upper(0,2) = 2;
-      upper(0,3) = 3;
-      upper(1,2) = 4;
-      upper(1,3) = 5;
-      upper(2,2) = 6;
-      upper(2,3) = 7;
-      upper(3,3) = 8;
-
-      checkRows    ( upper, 4UL );
-      checkColumns ( upper, 4UL );
-      checkCapacity( upper, 8UL );
-      checkNonZeros( upper, 8UL );
-      checkNonZeros( upper, 0UL, 3UL );
-      checkNonZeros( upper, 1UL, 2UL );
-      checkNonZeros( upper, 2UL, 2UL );
-      checkNonZeros( upper, 3UL, 1UL );
-
-      if( upper(0,0) != 1 || upper(0,2) != 2 || upper(0,3) != 3 ||
-          upper(1,2) != 4 || upper(1,3) != 5 ||
-          upper(2,2) != 6 || upper(2,3) != 7 ||
-          upper(3,3) != 8 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 1 0 2 3 )\n( 0 0 4 5 )\n( 0 0 6 7 )\n( 0 0 0 8 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing a selection of elements
-      upper.erase( 0UL, upper.begin( 0UL ), upper.find( 0UL, 3UL ),
-                   []( int value ){ return value == 1 || value == 2; } );
-
-      checkRows    ( upper, 4UL );
-      checkColumns ( upper, 4UL );
-      checkCapacity( upper, 8UL );
-      checkNonZeros( upper, 6UL );
-      checkNonZeros( upper, 0UL, 1UL );
-      checkNonZeros( upper, 1UL, 2UL );
-      checkNonZeros( upper, 2UL, 2UL );
-      checkNonZeros( upper, 3UL, 1UL );
-
-      if( upper(0,3) != 3 ||
-          upper(1,2) != 4 || upper(1,3) != 5 ||
-          upper(2,2) != 6 || upper(2,3) != 7 ||
-          upper(3,3) != 8 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 0 0 3 )\n( 0 0 4 5 )\n( 0 0 6 7 )\n( 0 0 0 8 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase from an empty range
-      upper.erase( 0UL, upper.begin( 0UL ), upper.begin( 0UL ), []( int ){ return true; } );
-
-      checkRows    ( upper, 4UL );
-      checkColumns ( upper, 4UL );
-      checkCapacity( upper, 8UL );
-      checkNonZeros( upper, 6UL );
-      checkNonZeros( upper, 0UL, 1UL );
-      checkNonZeros( upper, 1UL, 2UL );
-      checkNonZeros( upper, 2UL, 2UL );
-      checkNonZeros( upper, 3UL, 1UL );
-
-      if( upper(0,3) != 3 ||
-          upper(1,2) != 4 || upper(1,3) != 5 ||
-          upper(2,2) != 6 || upper(2,3) != 7 ||
-          upper(3,3) != 8 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing from an empty range failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 0 0 3 )\n( 0 0 4 5 )\n( 0 0 6 7 )\n( 0 0 0 8 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major index-based erase function
    //=====================================================================================
 
@@ -9417,188 +8500,527 @@ void SparseTest::testErase()
          }
       }
    }
+}
+//*************************************************************************************************
 
 
+//*************************************************************************************************
+/*!\brief Test of the \c resize() member function of the UpperMatrix specialization.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c resize() member function of the UpperMatrix
+// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void SparseTest::testResize()
+{
    //=====================================================================================
-   // Column-major erase function with predicate
+   // Row-major matrix tests
    //=====================================================================================
 
    {
-      test_ = "Column-major UpperMatrix::erase( Predicate )";
+      test_ = "Row-major UpperMatrix::resize()";
 
       // Initialization check
-      OUT upper( 4UL, 8UL );
+      UT upper;
+
+      checkRows    ( upper, 0UL );
+      checkColumns ( upper, 0UL );
+      checkNonZeros( upper, 0UL );
+
+      // Resizing to 2x2
+      upper.resize( 2UL );
+
+      checkRows    ( upper, 2UL );
+      checkColumns ( upper, 2UL );
+      checkNonZeros( upper, 0UL );
+      checkNonZeros( upper, 0UL, 0UL );
+      checkNonZeros( upper, 1UL, 0UL );
+
+      // Resizing to 4x4 and preserving the elements
       upper(0,0) = 1;
-      upper(0,2) = 2;
-      upper(0,3) = 3;
-      upper(1,2) = 4;
-      upper(1,3) = 5;
-      upper(2,2) = 6;
-      upper(2,3) = 7;
-      upper(3,3) = 8;
+      upper(0,1) = 2;
+      upper(1,1) = 3;
+      upper.resize( 4UL, true );
 
       checkRows    ( upper, 4UL );
       checkColumns ( upper, 4UL );
-      checkCapacity( upper, 8UL );
-      checkNonZeros( upper, 8UL );
+      checkCapacity( upper, 3UL );
+      checkNonZeros( upper, 3UL );
+      checkNonZeros( upper, 0UL, 2UL );
+      checkNonZeros( upper, 1UL, 1UL );
+      checkNonZeros( upper, 2UL, 0UL );
+      checkNonZeros( upper, 3UL, 0UL );
+
+      // Resizing to 2x2
+      upper(2,2) = 4;
+      upper.resize( 2UL );
+
+      checkRows    ( upper, 2UL );
+      checkColumns ( upper, 2UL );
+      checkCapacity( upper, 3UL );
+      checkNonZeros( upper, 3UL );
+      checkNonZeros( upper, 0UL, 2UL );
+      checkNonZeros( upper, 1UL, 1UL );
+
+      // Resizing to 0x0
+      upper.resize( 0UL );
+
+      checkRows    ( upper, 0UL );
+      checkColumns ( upper, 0UL );
+      checkNonZeros( upper, 0UL );
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Column-major UpperMatrix::resize()";
+
+      // Initialization check
+      OUT upper;
+
+      checkRows    ( upper, 0UL );
+      checkColumns ( upper, 0UL );
+      checkNonZeros( upper, 0UL );
+
+      // Resizing to 2x2
+      upper.resize( 2UL );
+
+      checkRows    ( upper, 2UL );
+      checkColumns ( upper, 2UL );
+      checkNonZeros( upper, 0UL );
+      checkNonZeros( upper, 0UL, 0UL );
+      checkNonZeros( upper, 1UL, 0UL );
+
+      // Resizing to 4x4 and preserving the elements
+      upper(0,0) = 1;
+      upper(0,1) = 2;
+      upper(1,1) = 3;
+      upper.resize( 4UL, true );
+
+      checkRows    ( upper,  4UL );
+      checkColumns ( upper,  4UL );
+      checkCapacity( upper, 3UL );
+      checkNonZeros( upper, 3UL );
       checkNonZeros( upper, 0UL, 1UL );
-      checkNonZeros( upper, 1UL, 0UL );
-      checkNonZeros( upper, 2UL, 3UL );
-      checkNonZeros( upper, 3UL, 4UL );
+      checkNonZeros( upper, 1UL, 2UL );
+      checkNonZeros( upper, 2UL, 0UL );
+      checkNonZeros( upper, 3UL, 0UL );
 
-      if( upper(0,0) != 1 || upper(0,2) != 2 || upper(0,3) != 3 ||
-          upper(1,2) != 4 || upper(1,3) != 5 ||
-          upper(2,2) != 6 || upper(2,3) != 7 ||
-          upper(3,3) != 8 ) {
+      // Resizing to 2x2
+      upper(2,2) = 4;
+      upper.resize( 2UL );
+
+      checkRows    ( upper, 2UL );
+      checkColumns ( upper, 2UL );
+      checkCapacity( upper, 4UL );
+      checkNonZeros( upper, 3UL );
+      checkNonZeros( upper, 0UL, 1UL );
+      checkNonZeros( upper, 1UL, 2UL );
+
+      // Resizing to 0x0
+      upper.resize( 0UL );
+
+      checkRows    ( upper, 0UL );
+      checkColumns ( upper, 0UL );
+      checkNonZeros( upper, 0UL );
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the \c reserve() member function of the UpperMatrix specialization.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c reserve() member function of the UpperMatrix
+// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void SparseTest::testReserve()
+{
+   //=====================================================================================
+   // Row-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Row-major UpperMatrix::reserve()";
+
+      // Initialization check
+      UT upper;
+
+      checkRows    ( upper, 0UL );
+      checkColumns ( upper, 0UL );
+      checkNonZeros( upper, 0UL );
+
+      // Increasing the capacity of the matrix
+      upper.reserve( 10UL );
+
+      checkRows    ( upper,  0UL );
+      checkColumns ( upper,  0UL );
+      checkCapacity( upper, 10UL );
+      checkNonZeros( upper,  0UL );
+
+      // Further increasing the capacity of the matrix
+      upper.reserve( 20UL );
+
+      checkRows    ( upper,  0UL );
+      checkColumns ( upper,  0UL );
+      checkCapacity( upper, 20UL );
+      checkNonZeros( upper,  0UL );
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Column-major UpperMatrix::reserve()";
+
+      // Initialization check
+      OUT upper;
+
+      checkRows    ( upper, 0UL );
+      checkColumns ( upper, 0UL );
+      checkNonZeros( upper, 0UL );
+
+      // Increasing the capacity of the matrix
+      upper.reserve( 10UL );
+
+      checkRows    ( upper,  0UL );
+      checkColumns ( upper,  0UL );
+      checkCapacity( upper, 10UL );
+      checkNonZeros( upper,  0UL );
+
+      // Further increasing the capacity of the matrix
+      upper.reserve( 20UL );
+
+      checkRows    ( upper,  0UL );
+      checkColumns ( upper,  0UL );
+      checkCapacity( upper, 20UL );
+      checkNonZeros( upper,  0UL );
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the \c trim() member function of the UpperMatrix specialization.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c trim() member function of the UpperMatrix
+// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void SparseTest::testTrim()
+{
+   //=====================================================================================
+   // Row-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Row-major UpperMatrix::trim()";
+
+      // Initialization check
+      UT upper( 3UL );
+
+      checkRows    ( upper, 3UL );
+      checkColumns ( upper, 3UL );
+      checkNonZeros( upper, 0UL );
+
+      // Increasing the row capacity of the matrix
+      upper.reserve( 0UL, 10UL );
+      upper.reserve( 1UL, 15UL );
+      upper.reserve( 2UL, 20UL );
+
+      checkRows    ( upper,  3UL );
+      checkColumns ( upper,  3UL );
+      checkCapacity( upper, 45UL );
+      checkCapacity( upper,  0UL, 10UL );
+      checkCapacity( upper,  1UL, 15UL );
+      checkCapacity( upper,  2UL, 20UL );
+
+      // Trimming the matrix
+      upper.trim();
+
+      checkRows    ( upper,  3UL );
+      checkColumns ( upper,  3UL );
+      checkCapacity( upper, 45UL );
+      checkCapacity( upper,  0UL, 0UL );
+      checkCapacity( upper,  1UL, 0UL );
+      checkCapacity( upper,  2UL, 0UL );
+   }
+
+   {
+      test_ = "Row-major UpperMatrix::trim( size_t )";
+
+      // Initialization check
+      UT upper( 3UL, 3UL );
+
+      checkRows    ( upper, 3UL );
+      checkColumns ( upper, 3UL );
+      checkNonZeros( upper, 0UL );
+
+      // Increasing the row capacity of the matrix
+      upper.reserve( 0UL, 10UL );
+      upper.reserve( 1UL, 15UL );
+      upper.reserve( 2UL, 20UL );
+
+      checkRows    ( upper,  3UL );
+      checkColumns ( upper,  3UL );
+      checkCapacity( upper, 45UL );
+      checkCapacity( upper,  0UL, 10UL );
+      checkCapacity( upper,  1UL, 15UL );
+      checkCapacity( upper,  2UL, 20UL );
+
+      // Trimming the 0th row
+      upper.trim( 0UL );
+
+      checkRows    ( upper,  3UL );
+      checkColumns ( upper,  3UL );
+      checkCapacity( upper, 45UL );
+      checkCapacity( upper,  0UL,  0UL );
+      checkCapacity( upper,  1UL, 25UL );
+      checkCapacity( upper,  2UL, 20UL );
+
+      // Trimming the 1st row
+      upper.trim( 1UL );
+
+      checkRows    ( upper,  3UL );
+      checkColumns ( upper,  3UL );
+      checkCapacity( upper, 45UL );
+      checkCapacity( upper,  0UL,  0UL );
+      checkCapacity( upper,  1UL,  0UL );
+      checkCapacity( upper,  2UL, 45UL );
+
+      // Trimming the 2nd row
+      upper.trim( 2UL );
+
+      checkRows    ( upper,  3UL );
+      checkColumns ( upper,  3UL );
+      checkCapacity( upper, 45UL );
+      checkCapacity( upper,  0UL, 0UL );
+      checkCapacity( upper,  1UL, 0UL );
+      checkCapacity( upper,  2UL, 0UL );
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Column-major UpperMatrix::trim()";
+
+      // Initialization check
+      OUT upper( 3UL );
+
+      checkRows    ( upper, 3UL );
+      checkColumns ( upper, 3UL );
+      checkNonZeros( upper, 0UL );
+
+      // Increasing the row capacity of the matrix
+      upper.reserve( 0UL, 10UL );
+      upper.reserve( 1UL, 15UL );
+      upper.reserve( 2UL, 20UL );
+
+      checkRows    ( upper,  3UL );
+      checkColumns ( upper,  3UL );
+      checkCapacity( upper, 45UL );
+      checkCapacity( upper,  0UL, 10UL );
+      checkCapacity( upper,  1UL, 15UL );
+      checkCapacity( upper,  2UL, 20UL );
+
+      // Trimming the matrix
+      upper.trim();
+
+      checkRows    ( upper,  3UL );
+      checkColumns ( upper,  3UL );
+      checkCapacity( upper, 45UL );
+      checkCapacity( upper,  0UL, 0UL );
+      checkCapacity( upper,  1UL, 0UL );
+      checkCapacity( upper,  2UL, 0UL );
+   }
+
+   {
+      test_ = "Column-major UpperMatrix::trim( size_t )";
+
+      // Initialization check
+      OUT upper( 3UL, 3UL );
+
+      checkRows    ( upper, 3UL );
+      checkColumns ( upper, 3UL );
+      checkNonZeros( upper, 0UL );
+
+      // Increasing the column capacity of the matrix
+      upper.reserve( 0UL, 10UL );
+      upper.reserve( 1UL, 15UL );
+      upper.reserve( 2UL, 20UL );
+
+      checkRows    ( upper,  3UL );
+      checkColumns ( upper,  3UL );
+      checkCapacity( upper, 45UL );
+      checkCapacity( upper,  0UL, 10UL );
+      checkCapacity( upper,  1UL, 15UL );
+      checkCapacity( upper,  2UL, 20UL );
+
+      // Trimming the 0th column
+      upper.trim( 0UL );
+
+      checkRows    ( upper,  3UL );
+      checkColumns ( upper,  3UL );
+      checkCapacity( upper, 45UL );
+      checkCapacity( upper,  0UL,  0UL );
+      checkCapacity( upper,  1UL, 25UL );
+      checkCapacity( upper,  2UL, 20UL );
+
+      // Trimming the 1st column
+      upper.trim( 1UL );
+
+      checkRows    ( upper,  3UL );
+      checkColumns ( upper,  3UL );
+      checkCapacity( upper, 45UL );
+      checkCapacity( upper,  0UL,  0UL );
+      checkCapacity( upper,  1UL,  0UL );
+      checkCapacity( upper,  2UL, 45UL );
+
+      // Trimming the 2nd column
+      upper.trim( 2UL );
+
+      checkRows    ( upper,  3UL );
+      checkColumns ( upper,  3UL );
+      checkCapacity( upper, 45UL );
+      checkCapacity( upper,  0UL, 0UL );
+      checkCapacity( upper,  1UL, 0UL );
+      checkCapacity( upper,  2UL, 0UL );
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the \c swap() functionality of the UpperMatrix specialization.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c swap() function of the UpperMatrix specialization.
+// In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void SparseTest::testSwap()
+{
+   //=====================================================================================
+   // Row-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Row-major UpperMatrix swap";
+
+      UT upper1( 2UL );
+      upper1(0,0) = 1;
+      upper1(0,1) = 2;
+      upper1(1,1) = 3;
+
+      UT upper2( 2UL );
+      upper2(0,0) = 4;
+      upper2(0,1) = 5;
+      upper2(1,1) = 0;
+
+      swap( upper1, upper2 );
+
+      checkRows    ( upper1, 2UL );
+      checkColumns ( upper1, 2UL );
+      checkCapacity( upper1, 2UL );
+      checkNonZeros( upper1, 2UL );
+      checkNonZeros( upper1, 0UL, 2UL );
+      checkNonZeros( upper1, 1UL, 0UL );
+
+      if( upper1(0,0) != 4 || upper1(0,1) != 5 || upper1(1,0) != 0 || upper1(1,1) != 0 ) {
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
+             << " Error: Swapping the first matrix failed\n"
              << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 1 0 2 3 )\n( 0 0 4 5 )\n( 0 0 6 7 )\n( 0 0 0 8 )\n";
+             << "   Result:\n" << upper1 << "\n"
+             << "   Expected result:\n( 4 5 )\n( 0 0 )\n";
          throw std::runtime_error( oss.str() );
       }
 
-      // Erasing a selection of elements
-      upper.erase( []( int value ){ return value == 1 || value == 4 || value == 7; } );
+      checkRows    ( upper2, 2UL );
+      checkColumns ( upper2, 2UL );
+      checkCapacity( upper2, 4UL );
+      checkNonZeros( upper2, 3UL );
+      checkNonZeros( upper2, 0UL, 2UL );
+      checkNonZeros( upper2, 1UL, 1UL );
 
-      checkRows    ( upper, 4UL );
-      checkColumns ( upper, 4UL );
-      checkCapacity( upper, 8UL );
-      checkNonZeros( upper, 5UL );
-      checkNonZeros( upper, 0UL, 0UL );
-      checkNonZeros( upper, 1UL, 0UL );
-      checkNonZeros( upper, 2UL, 2UL );
-      checkNonZeros( upper, 3UL, 3UL );
-
-      if( upper(0,2) != 2 || upper(0,3) != 3 ||
-          upper(1,3) != 5 ||
-          upper(2,2) != 6 ||
-          upper(3,3) != 8 ) {
+      if( upper2(0,0) != 1 || upper2(0,1) != 2 || upper2(1,0) != 0 || upper2(1,1) != 3 ) {
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
+             << " Error: Swapping the second matrix failed\n"
              << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 0 2 3 )\n( 0 0 0 5 )\n( 0 0 6 0 )\n( 0 0 0 8 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase all elements with value 1
-      upper.erase( []( int value ){ return value == 1; } );
-
-      checkRows    ( upper, 4UL );
-      checkColumns ( upper, 4UL );
-      checkCapacity( upper, 8UL );
-      checkNonZeros( upper, 5UL );
-      checkNonZeros( upper, 0UL, 0UL );
-      checkNonZeros( upper, 1UL, 0UL );
-      checkNonZeros( upper, 2UL, 2UL );
-      checkNonZeros( upper, 3UL, 3UL );
-
-      if( upper(0,2) != 2 || upper(0,3) != 3 ||
-          upper(1,3) != 5 ||
-          upper(2,2) != 6 ||
-          upper(3,3) != 8 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing all element with value 1 failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 0 2 3 )\n( 0 0 0 5 )\n( 0 0 6 0 )\n( 0 0 0 8 )\n";
+             << "   Result:\n" << upper2 << "\n"
+             << "   Expected result:\n( 1 2 )\n( 0 3 )\n";
          throw std::runtime_error( oss.str() );
       }
    }
 
 
    //=====================================================================================
-   // Column-major iterator-range-based erase function with predicate
+   // Column-major matrix tests
    //=====================================================================================
 
    {
-      test_ = "Column-major UpperMatrix::erase( size_t, Iterator, Iterator, Predicate )";
+      test_ = "Column-major UpperMatrix swap";
 
-      // Initialization check
-      OUT upper( 4UL, 8UL );
-      upper(0,0) = 1;
-      upper(0,2) = 2;
-      upper(0,3) = 3;
-      upper(1,2) = 4;
-      upper(1,3) = 5;
-      upper(2,2) = 6;
-      upper(2,3) = 7;
-      upper(3,3) = 8;
+      OUT upper1( 2UL );
+      upper1(0,0) = 1;
+      upper1(0,1) = 2;
+      upper1(1,1) = 3;
 
-      checkRows    ( upper, 4UL );
-      checkColumns ( upper, 4UL );
-      checkCapacity( upper, 8UL );
-      checkNonZeros( upper, 8UL );
-      checkNonZeros( upper, 0UL, 1UL );
-      checkNonZeros( upper, 1UL, 0UL );
-      checkNonZeros( upper, 2UL, 3UL );
-      checkNonZeros( upper, 3UL, 4UL );
+      OUT upper2( 2UL );
+      upper2(0,0) = 4;
+      upper2(0,1) = 5;
+      upper2(1,1) = 0;
 
-      if( upper(0,0) != 1 || upper(0,2) != 2 || upper(0,3) != 3 ||
-          upper(1,2) != 4 || upper(1,3) != 5 ||
-          upper(2,2) != 6 || upper(2,3) != 7 ||
-          upper(3,3) != 8 ) {
+      swap( upper1, upper2 );
+
+      checkRows    ( upper1, 2UL );
+      checkColumns ( upper1, 2UL );
+      checkCapacity( upper1, 2UL );
+      checkNonZeros( upper1, 2UL );
+      checkNonZeros( upper1, 0UL, 1UL );
+      checkNonZeros( upper1, 1UL, 1UL );
+
+      if( upper1(0,0) != 4 || upper1(0,1) != 5 || upper1(1,0) != 0 || upper1(1,1) != 0 ) {
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
+             << " Error: Swapping the first matrix failed\n"
              << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 1 0 2 3 )\n( 0 0 4 5 )\n( 0 0 6 7 )\n( 0 0 0 8 )\n";
+             << "   Result:\n" << upper1 << "\n"
+             << "   Expected result:\n( 4 5 )\n( 0 0 )\n";
          throw std::runtime_error( oss.str() );
       }
 
-      // Erasing a selection of elements
-      upper.erase( 3UL, upper.begin( 3UL ), upper.find( 3UL, 3UL ),
-                   []( int value ){ return value == 3 || value == 7; } );
+      checkRows    ( upper2, 2UL );
+      checkColumns ( upper2, 2UL );
+      checkCapacity( upper2, 4UL );
+      checkNonZeros( upper2, 3UL );
+      checkNonZeros( upper2, 0UL, 1UL );
+      checkNonZeros( upper2, 1UL, 2UL );
 
-      checkRows    ( upper, 4UL );
-      checkColumns ( upper, 4UL );
-      checkCapacity( upper, 8UL );
-      checkNonZeros( upper, 6UL );
-      checkNonZeros( upper, 0UL, 1UL );
-      checkNonZeros( upper, 1UL, 0UL );
-      checkNonZeros( upper, 2UL, 3UL );
-      checkNonZeros( upper, 3UL, 2UL );
-
-      if( upper(0,0) != 1 || upper(0,2) != 2 ||
-          upper(1,2) != 4 || upper(1,3) != 5 ||
-          upper(2,2) != 6 ||
-          upper(3,3) != 8 ) {
+      if( upper2(0,0) != 1 || upper2(0,1) != 2 || upper2(1,0) != 0 || upper2(1,1) != 3 ) {
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
+             << " Error: Swapping the second matrix failed\n"
              << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 1 0 2 0 )\n( 0 0 4 5 )\n( 0 0 6 0 )\n( 0 0 0 8 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase from an empty range
-      upper.erase( 3UL, upper.begin( 3UL ), upper.begin( 3UL ), []( int ){ return true; } );
-
-      checkRows    ( upper, 4UL );
-      checkColumns ( upper, 4UL );
-      checkCapacity( upper, 8UL );
-      checkNonZeros( upper, 6UL );
-      checkNonZeros( upper, 0UL, 1UL );
-      checkNonZeros( upper, 1UL, 0UL );
-      checkNonZeros( upper, 2UL, 3UL );
-      checkNonZeros( upper, 3UL, 2UL );
-
-      if( upper(0,0) != 1 || upper(0,2) != 2 ||
-          upper(1,2) != 4 || upper(1,3) != 5 ||
-          upper(2,2) != 6 ||
-          upper(3,3) != 8 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing from an empty range failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 1 0 2 0 )\n( 0 0 4 5 )\n( 0 0 6 0 )\n( 0 0 0 8 )\n";
+             << "   Result:\n" << upper2 << "\n"
+             << "   Expected result:\n( 1 2 )\n( 0 3 )\n";
          throw std::runtime_error( oss.str() );
       }
    }
@@ -10650,7 +10072,7 @@ void SparseTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function";
 
-      typedef blaze::Submatrix<UT>  SMT;
+      typedef blaze::SparseSubmatrix<UT>  SMT;
 
       UT upper( 3UL );
       upper(0,0) =  1;
@@ -10742,7 +10164,7 @@ void SparseTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function";
 
-      typedef blaze::Submatrix<OUT>  SMT;
+      typedef blaze::SparseSubmatrix<OUT>  SMT;
 
       OUT upper( 3UL );
       upper(0,0) =  1;
@@ -10847,7 +10269,7 @@ void SparseTest::testRow()
    {
       test_ = "Row-major row() function";
 
-      typedef blaze::Row<UT>  RT;
+      typedef blaze::SparseRow<UT>  RT;
 
       UT upper( 3UL );
       upper(0,0) =  1;
@@ -10937,7 +10359,7 @@ void SparseTest::testRow()
    {
       test_ = "Column-major row() function";
 
-      typedef blaze::Row<OUT>  RT;
+      typedef blaze::SparseRow<OUT>  RT;
 
       OUT upper( 3UL );
       upper(0,0) =  1;
@@ -11040,7 +10462,7 @@ void SparseTest::testColumn()
    {
       test_ = "Row-major column() function";
 
-      typedef blaze::Column<UT>  CT;
+      typedef blaze::SparseColumn<UT>  CT;
 
       UT upper( 3UL );
       upper(0,0) =  1;
@@ -11130,7 +10552,7 @@ void SparseTest::testColumn()
    {
       test_ = "Column-major column() function";
 
-      typedef blaze::Column<OUT>  CT;
+      typedef blaze::SparseColumn<OUT>  CT;
 
       OUT upper( 3UL );
       upper(0,0) =  1;

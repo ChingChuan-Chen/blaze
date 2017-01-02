@@ -45,7 +45,9 @@
 #include <blaze/util/constraints/Const.h>
 #include <blaze/util/constraints/Void.h>
 #include <blaze/util/constraints/Volatile.h>
-#include <blazetest/mathtest/creator/Policies.h>
+#include <blaze/util/Random.h>
+#include <blazetest/mathtest/RandomMaximum.h>
+#include <blazetest/mathtest/RandomMinimum.h>
 
 
 namespace blazetest {
@@ -59,8 +61,9 @@ namespace blazetest {
 //*************************************************************************************************
 /*!\brief Default creator for random built-in data values.
 //
-// The Creator class creates random values of the given data type \a T based on the given
-// creation policy \a P.
+// The Creator class creates random values of the given data type \a T. In case \a T is an
+// integral data type, Creator returns values in the range \f$ [0..10] \f$, in case \a T is
+// a floating point data type \f$ [0..1) \f$.
 */
 template< typename T >  // Type to be created
 class Creator
@@ -83,7 +86,6 @@ class Creator
    //@{
    // No explicitly declared copy assignment operator.
    inline T operator()() const;
-   template< typename CP > inline T operator()( const CP& policy ) const;
    //@}
    //**********************************************************************************************
 
@@ -110,29 +112,19 @@ class Creator
 //=================================================================================================
 
 //*************************************************************************************************
-/*!\brief Returns a randomly created built-in value.
+/*!\brief Returns a randomly created numeric value.
 //
-// \return The randomly generated built-in value.
+// \return The randomly generated numeric value.
+//
+// This operator returns a randomly generated numeric value. In case \a T is a floating point
+// data type, a value in the range \f$ [0..1) \f$ is generated, in case \a T is a signed integral
+// data type, the value will be in the range \f$ [-10..10] \f$, and in case \a T is an unsigned
+// integral data type, a value in the range \f$ [0..10] \f$ is generated.
 */
 template< typename T >  // Type to be created
 inline T Creator<T>::operator()() const
 {
-   return (*this)( Default() );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Returns a randomly created built-in value.
-//
-// \param policy The creation policy for the built-in value.
-// \return The randomly generated built-in value.
-*/
-template< typename T >   // Type to be created
-template< typename CP >  // Creation policy
-inline T Creator<T>::operator()( const CP& policy ) const
-{
-   return policy.template create<T>();
+   return blaze::rand<T>( T(randmin), T(randmax) );
 }
 //*************************************************************************************************
 

@@ -40,18 +40,15 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/adaptors/DiagonalMatrix.h>
 #include <blaze/math/constraints/DenseMatrix.h>
 #include <blaze/math/constraints/Resizable.h>
 #include <blaze/math/constraints/SparseMatrix.h>
 #include <blaze/math/DenseMatrix.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/SparseMatrix.h>
 #include <blaze/math/typetraits/IsDenseMatrix.h>
-#include <blaze/math/typetraits/UnderlyingBuiltin.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/FalseType.h>
-#include <blaze/util/Indices.h>
 #include <blaze/util/Random.h>
 #include <blaze/util/TrueType.h>
 #include <blaze/util/Types.h>
@@ -324,7 +321,7 @@ inline void Rand< DiagonalMatrix<MT,SO,DF> >::randomize( DiagonalMatrix<MT,SO,DF
 {
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    const size_t n( matrix.rows() );
 
@@ -350,13 +347,21 @@ inline void Rand< DiagonalMatrix<MT,SO,DF> >::randomize( DiagonalMatrix<MT,SO,DF
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
+   typedef typename MT::ElementType  ET;
+
    const size_t n( matrix.rows() );
 
    if( n == 0UL ) return;
 
    const size_t nonzeros( rand<size_t>( 1UL, n ) );
 
-   randomize( matrix, nonzeros );
+   matrix.reset();
+   matrix.reserve( nonzeros );
+
+   while( matrix.nonZeros() < nonzeros ) {
+      const size_t i( rand<size_t>( 0UL, n-1UL ) );
+      matrix(i,i) = rand<ET>();
+   }
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -378,7 +383,7 @@ inline void Rand< DiagonalMatrix<MT,SO,DF> >::randomize( DiagonalMatrix<MT,SO,DF
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    const size_t n( matrix.rows() );
 
@@ -391,17 +396,9 @@ inline void Rand< DiagonalMatrix<MT,SO,DF> >::randomize( DiagonalMatrix<MT,SO,DF
    matrix.reset();
    matrix.reserve( nonzeros );
 
-   Indices indices( 0UL, n-1UL, nonzeros );
-   size_t i( 0UL );
-
-   for( size_t index : indices ) {
-      for( ; i<index; ++i )
-         matrix.finalize( i );
-      matrix.append( i, i, rand<ET>() );
-   }
-
-   for( ; i<n; ++i ) {
-      matrix.finalize( i );
+   while( matrix.nonZeros() < nonzeros ) {
+      const size_t i( rand<size_t>( 0UL, n-1UL ) );
+      matrix(i,i) = rand<ET>();
    }
 }
 /*! \endcond */
@@ -448,7 +445,7 @@ inline void Rand< DiagonalMatrix<MT,SO,DF> >::randomize( DiagonalMatrix<MT,SO,DF
 {
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    const size_t n( matrix.rows() );
 
@@ -478,13 +475,21 @@ inline void Rand< DiagonalMatrix<MT,SO,DF> >::randomize( DiagonalMatrix<MT,SO,DF
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
+   typedef typename MT::ElementType  ET;
+
    const size_t n( matrix.rows() );
 
    if( n == 0UL ) return;
 
    const size_t nonzeros( rand<size_t>( 1UL, n ) );
 
-   randomize( matrix, nonzeros, min, max );
+   matrix.reset();
+   matrix.reserve( nonzeros );
+
+   while( matrix.nonZeros() < nonzeros ) {
+      const size_t i( rand<size_t>( 0UL, n-1UL ) );
+      matrix(i,i) = rand<ET>( min, max );
+   }
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -510,7 +515,7 @@ inline void Rand< DiagonalMatrix<MT,SO,DF> >::randomize( DiagonalMatrix<MT,SO,DF
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    const size_t n( matrix.rows() );
 
@@ -523,17 +528,9 @@ inline void Rand< DiagonalMatrix<MT,SO,DF> >::randomize( DiagonalMatrix<MT,SO,DF
    matrix.reset();
    matrix.reserve( nonzeros );
 
-   Indices indices( 0UL, n-1UL, nonzeros );
-   size_t i( 0UL );
-
-   for( size_t index : indices ) {
-      for( ; i<index; ++i )
-         matrix.finalize( i );
-      matrix.append( i, i, rand<ET>( min, max ) );
-   }
-
-   for( ; i<n; ++i ) {
-      matrix.finalize( i );
+   while( matrix.nonZeros() < nonzeros ) {
+      const size_t i( rand<size_t>( 0UL, n-1UL ) );
+      matrix(i,i) = rand<ET>( min, max );
    }
 }
 /*! \endcond */
@@ -565,7 +562,7 @@ void makeSymmetric( DiagonalMatrix<MT,SO,DF>& matrix )
    reset( matrix );
 
    for( size_t i=0UL; i<n; ++i ) {
-      matrix(i,i) = rand< ElementType_<MT> >();
+      matrix(i,i) = rand<typename MT::ElementType>();
    }
 
    BLAZE_INTERNAL_ASSERT( isSymmetric( matrix ), "Non-symmetric matrix detected" );
@@ -589,7 +586,7 @@ template< typename MT     // Type of the adapted matrix
         , typename Arg >  // Min/max argument type
 void makeSymmetric( DiagonalMatrix<MT,SO,DF>& matrix, const Arg& min, const Arg& max )
 {
-   typedef ElementType_<MT>  Type;
+   typedef typename MT::ElementType  Type;
 
    const size_t n( matrix.rows() );
 
@@ -617,7 +614,7 @@ template< typename MT  // Type of the adapted matrix
         , bool DF >    // Density flag
 void makeHermitian( DiagonalMatrix<MT,SO,DF>& matrix )
 {
-   typedef UnderlyingBuiltin_< ElementType_<MT> >  Type;
+   typedef typename UnderlyingBuiltin<typename MT::ElementType>::Type  Type;
 
    const size_t n( matrix.rows() );
 
@@ -648,7 +645,7 @@ template< typename MT     // Type of the adapted matrix
         , typename Arg >  // Min/max argument type
 void makeHermitian( DiagonalMatrix<MT,SO,DF>& matrix, const Arg& min, const Arg& max )
 {
-   typedef UnderlyingBuiltin_< ElementType_<MT> >  Type;
+   typedef typename UnderlyingBuiltin<typename MT::ElementType>::Type  Type;
 
    const size_t n( matrix.rows() );
 

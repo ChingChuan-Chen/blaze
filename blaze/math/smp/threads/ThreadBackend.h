@@ -109,9 +109,6 @@ class ThreadBackend
 
    template< typename Target, typename Source >
    static inline void scheduleMultAssign( Target& target, const Source& source );
-
-   template< typename Target, typename Source >
-   static inline void scheduleDivAssign( Target& target, const Source& source );
    //@}
    //**********************************************************************************************
 
@@ -265,47 +262,6 @@ class ThreadBackend
       */
       inline void operator()() {
          multAssign( target_, source_ );
-      }
-      //*******************************************************************************************
-
-      //**Member variables*************************************************************************
-      Target       target_;  //!< The target operand.
-      const Source source_;  //!< The source operand.
-      //*******************************************************************************************
-
-      //**Member variables*************************************************************************
-      BLAZE_CONSTRAINT_MUST_BE_EXPRESSION_TYPE( Target );
-      BLAZE_CONSTRAINT_MUST_BE_EXPRESSION_TYPE( Source );
-      //*******************************************************************************************
-   };
-   //**********************************************************************************************
-
-   //**Private class DivAssigner*******************************************************************
-   /*!\brief Auxiliary functor for the threaded execution of a division assignment.
-   */
-   template< typename Target    // Type of the target operand
-           , typename Source >  // Type of the source operand
-   struct DivAssigner
-   {
-      //**Constructor******************************************************************************
-      /*!\brief Constructor for the DivAssigner class template.
-      //
-      // \param target The target operand to be assigned to.
-      // \param source The source operand to be divided from the target.
-      */
-      explicit inline DivAssigner( Target& target, const Source& source )
-         : target_( target )  // The target operand
-         , source_( source )  // The source operand
-      {}
-      //*******************************************************************************************
-
-      //**Function call operator*******************************************************************
-      /*!\brief Performs the division assignment between the two given operands.
-      //
-      // \return void
-      */
-      inline void operator()() {
-         divAssign( target_, source_ );
       }
       //*******************************************************************************************
 
@@ -542,31 +498,6 @@ inline void ThreadBackend<TT,MT,LT,CT>::scheduleMultAssign( Target& target, cons
 //*************************************************************************************************
 
 
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Scheduling a division assignment of the given operands for execution.
-//
-// \param target The target operand to be assigned to.
-// \param source The target operand to be divided from the target.
-// \return void
-//
-// This function schedules a division assignment of the two given operands for execution.
-*/
-template< typename TT        // Type of the encapsulated thread
-        , typename MT        // Type of the synchronization mutex
-        , typename LT        // Type of the mutex lock
-        , typename CT >      // Type of the condition variable
-template< typename Target    // Type of the target operand
-        , typename Source >  // Type of the source operand
-inline void ThreadBackend<TT,MT,LT,CT>::scheduleDivAssign( Target& target, const Source& source )
-{
-   BLAZE_CONSTRAINT_MUST_NOT_BE_CONST( Target );
-   threadpool_.schedule( DivAssigner<Target,Source>( target, source ) );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
 
 
 //=================================================================================================
@@ -597,7 +528,7 @@ inline size_t ThreadBackend<TT,MT,LT,CT>::initPool()
 {
    const char* env = std::getenv( "BLAZE_NUM_THREADS" );
 
-   if( env == nullptr )
+   if( env == NULL )
       return 1UL;
    else return max( 1, atoi( env ) );
 }

@@ -42,7 +42,6 @@
 
 #include <blaze/math/lapack/gelqf.h>
 #include <blaze/math/lapack/geqlf.h>
-#include <blaze/math/lapack/geqp3.h>
 #include <blaze/math/lapack/geqrf.h>
 #include <blaze/math/lapack/gerqf.h>
 #include <blaze/math/lapack/gesv.h>
@@ -57,10 +56,6 @@
 #include <blaze/math/lapack/orgql.h>
 #include <blaze/math/lapack/orgqr.h>
 #include <blaze/math/lapack/orgrq.h>
-#include <blaze/math/lapack/ormlq.h>
-#include <blaze/math/lapack/ormql.h>
-#include <blaze/math/lapack/ormqr.h>
-#include <blaze/math/lapack/ormrq.h>
 #include <blaze/math/lapack/posv.h>
 #include <blaze/math/lapack/potrf.h>
 #include <blaze/math/lapack/potri.h>
@@ -76,9 +71,5 @@
 #include <blaze/math/lapack/ungql.h>
 #include <blaze/math/lapack/ungqr.h>
 #include <blaze/math/lapack/ungrq.h>
-#include <blaze/math/lapack/unmlq.h>
-#include <blaze/math/lapack/unmql.h>
-#include <blaze/math/lapack/unmqr.h>
-#include <blaze/math/lapack/unmrq.h>
 
 #endif

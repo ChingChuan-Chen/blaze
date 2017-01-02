@@ -41,7 +41,6 @@
 //*************************************************************************************************
 
 #include <blaze/math/constraints/Symmetric.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/Forward.h>
 #include <blaze/math/typetraits/IsResizable.h>
 #include <blaze/math/typetraits/IsSquare.h>
@@ -50,6 +49,7 @@
 #include <blaze/util/Assert.h>
 #include <blaze/util/DisableIf.h>
 #include <blaze/util/EnableIf.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/logging/FunctionTrace.h>
 #include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/Not.h>
@@ -90,7 +90,7 @@ struct Matrix
    //
    // \return Reference of the actual type of the matrix.
    */
-   BLAZE_ALWAYS_INLINE MatrixType& operator~() noexcept {
+   BLAZE_ALWAYS_INLINE MatrixType& operator~() {
       return *static_cast<MatrixType*>( this );
    }
    //**********************************************************************************************
@@ -100,7 +100,7 @@ struct Matrix
    //
    // \return Constant reference of the actual type of the matrix.
    */
-   BLAZE_ALWAYS_INLINE const MatrixType& operator~() const noexcept {
+   BLAZE_ALWAYS_INLINE const MatrixType& operator~() const {
       return *static_cast<const MatrixType*>( this );
    }
    //**********************************************************************************************
@@ -138,16 +138,16 @@ template< typename MT, bool SO >
 BLAZE_ALWAYS_INLINE typename MT::ConstIterator cend( const Matrix<MT,SO>& matrix, size_t i );
 
 template< typename MT, bool SO >
-BLAZE_ALWAYS_INLINE size_t rows( const Matrix<MT,SO>& matrix ) noexcept;
+BLAZE_ALWAYS_INLINE size_t rows( const Matrix<MT,SO>& matrix );
 
 template< typename MT, bool SO >
-BLAZE_ALWAYS_INLINE size_t columns( const Matrix<MT,SO>& matrix ) noexcept;
+BLAZE_ALWAYS_INLINE size_t columns( const Matrix<MT,SO>& matrix );
 
 template< typename MT, bool SO >
-BLAZE_ALWAYS_INLINE size_t capacity( const Matrix<MT,SO>& matrix ) noexcept;
+BLAZE_ALWAYS_INLINE size_t capacity( const Matrix<MT,SO>& matrix );
 
 template< typename MT, bool SO >
-BLAZE_ALWAYS_INLINE size_t capacity( const Matrix<MT,SO>& matrix, size_t i ) noexcept;
+BLAZE_ALWAYS_INLINE size_t capacity( const Matrix<MT,SO>& matrix, size_t i );
 
 template< typename MT, bool SO >
 BLAZE_ALWAYS_INLINE size_t nonZeros( const Matrix<MT,SO>& matrix );
@@ -162,23 +162,16 @@ template< typename MT, bool SO >
 BLAZE_ALWAYS_INLINE void transpose( Matrix<MT,SO>& matrix );
 
 template< typename MT, bool SO >
-BLAZE_ALWAYS_INLINE void ctranspose( Matrix<MT,SO>& matrix );
-
-template< typename MT, bool SO >
-inline const typename MT::ResultType evaluate( const Matrix<MT,SO>& matrix );
-
-template< typename MT, bool SO >
-BLAZE_ALWAYS_INLINE bool isSquare( const Matrix<MT,SO>& matrix ) noexcept;
+BLAZE_ALWAYS_INLINE bool isSquare( const Matrix<MT,SO>& matrix );
 
 template< typename MT1, bool SO1, typename MT2, bool SO2 >
-BLAZE_ALWAYS_INLINE bool isSame( const Matrix<MT1,SO1>& a, const Matrix<MT2,SO2>& b ) noexcept;
+BLAZE_ALWAYS_INLINE bool isSame( const Matrix<MT1,SO1>& a, const Matrix<MT2,SO2>& b );
 //@}
 //*************************************************************************************************
 
 
 //*************************************************************************************************
 /*!\brief Returns an iterator to the first element of row/column \a i.
-// \ingroup matrix
 //
 // \param matrix The given dense or sparse matrix.
 // \param i The row/column index.
@@ -200,7 +193,6 @@ BLAZE_ALWAYS_INLINE typename MT::Iterator begin( Matrix<MT,SO>& matrix, size_t i
 
 //*************************************************************************************************
 /*!\brief Returns an iterator to the first element of row/column \a i.
-// \ingroup matrix
 //
 // \param matrix The given dense or sparse matrix.
 // \param i The row/column index.
@@ -222,7 +214,6 @@ BLAZE_ALWAYS_INLINE typename MT::ConstIterator begin( const Matrix<MT,SO>& matri
 
 //*************************************************************************************************
 /*!\brief Returns an iterator to the first element of row/column \a i.
-// \ingroup matrix
 //
 // \param matrix The given dense or sparse matrix.
 // \param i The row/column index.
@@ -244,7 +235,6 @@ BLAZE_ALWAYS_INLINE typename MT::ConstIterator cbegin( const Matrix<MT,SO>& matr
 
 //*************************************************************************************************
 /*!\brief Returns an iterator just past the last element of row/column \a i.
-// \ingroup matrix
 //
 // \param matrix The given dense or sparse matrix.
 // \param i The row/column index.
@@ -266,7 +256,6 @@ BLAZE_ALWAYS_INLINE typename MT::Iterator end( Matrix<MT,SO>& matrix, size_t i )
 
 //*************************************************************************************************
 /*!\brief Returns an iterator just past the last element of row/column \a i.
-// \ingroup matrix
 //
 // \param matrix The given dense or sparse matrix.
 // \param i The row/column index.
@@ -288,7 +277,6 @@ BLAZE_ALWAYS_INLINE typename MT::ConstIterator end( const Matrix<MT,SO>& matrix,
 
 //*************************************************************************************************
 /*!\brief Returns an iterator just past the last element of row/column \a i.
-// \ingroup matrix
 //
 // \param matrix The given dense or sparse matrix.
 // \param i The row/column index.
@@ -317,7 +305,7 @@ BLAZE_ALWAYS_INLINE typename MT::ConstIterator cend( const Matrix<MT,SO>& matrix
 */
 template< typename MT  // Type of the matrix
         , bool SO >    // Storage order of the matrix
-BLAZE_ALWAYS_INLINE size_t rows( const Matrix<MT,SO>& matrix ) noexcept
+BLAZE_ALWAYS_INLINE size_t rows( const Matrix<MT,SO>& matrix )
 {
    return (~matrix).rows();
 }
@@ -333,7 +321,7 @@ BLAZE_ALWAYS_INLINE size_t rows( const Matrix<MT,SO>& matrix ) noexcept
 */
 template< typename MT  // Type of the matrix
         , bool SO >    // Storage order of the matrix
-BLAZE_ALWAYS_INLINE size_t columns( const Matrix<MT,SO>& matrix ) noexcept
+BLAZE_ALWAYS_INLINE size_t columns( const Matrix<MT,SO>& matrix )
 {
    return (~matrix).columns();
 }
@@ -349,7 +337,7 @@ BLAZE_ALWAYS_INLINE size_t columns( const Matrix<MT,SO>& matrix ) noexcept
 */
 template< typename MT  // Type of the matrix
         , bool SO >    // Storage order of the matrix
-BLAZE_ALWAYS_INLINE size_t capacity( const Matrix<MT,SO>& matrix ) noexcept
+BLAZE_ALWAYS_INLINE size_t capacity( const Matrix<MT,SO>& matrix )
 {
    return (~matrix).capacity();
 }
@@ -371,7 +359,7 @@ BLAZE_ALWAYS_INLINE size_t capacity( const Matrix<MT,SO>& matrix ) noexcept
 */
 template< typename MT  // Type of the matrix
         , bool SO >    // Storage order of the matrix
-BLAZE_ALWAYS_INLINE size_t capacity( const Matrix<MT,SO>& matrix, size_t i ) noexcept
+BLAZE_ALWAYS_INLINE size_t capacity( const Matrix<MT,SO>& matrix, size_t i )
 {
    return (~matrix).capacity( i );
 }
@@ -435,7 +423,7 @@ BLAZE_ALWAYS_INLINE size_t nonZeros( const Matrix<MT,SO>& matrix, size_t i )
 */
 template< typename MT  // Type of the matrix
         , bool SO >    // Storage order of the matrix
-BLAZE_ALWAYS_INLINE DisableIf_< IsResizable<MT> >
+BLAZE_ALWAYS_INLINE typename DisableIf< IsResizable<MT> >::Type
    resize_backend( Matrix<MT,SO>& matrix, size_t m, size_t n, bool preserve )
 {
    UNUSED_PARAMETER( preserve );
@@ -463,7 +451,7 @@ BLAZE_ALWAYS_INLINE DisableIf_< IsResizable<MT> >
 */
 template< typename MT  // Type of the matrix
         , bool SO >    // Storage order of the matrix
-BLAZE_ALWAYS_INLINE EnableIf_< And< IsResizable<MT>, Not< IsSquare<MT> > > >
+BLAZE_ALWAYS_INLINE typename EnableIf< And< IsResizable<MT>, Not< IsSquare<MT> > > >::Type
    resize_backend( Matrix<MT,SO>& matrix, size_t m, size_t n, bool preserve )
 {
    (~matrix).resize( m, n, preserve );
@@ -488,7 +476,7 @@ BLAZE_ALWAYS_INLINE EnableIf_< And< IsResizable<MT>, Not< IsSquare<MT> > > >
 */
 template< typename MT  // Type of the matrix
         , bool SO >    // Storage order of the matrix
-BLAZE_ALWAYS_INLINE EnableIf_< And< IsResizable<MT>, IsSquare<MT> > >
+BLAZE_ALWAYS_INLINE typename EnableIf< And< IsResizable<MT>, IsSquare<MT> > >::Type
    resize_backend( Matrix<MT,SO>& matrix, size_t m, size_t n, bool preserve )
 {
    if( m != n ) {
@@ -601,68 +589,6 @@ BLAZE_ALWAYS_INLINE void ctranspose( Matrix<MT,SO>& matrix )
 
 
 //*************************************************************************************************
-/*!\brief Evaluates the given matrix expression.
-// \ingroup matrix
-//
-// \param matrix The matrix to be evaluated.
-// \return The result of the evaluated matrix expression.
-//
-// This function forces an evaluation of the given matrix expression and enables an automatic
-// deduction of the correct result type of an operation. The following code example demonstrates
-// its intended use for the multiplication of a lower and a strictly lower dense matrix:
-
-   \code
-   using blaze::DynamicMatrix;
-   using blaze::LowerMatrix;
-   using blaze::StrictlyLowerMatrix;
-
-   LowerMatrix< DynamicMatrix<double> > A;
-   StrictlyLowerMatrix< DynamicMatrix<double> > B;
-   // ... Resizing and initialization
-
-   auto C = evaluate( A * B );
-   \endcode
-
-// In this scenario, the \a evaluate() function assists in deducing the exact result type of
-// the operation via the 'auto' keyword. Please note that if \a evaluate() is used in this
-// way, no temporary matrix is created and no copy operation is performed. Instead, the result
-// is directly written to the target matrix due to the return value optimization (RVO). However,
-// if \a evaluate() is used in combination with an explicit target type, a temporary will be
-// created and a copy operation will be performed if the used type differs from the type
-// returned from the function:
-
-   \code
-   StrictlyLowerMatrix< DynamicMatrix<double> > D( A * B );  // No temporary & no copy operation
-   LowerMatrix< DynamicMatrix<double> > E( A * B );          // Temporary & copy operation
-   DynamicMatrix<double> F( A * B );                         // Temporary & copy operation
-   D = evaluate( A * B );                                    // Temporary & copy operation
-   \endcode
-
-// Sometimes it might be desirable to explicitly evaluate a sub-expression within a larger
-// expression. However, please note that \a evaluate() is not intended to be used for this
-// purpose. This task is more elegantly and efficiently handled by the \a eval() function:
-
-   \code
-   blaze::DynamicMatrix<double> A, B, C, D;
-
-   D = A + evaluate( B * C );  // Unnecessary creation of a temporary matrix
-   D = A + eval( B * C );      // No creation of a temporary matrix
-   \endcode
-
-// In contrast to the \a evaluate() function, \a eval() can take the complete expression into
-// account and therefore can guarantee the most efficient way to evaluate it.
-*/
-template< typename MT  // Type of the matrix
-        , bool SO >    // Storage order of the matrix
-inline const typename MT::ResultType evaluate( const Matrix<MT,SO>& matrix )
-{
-   const typename MT::ResultType tmp( ~matrix );
-   return tmp;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
 /*!\brief Checks if the given matrix is a square matrix.
 // \ingroup matrix
 //
@@ -674,7 +600,7 @@ inline const typename MT::ResultType evaluate( const Matrix<MT,SO>& matrix )
 */
 template< typename MT  // Type of the matrix
         , bool SO >    // Storage order
-BLAZE_ALWAYS_INLINE bool isSquare( const Matrix<MT,SO>& matrix ) noexcept
+BLAZE_ALWAYS_INLINE bool isSquare( const Matrix<MT,SO>& matrix )
 {
    return ( IsSquare<MT>::value || (~matrix).rows() == (~matrix).columns() );
 }
@@ -696,8 +622,8 @@ BLAZE_ALWAYS_INLINE bool isSquare( const Matrix<MT,SO>& matrix ) noexcept
 // \a false.
 
    \code
-   typedef blaze::DynamicMatrix<int>     MatrixType;
-   typedef blaze::Submatrix<MatrixType>  SubmatrixType;
+   typedef blaze::DynamicMatrix<int>          MatrixType;
+   typedef blaze::DenseSubmatrix<MatrixType>  SubmatrixType;
 
    MatrixType mat1( 4UL, 5UL );  // Setup of a 4x5 dynamic matrix
    MatrixType mat2( 4UL, 5UL );  // Setup of a second 4x5 dynamic matrix
@@ -718,7 +644,7 @@ template< typename MT1  // Type of the left-hand side matrix
         , bool SO1      // Storage order of the left-hand side matrix
         , typename MT2  // Type of the right-hand side matrix
         , bool SO2 >    // Storage order of the right-hand side matrix
-BLAZE_ALWAYS_INLINE bool isSame( const Matrix<MT1,SO1>& a, const Matrix<MT2,SO2>& b ) noexcept
+BLAZE_ALWAYS_INLINE bool isSame( const Matrix<MT1,SO1>& a, const Matrix<MT2,SO2>& b )
 {
    return ( IsSame<MT1,MT2>::value &&
             reinterpret_cast<const void*>( &a ) == reinterpret_cast<const void*>( &b ) );
@@ -760,7 +686,7 @@ BLAZE_ALWAYS_INLINE void assign_backend( Matrix<MT1,SO>& lhs, const Matrix<MT2,S
 template< typename MT1    // Type of the left-hand side matrix
         , bool SO         // Storage order of the left-hand side matrix
         , typename MT2 >  // Type of the right-hand side matrix
-BLAZE_ALWAYS_INLINE DisableIf_< IsSymmetric<MT2> >
+BLAZE_ALWAYS_INLINE typename DisableIf< IsSymmetric<MT2> >::Type
    assign_backend( Matrix<MT1,SO>& lhs, const Matrix<MT2,!SO>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -786,7 +712,7 @@ BLAZE_ALWAYS_INLINE DisableIf_< IsSymmetric<MT2> >
 template< typename MT1    // Type of the left-hand side matrix
         , bool SO         // Storage order of the left-hand side matrix
         , typename MT2 >  // Type of the right-hand side matrix
-BLAZE_ALWAYS_INLINE EnableIf_< IsSymmetric<MT2> >
+BLAZE_ALWAYS_INLINE typename EnableIf< IsSymmetric<MT2> >::Type
    assign_backend( Matrix<MT1,SO>& lhs, const Matrix<MT2,!SO>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -869,7 +795,7 @@ BLAZE_ALWAYS_INLINE void addAssign_backend( Matrix<MT1,SO>& lhs, const Matrix<MT
 template< typename MT1    // Type of the left-hand side matrix
         , bool SO         // Storage order of the left-hand side matrix
         , typename MT2 >  // Type of the right-hand side matrix
-BLAZE_ALWAYS_INLINE DisableIf_< IsSymmetric<MT2> >
+BLAZE_ALWAYS_INLINE typename DisableIf< IsSymmetric<MT2> >::Type
    addAssign_backend( Matrix<MT1,SO>& lhs, const Matrix<MT2,!SO>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -895,7 +821,7 @@ BLAZE_ALWAYS_INLINE DisableIf_< IsSymmetric<MT2> >
 template< typename MT1    // Type of the left-hand side matrix
         , bool SO         // Storage order of the left-hand side matrix
         , typename MT2 >  // Type of the right-hand side matrix
-BLAZE_ALWAYS_INLINE EnableIf_< IsSymmetric<MT2> >
+BLAZE_ALWAYS_INLINE typename EnableIf< IsSymmetric<MT2> >::Type
    addAssign_backend( Matrix<MT1,SO>& lhs, const Matrix<MT2,!SO>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -978,7 +904,7 @@ BLAZE_ALWAYS_INLINE void subAssign_backend( Matrix<MT1,SO>& lhs, const Matrix<MT
 template< typename MT1    // Type of the left-hand side matrix
         , bool SO         // Storage order of the left-hand side matrix
         , typename MT2 >  // Type of the right-hand side matrix
-BLAZE_ALWAYS_INLINE DisableIf_< IsSymmetric<MT2> >
+BLAZE_ALWAYS_INLINE typename DisableIf< IsSymmetric<MT2> >::Type
    subAssign_backend( Matrix<MT1,SO>& lhs, const Matrix<MT2,!SO>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1004,7 +930,7 @@ BLAZE_ALWAYS_INLINE DisableIf_< IsSymmetric<MT2> >
 template< typename MT1    // Type of the left-hand side matrix
         , bool SO         // Storage order of the left-hand side matrix
         , typename MT2 >  // Type of the right-hand side matrix
-BLAZE_ALWAYS_INLINE EnableIf_< IsSymmetric<MT2> >
+BLAZE_ALWAYS_INLINE typename EnableIf< IsSymmetric<MT2> >::Type
    subAssign_backend( Matrix<MT1,SO>& lhs, const Matrix<MT2,!SO>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1320,42 +1246,6 @@ template< typename MT  // Type of the left-hand side matrix
         , bool TF >    // Transpose flag of the right-hand side vector
 BLAZE_ALWAYS_INLINE bool tryMultAssign( const Matrix<MT,SO>& lhs, const Vector<VT,TF>& rhs,
                                         size_t row, size_t column )
-{
-   BLAZE_INTERNAL_ASSERT( row <= (~lhs).rows(), "Invalid row access index" );
-   BLAZE_INTERNAL_ASSERT( column <= (~lhs).columns(), "Invalid column access index" );
-   BLAZE_INTERNAL_ASSERT( TF || ( (~rhs).size() <= (~lhs).rows() - row ), "Invalid number of rows" );
-   BLAZE_INTERNAL_ASSERT( !TF || ( (~rhs).size() <= (~lhs).columns() - column ), "Invalid number of columns" );
-
-   UNUSED_PARAMETER( lhs, rhs, row, column );
-
-   return true;
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Predict invariant violations by the division assignment of a vector to a matrix.
-// \ingroup matrix
-//
-// \param lhs The target left-hand side matrix.
-// \param rhs The right-hand side vector divisor.
-// \param row The row index of the first element to be modified.
-// \param column The column index of the first element to be modified.
-// \return \a true in case the assignment would be successful, \a false if not.
-//
-// This function must \b NOT be called explicitly! It is used internally for the performance
-// optimized evaluation of expression templates. Calling this function explicitly might result
-// in erroneous results and/or in compilation errors. Instead of using this function use the
-// assignment operator.
-*/
-template< typename MT  // Type of the left-hand side matrix
-        , bool SO      // Storage order of the left-hand side matrix
-        , typename VT  // Type of the right-hand side vector
-        , bool TF >    // Transpose flag of the right-hand side vector
-BLAZE_ALWAYS_INLINE bool tryDivAssign( const Matrix<MT,SO>& lhs, const Vector<VT,TF>& rhs,
-                                       size_t row, size_t column )
 {
    BLAZE_INTERNAL_ASSERT( row <= (~lhs).rows(), "Invalid row access index" );
    BLAZE_INTERNAL_ASSERT( column <= (~lhs).columns(), "Invalid column access index" );

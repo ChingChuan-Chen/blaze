@@ -51,10 +51,11 @@
 #include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -83,45 +84,29 @@ struct TSMatDVecMultExprTrait
  private:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Tmp = If< And< IsSparseMatrix<MT>, IsColumnMajorMatrix<MT>
-                      , IsDenseVector<VT> , IsColumnVector<VT> >
-                 , If_< IsSymmetric<MT>
-                      , SMatDVecMultExpr< TSMatTransExprTrait_<MT>, VT >
-                      , TSMatDVecMultExpr<MT,VT> >
-                 , INVALID_TYPE >;
+   typedef If< And< IsSparseMatrix<MT>, IsColumnMajorMatrix<MT>
+                  , IsDenseVector<VT> , IsColumnVector<VT> >
+             , typename If< IsSymmetric<MT>
+                          , SMatDVecMultExpr< typename TSMatTransExprTrait<MT>::Type, VT >
+                          , TSMatDVecMultExpr<MT,VT>
+                          >::Type
+             , INVALID_TYPE
+             >  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<MT>::Type >::Type  Type1;
+   typedef typename RemoveReference< typename RemoveCV<VT>::Type >::Type  Type2;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<MT>, IsVolatile<MT>, IsReference<MT>
-                                , IsConst<VT>, IsVolatile<VT>, IsReference<VT> >
-                            , TSMatDVecMultExprTrait< Decay_<MT>, Decay_<VT> >
-                            , Tmp >::Type;
+   typedef typename If< Or< IsConst<MT>, IsVolatile<MT>, IsReference<MT>
+                          , IsConst<VT>, IsVolatile<VT>, IsReference<VT> >
+                      , TSMatDVecMultExprTrait<Type1,Type2>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the TSMatDVecMultExprTrait class template.
-// \ingroup math_traits
-//
-// The TSMatDVecMultExprTrait_ alias declaration provides a convenient shortcut to access
-// the nested \a Type of the TSMatDVecMultExprTrait class template. For instance, given the
-// column-major sparse matrix type \a MT and the non-transpose dense vector type \a VT the
-// following two type definitions are identical:
-
-   \code
-   using Type1 = typename TSMatDVecMultExprTrait<MT,VT>::Type;
-   using Type2 = TSMatDVecMultExprTrait_<MT,VT>;
-   \endcode
-*/
-template< typename MT    // Type of the left-hand side column-major sparse matrix
-        , typename VT >  // Type of the right-hand side non-transpose dense vector
-using TSMatDVecMultExprTrait_ = typename TSMatDVecMultExprTrait<MT,VT>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

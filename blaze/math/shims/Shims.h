@@ -1,7 +1,7 @@
 //=================================================================================================
 /*!
 //  \file blaze/math/shims/Shims.h
-//  \brief Mathematical shims module documentation
+//  \brief Header file for the mathematical shims
 //
 //  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
 //

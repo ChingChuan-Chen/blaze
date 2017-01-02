@@ -40,7 +40,7 @@
 // Includes
 //*************************************************************************************************
 
-#include <type_traits>
+#include <boost/type_traits/remove_reference.hpp>
 
 
 namespace blaze {
@@ -55,14 +55,14 @@ namespace blaze {
 /*!\brief Removal of reference modifiers.
 // \ingroup type_traits
 //
-// The RemoveReference type trait removes any reference modifiers from the given type \a T.
+// The RemoveCV type trait removes any reference modifiers from the given type \a T.
 
    \code
-   blaze::RemoveReference<int>::Type             // Results in 'int'
-   blaze::RemoveReference<const int&>::Type      // Results in 'const int'
-   blaze::RemoveReference<volatile int&&>::Type  // Results in 'volatile int'
-   blaze::RemoveReference<int*>::Type            // Results in 'int*'
-   blaze::RemoveReference<int*&>::Type           // Results in 'int*'
+   blaze::RemoveCV<int>::Type             // Results in 'int'
+   blaze::RemoveCV<const int&>::Type      // Results in 'const int'
+   blaze::RemoveCV<volatile int&&>::Type  // Results in 'volatile int'
+   blaze::RemoveCV<int*>::Type            // Results in 'int*'
+   blaze::RemoveCV<int*&>::Type           // Results in 'int*'
    \endcode
 */
 template< typename T >
@@ -71,28 +71,10 @@ struct RemoveReference
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   typedef typename std::remove_reference<T>::type  Type;
+   typedef typename boost::remove_reference<T>::type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the RemoveReference type trait.
-// \ingroup type_traits
-//
-// The RemoveReference_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the RemoveReference class template. For instance, given the type \a T the following
-// two type definitions are identical:
-
-   \code
-   using Type1 = typename RemoveReference<T>::Type;
-   using Type2 = RemoveReference_<T>;
-   \endcode
-*/
-template< typename T >
-using RemoveReference_ = typename RemoveReference<T>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

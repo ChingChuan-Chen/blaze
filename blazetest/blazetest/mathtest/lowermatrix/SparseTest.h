@@ -107,11 +107,11 @@ class SparseTest
    void testSet         ();
    void testInsert      ();
    void testAppend      ();
+   void testErase       ();
    void testResize      ();
    void testReserve     ();
    void testTrim        ();
    void testSwap        ();
-   void testErase       ();
    void testFind        ();
    void testLowerBound  ();
    void testUpperBound  ();
@@ -472,7 +472,7 @@ void runTest()
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Macro for the execution of the LowerMatrix sparse test.
+/*!\brief Macro for the execution of the sparse LowerMatrix test.
 */
 #define RUN_LOWERMATRIX_SPARSE_TEST \
    blazetest::mathtest::lowermatrix::runTest()

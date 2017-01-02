@@ -43,7 +43,6 @@
 #include <blaze/math/HybridMatrix.h>
 #include <blaze/math/StrictlyLowerMatrix.h>
 #include <blazetest/mathtest/creator/Default.h>
-#include <blazetest/mathtest/creator/Policies.h>
 #include <blazetest/system/Types.h>
 
 
@@ -90,11 +89,7 @@ class Creator< blaze::StrictlyLowerMatrix< blaze::HybridMatrix<T,M,N,SO> > >
    /*!\name Operators */
    //@{
    // No explicitly declared copy assignment operator.
-
    const blaze::StrictlyLowerMatrix< blaze::HybridMatrix<T,M,N,SO> > operator()() const;
-
-   template< typename CP >
-   const blaze::StrictlyLowerMatrix< blaze::HybridMatrix<T,M,N,SO> > operator()( const CP& policy ) const;
    //@}
    //**********************************************************************************************
 
@@ -123,10 +118,10 @@ class Creator< blaze::StrictlyLowerMatrix< blaze::HybridMatrix<T,M,N,SO> > >
 //
 // \param elementCreator The creator for the elements of the strictly lower hybrid matrix.
 */
-template< typename T     // Element type of the hybrid matrix
-        , size_t M       // Number of rows of the hybrid matrix
-        , size_t N       // Number of columns of the hybrid matrix
-        , bool SO >      // Storage order of the hybrid matrix
+template< typename T  // Element type of the hybrid matrix
+        , size_t M    // Number of rows of the hybrid matrix
+        , size_t N    // Number of columns of the hybrid matrix
+        , bool SO >   // Storage order of the hybrid matrix
 inline Creator< blaze::StrictlyLowerMatrix< blaze::HybridMatrix<T,M,N,SO> > >::Creator( const Creator<T>& elementCreator )
    : n_ ( N )               // The number of rows and columns of the strictly lower hybrid matrix
    , ec_( elementCreator )  // Creator for the elements of the strictly lower hybrid matrix
@@ -171,39 +166,20 @@ template< typename T  // Element type of the hybrid matrix
 inline const blaze::StrictlyLowerMatrix< blaze::HybridMatrix<T,M,N,SO> >
    Creator< blaze::StrictlyLowerMatrix< blaze::HybridMatrix<T,M,N,SO> > >::operator()() const
 {
-   return (*this)( Default() );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Returns a randomly created strictly lower hybrid matrix.
-//
-// \param policy The creation policy for the elements of fundamental data type.
-// \return The randomly generated strictly lower hybrid matrix.
-*/
-template< typename T     // Element type of the hybrid matrix
-        , size_t M       // Number of rows of the hybrid matrix
-        , size_t N       // Number of columns of the hybrid matrix
-        , bool SO >      // Storage order of the hybrid matrix
-template< typename CP >  // Creation policy
-inline const blaze::StrictlyLowerMatrix< blaze::HybridMatrix<T,M,N,SO> >
-   Creator< blaze::StrictlyLowerMatrix< blaze::HybridMatrix<T,M,N,SO> > >::operator()( const CP& policy ) const
-{
    blaze::StrictlyLowerMatrix< blaze::HybridMatrix<T,M,N,SO> > matrix( n_ );
 
    // Initialization of a column-major matrix
    if( SO ) {
       for( size_t j=0UL; j<n_; ++j )
          for( size_t i=j+1UL; i<n_; ++i )
-            matrix(i,j) = ec_( policy );
+            matrix(i,j) = ec_();
    }
 
    // Initialization of a row-major matrix
    else {
       for( size_t i=1UL; i<n_; ++i )
          for( size_t j=0UL; j<i; ++j )
-            matrix(i,j) = ec_( policy );
+            matrix(i,j) = ec_();
    }
 
    return matrix;

@@ -40,8 +40,9 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/util/IntegralConstant.h>
-#include <blaze/util/mpl/Not.h>
+#include <blaze/util/FalseType.h>
+#include <blaze/util/SelectType.h>
+#include <blaze/util/TrueType.h>
 #include <blaze/util/typetraits/IsReference.h>
 
 
@@ -54,24 +55,48 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Auxiliary helper struct for the RequiresEvaluation type trait.
+// \ingroup math_type_traits
+*/
+template< typename T >
+struct RequiresEvaluationHelper
+{
+   //**********************************************************************************************
+   enum { value = !IsReference<typename T::CompositeType>::value };
+   typedef typename SelectType<value,TrueType,FalseType>::Type  Type;
+   //**********************************************************************************************
+};
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Compile time check to query the requirement to evaluate an expression.
 // \ingroup math_type_traits
 //
 // Via this type trait it is possible to determine whether a given vector or matrix expression
 // type requires an intermediate evaluation in the context of a compound expression. In case
-// the given type requires an evaluation, the \a value member constant is set to \a true, the
+// the given type requires an evaluation, the \a value member enumeration is set to 1, the
 // nested type definition \a Type is \a TrueType, and the class derives from \a TrueType.
-// Otherwise \a value is set to \a false, \a Type is \a FalseType, and the class derives
-// from \a FalseType.
+// Otherwise \a value is set to 0, \a Type is \a FalseType, and the class derives from
+// \a FalseType.
 //
 // \note that this type trait can only be applied to Blaze vector or matrix expressions
 // or any other type providing the nested type \a CompositeType. In case this nested type
 // is not available, applying the type trait results in a compile time error!
 */
 template< typename T >
-struct RequiresEvaluation
-   : public BoolConstant< Not< IsReference<typename T::CompositeType> >::value >
-{};
+struct RequiresEvaluation : public RequiresEvaluationHelper<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   enum { value = RequiresEvaluationHelper<T>::value };
+   typedef typename RequiresEvaluationHelper<T>::Type  Type;
+   /*! \endcond */
+   //**********************************************************************************************
+};
 //*************************************************************************************************
 
 } // namespace blaze

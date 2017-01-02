@@ -40,11 +40,11 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/expressions/Vector.h>
-#include <blaze/util/IntegralConstant.h>
-#include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/IsBaseOf.h>
-#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/math/typetraits/IsDenseVector.h>
+#include <blaze/math/typetraits/IsSparseVector.h>
+#include <blaze/util/FalseType.h>
+#include <blaze/util/SelectType.h>
+#include <blaze/util/TrueType.h>
 
 
 namespace blaze {
@@ -56,14 +56,31 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Auxiliary helper struct for the IsVector type trait.
+// \ingroup math_type_traits
+*/
+template< typename T >
+struct IsVectorHelper
+{
+   //**********************************************************************************************
+   enum { value = IsDenseVector<T>::value || IsSparseVector<T>::value };
+   typedef typename SelectType<value,TrueType,FalseType>::Type  Type;
+   //**********************************************************************************************
+};
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Compile time check for vector types.
 // \ingroup math_type_traits
 //
 // This type trait tests whether or not the given template parameter is a N-dimensional dense
-// or sparse vector type. In case the type is a vector type, the \a value member constant is
-// set to \a true, the nested type definition \a Type is \a TrueType, and the class derives
-// from \a TrueType. Otherwise \a value is set to \a false, \a Type is \a FalseType, and the
-// class derives from \a FalseType.
+// or sparse vector type. In case the type is a vector type, the \a value member enumeration
+// is set to 1, the nested type definition \a Type is \a TrueType, and the class derives from
+// \a TrueType. Otherwise \a value is set to 0, \a Type is \a FalseType, and the class derives
+// from \a FalseType.
 
    \code
    blaze::IsVector< StaticVector<float,3U,false> >::value      // Evaluates to 1
@@ -75,10 +92,16 @@ namespace blaze {
    \endcode
 */
 template< typename T >
-struct IsVector
-   : public BoolConstant< Or< IsBaseOf<Vector<RemoveCV_<T>,false>,T>
-                            , IsBaseOf<Vector<RemoveCV_<T>,true>,T> >::value >
-{};
+struct IsVector : public IsVectorHelper<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   enum { value = IsVectorHelper<T>::value };
+   typedef typename IsVectorHelper<T>::Type  Type;
+   /*! \endcond */
+   //**********************************************************************************************
+};
 //*************************************************************************************************
 
 } // namespace blaze

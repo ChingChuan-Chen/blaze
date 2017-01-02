@@ -47,10 +47,11 @@
 #include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -76,39 +77,21 @@ struct SVecEvalExprTrait
  private:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Tmp = If< And< IsSparseVector<VT>, IsColumnVector<VT> >
-                 , SVecEvalExpr<VT,false>
-                 , INVALID_TYPE >;
+   typedef If< And< IsSparseVector<VT>, IsColumnVector<VT> >
+             , SVecEvalExpr<VT,false>, INVALID_TYPE >  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<VT>::Type >::Type  Type1;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<VT>, IsVolatile<VT>, IsReference<VT> >
-                            , SVecEvalExprTrait< Decay_<VT> >
-                            , Tmp >::Type;
+   typedef typename If< Or< IsConst<VT>, IsVolatile<VT>, IsReference<VT> >
+                      , SVecEvalExprTrait<Type1>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the SVecEvalExprTrait class template.
-// \ingroup math_traits
-//
-// The SVecEvalExprTrait_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the SVecEvalExprTrait class template. For instance, given the non-transpose sparse
-// vector type \a VT the following two type definitions are identical:
-
-   \code
-   using Type1 = typename SVecEvalExprTrait<VT>::Type;
-   using Type2 = SVecEvalExprTrait_<VT>;
-   \endcode
-*/
-template< typename VT >  // Type of the sparse vector
-using SVecEvalExprTrait_ = typename SVecEvalExprTrait<VT>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

@@ -41,6 +41,8 @@
 //*************************************************************************************************
 
 #include <blaze/math/typetraits/RequiresEvaluation.h>
+#include <blaze/util/constraints/ConstraintTest.h>
+#include <blaze/util/Suffix.h>
 
 
 namespace blaze {
@@ -52,6 +54,22 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup math_constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_REQUIRE_EVALUATION_FAILED;
+template<> struct CONSTRAINT_MUST_REQUIRE_EVALUATION_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the data type.
 // \ingroup math_constraints
 //
@@ -59,7 +77,10 @@ namespace blaze {
 // expressions, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_REQUIRE_EVALUATION(T) \
-   static_assert( ::blaze::RequiresEvaluation<T>::value, "Type without evaluation requirement detected" )
+   typedef \
+      blaze::CONSTRAINT_TEST< \
+         blaze::CONSTRAINT_MUST_REQUIRE_EVALUATION_FAILED< blaze::RequiresEvaluation<T>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_REQUIRE_EVALUATION_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -72,6 +93,22 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup math_constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION_FAILED;
+template<> struct CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the data type.
 // \ingroup math_constraints
 //
@@ -79,7 +116,10 @@ namespace blaze {
 // expressions, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION(T) \
-   static_assert( !::blaze::RequiresEvaluation<T>::value, "Type with evaluation requirement detected" )
+   typedef \
+      blaze::CONSTRAINT_TEST< \
+         blaze::CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION_FAILED< !blaze::RequiresEvaluation<T>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 } // namespace blaze

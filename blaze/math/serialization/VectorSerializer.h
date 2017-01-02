@@ -40,9 +40,7 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/Vector.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/DenseVector.h>
 #include <blaze/math/expressions/SparseVector.h>
 #include <blaze/math/expressions/Vector.h>
@@ -52,6 +50,7 @@
 #include <blaze/util/Assert.h>
 #include <blaze/util/DisableIf.h>
 #include <blaze/util/EnableIf.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/typetraits/IsNumeric.h>
 
@@ -245,23 +244,23 @@ class VectorSerializer
    void deserializeHeader( Archive& archive, const VT& vec );
 
    template< typename VT, bool TF >
-   DisableIf_< IsResizable<VT> > prepareVector( DenseVector<VT,TF>& vec );
+   typename DisableIf< IsResizable<VT> >::Type prepareVector( DenseVector<VT,TF>& vec );
 
    template< typename VT, bool TF >
-   DisableIf_< IsResizable<VT> > prepareVector( SparseVector<VT,TF>& vec );
+   typename DisableIf< IsResizable<VT> >::Type prepareVector( SparseVector<VT,TF>& vec );
 
    template< typename VT >
-   EnableIf_< IsResizable<VT> > prepareVector( VT& vec );
+   typename EnableIf< IsResizable<VT> >::Type prepareVector( VT& vec );
 
    template< typename Archive, typename VT >
    void deserializeVector( Archive& archive, VT& vec );
 
    template< typename Archive, typename VT, bool TF >
-   typename DisableIfTrue< VT::simdEnabled >::Type
+   typename DisableIfTrue< VT::vectorizable >::Type
       deserializeDenseVector( Archive& archive, DenseVector<VT,TF>& vec );
 
    template< typename Archive, typename VT, bool TF >
-   EnableIfTrue_< VT::simdEnabled >
+   typename EnableIfTrue< VT::vectorizable >::Type
       deserializeDenseVector( Archive& archive, DenseVector<VT,TF>& vec );
 
    template< typename Archive, typename VT, bool TF >
@@ -358,7 +357,7 @@ template< typename Archive  // Type of the archive
         , typename VT >     // Type of the vector
 void VectorSerializer::serializeHeader( Archive& archive, const VT& vec )
 {
-   typedef ElementType_<VT>  ET;
+   typedef typename VT::ElementType  ET;
 
    archive << uint8_t ( 1U );
    archive << uint8_t ( VectorValueMapping<VT>::value );
@@ -412,7 +411,7 @@ template< typename Archive  // Type of the archive
         , bool TF >         // Transpose flag
 void VectorSerializer::serializeVector( Archive& archive, const SparseVector<VT,TF>& vec )
 {
-   typedef ConstIterator_<VT>  ConstIterator;
+   typedef typename VT::ConstIterator  ConstIterator;
 
    ConstIterator element( (~vec).begin() );
    while( ( element != (~vec).end() ) &&
@@ -476,7 +475,7 @@ template< typename Archive  // Type of the archive
         , typename VT >     // Type of the vector
 void VectorSerializer::deserializeHeader( Archive& archive, const VT& vec )
 {
-   typedef ElementType_<VT>  ET;
+   typedef typename VT::ElementType  ET;
 
    if( !( archive >> version_ >> type_ >> elementType_ >> elementSize_ >> size_ >> number_ ) ) {
       BLAZE_THROW_RUNTIME_ERROR( "Corrupt archive detected" );
@@ -511,7 +510,7 @@ void VectorSerializer::deserializeHeader( Archive& archive, const VT& vec )
 */
 template< typename VT  // Type of the dense vector
         , bool TF >    // Transpose flag
-DisableIf_< IsResizable<VT> > VectorSerializer::prepareVector( DenseVector<VT,TF>& vec )
+typename DisableIf< IsResizable<VT> >::Type VectorSerializer::prepareVector( DenseVector<VT,TF>& vec )
 {
    reset( ~vec );
 }
@@ -526,7 +525,7 @@ DisableIf_< IsResizable<VT> > VectorSerializer::prepareVector( DenseVector<VT,TF
 */
 template< typename VT  // Type of the sparse vector
         , bool TF >    // Transpose flag
-DisableIf_< IsResizable<VT> > VectorSerializer::prepareVector( SparseVector<VT,TF>& vec )
+typename DisableIf< IsResizable<VT> >::Type VectorSerializer::prepareVector( SparseVector<VT,TF>& vec )
 {
    (~vec).reserve( number_ );
    reset( ~vec );
@@ -541,7 +540,7 @@ DisableIf_< IsResizable<VT> > VectorSerializer::prepareVector( SparseVector<VT,T
 // \return void
 */
 template< typename VT >  // Type of the vector
-EnableIf_< IsResizable<VT> > VectorSerializer::prepareVector( VT& vec )
+typename EnableIf< IsResizable<VT> >::Type VectorSerializer::prepareVector( VT& vec )
 {
    vec.resize ( size_, false );
    vec.reserve( number_ );
@@ -593,10 +592,10 @@ void VectorSerializer::deserializeVector( Archive& archive, VT& vec )
 template< typename Archive  // Type of the archive
         , typename VT       // Type of the vector
         , bool TF >         // Transpose flag
-typename DisableIfTrue< VT::simdEnabled >::Type
+typename DisableIfTrue< VT::vectorizable >::Type
    VectorSerializer::deserializeDenseVector( Archive& archive, DenseVector<VT,TF>& vec )
 {
-   typedef ElementType_<VT>  ET;
+   typedef typename VT::ElementType  ET;
 
    size_t i( 0UL );
    ET value = ET();
@@ -628,7 +627,7 @@ typename DisableIfTrue< VT::simdEnabled >::Type
 template< typename Archive  // Type of the archive
         , typename VT       // Type of the vector
         , bool TF >         // Transpose flag
-EnableIfTrue_< VT::simdEnabled >
+typename EnableIfTrue< VT::vectorizable >::Type
    VectorSerializer::deserializeDenseVector( Archive& archive, DenseVector<VT,TF>& vec )
 {
    if( size_ == 0UL ) return;
@@ -658,7 +657,7 @@ template< typename Archive  // Type of the archive
         , bool TF >         // Transpose flag
 void VectorSerializer::deserializeDenseVector( Archive& archive, SparseVector<VT,TF>& vec )
 {
-   typedef ElementType_<VT>  ET;
+   typedef typename VT::ElementType  ET;
 
    size_t i( 0UL );
    ET value = ET();
@@ -692,7 +691,7 @@ template< typename Archive  // Type of the archive
         , bool TF >         // Transpose flag
 void VectorSerializer::deserializeSparseVector( Archive& archive, DenseVector<VT,TF>& vec )
 {
-   typedef ElementType_<VT>  ET;
+   typedef typename VT::ElementType  ET;
 
    size_t i( 0UL );
    size_t index( 0UL );
@@ -727,7 +726,7 @@ template< typename Archive  // Type of the archive
         , bool TF >         // Transpose flag
 void VectorSerializer::deserializeSparseVector( Archive& archive, SparseVector<VT,TF>& vec )
 {
-   typedef ElementType_<VT>  ET;
+   typedef typename VT::ElementType  ET;
 
    size_t i( 0UL );
    size_t index( 0UL );

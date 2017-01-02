@@ -41,19 +41,16 @@
 //*************************************************************************************************
 
 #include <cmath>
-#include <vector>
-#include <blaze/math/Aliases.h>
 #include <blaze/math/adaptors/UniLowerMatrix.h>
 #include <blaze/math/constraints/DenseMatrix.h>
 #include <blaze/math/constraints/Resizable.h>
 #include <blaze/math/constraints/SparseMatrix.h>
 #include <blaze/math/DenseMatrix.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/SparseMatrix.h>
 #include <blaze/math/typetraits/IsDenseMatrix.h>
 #include <blaze/math/UniUpperMatrix.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/FalseType.h>
-#include <blaze/util/Indices.h>
 #include <blaze/util/Random.h>
 #include <blaze/util/TrueType.h>
 #include <blaze/util/Types.h>
@@ -104,18 +101,13 @@ class Rand< UniLowerMatrix<MT,SO,DF> >
    /*!\name Randomize functions */
    //@{
    inline void randomize( UniLowerMatrix<MT,SO,DF>& matrix ) const;
-   inline void randomize( UniLowerMatrix<MT,false,DF>& matrix, size_t nonzeros ) const;
-   inline void randomize( UniLowerMatrix<MT,true,DF>& matrix, size_t nonzeros ) const;
+   inline void randomize( UniLowerMatrix<MT,SO,DF>& matrix, size_t nonzeros ) const;
 
    template< typename Arg >
    inline void randomize( UniLowerMatrix<MT,SO,DF>& matrix, const Arg& min, const Arg& max ) const;
 
    template< typename Arg >
-   inline void randomize( UniLowerMatrix<MT,false,DF>& matrix, size_t nonzeros,
-                          const Arg& min, const Arg& max ) const;
-
-   template< typename Arg >
-   inline void randomize( UniLowerMatrix<MT,true,DF>& matrix, size_t nonzeros,
+   inline void randomize( UniLowerMatrix<MT,SO,DF>& matrix, size_t nonzeros,
                           const Arg& min, const Arg& max ) const;
    //@}
    //**********************************************************************************************
@@ -332,7 +324,7 @@ inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,SO,DF
 {
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    const size_t n( matrix.rows() );
 
@@ -360,13 +352,22 @@ inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,SO,DF
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
+   typedef typename MT::ElementType  ET;
+
    const size_t n( matrix.rows() );
 
-   if( n == 0UL || n == 1UL ) return;
+   if( n == 0UL ) return;
 
    const size_t nonzeros( rand<size_t>( 1UL, std::ceil( 0.2*n*n ) ) );
 
-   randomize( matrix, nonzeros );
+   matrix.reset();
+   matrix.reserve( nonzeros );
+
+   while( matrix.nonZeros() < nonzeros ) {
+      const size_t row( rand<size_t>( 1UL, n-1UL ) );
+      const size_t col( rand<size_t>( 0UL, row-1UL ) );
+      matrix(row,col) = rand<ET>();
+   }
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -374,7 +375,7 @@ inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,SO,DF
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Randomization of a row-major sparse UniLowerMatrix.
+/*!\brief Randomization of a sparse UniLowerMatrix.
 //
 // \param matrix The matrix to be randomized.
 // \param nonzeros The number of non-zero elements of the random matrix.
@@ -384,11 +385,11 @@ inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,SO,DF
 template< typename MT  // Type of the adapted matrix
         , bool SO      // Storage order of the adapted matrix
         , bool DF >    // Numeric flag
-inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,false,DF>& matrix, size_t nonzeros ) const
+inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,SO,DF>& matrix, size_t nonzeros ) const
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    const size_t n( matrix.rows() );
 
@@ -396,80 +397,16 @@ inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,false
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid number of non-zero elements" );
    }
 
-   if( n == 0UL || n == 1UL ) return;
-
-   matrix.reset();
-   matrix.reserve( nonzeros );
-   matrix.finalize( 0UL );
-
-   std::vector<size_t> dist( n );
-
-   for( size_t nz=0UL; nz<nonzeros; ) {
-      const size_t index = rand<size_t>( 1UL, n-1UL );
-      if( dist[index] == index ) continue;
-      ++dist[index];
-      ++nz;
-   }
-
-   for( size_t i=1UL; i<n; ++i ) {
-      const Indices indices( 0UL, i-1UL, dist[i] );
-      for( size_t j : indices ) {
-         matrix.append( i, j, rand<ET>() );
-      }
-      matrix.finalize( i );
-   }
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Randomization of a column-major sparse UniLowerMatrix.
-//
-// \param matrix The matrix to be randomized.
-// \param nonzeros The number of non-zero elements of the random matrix.
-// \return void
-// \exception std::invalid_argument Invalid number of non-zero elements.
-*/
-template< typename MT  // Type of the adapted matrix
-        , bool SO      // Storage order of the adapted matrix
-        , bool DF >    // Numeric flag
-inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,true,DF>& matrix, size_t nonzeros ) const
-{
-   BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
-
-   typedef ElementType_<MT>  ET;
-
-   const size_t n( matrix.rows() );
-
-   if( nonzeros > UniLowerMatrix<MT,SO,DF>::maxNonZeros( n ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid number of non-zero elements" );
-   }
-
-   if( n == 0UL || n == 1UL ) return;
+   if( n == 0UL ) return;
 
    matrix.reset();
    matrix.reserve( nonzeros );
 
-   std::vector<size_t> dist( n-1UL );
-
-   for( size_t nz=0UL; nz<nonzeros; ) {
-      const size_t index = rand<size_t>( 0UL, n-2UL );
-      if( dist[index] == n - index - 1UL ) continue;
-      ++dist[index];
-      ++nz;
+   while( matrix.nonZeros() < nonzeros ) {
+      const size_t row( rand<size_t>( 1UL, n-1UL ) );
+      const size_t col( rand<size_t>( 0UL, row-1UL ) );
+      matrix(row,col) = rand<ET>();
    }
-
-   for( size_t j=0UL; j<n-1UL; ++j ) {
-      const Indices indices( j+1UL, n-1UL, dist[j] );
-      for( size_t i : indices ) {
-         matrix.append( i, j, rand<ET>() );
-      }
-      matrix.finalize( j );
-   }
-
-   matrix.finalize( n-1UL );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -515,7 +452,7 @@ inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,SO,DF
 {
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    const size_t n( matrix.rows() );
 
@@ -547,13 +484,22 @@ inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,SO,DF
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
+   typedef typename MT::ElementType  ET;
+
    const size_t n( matrix.rows() );
 
-   if( n == 0UL || n == 1UL ) return;
+   if( n == 0UL ) return;
 
    const size_t nonzeros( rand<size_t>( 1UL, std::ceil( 0.2*n*n ) ) );
 
-   randomize( matrix, nonzeros, min, max );
+   matrix.reset();
+   matrix.reserve( nonzeros );
+
+   while( matrix.nonZeros() < nonzeros ) {
+      const size_t row( rand<size_t>( 1UL, n-1UL ) );
+      const size_t col( rand<size_t>( 0UL, row-1UL ) );
+      matrix(row,col) = rand<ET>( min, max );
+   }
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -561,7 +507,7 @@ inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,SO,DF
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Randomization of a row-major sparse UniLowerMatrix.
+/*!\brief Randomization of a sparse UniLowerMatrix.
 //
 // \param matrix The matrix to be randomized.
 // \param nonzeros The number of non-zero elements of the random matrix.
@@ -574,12 +520,12 @@ template< typename MT     // Type of the adapted matrix
         , bool SO         // Storage order of the adapted matrix
         , bool DF >       // Numeric flag
 template< typename Arg >  // Min/max argument type
-inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,false,DF>& matrix,
+inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,SO,DF>& matrix,
                                                          size_t nonzeros, const Arg& min, const Arg& max ) const
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    const size_t n( matrix.rows() );
 
@@ -587,84 +533,16 @@ inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,false
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid number of non-zero elements" );
    }
 
-   if( n == 0UL || n == 1UL ) return;
-
-   matrix.reset();
-   matrix.reserve( nonzeros );
-   matrix.finalize( 0UL );
-
-   std::vector<size_t> dist( n );
-
-   for( size_t nz=0UL; nz<nonzeros; ) {
-      const size_t index = rand<size_t>( 1UL, n-1UL );
-      if( dist[index] == index ) continue;
-      ++dist[index];
-      ++nz;
-   }
-
-   for( size_t i=1UL; i<n; ++i ) {
-      const Indices indices( 0UL, i-1UL, dist[i] );
-      for( size_t j : indices ) {
-         matrix.append( i, j, rand<ET>( min, max ) );
-      }
-      matrix.finalize( i );
-   }
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Randomization of a column-major sparse UniLowerMatrix.
-//
-// \param matrix The matrix to be randomized.
-// \param nonzeros The number of non-zero elements of the random matrix.
-// \param min The smallest possible value for a matrix element.
-// \param max The largest possible value for a matrix element.
-// \return void
-// \exception std::invalid_argument Invalid number of non-zero elements.
-*/
-template< typename MT     // Type of the adapted matrix
-        , bool SO         // Storage order of the adapted matrix
-        , bool DF >       // Numeric flag
-template< typename Arg >  // Min/max argument type
-inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,true,DF>& matrix,
-                                                         size_t nonzeros, const Arg& min, const Arg& max ) const
-{
-   BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
-
-   typedef ElementType_<MT>  ET;
-
-   const size_t n( matrix.rows() );
-
-   if( nonzeros > UniLowerMatrix<MT,SO,DF>::maxNonZeros( n ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid number of non-zero elements" );
-   }
-
-   if( n == 0UL || n == 1UL ) return;
+   if( n == 0UL ) return;
 
    matrix.reset();
    matrix.reserve( nonzeros );
 
-   std::vector<size_t> dist( n-1UL );
-
-   for( size_t nz=0UL; nz<nonzeros; ) {
-      const size_t index = rand<size_t>( 0UL, n-2UL );
-      if( dist[index] == n - index - 1UL ) continue;
-      ++dist[index];
-      ++nz;
+   while( matrix.nonZeros() < nonzeros ) {
+      const size_t row( rand<size_t>( 1UL, n-1UL ) );
+      const size_t col( rand<size_t>( 0UL, row-1UL ) );
+      matrix(row,col) = rand<ET>( min, max );
    }
-
-   for( size_t j=0UL; j<n-1UL; ++j ) {
-      const Indices indices( j+1UL, n-1UL, dist[j] );
-      for( size_t i : indices ) {
-         matrix.append( i, j, rand<ET>( min, max ) );
-      }
-      matrix.finalize( j );
-   }
-
-   matrix.finalize( n-1UL );
 }
 /*! \endcond */
 //*************************************************************************************************

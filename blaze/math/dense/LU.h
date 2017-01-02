@@ -40,23 +40,21 @@
 // Includes
 //*************************************************************************************************
 
-#include <memory>
-#include <utility>
-#include <blaze/math/Aliases.h>
+#include <algorithm>
 #include <blaze/math/constraints/Adaptor.h>
-#include <blaze/math/constraints/BLASCompatible.h>
+#include <blaze/math/constraints/BlasCompatible.h>
 #include <blaze/math/constraints/Hermitian.h>
 #include <blaze/math/constraints/Lower.h>
 #include <blaze/math/constraints/StrictlyTriangular.h>
 #include <blaze/math/constraints/Symmetric.h>
 #include <blaze/math/constraints/UniTriangular.h>
 #include <blaze/math/constraints/Upper.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/DenseMatrix.h>
 #include <blaze/math/Functions.h>
 #include <blaze/math/lapack/getrf.h>
 #include <blaze/math/traits/DerestrictTrait.h>
 #include <blaze/math/typetraits/IsResizable.h>
+#include <blaze/util/Exception.h>
 
 
 namespace blaze {
@@ -97,17 +95,17 @@ template< typename MT1  // Type of matrix A
 void lu( DenseMatrix<MT1,SO1>& A, Matrix<MT2,SO2>& P )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT1 );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT1> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( typename MT1::ElementType );
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT2 );
 
-   typedef ElementType_<MT2>  ET;
+   typedef typename MT2::ElementType  ET;
 
    const size_t m( (~A).rows()    );
    const size_t n( (~A).columns() );
    const size_t mindim( min( m, n ) );
    const size_t size( SO1 ? m : n );
 
-   const std::unique_ptr<int[]> helper( new int[mindim + size] );
+   UniqueArray<int> helper( new int[mindim + size] );
    int* ipiv  ( helper.get() );
    int* permut( ipiv + mindim );
 
@@ -220,7 +218,7 @@ void lu( const DenseMatrix<MT1,SO1>& A, DenseMatrix<MT2,SO1>& L,
          DenseMatrix<MT3,SO1>& U, Matrix<MT4,SO2>& P )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_STRICTLY_TRIANGULAR_MATRIX_TYPE( MT1 );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT1> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( typename MT1::ElementType );
 
    BLAZE_CONSTRAINT_MUST_NOT_BE_SYMMETRIC_MATRIX_TYPE( MT2 );
    BLAZE_CONSTRAINT_MUST_NOT_BE_HERMITIAN_MATRIX_TYPE( MT2 );
@@ -232,8 +230,8 @@ void lu( const DenseMatrix<MT1,SO1>& A, DenseMatrix<MT2,SO1>& L,
    BLAZE_CONSTRAINT_MUST_NOT_BE_UNITRIANGULAR_MATRIX_TYPE( MT3 );
    BLAZE_CONSTRAINT_MUST_NOT_BE_LOWER_MATRIX_TYPE( MT3 );
 
-   typedef ElementType_<MT2>  ET2;
-   typedef ElementType_<MT3>  ET3;
+   typedef typename MT2::ElementType  ET2;
+   typedef typename MT3::ElementType  ET3;
 
    const size_t m( (~A).rows()    );
    const size_t n( (~A).columns() );
@@ -250,8 +248,8 @@ void lu( const DenseMatrix<MT1,SO1>& A, DenseMatrix<MT2,SO1>& L,
       BLAZE_THROW_INVALID_ARGUMENT( "Square matrix cannot be resized to m-by-n" );
    }
 
-   DerestrictTrait_<MT2> l( derestrict( ~L ) );
-   DerestrictTrait_<MT3> u( derestrict( ~U ) );
+   typename DerestrictTrait<MT2>::Type l( derestrict( ~L ) );
+   typename DerestrictTrait<MT3>::Type u( derestrict( ~U ) );
 
    if( m < n )
    {

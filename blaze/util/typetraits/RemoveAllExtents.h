@@ -40,7 +40,7 @@
 // Includes
 //*************************************************************************************************
 
-#include <type_traits>
+#include <boost/type_traits/remove_all_extents.hpp>
 
 
 namespace blaze {
@@ -72,28 +72,10 @@ struct RemoveAllExtents
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   typedef typename std::remove_all_extents<T>::type  Type;
+   typedef typename boost::remove_all_extents<T>::type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the RemoveAllExtents type trait.
-// \ingroup type_traits
-//
-// The RemoveAllExtents_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the RemoveAllExtents class template. For instance, given the type \a T the following
-// two type definitions are identical:
-
-   \code
-   using Type1 = typename RemoveAllExtents<T>::Type;
-   using Type2 = RemoveAllExtents_<T>;
-   \endcode
-*/
-template< typename T >
-using RemoveAllExtents_ = typename RemoveAllExtents<T>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

@@ -40,7 +40,8 @@
 // Includes
 //*************************************************************************************************
 
-#include <type_traits>
+#include <boost/type_traits/common_type.hpp>
+#include <blaze/util/NullType.h>
 
 
 namespace blaze {
@@ -55,9 +56,9 @@ namespace blaze {
 /*!\brief Deduction of a type common to several types.
 // \ingroup type_traits
 //
-// The CommonType type trait deduces the result type of a mixed-mode arithmetic expression between
-// all types T..., that is the type all T... can be implicitly converted to. Note that cv and
-// reference qualifiers are generally ignored.
+// The CommonType type trait deduces a type that is common to up to three types \a T1 to
+// \a T3. This may for instance be the resulting type of an arithmetic operation, such as an
+// addition or a subtraction. Note that cv and reference qualifiers are generally ignored.
 
    \code
    blaze::CommonType<short,int>::Type                         // Results in 'int'
@@ -65,13 +66,13 @@ namespace blaze {
    blaze::CommonType<char&, volatile int, const float>::Type  // Results in 'float'
    \endcode
 */
-template< typename... T >
+template< typename T1, typename T2, typename T3 = NullType >
 struct CommonType
 {
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   typedef typename std::common_type<T...>::type  Type;
+   typedef typename boost::common_type<T1,T2,T3>::type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
@@ -79,20 +80,17 @@ struct CommonType
 
 
 //*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the CommonType type trait.
-// \ingroup type_traits
-//
-// The CommonType_ alias declaration provides a convenient shortcut to access the nested \a Type
-// of the CommonType class template. For instance, given the types \a T1 and \a T2 the following
-// two type definitions are identical:
-
-   \code
-   using Type1 = typename CommonType<T1,T2>::Type;
-   using Type2 = CommonType_<T1,T2>;
-   \endcode
-*/
-template< typename... T >
-using CommonType_ = typename CommonType<T...>::Type;
+/*! \cond BLAZE_INTERNAL */
+//! Partial specialization of the CommonType type trait for two given types.
+template< typename T1, typename T2 >
+struct CommonType<T1,T2,NullType>
+{
+ public:
+   //**********************************************************************************************
+   typedef typename boost::common_type<T1,T2>::type  Type;
+   //**********************************************************************************************
+};
+/*! \endcond */
 //*************************************************************************************************
 
 } // namespace blaze

@@ -73,22 +73,16 @@ class OperationTest
    //**Test functions******************************************************************************
    /*!\name Test functions */
    //@{
-   void testIsColumnMajorMatrix();
-   void testIsColumnVector();
-   void testIsDiagonal();
-   void testIsIdentity();
-   void testIsLower();
-   void testIsMatrix();
-   void testIsRowMajorMatrix();
-   void testIsRowVector();
-   void testIsSymmetric();
-   void testIsUniLower();
-   void testIsUniUpper();
-   void testIsUpper();
-   void testIsVector();
-   void testRemoveAdaptor();
    void testUnderlyingBuiltin();
    void testUnderlyingNumeric();
+   void testIsSymmetric();
+   void testIsLower();
+   void testIsUniLower();
+   void testIsUpper();
+   void testIsUniUpper();
+   void testIsDiagonal();
+   void testIsIdentity();
+   void testRemoveAdaptor();
    //@}
    //**********************************************************************************************
 };

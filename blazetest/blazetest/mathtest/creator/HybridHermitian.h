@@ -42,9 +42,7 @@
 
 #include <blaze/math/HybridMatrix.h>
 #include <blaze/math/HermitianMatrix.h>
-#include <blaze/math/shims/Real.h>
 #include <blazetest/mathtest/creator/Default.h>
-#include <blazetest/mathtest/creator/Policies.h>
 #include <blazetest/system/Types.h>
 
 
@@ -91,11 +89,7 @@ class Creator< blaze::HermitianMatrix< blaze::HybridMatrix<T,M,N,SO> > >
    /*!\name Operators */
    //@{
    // No explicitly declared copy assignment operator.
-
    const blaze::HermitianMatrix< blaze::HybridMatrix<T,M,N,SO> > operator()() const;
-
-   template< typename CP >
-   const blaze::HermitianMatrix< blaze::HybridMatrix<T,M,N,SO> > operator()( const CP& policy ) const;
    //@}
    //**********************************************************************************************
 
@@ -172,45 +166,20 @@ template< typename T  // Element type of the hybrid matrix
 inline const blaze::HermitianMatrix< blaze::HybridMatrix<T,M,N,SO> >
    Creator< blaze::HermitianMatrix< blaze::HybridMatrix<T,M,N,SO> > >::operator()() const
 {
-   return (*this)( Default() );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Returns a randomly created Hermitian hybrid matrix.
-//
-// \param policy The creation policy for the elements of fundamental data type.
-// \return The randomly generated Hermitian hybrid matrix.
-*/
-template< typename T     // Element type of the hybrid matrix
-        , size_t M       // Number of rows of the hybrid matrix
-        , size_t N       // Number of columns of the hybrid matrix
-        , bool SO >      // Storage order of the hybrid matrix
-template< typename CP >  // Creation policy
-inline const blaze::HermitianMatrix< blaze::HybridMatrix<T,M,N,SO> >
-   Creator< blaze::HermitianMatrix< blaze::HybridMatrix<T,M,N,SO> > >::operator()( const CP& policy ) const
-{
-   using blaze::real;
-
    blaze::HermitianMatrix< blaze::HybridMatrix<T,M,N,SO> > matrix( n_ );
 
    // Initialization of a column-major matrix
    if( SO ) {
-      for( size_t j=0UL; j<n_; ++j ) {
-         for( size_t i=0UL; i<j; ++i )
+      for( size_t j=0UL; j<n_; ++j )
+         for( size_t i=0UL; i<=j; ++i )
             matrix(i,j) = ec_();
-         matrix(j,j) = real( ec_( policy ) );
-      }
    }
 
    // Initialization of a row-major matrix
    else {
-      for( size_t i=0UL; i<n_; ++i ) {
-         for( size_t j=0UL; j<i; ++j )
+      for( size_t i=0UL; i<n_; ++i )
+         for( size_t j=0UL; j<=i; ++j )
             matrix(i,j) = ec_();
-         matrix(i,i) = real( ec_( policy ) );
-      }
    }
 
    return matrix;

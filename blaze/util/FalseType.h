@@ -40,14 +40,14 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/util/IntegralConstant.h>
+#include <boost/type_traits/integral_constant.hpp>
 
 
 namespace blaze {
 
 //=================================================================================================
 //
-//  ALIAS DECLARATION
+//  CLASS DEFINITION
 //
 //=================================================================================================
 
@@ -58,7 +58,7 @@ namespace blaze {
 // The FalseType class is used as base class for type traits and value traits that evaluate to
 // \a false.
 */
-using FalseType = BoolConstant<false>;
+typedef boost::false_type  FalseType;
 //*************************************************************************************************
 
 } // namespace blaze

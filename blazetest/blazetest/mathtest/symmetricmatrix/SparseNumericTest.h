@@ -107,13 +107,13 @@ class SparseNumericTest
    void testSet         ();
    void testInsert      ();
    void testAppend      ();
+   void testErase       ();
    void testResize      ();
    void testReserve     ();
    void testTrim        ();
    void testTranspose   ();
    void testCTranspose  ();
    void testSwap        ();
-   void testErase       ();
    void testFind        ();
    void testLowerBound  ();
    void testUpperBound  ();
@@ -474,7 +474,7 @@ void runTest()
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Macro for the execution of the SymmetricMatrix sparse numeric test.
+/*!\brief Macro for the execution of the sparse numeric SymmetricMatrix test.
 */
 #define RUN_SYMMETRICMATRIX_SPARSENUMERIC_TEST \
    blazetest::mathtest::symmetricmatrix::runTest()

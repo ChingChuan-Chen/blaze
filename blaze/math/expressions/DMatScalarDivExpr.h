@@ -41,16 +41,14 @@
 //*************************************************************************************************
 
 #include <iterator>
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/DenseMatrix.h>
 #include <blaze/math/constraints/StorageOrder.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/Computation.h>
 #include <blaze/math/expressions/DenseMatrix.h>
 #include <blaze/math/expressions/Forward.h>
 #include <blaze/math/expressions/MatScalarDivExpr.h>
+#include <blaze/math/Intrinsics.h>
 #include <blaze/math/shims/Serial.h>
-#include <blaze/math/SIMD.h>
 #include <blaze/math/traits/ColumnExprTrait.h>
 #include <blaze/math/traits/DivExprTrait.h>
 #include <blaze/math/traits/DivTrait.h>
@@ -59,7 +57,6 @@
 #include <blaze/math/traits/RowExprTrait.h>
 #include <blaze/math/traits/SubmatrixExprTrait.h>
 #include <blaze/math/typetraits/Columns.h>
-#include <blaze/math/typetraits/HasSIMDDiv.h>
 #include <blaze/math/typetraits/IsAligned.h>
 #include <blaze/math/typetraits/IsColumnMajorMatrix.h>
 #include <blaze/math/typetraits/IsComputation.h>
@@ -86,14 +83,15 @@
 #include <blaze/util/constraints/Reference.h>
 #include <blaze/util/constraints/SameType.h>
 #include <blaze/util/EnableIf.h>
-#include <blaze/util/IntegralConstant.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/InvalidType.h>
 #include <blaze/util/logging/FunctionTrace.h>
 #include <blaze/util/mpl/And.h>
-#include <blaze/util/mpl/If.h>
-#include <blaze/util/mpl/Or.h>
+#include <blaze/util/SelectType.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/typetraits/IsNumeric.h>
+#include <blaze/util/typetraits/IsSame.h>
+#include <blaze/util/valuetraits/IsTrue.h>
 
 
 namespace blaze {
@@ -120,10 +118,10 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
 {
  private:
    //**Type definitions****************************************************************************
-   typedef ResultType_<MT>     RT;  //!< Result type of the dense matrix expression.
-   typedef ReturnType_<MT>     RN;  //!< Return type of the dense matrix expression.
-   typedef ElementType_<MT>    ET;  //!< Element type of the dense matrix expression.
-   typedef CompositeType_<MT>  CT;  //!< Composite type of the dense matrix expression.
+   typedef typename MT::ResultType     RT;  //!< Result type of the dense matrix expression.
+   typedef typename MT::ReturnType     RN;  //!< Return type of the dense matrix expression.
+   typedef typename MT::ElementType    ET;  //!< Element type of the dense matrix expression.
+   typedef typename MT::CompositeType  CT;  //!< Composite type of the dense matrix expression.
    //**********************************************************************************************
 
    //**Return type evaluation**********************************************************************
@@ -133,10 +131,10 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
        or matrix, \a returnExpr will be set to \a false and the subscript operator will
        return it's result by value. Otherwise \a returnExpr will be set to \a true and
        the subscript operator may return it's result as an expression. */
-   enum : bool { returnExpr = !IsTemporary<RN>::value };
+   enum { returnExpr = !IsTemporary<RN>::value };
 
    //! Expression return type for the subscript operator.
-   typedef DivExprTrait_<RN,ST>  ExprReturnType;
+   typedef typename DivExprTrait<RN,ST>::Type  ExprReturnType;
    //**********************************************************************************************
 
    //**Serial evaluation strategy******************************************************************
@@ -147,13 +145,13 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
        evaluation, \a useAssign will be set to 1 and the division expression will be evaluated
        via the \a assign function family. Otherwise \a useAssign will be set to 0 and the
        expression will be evaluated via the subscript operator. */
-   enum : bool { useAssign = IsComputation<MT>::value && RequiresEvaluation<MT>::value };
+   enum { useAssign = IsComputation<MT>::value && RequiresEvaluation<MT>::value };
 
    /*! \cond BLAZE_INTERNAL */
    //! Helper structure for the explicit application of the SFINAE principle.
    template< typename MT2 >
    struct UseAssign {
-      enum : bool { value = useAssign };
+      enum { value = useAssign };
    };
    /*! \endcond */
    //**********************************************************************************************
@@ -168,27 +166,28 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
        \a value is set to 0 and the default strategy is chosen. */
    template< typename MT2 >
    struct UseSMPAssign {
-      enum : bool { value = ( !MT2::smpAssignable || !MT::smpAssignable ) && useAssign };
+      enum { value = ( !MT2::smpAssignable || !MT::smpAssignable ) && useAssign };
    };
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
-   typedef DMatScalarDivExpr<MT,ST,SO>  This;           //!< Type of this DMatScalarDivExpr instance.
-   typedef DivTrait_<RT,ST>             ResultType;     //!< Result type for expression template evaluations.
-   typedef OppositeType_<ResultType>    OppositeType;   //!< Result type with opposite storage order for expression template evaluations.
-   typedef TransposeType_<ResultType>   TransposeType;  //!< Transpose type for expression template evaluations.
-   typedef ElementType_<ResultType>     ElementType;    //!< Resulting element type.
+   typedef DMatScalarDivExpr<MT,ST,SO>                 This;           //!< Type of this DMatScalarDivExpr instance.
+   typedef typename DivTrait<RT,ST>::Type              ResultType;     //!< Result type for expression template evaluations.
+   typedef typename ResultType::OppositeType           OppositeType;   //!< Result type with opposite storage order for expression template evaluations.
+   typedef typename ResultType::TransposeType          TransposeType;  //!< Transpose type for expression template evaluations.
+   typedef typename ResultType::ElementType            ElementType;    //!< Resulting element type.
+   typedef typename IntrinsicTrait<ElementType>::Type  IntrinsicType;  //!< Resulting intrinsic element type.
 
    //! Return type for expression template evaluations.
-   typedef const IfTrue_< returnExpr, ExprReturnType, ElementType >  ReturnType;
+   typedef const typename SelectType< returnExpr, ExprReturnType, ElementType >::Type  ReturnType;
 
    //! Data type for composite expression templates.
-   typedef IfTrue_< useAssign, const ResultType, const DMatScalarDivExpr& >  CompositeType;
+   typedef typename SelectType< useAssign, const ResultType, const DMatScalarDivExpr& >::Type  CompositeType;
 
    //! Composite type of the left-hand side dense matrix expression.
-   typedef If_< IsExpression<MT>, const MT, const MT& >  LeftOperand;
+   typedef typename SelectType< IsExpression<MT>::value, const MT, const MT& >::Type  LeftOperand;
 
    //! Composite type of the right-hand side scalar value.
    typedef ST  RightOperand;
@@ -215,7 +214,7 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
       typedef DifferenceType    difference_type;    //!< Difference between two iterators.
 
       //! ConstIterator type of the dense matrix expression.
-      typedef ConstIterator_<MT>  IteratorType;
+      typedef typename MT::ConstIterator  IteratorType;
       //*******************************************************************************************
 
       //**Constructor******************************************************************************
@@ -307,11 +306,11 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
       //*******************************************************************************************
 
       //**Load function****************************************************************************
-      /*!\brief Access to the SIMD elements of the matrix.
+      /*!\brief Access to the intrinsic elements of the matrix.
       //
-      // \return The resulting SIMD element.
+      // \return The resulting intrinsic value.
       */
-      inline auto load() const noexcept {
+      inline IntrinsicType load() const {
          return iterator_.load() / set( scalar_ );
       }
       //*******************************************************************************************
@@ -439,18 +438,14 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template evaluation strategy.
-   enum : bool { simdEnabled = MT::simdEnabled &&
-                               IsNumeric<ET>::value &&
-                               ( HasSIMDDiv<ET,ST>::value ||
-                                 HasSIMDDiv<UnderlyingElement_<ET>,ST>::value ) };
+   enum { vectorizable = MT::vectorizable &&
+                         IsNumeric<ET>::value &&
+                         ( IsSame<ET,RightOperand>::value ||
+                           IsSame<typename UnderlyingElement<ET>::Type,RightOperand>::value ) &&
+                         IntrinsicTrait<RightOperand>::division };
 
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = MT::smpAssignable };
-   //**********************************************************************************************
-
-   //**SIMD properties*****************************************************************************
-   //! The number of elements packed within a single SIMD element.
-   enum : size_t { SIMDSIZE = SIMDTrait<ElementType>::size };
+   enum { smpAssignable = MT::smpAssignable };
    //**********************************************************************************************
 
    //**Constructor*********************************************************************************
@@ -459,7 +454,7 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    // \param matrix The left-hand side dense matrix of the division expression.
    // \param scalar The right-hand side scalar of the division expression.
    */
-   explicit inline DMatScalarDivExpr( const MT& matrix, ST scalar ) noexcept
+   explicit inline DMatScalarDivExpr( const MT& matrix, ST scalar )
       : matrix_( matrix )  // Left-hand side dense matrix of the division expression
       , scalar_( scalar )  // Right-hand side scalar of the division expression
    {}
@@ -499,17 +494,18 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    //**********************************************************************************************
 
    //**Load function*******************************************************************************
-   /*!\brief Access to the SIMD elements of the matrix.
+   /*!\brief Access to the intrinsic elements of the matrix.
    //
    // \param i Access index for the row. The index has to be in the range \f$[0..M-1]\f$.
    // \param j Access index for the column. The index has to be in the range \f$[0..N-1]\f$.
    // \return Reference to the accessed values.
    */
-   BLAZE_ALWAYS_INLINE auto load( size_t i, size_t j ) const noexcept {
+   BLAZE_ALWAYS_INLINE IntrinsicType load( size_t i, size_t j ) const {
+      typedef IntrinsicTrait<ElementType>  IT;
       BLAZE_INTERNAL_ASSERT( i < matrix_.rows()   , "Invalid row access index"    );
       BLAZE_INTERNAL_ASSERT( j < matrix_.columns(), "Invalid column access index" );
-      BLAZE_INTERNAL_ASSERT( !SO || ( i % SIMDSIZE == 0UL ), "Invalid row access index"    );
-      BLAZE_INTERNAL_ASSERT( SO  || ( j % SIMDSIZE == 0UL ), "Invalid column access index" );
+      BLAZE_INTERNAL_ASSERT( !SO || ( i % IT::size == 0UL ), "Invalid row access index"    );
+      BLAZE_INTERNAL_ASSERT( SO  || ( j % IT::size == 0UL ), "Invalid column access index" );
       return matrix_.load(i,j) / set( scalar_ );
    }
    //**********************************************************************************************
@@ -541,7 +537,7 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    //
    // \return The number of rows of the matrix.
    */
-   inline size_t rows() const noexcept {
+   inline size_t rows() const {
       return matrix_.rows();
    }
    //**********************************************************************************************
@@ -551,7 +547,7 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    //
    // \return The number of columns of the matrix.
    */
-   inline size_t columns() const noexcept {
+   inline size_t columns() const {
       return matrix_.columns();
    }
    //**********************************************************************************************
@@ -561,7 +557,7 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    //
    // \return The left-hand side dense matrix operand.
    */
-   inline LeftOperand leftOperand() const noexcept {
+   inline LeftOperand leftOperand() const {
       return matrix_;
    }
    //**********************************************************************************************
@@ -571,7 +567,7 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    //
    // \return The right-hand side scalar operand.
    */
-   inline RightOperand rightOperand() const noexcept {
+   inline RightOperand rightOperand() const {
       return scalar_;
    }
    //**********************************************************************************************
@@ -583,7 +579,7 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    // \return \a true in case the expression can alias, \a false otherwise.
    */
    template< typename T >
-   inline bool canAlias( const T* alias ) const noexcept {
+   inline bool canAlias( const T* alias ) const {
       return IsComputation<MT>::value && matrix_.canAlias( alias );
    }
    //**********************************************************************************************
@@ -595,7 +591,7 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    // \return \a true in case an alias effect is detected, \a false otherwise.
    */
    template< typename T >
-   inline bool isAliased( const T* alias ) const noexcept {
+   inline bool isAliased( const T* alias ) const {
       return matrix_.isAliased( alias );
    }
    //**********************************************************************************************
@@ -605,7 +601,7 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    //
    // \return \a true in case the operands are aligned, \a false if not.
    */
-   inline bool isAligned() const noexcept {
+   inline bool isAligned() const {
       return matrix_.isAligned();
    }
    //**********************************************************************************************
@@ -615,9 +611,9 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    //
    // \return \a true in case the expression can be used in SMP assignments, \a false if not.
    */
-   inline bool canSMPAssign() const noexcept {
+   inline bool canSMPAssign() const {
       return matrix_.canSMPAssign() ||
-             ( rows() * columns() >= SMP_DMATSCALARMULT_THRESHOLD );
+             ( ( ( SO == rowMajor ) ? rows() : columns() ) > SMP_DMATSCALARMULT_THRESHOLD );
    }
    //**********************************************************************************************
 
@@ -643,7 +639,7 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseAssign<MT2> >
+   friend inline typename EnableIf< UseAssign<MT2> >::Type
       assign( DenseMatrix<MT2,SO2>& lhs, const DMatScalarDivExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -673,7 +669,7 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    */
    template< typename MT2  // Type of the target sparse matrix
            , bool SO2 >    // Storage order of the target sparse matrix
-   friend inline EnableIf_< UseAssign<MT2> >
+   friend inline typename EnableIf< UseAssign<MT2> >::Type
       assign( SparseMatrix<MT2,SO2>& lhs, const DMatScalarDivExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -703,14 +699,14 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseAssign<MT2> >
+   friend inline typename EnableIf< UseAssign<MT2> >::Type
       addAssign( DenseMatrix<MT2,SO2>& lhs, const DMatScalarDivExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
 
       BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER( ResultType, SO );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<ResultType> );
+      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( typename ResultType::CompositeType );
 
       BLAZE_INTERNAL_ASSERT( (~lhs).rows()    == rhs.rows()   , "Invalid number of rows"    );
       BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
@@ -741,14 +737,14 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseAssign<MT2> >
+   friend inline typename EnableIf< UseAssign<MT2> >::Type
       subAssign( DenseMatrix<MT2,SO2>& lhs, const DMatScalarDivExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
 
       BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER( ResultType, SO );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<ResultType> );
+      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( typename ResultType::CompositeType );
 
       BLAZE_INTERNAL_ASSERT( (~lhs).rows()    == rhs.rows()   , "Invalid number of rows"    );
       BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
@@ -787,7 +783,7 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseSMPAssign<MT2> >
+   friend inline typename EnableIf< UseSMPAssign<MT2> >::Type
       smpAssign( DenseMatrix<MT2,SO2>& lhs, const DMatScalarDivExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -817,7 +813,7 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    */
    template< typename MT2  // Type of the target sparse matrix
            , bool SO2 >    // Storage order of the target sparse matrix
-   friend inline EnableIf_< UseSMPAssign<MT2> >
+   friend inline typename EnableIf< UseSMPAssign<MT2> >::Type
       smpAssign( SparseMatrix<MT2,SO2>& lhs, const DMatScalarDivExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -847,14 +843,14 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseSMPAssign<MT2> >
+   friend inline typename EnableIf< UseSMPAssign<MT2> >::Type
       smpAddAssign( DenseMatrix<MT2,SO2>& lhs, const DMatScalarDivExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
 
       BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER( ResultType, SO );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<ResultType> );
+      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( typename ResultType::CompositeType );
 
       BLAZE_INTERNAL_ASSERT( (~lhs).rows()    == rhs.rows()   , "Invalid number of rows"    );
       BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
@@ -885,14 +881,14 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseSMPAssign<MT2> >
+   friend inline typename EnableIf< UseSMPAssign<MT2> >::Type
       smpSubAssign( DenseMatrix<MT2,SO2>& lhs, const DMatScalarDivExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
 
       BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER( ResultType, SO );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<ResultType> );
+      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( typename ResultType::CompositeType );
 
       BLAZE_INTERNAL_ASSERT( (~lhs).rows()    == rhs.rows()   , "Invalid number of rows"    );
       BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
@@ -957,20 +953,20 @@ class DMatScalarDivExpr : public DenseMatrix< DMatScalarDivExpr<MT,ST,SO>, SO >
 // type of the involved data types \a T1::ElementType and \a T2. Note that this operator only
 // works for scalar values of built-in data type.
 //
-// \note A division by zero is only checked by an user assert.
+// \note: A division by zero is only checked by an user assert.
 */
 template< typename T1    // Type of the left-hand side dense matrix
         , bool SO        // Storage order of the left-hand side dense matrix
         , typename T2 >  // Type of the right-hand side scalar
-inline const EnableIf_< IsNumeric<T2>, DivExprTrait_<T1,T2> >
+inline const typename EnableIf< IsNumeric<T2>, typename DivExprTrait<T1,T2>::Type >::Type
    operator/( const DenseMatrix<T1,SO>& mat, T2 scalar )
 {
    BLAZE_FUNCTION_TRACE;
 
    BLAZE_USER_ASSERT( scalar != T2(0), "Division by zero detected" );
 
-   typedef DivExprTrait_<T1,T2>       ReturnType;
-   typedef RightOperand_<ReturnType>  ScalarType;
+   typedef typename DivExprTrait<T1,T2>::Type  ReturnType;
+   typedef typename ReturnType::RightOperand   ScalarType;
 
    if( IsMultExpr<ReturnType>::value ) {
       return ReturnType( ~mat, ScalarType(1)/ScalarType(scalar) );
@@ -1007,8 +1003,8 @@ template< typename MT     // Type of the dense matrix of the left-hand side expr
         , typename ST1    // Type of the scalar of the left-hand side expression
         , bool SO         // Storage order of the dense matrix
         , typename ST2 >  // Type of the right-hand side scalar
-inline const EnableIf_< And< IsNumeric<ST2>, Or< IsInvertible<ST1>, IsInvertible<ST2> > >
-                      , MultExprTrait_< DMatScalarDivExpr<MT,ST1,SO>, ST2 > >
+inline const typename EnableIf< And< IsNumeric<ST2>, IsInvertible<typename DivTrait<ST2,ST1>::Type > >
+                              , typename MultExprTrait< DMatScalarDivExpr<MT,ST1,SO>, ST2 >::Type >::Type
    operator*( const DMatScalarDivExpr<MT,ST1,SO>& mat, ST2 scalar )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1036,8 +1032,8 @@ template< typename ST1  // Type of the left-hand side scalar
         , typename MT   // Type of the dense matrix of the right-hand side expression
         , typename ST2  // Type of the scalar of the right-hand side expression
         , bool SO >     // Storage order of the dense matrix
-inline const EnableIf_< And< IsNumeric<ST1>, Or< IsInvertible<ST1>, IsInvertible<ST2> > >
-                      , MultExprTrait_< ST1, DMatScalarDivExpr<MT,ST2,SO> > >
+inline const typename EnableIf< And< IsNumeric<ST1>, IsInvertible<typename DivTrait<ST1,ST2>::Type > >
+                              , typename MultExprTrait< ST1, DMatScalarDivExpr<MT,ST2,SO> >::Type >::Type
    operator*( ST1 scalar, const DMatScalarDivExpr<MT,ST2,SO>& mat )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1065,17 +1061,17 @@ template< typename MT     // Type of the dense matrix of the left-hand side expr
         , typename ST1    // Type of the scalar of the left-hand side expression
         , bool SO         // Storage order of the dense matrix
         , typename ST2 >  // Type of the right-hand side scalar
-inline const EnableIf_< IsNumeric<ST2>
-                      , DivExprTrait_< MT, MultTrait_<ST1,ST2> > >
+inline const typename EnableIf< IsNumeric<ST2>
+                              , typename DivExprTrait<MT,typename MultTrait<ST1,ST2>::Type>::Type >::Type
    operator/( const DMatScalarDivExpr<MT,ST1,SO>& mat, ST2 scalar )
 {
    BLAZE_FUNCTION_TRACE;
 
    BLAZE_USER_ASSERT( scalar != ST2(0), "Division by zero detected" );
 
-   typedef MultTrait_<ST1,ST2>         MultType;
-   typedef DivExprTrait_<MT,MultType>  ReturnType;
-   typedef RightOperand_<ReturnType>   ScalarType;
+   typedef typename MultTrait<ST1,ST2>::Type         MultType;
+   typedef typename DivExprTrait<MT,MultType>::Type  ReturnType;
+   typedef typename ReturnType::RightOperand         ScalarType;
 
    if( IsMultExpr<ReturnType>::value ) {
       return ReturnType( mat.leftOperand(), ScalarType(1)/( mat.rightOperand() * scalar ) );
@@ -1133,8 +1129,7 @@ struct Columns< DMatScalarDivExpr<MT,ST,SO> > : public Rows<MT>
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, typename ST, bool SO >
-struct IsAligned< DMatScalarDivExpr<MT,ST,SO> >
-   : public BoolConstant< IsAligned<MT>::value >
+struct IsAligned< DMatScalarDivExpr<MT,ST,SO> > : public IsTrue< IsAligned<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1151,8 +1146,7 @@ struct IsAligned< DMatScalarDivExpr<MT,ST,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, typename ST, bool SO >
-struct IsPadded< DMatScalarDivExpr<MT,ST,SO> >
-   : public BoolConstant< IsPadded<MT>::value >
+struct IsPadded< DMatScalarDivExpr<MT,ST,SO> > : public IsTrue< IsPadded<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1169,8 +1163,7 @@ struct IsPadded< DMatScalarDivExpr<MT,ST,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, typename ST, bool SO >
-struct IsSymmetric< DMatScalarDivExpr<MT,ST,SO> >
-   : public BoolConstant< IsSymmetric<MT>::value >
+struct IsSymmetric< DMatScalarDivExpr<MT,ST,SO> > : public IsTrue< IsSymmetric<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1187,8 +1180,7 @@ struct IsSymmetric< DMatScalarDivExpr<MT,ST,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, typename ST, bool SO >
-struct IsHermitian< DMatScalarDivExpr<MT,ST,SO> >
-   : public BoolConstant< IsHermitian<MT>::value >
+struct IsHermitian< DMatScalarDivExpr<MT,ST,SO> > : public IsTrue< IsHermitian<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1205,8 +1197,7 @@ struct IsHermitian< DMatScalarDivExpr<MT,ST,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, typename ST, bool SO >
-struct IsLower< DMatScalarDivExpr<MT,ST,SO> >
-   : public BoolConstant< IsLower<MT>::value >
+struct IsLower< DMatScalarDivExpr<MT,ST,SO> > : public IsTrue< IsLower<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1223,8 +1214,7 @@ struct IsLower< DMatScalarDivExpr<MT,ST,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, typename ST, bool SO >
-struct IsStrictlyLower< DMatScalarDivExpr<MT,ST,SO> >
-   : public BoolConstant< IsStrictlyLower<MT>::value >
+struct IsStrictlyLower< DMatScalarDivExpr<MT,ST,SO> > : public IsTrue< IsStrictlyLower<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1241,8 +1231,7 @@ struct IsStrictlyLower< DMatScalarDivExpr<MT,ST,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, typename ST, bool SO >
-struct IsUpper< DMatScalarDivExpr<MT,ST,SO> >
-   : public BoolConstant< IsUpper<MT>::value >
+struct IsUpper< DMatScalarDivExpr<MT,ST,SO> > : public IsTrue< IsUpper<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1259,8 +1248,7 @@ struct IsUpper< DMatScalarDivExpr<MT,ST,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, typename ST, bool SO >
-struct IsStrictlyUpper< DMatScalarDivExpr<MT,ST,SO> >
-   : public BoolConstant< IsStrictlyUpper<MT>::value >
+struct IsStrictlyUpper< DMatScalarDivExpr<MT,ST,SO> > : public IsTrue< IsStrictlyUpper<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1281,16 +1269,24 @@ struct DMatScalarMultExprTrait< DMatScalarDivExpr<MT,ST1,false>, ST2 >
 {
  private:
    //**********************************************************************************************
-   typedef DivTrait_<ST2,ST1>  ScalarType;
+   typedef typename DivTrait<ST2,ST1>::Type  ScalarType;
+   //**********************************************************************************************
+
+   //**********************************************************************************************
+   enum { condition = IsInvertible<ScalarType>::value };
+   //**********************************************************************************************
+
+   //**********************************************************************************************
+   typedef typename DMatScalarMultExprTrait<MT,ScalarType>::Type              T1;
+   typedef DMatScalarMultExpr< DMatScalarDivExpr<MT,ST1,false>, ST2, false >  T2;
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsRowMajorMatrix<MT>, IsNumeric<ST1>, IsNumeric<ST2> >
-                   , If_< IsInvertible<ScalarType>
-                        , DMatScalarMultExprTrait_<MT,ScalarType>
-                        , DMatScalarMultExpr< DMatScalarDivExpr<MT,ST1,false>, ST2, false > >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT>::value && IsRowMajorMatrix<MT>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename SelectType<condition,T1,T2>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -1312,16 +1308,24 @@ struct TDMatScalarMultExprTrait< DMatScalarDivExpr<MT,ST1,true>, ST2 >
 {
  private:
    //**********************************************************************************************
-   typedef DivTrait_<ST2,ST1>  ScalarType;
+   typedef typename DivTrait<ST2,ST1>::Type  ScalarType;
+   //**********************************************************************************************
+
+   //**********************************************************************************************
+   enum { condition = IsInvertible<ScalarType>::value };
+   //**********************************************************************************************
+
+   //**********************************************************************************************
+   typedef typename DMatScalarMultExprTrait<MT,ScalarType>::Type            T1;
+   typedef DMatScalarMultExpr< DMatScalarDivExpr<MT,ST1,true>, ST2, true >  T2;
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsColumnMajorMatrix<MT>, IsNumeric<ST1>, IsNumeric<ST2> >
-                   , If_< IsInvertible<ScalarType>
-                        , DMatScalarMultExprTrait_<MT,ScalarType>
-                        , DMatScalarMultExpr< DMatScalarDivExpr<MT,ST1,true>, ST2, true > >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT>::value && IsColumnMajorMatrix<MT>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename SelectType<condition,T1,T2>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -1343,7 +1347,7 @@ struct SubmatrixExprTrait< DMatScalarDivExpr<MT,ST,SO>, AF >
 {
  public:
    //**********************************************************************************************
-   using Type = DivExprTrait_< SubmatrixExprTrait_<const MT,AF>, ST >;
+   typedef typename DivExprTrait< typename SubmatrixExprTrait<const MT,AF>::Type, ST >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -1365,7 +1369,7 @@ struct RowExprTrait< DMatScalarDivExpr<MT,ST,SO> >
 {
  public:
    //**********************************************************************************************
-   using Type = DivExprTrait_< RowExprTrait_<const MT>, ST >;
+   typedef typename DivExprTrait< typename RowExprTrait<const MT>::Type, ST >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -1387,7 +1391,7 @@ struct ColumnExprTrait< DMatScalarDivExpr<MT,ST,SO> >
 {
  public:
    //**********************************************************************************************
-   using Type = DivExprTrait_< ColumnExprTrait_<const MT>, ST >;
+   typedef typename DivExprTrait< typename ColumnExprTrait<const MT>::Type, ST >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */

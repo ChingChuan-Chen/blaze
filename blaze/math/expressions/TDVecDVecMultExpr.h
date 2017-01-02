@@ -40,17 +40,14 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/DenseVector.h>
-#include <blaze/math/SIMD.h>
+#include <blaze/math/Intrinsics.h>
 #include <blaze/math/traits/MultTrait.h>
-#include <blaze/math/typetraits/HasSIMDAdd.h>
-#include <blaze/math/typetraits/HasSIMDMult.h>
 #include <blaze/system/Optimizations.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/DisableIf.h>
 #include <blaze/util/EnableIf.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/logging/FunctionTrace.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/typetraits/IsSame.h>
@@ -76,19 +73,19 @@ struct TDVecDVecMultExprHelper
 {
    //**Type definitions****************************************************************************
    //! Composite type of the left-hand side dense vector expression.
-   typedef RemoveReference_< CompositeType_<T1> >  CT1;
+   typedef typename RemoveReference< typename T1::CompositeType >::Type  CT1;
 
    //! Composite type of the right-hand side dense vector expression.
-   typedef RemoveReference_< CompositeType_<T2> >  CT2;
+   typedef typename RemoveReference< typename T2::CompositeType >::Type  CT2;
    //**********************************************************************************************
 
    //**********************************************************************************************
-   enum : bool { value = useOptimizedKernels &&
-                         CT1::simdEnabled &&
-                         CT2::simdEnabled &&
-                         IsSame< ElementType_<CT1>, ElementType_<CT2> >::value &&
-                         HasSIMDAdd< ElementType_<CT1>, ElementType_<CT1> >::value &&
-                         HasSIMDMult< ElementType_<CT1>, ElementType_<CT1> >::value };
+   enum { value = useOptimizedKernels &&
+                  CT1::vectorizable &&
+                  CT2::vectorizable &&
+                  IsSame< typename CT1::ElementType, typename CT2::ElementType>::value &&
+                  IntrinsicTrait< typename CT1::ElementType >::addition &&
+                  IntrinsicTrait< typename CT2::ElementType >::multiplication };
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -131,8 +128,8 @@ struct TDVecDVecMultExprHelper
 */
 template< typename T1    // Type of the left-hand side dense vector
         , typename T2 >  // Type of the right-hand side dense vector
-inline DisableIf_< TDVecDVecMultExprHelper<T1,T2>
-                 , const MultTrait_< ElementType_<T1>, ElementType_<T2> > >
+inline typename DisableIf< TDVecDVecMultExprHelper<T1,T2>,
+                           const typename MultTrait<typename T1::ElementType,typename T2::ElementType>::Type >::Type
    operator*( const DenseVector<T1,true>& lhs, const DenseVector<T2,false>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -141,11 +138,11 @@ inline DisableIf_< TDVecDVecMultExprHelper<T1,T2>
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   typedef CompositeType_<T1>   Lhs;
-   typedef CompositeType_<T2>   Rhs;
-   typedef ElementType_<T1>     ET1;
-   typedef ElementType_<T2>     ET2;
-   typedef MultTrait_<ET1,ET2>  MultType;
+   typedef typename T1::CompositeType         Lhs;
+   typedef typename T2::CompositeType         Rhs;
+   typedef typename T1::ElementType           ET1;
+   typedef typename T2::ElementType           ET2;
+   typedef typename MultTrait<ET1,ET2>::Type  MultType;
 
    if( (~lhs).size() == 0UL ) return MultType();
 
@@ -153,21 +150,9 @@ inline DisableIf_< TDVecDVecMultExprHelper<T1,T2>
    Rhs right( ~rhs );
 
    MultType sp( left[0UL] * right[0UL] );
-   size_t i( 1UL );
 
-   for( ; (i+4UL) <= left.size(); i+=4UL ) {
-      sp += left[i    ] * right[i    ] +
-            left[i+1UL] * right[i+1UL] +
-            left[i+2UL] * right[i+2UL] +
-            left[i+3UL] * right[i+3UL];
-   }
-   for( ; (i+2UL) <= left.size(); i+=2UL ) {
-      sp += left[i    ] * right[i    ] +
-            left[i+1UL] * right[i+1UL];
-   }
-   for( ; i<left.size(); ++i ) {
+   for( size_t i=1UL; i<left.size(); ++i )
       sp += left[i] * right[i];
-   }
 
    return sp;
 }
@@ -175,8 +160,8 @@ inline DisableIf_< TDVecDVecMultExprHelper<T1,T2>
 
 
 //*************************************************************************************************
-/*!\brief SIMD optimized multiplication operator for the scalar product (inner product) of two
-//        dense vectors (\f$ s=\vec{a}*\vec{b} \f$).
+/*!\brief Intrinsic optimized multiplication operator for the scalar product (inner product) of
+//        two dense vectors (\f$ s=\vec{a}*\vec{b} \f$).
 // \ingroup dense_vector
 //
 // \param lhs The left-hand side dense vector for the inner product.
@@ -204,8 +189,8 @@ inline DisableIf_< TDVecDVecMultExprHelper<T1,T2>
 */
 template< typename T1    // Type of the left-hand side dense vector
         , typename T2 >  // Type of the right-hand side dense vector
-inline EnableIf_< TDVecDVecMultExprHelper<T1,T2>
-               , const MultTrait_< ElementType_<T1>, ElementType_<T2> > >
+inline typename EnableIf< TDVecDVecMultExprHelper<T1,T2>,
+                          const typename MultTrait<typename T1::ElementType,typename T2::ElementType>::Type >::Type
    operator*( const DenseVector<T1,true>& lhs, const DenseVector<T2,false>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -214,43 +199,35 @@ inline EnableIf_< TDVecDVecMultExprHelper<T1,T2>
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   typedef CompositeType_<T1>   Lhs;
-   typedef CompositeType_<T2>   Rhs;
-   typedef ElementType_<T1>     ET1;
-   typedef ElementType_<T2>     ET2;
-   typedef MultTrait_<ET1,ET2>  MultType;
-
-   enum : size_t { SIMDSIZE = SIMDTrait<MultType>::size };
+   typedef typename T1::CompositeType         Lhs;
+   typedef typename T2::CompositeType         Rhs;
+   typedef typename T1::ElementType           ET1;
+   typedef typename T2::ElementType           ET2;
+   typedef typename MultTrait<ET1,ET2>::Type  MultType;
+   typedef IntrinsicTrait<MultType>           IT;
 
    if( (~lhs).size() == 0UL ) return MultType();
 
    Lhs left ( ~lhs );
    Rhs right( ~rhs );
 
-   const size_t N( left.size() );
+   typename IT::Type xmm1, xmm2, xmm3, xmm4;
 
-   SIMDTrait_<MultType> xmm1, xmm2, xmm3, xmm4;
-   size_t i( 0UL );
+   const size_t N   ( left.size() );
+   const size_t iend( N - N % (IT::size*4UL) );
+   BLAZE_INTERNAL_ASSERT( iend % (IT::size*4UL) == 0, "Invalid end calculation" );
 
-   for( ; (i+SIMDSIZE*4UL) <= N; i+=SIMDSIZE*4UL ) {
+   for( size_t i=0UL; i<iend; i+=IT::size*4UL ) {
       xmm1 = xmm1 + ( left.load(i             ) * right.load(i             ) );
-      xmm2 = xmm2 + ( left.load(i+SIMDSIZE    ) * right.load(i+SIMDSIZE    ) );
-      xmm3 = xmm3 + ( left.load(i+SIMDSIZE*2UL) * right.load(i+SIMDSIZE*2UL) );
-      xmm4 = xmm4 + ( left.load(i+SIMDSIZE*3UL) * right.load(i+SIMDSIZE*3UL) );
-   }
-   for( ; (i+SIMDSIZE*2UL) <= N; i+=SIMDSIZE*2UL ) {
-      xmm1 = xmm1 + ( left.load(i         ) * right.load(i         ) );
-      xmm2 = xmm2 + ( left.load(i+SIMDSIZE) * right.load(i+SIMDSIZE) );
-   }
-   for( ; (i+SIMDSIZE) <= N; i+=SIMDSIZE ) {
-      xmm1 = xmm1 + ( left.load(i) * right.load(i) );
+      xmm2 = xmm2 + ( left.load(i+IT::size    ) * right.load(i+IT::size    ) );
+      xmm3 = xmm3 + ( left.load(i+IT::size*2UL) * right.load(i+IT::size*2UL) );
+      xmm4 = xmm4 + ( left.load(i+IT::size*3UL) * right.load(i+IT::size*3UL) );
    }
 
    MultType sp( sum( xmm1 + xmm2 + xmm3 + xmm4 ) );
 
-   for( ; i<N; ++i ) {
+   for( size_t i=iend; i<N; ++i )
       sp += left[i] * right[i];
-   }
 
    return sp;
 }

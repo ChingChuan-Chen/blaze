@@ -40,14 +40,12 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/Expression.h>
 #include <blaze/math/constraints/Hermitian.h>
 #include <blaze/math/constraints/Lower.h>
 #include <blaze/math/constraints/SparseMatrix.h>
 #include <blaze/math/constraints/Symmetric.h>
 #include <blaze/math/constraints/Upper.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/proxy/Proxy.h>
 #include <blaze/math/shims/Clear.h>
 #include <blaze/math/shims/Conjugate.h>
@@ -58,12 +56,14 @@
 #include <blaze/math/shims/IsReal.h>
 #include <blaze/math/shims/IsZero.h>
 #include <blaze/math/shims/Reset.h>
+#include <blaze/math/traits/ConjExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blaze/util/constraints/Const.h>
 #include <blaze/util/constraints/Numeric.h>
 #include <blaze/util/constraints/Pointer.h>
 #include <blaze/util/constraints/Reference.h>
 #include <blaze/util/constraints/Volatile.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/InvalidType.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/Types.h>
@@ -140,12 +140,12 @@ class HermitianValue : public Proxy< HermitianValue<MT> >
 
  public:
    //**Type definitions****************************************************************************
-   typedef ElementType_<MT>  RepresentedType;  //!< Type of the represented matrix element.
+   typedef typename MT::ElementType  RepresentedType;  //!< Type of the represented matrix element.
 
    //! Value type of the represented complex element.
-   typedef typename If_< IsComplex<RepresentedType>
-                       , ComplexType<RepresentedType>
-                       , BuiltinType<RepresentedType> >::Type  ValueType;
+   typedef typename If< IsComplex<RepresentedType>
+                      , ComplexType<RepresentedType>
+                      , BuiltinType<RepresentedType> >::Type::Type  ValueType;
 
    typedef ValueType  value_type;  //!< Value type of the represented complex element.
    //**********************************************************************************************
@@ -176,14 +176,14 @@ class HermitianValue : public Proxy< HermitianValue<MT> >
    inline void clear () const;
    inline void invert() const;
 
-   inline RepresentedType get() const noexcept;
+   inline RepresentedType get() const;
    //@}
    //**********************************************************************************************
 
    //**Conversion operator*************************************************************************
    /*!\name Conversion operator */
    //@{
-   inline operator RepresentedType() const noexcept;
+   inline operator RepresentedType() const;
    //@}
    //**********************************************************************************************
 
@@ -272,7 +272,7 @@ inline HermitianValue<MT>::HermitianValue( IteratorType pos, MT* matrix, size_t 
 template< typename MT >  // Type of the adapted matrix
 inline HermitianValue<MT>& HermitianValue<MT>::operator=( const HermitianValue& hv )
 {
-   const bool isDiagonal( pos_->index() == index_ );
+   const bool isDiagonal( pos_->index() == index );
 
    if( IsComplex<RepresentedType>::value && isDiagonal && !isReal( hv.pos_->value() ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix element" );
@@ -296,7 +296,7 @@ template< typename MT >  // Type of the adapted matrix
 template< typename T >   // Type of the right-hand side value
 inline HermitianValue<MT>& HermitianValue<MT>::operator=( const T& value )
 {
-   const bool isDiagonal( pos_->index() == index_ );
+   const bool isDiagonal( pos_->index() == index );
 
    if( IsComplex<RepresentedType>::value && isDiagonal && !isReal( value ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix element" );
@@ -320,7 +320,7 @@ template< typename MT >  // Type of the adapted matrix
 template< typename T >   // Type of the right-hand side value
 inline HermitianValue<MT>& HermitianValue<MT>::operator+=( const T& value )
 {
-   const bool isDiagonal( pos_->index() == index_ );
+   const bool isDiagonal( pos_->index() == index );
 
    if( IsComplex<RepresentedType>::value && isDiagonal && !isReal( value ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix element" );
@@ -344,7 +344,7 @@ template< typename MT >  // Type of the adapted matrix
 template< typename T >   // Type of the right-hand side value
 inline HermitianValue<MT>& HermitianValue<MT>::operator-=( const T& value )
 {
-   const bool isDiagonal( pos_->index() == index_ );
+   const bool isDiagonal( pos_->index() == index );
 
    if( IsComplex<RepresentedType>::value && isDiagonal && !isReal( value ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix element" );
@@ -368,7 +368,7 @@ template< typename MT >  // Type of the adapted matrix
 template< typename T >   // Type of the right-hand side value
 inline HermitianValue<MT>& HermitianValue<MT>::operator*=( const T& value )
 {
-   const bool isDiagonal( pos_->index() == index_ );
+   const bool isDiagonal( pos_->index() == index );
 
    if( IsComplex<RepresentedType>::value && isDiagonal && !isReal( value ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix element" );
@@ -392,7 +392,7 @@ template< typename MT >  // Type of the adapted matrix
 template< typename T >   // Type of the right-hand side value
 inline HermitianValue<MT>& HermitianValue<MT>::operator/=( const T& value )
 {
-   const bool isDiagonal( pos_->index() == index_ );
+   const bool isDiagonal( pos_->index() == index );
 
    if( IsComplex<RepresentedType>::value && isDiagonal && !isReal( value ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix element" );
@@ -495,7 +495,7 @@ inline void HermitianValue<MT>::invert() const
 // \return Copy of the represented value.
 */
 template< typename MT >  // Type of the adapted matrix
-inline typename HermitianValue<MT>::RepresentedType HermitianValue<MT>::get() const noexcept
+inline typename HermitianValue<MT>::RepresentedType HermitianValue<MT>::get() const
 {
    return pos_->value();
 }
@@ -535,7 +535,7 @@ inline void HermitianValue<MT>::sync() const
 // \return Copy of the represented value.
 */
 template< typename MT >  // Type of the adapted matrix
-inline HermitianValue<MT>::operator RepresentedType() const noexcept
+inline HermitianValue<MT>::operator RepresentedType() const
 {
    return pos_->value();
 }
@@ -630,6 +630,10 @@ inline void HermitianValue<MT>::imag( ValueType value ) const
 /*!\name HermitianValue global functions */
 //@{
 template< typename MT >
+inline typename ConjExprTrait< typename HermitianValue<MT>::RepresentedType >::Type
+   conj( const HermitianValue<MT>& value );
+
+template< typename MT >
 inline void reset( const HermitianValue<MT>& value );
 
 template< typename MT >
@@ -653,6 +657,28 @@ inline bool isOne( const HermitianValue<MT>& value );
 template< typename MT >
 inline bool isnan( const HermitianValue<MT>& value );
 //@}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Computing the complex conjugate of the Hermitian value.
+// \ingroup hermitian_matrix
+//
+// \param value The given Hermitian value.
+// \return The complex conjugate of the Hermitian value.
+//
+// This function computes the complex conjugate of the Hermitian value. In case the value
+// represents a vector- or matrix-like data structure the function returns an expression
+// representing the complex conjugate of the vector/matrix.
+*/
+template< typename MT >
+inline typename ConjExprTrait< typename HermitianValue<MT>::RepresentedType >::Type
+   conj( const HermitianValue<MT>& value )
+{
+   using blaze::conj;
+
+   return conj( (~value).get() );
+}
 //*************************************************************************************************
 
 

@@ -1,6 +1,6 @@
 //=================================================================================================
 /*!
-//  \file src/main/SMatDMatAdd.cpp
+//  \file src/blaze/SMatDMatAdd.cpp
 //  \brief Source file for the sparse matrix/dense matrix addition benchmark
 //
 //  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
@@ -59,6 +59,7 @@
 #include <blazemark/system/Types.h>
 #include <blazemark/util/Benchmarks.h>
 #include <blazemark/util/DynamicSparseRun.h>
+#include <blazemark/util/Indices.h>
 #include <blazemark/util/Parser.h>
 
 

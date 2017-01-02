@@ -59,9 +59,9 @@ namespace blaze {
 // This type trait tests whether or not the given template parameter is a strictly upper
 // triangular matrix type (i.e. a matrix type that is guaranteed to be strictly upper
 // triangular at compile time). In case the type is a strictly upper triangular matrix
-// type, the \a value member constant is set to \a true, the nested type definition
-// \a Type is \a TrueType, and the class derives from \a TrueType. Otherwise \a value is
-// set to \a false, \a Type is \a FalseType, and the class derives from \a FalseType.
+// type, the \a value member enumeration is set to 1, the nested type definition \a Type
+// is \a TrueType, and the class derives from \a TrueType. Otherwise \a value is set to
+// 0, \a Type is \a FalseType, and the class derives from \a FalseType.
 
    \code
    using blaze::rowMajor;
@@ -84,7 +84,15 @@ namespace blaze {
 */
 template< typename T >
 struct IsStrictlyUpper : public FalseType
-{};
+{
+ public:
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   enum { value = 0 };
+   typedef FalseType  Type;
+   /*! \endcond */
+   //**********************************************************************************************
+};
 //*************************************************************************************************
 
 
@@ -94,8 +102,14 @@ struct IsStrictlyUpper : public FalseType
 // \ingroup math_type_traits
 */
 template< typename T >
-struct IsStrictlyUpper< const T > : public IsStrictlyUpper<T>
-{};
+struct IsStrictlyUpper< const T > : public IsStrictlyUpper<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = IsStrictlyUpper<T>::value };
+   typedef typename IsStrictlyUpper<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -106,8 +120,14 @@ struct IsStrictlyUpper< const T > : public IsStrictlyUpper<T>
 // \ingroup math_type_traits
 */
 template< typename T >
-struct IsStrictlyUpper< volatile T > : public IsStrictlyUpper<T>
-{};
+struct IsStrictlyUpper< volatile T > : public IsStrictlyUpper<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = IsStrictlyUpper<T>::value };
+   typedef typename IsStrictlyUpper<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -118,8 +138,14 @@ struct IsStrictlyUpper< volatile T > : public IsStrictlyUpper<T>
 // \ingroup math_type_traits
 */
 template< typename T >
-struct IsStrictlyUpper< const volatile T > : public IsStrictlyUpper<T>
-{};
+struct IsStrictlyUpper< const volatile T > : public IsStrictlyUpper<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = IsStrictlyUpper<T>::value };
+   typedef typename IsStrictlyUpper<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 

@@ -43,7 +43,6 @@
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/StrictlyUpperMatrix.h>
 #include <blazetest/mathtest/creator/Default.h>
-#include <blazetest/mathtest/creator/Policies.h>
 #include <blazetest/system/Types.h>
 
 
@@ -88,11 +87,7 @@ class Creator< blaze::StrictlyUpperMatrix< blaze::DynamicMatrix<T,SO> > >
    /*!\name Operators */
    //@{
    // No explicitly declared copy assignment operator.
-
    const blaze::StrictlyUpperMatrix< blaze::DynamicMatrix<T,SO> > operator()() const;
-
-   template< typename CP >
-   const blaze::StrictlyUpperMatrix< blaze::DynamicMatrix<T,SO> > operator()( const CP& policy ) const;
    //@}
    //**********************************************************************************************
 
@@ -163,37 +158,20 @@ template< typename T  // Element type of the dynamic matrix
 inline const blaze::StrictlyUpperMatrix< blaze::DynamicMatrix<T,SO> >
    Creator< blaze::StrictlyUpperMatrix< blaze::DynamicMatrix<T,SO> > >::operator()() const
 {
-   return (*this)( Default() );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Returns a randomly created strictly upper dynamic matrix.
-//
-// \param policy The creation policy for the elements of fundamental data type.
-// \return The randomly generated strictly upper dynamic matrix.
-*/
-template< typename T     // Element type of the dynamic matrix
-        , bool SO >      // Storage order of the dynamic matrix
-template< typename CP >  // Creation policy
-inline const blaze::StrictlyUpperMatrix< blaze::DynamicMatrix<T,SO> >
-   Creator< blaze::StrictlyUpperMatrix< blaze::DynamicMatrix<T,SO> > >::operator()( const CP& policy ) const
-{
    blaze::StrictlyUpperMatrix< blaze::DynamicMatrix<T,SO> > matrix( n_ );
 
    // Initialization of a column-major matrix
    if( SO ) {
       for( size_t j=1UL; j<n_; ++j )
          for( size_t i=0UL; i<j; ++i )
-            matrix(i,j) = ec_( policy );
+            matrix(i,j) = ec_();
    }
 
    // Initialization of a row-major matrix
    else {
       for( size_t i=0UL; i<n_; ++i )
          for( size_t j=i+1UL; j<n_; ++j )
-            matrix(i,j) = ec_( policy );
+            matrix(i,j) = ec_();
    }
 
    return matrix;

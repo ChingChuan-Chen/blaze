@@ -41,17 +41,15 @@
 //*************************************************************************************************
 
 #include <iterator>
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/DenseMatrix.h>
 #include <blaze/math/constraints/StorageOrder.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/Computation.h>
 #include <blaze/math/expressions/DenseMatrix.h>
 #include <blaze/math/expressions/DenseVector.h>
 #include <blaze/math/expressions/Forward.h>
 #include <blaze/math/expressions/MatScalarMultExpr.h>
+#include <blaze/math/Intrinsics.h>
 #include <blaze/math/shims/Serial.h>
-#include <blaze/math/SIMD.h>
 #include <blaze/math/traits/ColumnExprTrait.h>
 #include <blaze/math/traits/DivExprTrait.h>
 #include <blaze/math/traits/DivTrait.h>
@@ -60,7 +58,6 @@
 #include <blaze/math/traits/RowExprTrait.h>
 #include <blaze/math/traits/SubmatrixExprTrait.h>
 #include <blaze/math/typetraits/Columns.h>
-#include <blaze/math/typetraits/HasSIMDMult.h>
 #include <blaze/math/typetraits/IsAligned.h>
 #include <blaze/math/typetraits/IsColumnMajorMatrix.h>
 #include <blaze/math/typetraits/IsColumnVector.h>
@@ -92,14 +89,15 @@
 #include <blaze/util/constraints/Reference.h>
 #include <blaze/util/constraints/SameType.h>
 #include <blaze/util/EnableIf.h>
-#include <blaze/util/IntegralConstant.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/InvalidType.h>
 #include <blaze/util/logging/FunctionTrace.h>
 #include <blaze/util/mpl/And.h>
-#include <blaze/util/mpl/If.h>
-#include <blaze/util/mpl/Or.h>
+#include <blaze/util/SelectType.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/typetraits/IsNumeric.h>
+#include <blaze/util/typetraits/IsSame.h>
+#include <blaze/util/valuetraits/IsTrue.h>
 
 
 namespace blaze {
@@ -126,10 +124,10 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
 {
  private:
    //**Type definitions****************************************************************************
-   typedef ResultType_<MT>     RT;  //!< Result type of the dense matrix expression.
-   typedef ReturnType_<MT>     RN;  //!< Return type of the dense matrix expression.
-   typedef ElementType_<MT>    ET;  //!< Element type of the dense matrix expression.
-   typedef CompositeType_<MT>  CT;  //!< Composite type of the dense matrix expression.
+   typedef typename MT::ResultType     RT;  //!< Result type of the dense matrix expression.
+   typedef typename MT::ReturnType     RN;  //!< Return type of the dense matrix expression.
+   typedef typename MT::ElementType    ET;  //!< Element type of the dense matrix expression.
+   typedef typename MT::CompositeType  CT;  //!< Composite type of the dense matrix expression.
    //**********************************************************************************************
 
    //**Return type evaluation**********************************************************************
@@ -139,10 +137,10 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
        or matrix, \a returnExpr will be set to \a false and the subscript operator will
        return it's result by value. Otherwise \a returnExpr will be set to \a true and
        the subscript operator may return it's result as an expression. */
-   enum : bool { returnExpr = !IsTemporary<RN>::value };
+   enum { returnExpr = !IsTemporary<RN>::value };
 
    //! Expression return type for the subscript operator.
-   typedef MultExprTrait_<RN,ST>  ExprReturnType;
+   typedef typename MultExprTrait<RN,ST>::Type  ExprReturnType;
    //**********************************************************************************************
 
    //**Serial evaluation strategy******************************************************************
@@ -153,13 +151,13 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
        evaluation, \a useAssign will be set to 1 and the multiplication expression will be
        evaluated via the \a assign function family. Otherwise \a useAssign will be set to 0
        and the expression will be evaluated via the subscript operator. */
-   enum : bool { useAssign = IsComputation<MT>::value && RequiresEvaluation<MT>::value };
+   enum { useAssign = IsComputation<MT>::value && RequiresEvaluation<MT>::value };
 
    /*! \cond BLAZE_INTERNAL */
    //! Helper structure for the explicit application of the SFINAE principle.
    template< typename MT2 >
    struct UseAssign {
-      enum : bool { value = useAssign };
+      enum { value = useAssign };
    };
    /*! \endcond */
    //**********************************************************************************************
@@ -174,27 +172,28 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
        \a value is set to 0 and the default strategy is chosen. */
    template< typename MT2 >
    struct UseSMPAssign {
-      enum : bool { value = ( !MT2::smpAssignable || !MT::smpAssignable ) && useAssign };
+      enum { value = ( !MT2::smpAssignable || !MT::smpAssignable ) && useAssign };
    };
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
-   typedef DMatScalarMultExpr<MT,ST,SO>  This;           //!< Type of this DMatScalarMultExpr instance.
-   typedef MultTrait_<RT,ST>             ResultType;     //!< Result type for expression template evaluations.
-   typedef OppositeType_<ResultType>     OppositeType;   //!< Result type with opposite storage order for expression template evaluations.
-   typedef TransposeType_<ResultType>    TransposeType;  //!< Transpose type for expression template evaluations.
-   typedef ElementType_<ResultType>      ElementType;    //!< Resulting element type.
+   typedef DMatScalarMultExpr<MT,ST,SO>                This;           //!< Type of this DMatScalarMultExpr instance.
+   typedef typename MultTrait<RT,ST>::Type             ResultType;     //!< Result type for expression template evaluations.
+   typedef typename ResultType::OppositeType           OppositeType;   //!< Result type with opposite storage order for expression template evaluations.
+   typedef typename ResultType::TransposeType          TransposeType;  //!< Transpose type for expression template evaluations.
+   typedef typename ResultType::ElementType            ElementType;    //!< Resulting element type.
+   typedef typename IntrinsicTrait<ElementType>::Type  IntrinsicType;  //!< Resulting intrinsic element type.
 
    //! Return type for expression template evaluations.
-   typedef const IfTrue_< returnExpr, ExprReturnType, ElementType >  ReturnType;
+   typedef const typename SelectType< returnExpr, ExprReturnType, ElementType >::Type  ReturnType;
 
    //! Data type for composite expression templates.
-   typedef IfTrue_< useAssign, const ResultType, const DMatScalarMultExpr& >  CompositeType;
+   typedef typename SelectType< useAssign, const ResultType, const DMatScalarMultExpr& >::Type  CompositeType;
 
    //! Composite type of the left-hand side dense matrix expression.
-   typedef If_< IsExpression<MT>, const MT, const MT& >  LeftOperand;
+   typedef typename SelectType< IsExpression<MT>::value, const MT, const MT& >::Type  LeftOperand;
 
    //! Composite type of the right-hand side scalar value.
    typedef ST  RightOperand;
@@ -221,7 +220,7 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
       typedef DifferenceType    difference_type;    //!< Difference between two iterators.
 
       //! ConstIterator type of the dense matrix expression.
-      typedef ConstIterator_<MT>  IteratorType;
+      typedef typename MT::ConstIterator  IteratorType;
       //*******************************************************************************************
 
       //**Constructor******************************************************************************
@@ -313,11 +312,11 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
       //*******************************************************************************************
 
       //**Load function****************************************************************************
-      /*!\brief Access to the SIMD elements of the matrix.
+      /*!\brief Access to the intrinsic elements of the matrix.
       //
-      // \return The resulting SIMD element.
+      // \return The resulting intrinsic value.
       */
-      inline auto load() const noexcept {
+      inline IntrinsicType load() const {
          return iterator_.load() * set( scalar_ );
       }
       //*******************************************************************************************
@@ -445,18 +444,14 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template evaluation strategy.
-   enum : bool { simdEnabled = MT::simdEnabled &&
-                               IsNumeric<ET>::value &&
-                               ( HasSIMDMult<ET,ST>::value ||
-                                 HasSIMDMult<UnderlyingElement_<ET>,ST>::value ) };
+   enum { vectorizable = MT::vectorizable &&
+                         IsNumeric<ET>::value &&
+                         ( IsSame<ET,RightOperand>::value ||
+                           IsSame<typename UnderlyingElement<ET>::Type,RightOperand>::value ) &&
+                         IntrinsicTrait<RightOperand>::multiplication };
 
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = MT::smpAssignable };
-   //**********************************************************************************************
-
-   //**SIMD properties*****************************************************************************
-   //! The number of elements packed within a single SIMD element.
-   enum : size_t { SIMDSIZE = SIMDTrait<ElementType>::size };
+   enum { smpAssignable = MT::smpAssignable };
    //**********************************************************************************************
 
    //**Constructor*********************************************************************************
@@ -465,7 +460,7 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    // \param matrix The left-hand side dense matrix of the multiplication expression.
    // \param scalar The right-hand side scalar of the multiplication expression.
    */
-   explicit inline DMatScalarMultExpr( const MT& matrix, ST scalar ) noexcept
+   explicit inline DMatScalarMultExpr( const MT& matrix, ST scalar )
       : matrix_( matrix )  // Left-hand side dense matrix of the multiplication expression
       , scalar_( scalar )  // Right-hand side scalar of the multiplication expression
    {}
@@ -505,17 +500,18 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    //**********************************************************************************************
 
    //**Load function*******************************************************************************
-   /*!\brief Access to the SIMD elements of the matrix.
+   /*!\brief Access to the intrinsic elements of the matrix.
    //
    // \param i Access index for the row. The index has to be in the range \f$[0..M-1]\f$.
    // \param j Access index for the column. The index has to be in the range \f$[0..N-1]\f$.
    // \return Reference to the accessed values.
    */
-   BLAZE_ALWAYS_INLINE auto load( size_t i, size_t j ) const noexcept {
+   BLAZE_ALWAYS_INLINE IntrinsicType load( size_t i, size_t j ) const {
+      typedef IntrinsicTrait<ElementType>  IT;
       BLAZE_INTERNAL_ASSERT( i < matrix_.rows()   , "Invalid row access index"    );
       BLAZE_INTERNAL_ASSERT( j < matrix_.columns(), "Invalid column access index" );
-      BLAZE_INTERNAL_ASSERT( !SO || ( i % SIMDSIZE == 0UL ), "Invalid row access index"    );
-      BLAZE_INTERNAL_ASSERT( SO  || ( j % SIMDSIZE == 0UL ), "Invalid column access index" );
+      BLAZE_INTERNAL_ASSERT( !SO || ( i % IT::size == 0UL ), "Invalid row access index"    );
+      BLAZE_INTERNAL_ASSERT( SO  || ( j % IT::size == 0UL ), "Invalid column access index" );
       return matrix_.load(i,j) * set( scalar_ );
    }
    //**********************************************************************************************
@@ -547,7 +543,7 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    //
    // \return The number of rows of the matrix.
    */
-   inline size_t rows() const noexcept {
+   inline size_t rows() const {
       return matrix_.rows();
    }
    //**********************************************************************************************
@@ -557,7 +553,7 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    //
    // \return The number of columns of the matrix.
    */
-   inline size_t columns() const noexcept {
+   inline size_t columns() const {
       return matrix_.columns();
    }
    //**********************************************************************************************
@@ -567,7 +563,7 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    //
    // \return The left-hand side dense matrix operand.
    */
-   inline LeftOperand leftOperand() const noexcept {
+   inline LeftOperand leftOperand() const {
       return matrix_;
    }
    //**********************************************************************************************
@@ -577,7 +573,7 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    //
    // \return The right-hand side scalar operand.
    */
-   inline RightOperand rightOperand() const noexcept {
+   inline RightOperand rightOperand() const {
       return scalar_;
    }
    //**********************************************************************************************
@@ -589,7 +585,7 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    // \return \a true in case the expression can alias, \a false otherwise.
    */
    template< typename T >
-   inline bool canAlias( const T* alias ) const noexcept {
+   inline bool canAlias( const T* alias ) const {
       return IsComputation<MT>::value && matrix_.canAlias( alias );
    }
    //**********************************************************************************************
@@ -601,7 +597,7 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    // \return \a true in case an alias effect is detected, \a false otherwise.
    */
    template< typename T >
-   inline bool isAliased( const T* alias ) const noexcept {
+   inline bool isAliased( const T* alias ) const {
       return matrix_.isAliased( alias );
    }
    //**********************************************************************************************
@@ -611,7 +607,7 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    //
    // \return \a true in case the operands are aligned, \a false if not.
    */
-   inline bool isAligned() const noexcept {
+   inline bool isAligned() const {
       return matrix_.isAligned();
    }
    //**********************************************************************************************
@@ -621,9 +617,9 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    //
    // \return \a true in case the expression can be used in SMP assignments, \a false if not.
    */
-   inline bool canSMPAssign() const noexcept {
+   inline bool canSMPAssign() const {
       return matrix_.canSMPAssign() ||
-             ( rows() * columns() >= SMP_DMATSCALARMULT_THRESHOLD );
+             ( ( ( SO == rowMajor ) ? rows() : columns() ) > SMP_DMATSCALARMULT_THRESHOLD );
    }
    //**********************************************************************************************
 
@@ -649,7 +645,7 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseAssign<MT2> >
+   friend inline typename EnableIf< UseAssign<MT2> >::Type
       assign( DenseMatrix<MT2,SO2>& lhs, const DMatScalarMultExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -679,7 +675,7 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    */
    template< typename MT2  // Type of the target sparse matrix
            , bool SO2 >    // Storage order of the target sparse matrix
-   friend inline EnableIf_< UseAssign<MT2> >
+   friend inline typename EnableIf< UseAssign<MT2> >::Type
       assign( SparseMatrix<MT2,SO2>& lhs, const DMatScalarMultExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -709,14 +705,14 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseAssign<MT2> >
+   friend inline typename EnableIf< UseAssign<MT2> >::Type
       addAssign( DenseMatrix<MT2,SO2>& lhs, const DMatScalarMultExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
 
       BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER( ResultType, SO );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<ResultType> );
+      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( typename ResultType::CompositeType );
 
       BLAZE_INTERNAL_ASSERT( (~lhs).rows()    == rhs.rows()   , "Invalid number of rows"    );
       BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
@@ -747,14 +743,14 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseAssign<MT2> >
+   friend inline typename EnableIf< UseAssign<MT2> >::Type
       subAssign( DenseMatrix<MT2,SO2>& lhs, const DMatScalarMultExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
 
       BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER( ResultType, SO );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<ResultType> );
+      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( typename ResultType::CompositeType );
 
       BLAZE_INTERNAL_ASSERT( (~lhs).rows()    == rhs.rows()   , "Invalid number of rows"    );
       BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
@@ -793,7 +789,7 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseSMPAssign<MT2> >
+   friend inline typename EnableIf< UseSMPAssign<MT2> >::Type
       smpAssign( DenseMatrix<MT2,SO2>& lhs, const DMatScalarMultExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -823,7 +819,7 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    */
    template< typename MT2  // Type of the target sparse matrix
            , bool SO2 >    // Storage order of the target sparse matrix
-   friend inline EnableIf_< UseSMPAssign<MT2> >
+   friend inline typename EnableIf< UseSMPAssign<MT2> >::Type
       smpAssign( SparseMatrix<MT2,SO2>& lhs, const DMatScalarMultExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -853,14 +849,14 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseSMPAssign<MT2> >
+   friend inline typename EnableIf< UseSMPAssign<MT2> >::Type
       smpAddAssign( DenseMatrix<MT2,SO2>& lhs, const DMatScalarMultExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
 
       BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER( ResultType, SO );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<ResultType> );
+      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( typename ResultType::CompositeType );
 
       BLAZE_INTERNAL_ASSERT( (~lhs).rows()    == rhs.rows()   , "Invalid number of rows"    );
       BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
@@ -891,14 +887,14 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseSMPAssign<MT2> >
+   friend inline typename EnableIf< UseSMPAssign<MT2> >::Type
       smpSubAssign( DenseMatrix<MT2,SO2>& lhs, const DMatScalarMultExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
 
       BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER( ResultType, SO );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<ResultType> );
+      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( typename ResultType::CompositeType );
 
       BLAZE_INTERNAL_ASSERT( (~lhs).rows()    == rhs.rows()   , "Invalid number of rows"    );
       BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
@@ -960,12 +956,12 @@ class DMatScalarMultExpr : public DenseMatrix< DMatScalarMultExpr<MT,ST,SO>, SO 
 */
 template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order
-inline const DMatScalarMultExpr<MT,UnderlyingBuiltin_<MT>,SO>
+inline const DMatScalarMultExpr<MT,typename UnderlyingBuiltin<MT>::Type,SO>
    operator-( const DenseMatrix<MT,SO>& dm )
 {
    BLAZE_FUNCTION_TRACE;
 
-   typedef UnderlyingBuiltin_<MT>  ElementType;
+   typedef typename UnderlyingBuiltin<MT>::Type  ElementType;
    return DMatScalarMultExpr<MT,ElementType,SO>( ~dm, ElementType(-1) );
 }
 //*************************************************************************************************
@@ -1003,12 +999,13 @@ inline const DMatScalarMultExpr<MT,UnderlyingBuiltin_<MT>,SO>
 template< typename T1    // Type of the left-hand side dense matrix
         , bool SO        // Storage order of the left-hand side dense matrix
         , typename T2 >  // Type of the right-hand side scalar
-inline const EnableIf_< IsNumeric<T2>, MultExprTrait_<T1,T2> >
+inline const typename EnableIf< IsNumeric<T2>, typename MultExprTrait<T1,T2>::Type >::Type
    operator*( const DenseMatrix<T1,SO>& mat, T2 scalar )
 {
    BLAZE_FUNCTION_TRACE;
 
-   return MultExprTrait_<T1,T2>( ~mat, scalar );
+   typedef typename MultExprTrait<T1,T2>::Type  Type;
+   return Type( ~mat, scalar );
 }
 //*************************************************************************************************
 
@@ -1037,12 +1034,13 @@ inline const EnableIf_< IsNumeric<T2>, MultExprTrait_<T1,T2> >
 template< typename T1  // Type of the left-hand side scalar
         , typename T2  // Type of the right-hand side dense matrix
         , bool SO >    // Storage order of the right-hand side dense matrix
-inline const EnableIf_< IsNumeric<T1>, MultExprTrait_<T1,T2> >
+inline const typename EnableIf< IsNumeric<T1>, typename MultExprTrait<T1,T2>::Type >::Type
    operator*( T1 scalar, const DenseMatrix<T2,SO>& mat )
 {
    BLAZE_FUNCTION_TRACE;
 
-   return MultExprTrait_<T1,T2>( ~mat, scalar );
+   typedef typename MultExprTrait<T1,T2>::Type  Type;
+   return Type( ~mat, scalar );
 }
 //*************************************************************************************************
 
@@ -1106,7 +1104,8 @@ template< typename MT     // Type of the dense matrix of the left-hand side expr
         , typename ST1    // Type of the scalar of the left-hand side expression
         , bool SO         // Storage order of the dense matrix
         , typename ST2 >  // Type of the right-hand side scalar
-inline const EnableIf_< IsNumeric<ST2>, MultExprTrait_< DMatScalarMultExpr<MT,ST1,SO>, ST2 > >
+inline const typename EnableIf< IsNumeric<ST2>
+                              , typename MultExprTrait< DMatScalarMultExpr<MT,ST1,SO>, ST2 >::Type >::Type
    operator*( const DMatScalarMultExpr<MT,ST1,SO>& mat, ST2 scalar )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1134,7 +1133,8 @@ template< typename ST1  // Type of the left-hand side scalar
         , typename MT   // Type of the dense matrix of the right-hand side expression
         , typename ST2  // Type of the scalar of the right-hand side expression
         , bool SO >     // Storage order of the dense matrix
-inline const EnableIf_< IsNumeric<ST1>, MultExprTrait_< ST1, DMatScalarMultExpr<MT,ST2,SO> > >
+inline const typename EnableIf< IsNumeric<ST1>
+                              , typename MultExprTrait< ST1, DMatScalarMultExpr<MT,ST2,SO> >::Type >::Type
    operator*( ST1 scalar, const DMatScalarMultExpr<MT,ST2,SO>& mat )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1162,8 +1162,8 @@ template< typename MT     // Type of the dense matrix of the left-hand side expr
         , typename ST1    // Type of the scalar of the left-hand side expression
         , bool SO         // Storage order of the dense matrix
         , typename ST2 >  // Type of the right-hand side scalar
-inline const EnableIf_< And< IsNumeric<ST2>, Or< IsInvertible<ST1>, IsInvertible<ST2> > >
-                      , DivExprTrait_< DMatScalarMultExpr<MT,ST1,SO>, ST2 > >
+inline const typename EnableIf< And< IsNumeric<ST2>, IsInvertible< typename DivTrait<ST1,ST2>::Type > >
+                              , typename DivExprTrait< DMatScalarMultExpr<MT,ST1,SO>, ST2 >::Type >::Type
    operator/( const DMatScalarMultExpr<MT,ST1,SO>& mat, ST2 scalar )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1192,7 +1192,7 @@ template< typename MT    // Type of the dense matrix of the left-hand side expre
         , typename ST    // Type of the scalar of the left-hand side expression
         , bool SO        // Storage order of the left-hand side expression
         , typename VT >  // Type of the right-hand side dense vector
-inline const MultExprTrait_< DMatScalarMultExpr<MT,ST,SO>, VT >
+inline const typename MultExprTrait< DMatScalarMultExpr<MT,ST,SO>, VT >::Type
    operator*( const DMatScalarMultExpr<MT,ST,SO>& mat, const DenseVector<VT,false>& vec )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1221,7 +1221,7 @@ template< typename VT  // Type of the left-hand side dense vector
         , typename MT  // Type of the dense matrix of the right-hand side expression
         , typename ST  // Type of the scalar of the right-hand side expression
         , bool SO >    // Storage order of the right-hand side expression
-inline const MultExprTrait_< VT, DMatScalarMultExpr<MT,ST,SO> >
+inline const typename MultExprTrait< VT, DMatScalarMultExpr<MT,ST,SO> >::Type
    operator*( const DenseVector<VT,true>& vec, const DMatScalarMultExpr<MT,ST,SO>& mat )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1253,7 +1253,7 @@ template< typename MT     // Type of the dense matrix of the left-hand side expr
         , bool SO         // Storage order of the left-hand side expression
         , typename VT     // Type of the dense vector of the right-hand side expression
         , typename ST2 >  // Type of the scalar of the right-hand side expression
-inline const DVecScalarMultExpr< MultExprTrait_<MT,VT>, MultTrait_<ST1,ST2>, false >
+inline const DVecScalarMultExpr<typename MultExprTrait<MT,VT>::Type,typename MultTrait<ST1,ST2>::Type,false>
    operator*( const DMatScalarMultExpr<MT,ST1,SO>& mat, const DVecScalarMultExpr<VT,ST2,false>& vec )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1285,7 +1285,7 @@ template< typename VT   // Type of the dense vector of the left-hand side expres
         , typename MT   // Type of the dense matrix of the right-hand side expression
         , typename ST2  // Type of the scalar of the right-hand side expression
         , bool SO >     // Storage order of the right-hand side expression
-inline const MultExprTrait_< DVecScalarMultExpr<VT,ST1,true>, DMatScalarMultExpr<MT,ST2,SO> >
+inline const typename MultExprTrait< DVecScalarMultExpr<VT,ST1,true>, DMatScalarMultExpr<MT,ST2,SO> >::Type
    operator*( const DVecScalarMultExpr<VT,ST1,true>& vec, const DMatScalarMultExpr<MT,ST2,SO>& mat )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1314,7 +1314,7 @@ template< typename MT    // Type of the dense matrix of the left-hand side expre
         , typename ST    // Type of the scalar of the left-hand side expression
         , bool SO        // Storage order of the left-hand side expression
         , typename VT >  // Type of the right-hand side sparse vector
-inline const MultExprTrait_< DMatScalarMultExpr<MT,ST,SO>, VT >
+inline const typename MultExprTrait< DMatScalarMultExpr<MT,ST,SO>, VT >::Type
    operator*( const DMatScalarMultExpr<MT,ST,SO>& mat, const SparseVector<VT,false>& vec )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1343,7 +1343,7 @@ template< typename VT  // Type of the left-hand side sparse vector
         , typename MT  // Type of the dense matrix of the right-hand side expression
         , typename ST  // Type of the scalar of the right-hand side expression
         , bool SO >    // Storage order of the right-hand side expression
-inline const MultExprTrait_< VT, DMatScalarMultExpr<MT,ST,SO> >
+inline const typename MultExprTrait< VT, DMatScalarMultExpr<MT,ST,SO> >::Type
    operator*( const SparseVector<VT,true>& vec, const DMatScalarMultExpr<MT,ST,SO>& mat )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1375,7 +1375,7 @@ template< typename MT     // Type of the dense matrix of the left-hand side expr
         , bool SO         // Storage order of the left-hand side expression
         , typename VT     // Type of the sparse vector of the right-hand side expression
         , typename ST2 >  // Type of the scalar of the right-hand side expression
-inline const MultExprTrait_< DMatScalarMultExpr<MT,ST1,SO>, SVecScalarMultExpr<VT,ST2,false> >
+inline const typename MultExprTrait< DMatScalarMultExpr<MT,ST1,SO>, SVecScalarMultExpr<VT,ST2,false> >::Type
    operator*( const DMatScalarMultExpr<MT,ST1,SO>& mat, const SVecScalarMultExpr<VT,ST2,false>& vec )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1407,7 +1407,7 @@ template< typename VT   // Type of the sparse vector of the left-hand side expre
         , typename MT   // Type of the dense matrix of the right-hand side expression
         , typename ST2  // Type of the scalar of the right-hand side expression
         , bool SO >     // Storage order of the right-hand side expression
-inline const MultExprTrait_< SVecScalarMultExpr<VT,ST1,true>, DMatScalarMultExpr<MT,ST2,SO> >
+inline const typename MultExprTrait< SVecScalarMultExpr<VT,ST1,true>, DMatScalarMultExpr<MT,ST2,SO> >::Type
    operator*( const SVecScalarMultExpr<VT,ST1,true>& vec, const DMatScalarMultExpr<MT,ST2,SO>& mat )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1437,7 +1437,7 @@ template< typename MT1  // Type of the dense matrix of the left-hand side expres
         , bool SO1      // Storage order of the left-hand side expression
         , typename MT2  // Type of the right-hand side dense matrix
         , bool SO2 >    // Storage order of the right-hand side dense matrix
-inline const MultExprTrait_< DMatScalarMultExpr<MT1,ST,SO1>, MT2 >
+inline const typename MultExprTrait< DMatScalarMultExpr<MT1,ST,SO1>, MT2 >::Type
    operator*( const DMatScalarMultExpr<MT1,ST,SO1>& lhs, const DenseMatrix<MT2,SO2>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1467,7 +1467,7 @@ template< typename MT1  // Type of the left-hand side dense matrix
         , typename MT2  // Type of the dense matrix of the right-hand side expression
         , typename ST   // Type of the scalar of the right-hand side expression
         , bool SO2 >    // Storage order of the right-hand side expression
-inline const MultExprTrait_< MT1, DMatScalarMultExpr<MT2,ST,SO2> >
+inline const typename MultExprTrait< MT1, DMatScalarMultExpr<MT2,ST,SO2> >::Type
    operator*( const DenseMatrix<MT1,SO1>& lhs, const DMatScalarMultExpr<MT2,ST,SO2>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1498,7 +1498,7 @@ template< typename MT1  // Type of the dense matrix of the left-hand side expres
         , typename MT2  // Type of the right-hand side dense matrix
         , typename ST2  // Type of the scalar of the right-hand side expression
         , bool SO2 >    // Storage order of the right-hand side expression
-inline const MultExprTrait_< DMatScalarMultExpr<MT1,ST1,SO1>, DMatScalarMultExpr<MT2,ST2,SO2> >
+inline const typename MultExprTrait< DMatScalarMultExpr<MT1,ST1,SO1>, DMatScalarMultExpr<MT2,ST2,SO2> >::Type
    operator*( const DMatScalarMultExpr<MT1,ST1,SO1>& lhs, const DMatScalarMultExpr<MT2,ST2,SO2>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1528,7 +1528,7 @@ template< typename MT1    // Type of the dense matrix of the left-hand side expr
         , bool SO1        // Storage order of the left-hand side expression
         , typename MT2    // Type of the right-hand side sparse matrix
         , bool SO2 >      // Storage order of the right-hand side sparse matrix
-inline const MultExprTrait_< DMatScalarMultExpr<MT1,ST,SO1>, MT2 >
+inline const typename MultExprTrait< DMatScalarMultExpr<MT1,ST,SO1>, MT2 >::Type
    operator*( const DMatScalarMultExpr<MT1,ST,SO1>& lhs, const SparseMatrix<MT2,SO2>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1558,7 +1558,7 @@ template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2    // Type of the dense matrix of the right-hand side expression
         , typename ST     // Type of the scalar of the right-hand side expression
         , bool SO2 >      // Storage order of the right-hand side expression
-inline const MultExprTrait_< MT1, DMatScalarMultExpr<MT2,ST,SO2> >
+inline const typename MultExprTrait< MT1, DMatScalarMultExpr<MT2,ST,SO2> >::Type
    operator*( const SparseMatrix<MT1,SO1>& lhs, const DMatScalarMultExpr<MT2,ST,SO2>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1590,7 +1590,7 @@ template< typename MT1  // Type of the dense matrix of the left-hand side expres
         , typename MT2  // Type of the sparse matrix of the right-hand side expression
         , typename ST2  // Type of the scalar of the right-hand side expression
         , bool SO2 >    // Storage order of the right-hand side expression
-inline const MultExprTrait_< DMatScalarMultExpr<MT1,ST1,SO1>, SMatScalarMultExpr<MT2,ST2,SO2> >
+inline const typename MultExprTrait< DMatScalarMultExpr<MT1,ST1,SO1>, SMatScalarMultExpr<MT2,ST2,SO2> >::Type
    operator*( const DMatScalarMultExpr<MT1,ST1,SO1>& mat, const SMatScalarMultExpr<MT2,ST2,SO2>& vec )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1622,7 +1622,7 @@ template< typename MT1  // Type of the sparse matrix of the left-hand side expre
         , typename MT2  // Type of the dense matrix of the right-hand side expression
         , typename ST2  // Type of the scalar of the right-hand side expression
         , bool SO2 >    // Storage order of the right-hand side expression
-inline const MultExprTrait_< SMatScalarMultExpr<MT1,ST1,SO1>, DMatScalarMultExpr<MT2,ST2,SO2> >
+inline const typename MultExprTrait< SMatScalarMultExpr<MT1,ST1,SO1>, DMatScalarMultExpr<MT2,ST2,SO2> >::Type
    operator*( const SMatScalarMultExpr<MT1,ST1,SO1>& mat, const DMatScalarMultExpr<MT2,ST2,SO2>& vec )
 {
    BLAZE_FUNCTION_TRACE;
@@ -1678,8 +1678,7 @@ struct Columns< DMatScalarMultExpr<MT,ST,SO> > : public Rows<MT>
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, typename ST, bool SO >
-struct IsAligned< DMatScalarMultExpr<MT,ST,SO> >
-   : public BoolConstant< IsAligned<MT>::value >
+struct IsAligned< DMatScalarMultExpr<MT,ST,SO> > : public IsTrue< IsAligned<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1696,8 +1695,7 @@ struct IsAligned< DMatScalarMultExpr<MT,ST,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, typename ST, bool SO >
-struct IsPadded< DMatScalarMultExpr<MT,ST,SO> >
-   : public BoolConstant< IsPadded<MT>::value >
+struct IsPadded< DMatScalarMultExpr<MT,ST,SO> > : public IsTrue< IsPadded<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1714,8 +1712,7 @@ struct IsPadded< DMatScalarMultExpr<MT,ST,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, typename ST, bool SO >
-struct IsSymmetric< DMatScalarMultExpr<MT,ST,SO> >
-   : public BoolConstant< IsSymmetric<MT>::value >
+struct IsSymmetric< DMatScalarMultExpr<MT,ST,SO> > : public IsTrue< IsSymmetric<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1732,8 +1729,7 @@ struct IsSymmetric< DMatScalarMultExpr<MT,ST,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, typename ST, bool SO >
-struct IsHermitian< DMatScalarMultExpr<MT,ST,SO> >
-   : public BoolConstant< IsHermitian<MT>::value >
+struct IsHermitian< DMatScalarMultExpr<MT,ST,SO> > : public IsTrue< IsHermitian<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1750,8 +1746,7 @@ struct IsHermitian< DMatScalarMultExpr<MT,ST,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, typename ST, bool SO >
-struct IsLower< DMatScalarMultExpr<MT,ST,SO> >
-   : public BoolConstant< IsLower<MT>::value >
+struct IsLower< DMatScalarMultExpr<MT,ST,SO> > : public IsTrue< IsLower<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1768,8 +1763,7 @@ struct IsLower< DMatScalarMultExpr<MT,ST,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, typename ST, bool SO >
-struct IsStrictlyLower< DMatScalarMultExpr<MT,ST,SO> >
-   : public BoolConstant< IsStrictlyLower<MT>::value >
+struct IsStrictlyLower< DMatScalarMultExpr<MT,ST,SO> > : public IsTrue< IsStrictlyLower<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1786,8 +1780,7 @@ struct IsStrictlyLower< DMatScalarMultExpr<MT,ST,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, typename ST, bool SO >
-struct IsUpper< DMatScalarMultExpr<MT,ST,SO> >
-   : public BoolConstant< IsUpper<MT>::value >
+struct IsUpper< DMatScalarMultExpr<MT,ST,SO> > : public IsTrue< IsUpper<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1804,8 +1797,7 @@ struct IsUpper< DMatScalarMultExpr<MT,ST,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, typename ST, bool SO >
-struct IsStrictlyUpper< DMatScalarMultExpr<MT,ST,SO> >
-   : public BoolConstant< IsStrictlyUpper<MT>::value >
+struct IsStrictlyUpper< DMatScalarMultExpr<MT,ST,SO> > : public IsTrue< IsStrictlyUpper<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1826,9 +1818,10 @@ struct DMatScalarMultExprTrait< DMatScalarMultExpr<MT,ST1,false>, ST2 >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsRowMajorMatrix<MT>, IsNumeric<ST1>, IsNumeric<ST2> >
-                   , DMatScalarMultExprTrait_< MT, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT>::value && IsRowMajorMatrix<MT>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename DMatScalarMultExprTrait<MT,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -1850,9 +1843,10 @@ struct TDMatScalarMultExprTrait< DMatScalarMultExpr<MT,ST1,true>, ST2 >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsColumnMajorMatrix<MT>, IsNumeric<ST1>, IsNumeric<ST2> >
-                   , TDMatScalarMultExprTrait_< MT, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT>::value && IsColumnMajorMatrix<MT>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename TDMatScalarMultExprTrait<MT,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -1874,16 +1868,24 @@ struct DMatScalarDivExprTrait< DMatScalarMultExpr<MT,ST1,false>, ST2 >
 {
  private:
    //**********************************************************************************************
-   typedef DivTrait_<ST1,ST2>  ScalarType;
+   typedef typename DivTrait<ST1,ST2>::Type  ScalarType;
+   //**********************************************************************************************
+
+   //**********************************************************************************************
+   enum { condition = IsInvertible<ScalarType>::value };
+   //**********************************************************************************************
+
+   //**********************************************************************************************
+   typedef typename DMatScalarMultExprTrait<MT,ScalarType>::Type  T1;
+   typedef typename DMatScalarDivExprTrait<MT,ScalarType>::Type   T2;
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsRowMajorMatrix<MT>, IsNumeric<ST1>, IsNumeric<ST2> >
-                   , If_< IsInvertible<ScalarType>
-                        , DMatScalarMultExprTrait_<MT,ScalarType>
-                        , DMatScalarDivExprTrait_<MT,ScalarType> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT>::value && IsRowMajorMatrix<MT>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename SelectType<condition,T1,T2>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -1905,16 +1907,24 @@ struct TDMatScalarDivExprTrait< DMatScalarMultExpr<MT,ST1,true>, ST2 >
 {
  private:
    //**********************************************************************************************
-   typedef DivTrait_<ST1,ST2>  ScalarType;
+   typedef typename DivTrait<ST1,ST2>::Type  ScalarType;
+   //**********************************************************************************************
+
+   //**********************************************************************************************
+   enum { condition = IsInvertible<ScalarType>::value };
+   //**********************************************************************************************
+
+   //**********************************************************************************************
+   typedef typename TDMatScalarMultExprTrait<MT,ScalarType>::Type  T1;
+   typedef typename TDMatScalarDivExprTrait<MT,ScalarType>::Type   T2;
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsColumnMajorMatrix<MT>, IsNumeric<ST1>, IsNumeric<ST2> >
-                   , If_< IsInvertible<ScalarType>
-                        , TDMatScalarMultExprTrait_<MT,ScalarType>
-                        , TDMatScalarDivExprTrait_<MT,ScalarType> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT>::value && IsColumnMajorMatrix<MT>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename SelectType<condition,T1,T2>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -1936,11 +1946,11 @@ struct DMatDVecMultExprTrait< DMatScalarMultExpr<MT,ST,false>, VT >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsRowMajorMatrix<MT>
-                        , IsDenseVector<VT>, IsColumnVector<VT>
-                        , IsNumeric<ST> >
-                   , DVecScalarMultExprTrait_< DMatDVecMultExprTrait_<MT,VT>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT>::value && IsRowMajorMatrix<MT>::value &&
+                                IsDenseVector<VT>::value && IsColumnVector<VT>::value   &&
+                                IsNumeric<ST>::value
+                              , typename DVecScalarMultExprTrait<typename DMatDVecMultExprTrait<MT,VT>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -1954,11 +1964,11 @@ struct DMatDVecMultExprTrait< DMatScalarMultExpr<MT,ST1,false>, DVecScalarMultEx
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsRowMajorMatrix<MT>
-                        , IsDenseVector<VT>, IsColumnVector<VT>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , DVecScalarMultExprTrait_< DMatDVecMultExprTrait_<MT,VT>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT>::value && IsRowMajorMatrix<MT>::value &&
+                                IsDenseVector<VT>::value && IsColumnVector<VT>::value   &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename DVecScalarMultExprTrait<typename DMatDVecMultExprTrait<MT,VT>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -1980,11 +1990,11 @@ struct TDMatDVecMultExprTrait< DMatScalarMultExpr<MT,ST,true>, VT >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsColumnMajorMatrix<MT>
-                        , IsDenseVector<VT>, IsColumnVector<VT>
-                        , IsNumeric<ST> >
-                   , DVecScalarMultExprTrait_< TDMatDVecMultExprTrait_<MT,VT>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT>::value && IsColumnMajorMatrix<MT>::value &&
+                                IsDenseVector<VT>::value && IsColumnVector<VT>::value      &&
+                                IsNumeric<ST>::value
+                              , typename DVecScalarMultExprTrait<typename TDMatDVecMultExprTrait<MT,VT>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -1998,11 +2008,11 @@ struct TDMatDVecMultExprTrait< DMatScalarMultExpr<MT,ST1,true>, DVecScalarMultEx
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsColumnMajorMatrix<MT>
-                        , IsDenseVector<VT>, IsColumnVector<VT>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , DVecScalarMultExprTrait_< TDMatDVecMultExprTrait_<MT,VT>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT>::value && IsColumnMajorMatrix<MT>::value &&
+                                IsDenseVector<VT>::value && IsColumnVector<VT>::value      &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename DVecScalarMultExprTrait<typename TDMatDVecMultExprTrait<MT,VT>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2024,11 +2034,11 @@ struct TDVecDMatMultExprTrait< VT, DMatScalarMultExpr<MT,ST,false> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseVector<VT>, IsRowVector<VT>
-                        , IsDenseMatrix<MT>, IsRowMajorMatrix<MT>
-                        , IsNumeric<ST> >
-                   , TDVecScalarMultExprTrait_< TDVecDMatMultExprTrait_<VT,MT>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseVector<VT>::value && IsRowVector<VT>::value      &&
+                                IsDenseMatrix<MT>::value && IsRowMajorMatrix<MT>::value &&
+                                IsNumeric<ST>::value
+                              , typename TDVecScalarMultExprTrait<typename TDVecDMatMultExprTrait<VT,MT>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2042,11 +2052,11 @@ struct TDVecDMatMultExprTrait< DVecScalarMultExpr<VT,ST1,true>, DMatScalarMultEx
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseVector<VT>, IsRowVector<VT>
-                        , IsDenseMatrix<MT>, IsRowMajorMatrix<MT>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , TDVecScalarMultExprTrait_< TDVecDMatMultExprTrait_<VT,MT>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseVector<VT>::value && IsRowVector<VT>::value      &&
+                                IsDenseMatrix<MT>::value && IsRowMajorMatrix<MT>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename TDVecScalarMultExprTrait<typename TDVecDMatMultExprTrait<VT,MT>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2068,11 +2078,11 @@ struct TDVecTDMatMultExprTrait< VT, DMatScalarMultExpr<MT,ST,true> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseVector<VT>, IsRowVector<VT>
-                        , IsDenseMatrix<MT>, IsColumnMajorMatrix<MT>
-                        , IsNumeric<ST> >
-                   , TDVecScalarMultExprTrait_< TDVecTDMatMultExprTrait_<VT,MT>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseVector<VT>::value && IsRowVector<VT>::value         &&
+                                IsDenseMatrix<MT>::value && IsColumnMajorMatrix<MT>::value &&
+                                IsNumeric<ST>::value
+                              , typename TDVecScalarMultExprTrait<typename TDVecTDMatMultExprTrait<VT,MT>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2086,11 +2096,11 @@ struct TDVecTDMatMultExprTrait< DVecScalarMultExpr<VT,ST1,true>, DMatScalarMultE
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseVector<VT>, IsRowVector<VT>
-                        , IsDenseMatrix<MT>, IsColumnMajorMatrix<MT>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , TDVecScalarMultExprTrait_< TDVecTDMatMultExprTrait_<VT,MT>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseVector<VT>::value && IsRowVector<VT>::value         &&
+                                IsDenseMatrix<MT>::value && IsColumnMajorMatrix<MT>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename TDVecScalarMultExprTrait<typename TDVecTDMatMultExprTrait<VT,MT>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2112,11 +2122,11 @@ struct DMatSVecMultExprTrait< DMatScalarMultExpr<MT,ST,false>, VT >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsRowMajorMatrix<MT>
-                        , IsSparseVector<VT>, IsColumnVector<VT>
-                        , IsNumeric<ST> >
-                   , DVecScalarMultExprTrait_< DMatSVecMultExprTrait_<MT,VT>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT>::value  && IsRowMajorMatrix<MT>::value &&
+                                IsSparseVector<VT>::value && IsColumnVector<VT>::value   &&
+                                IsNumeric<ST>::value
+                              , typename DVecScalarMultExprTrait<typename DMatSVecMultExprTrait<MT,VT>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2130,11 +2140,11 @@ struct DMatSVecMultExprTrait< DMatScalarMultExpr<MT,ST1,false>, SVecScalarMultEx
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsRowMajorMatrix<MT>
-                        , IsSparseVector<VT>, IsColumnVector<VT>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , DVecScalarMultExprTrait_< DMatSVecMultExprTrait_<MT,VT>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT>::value  && IsRowMajorMatrix<MT>::value &&
+                                IsSparseVector<VT>::value && IsColumnVector<VT>::value   &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename DVecScalarMultExprTrait<typename DMatSVecMultExprTrait<MT,VT>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2156,11 +2166,11 @@ struct TDMatSVecMultExprTrait< DMatScalarMultExpr<MT,ST,true>, VT >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsColumnMajorMatrix<MT>
-                        , IsSparseVector<VT>, IsColumnVector<VT>
-                        , IsNumeric<ST> >
-                   , DVecScalarMultExprTrait_< TDMatSVecMultExprTrait_<MT,VT>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT>::value  && IsColumnMajorMatrix<MT>::value &&
+                                IsSparseVector<VT>::value && IsColumnVector<VT>::value      &&
+                                IsNumeric<ST>::value
+                              , typename DVecScalarMultExprTrait<typename TDMatSVecMultExprTrait<MT,VT>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2174,11 +2184,11 @@ struct TDMatSVecMultExprTrait< DMatScalarMultExpr<MT,ST1,true>, SVecScalarMultEx
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsColumnMajorMatrix<MT>
-                        , IsSparseVector<VT>, IsColumnVector<VT>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , DVecScalarMultExprTrait_< TDMatSVecMultExprTrait_<MT,VT>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT>::value  && IsColumnMajorMatrix<MT>::value &&
+                                IsSparseVector<VT>::value && IsColumnVector<VT>::value      &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename DVecScalarMultExprTrait<typename TDMatSVecMultExprTrait<MT,VT>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2200,11 +2210,11 @@ struct TSVecDMatMultExprTrait< VT, DMatScalarMultExpr<MT,ST,false> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsSparseVector<VT>, IsRowVector<VT>
-                        , IsDenseMatrix<MT>, IsRowMajorMatrix<MT>
-                        , IsNumeric<ST> >
-                   , TDVecScalarMultExprTrait_< TSVecDMatMultExprTrait_<VT,MT>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsSparseVector<VT>::value && IsRowVector<VT>::value      &&
+                                IsDenseMatrix<MT>::value  && IsRowMajorMatrix<MT>::value &&
+                                IsNumeric<ST>::value
+                              , typename TDVecScalarMultExprTrait<typename TSVecDMatMultExprTrait<VT,MT>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2218,11 +2228,11 @@ struct TSVecDMatMultExprTrait< SVecScalarMultExpr<VT,ST1,true>, DMatScalarMultEx
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsSparseVector<VT>, IsRowVector<VT>
-                        , IsDenseMatrix<MT>, IsRowMajorMatrix<MT>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , TDVecScalarMultExprTrait_< TSVecDMatMultExprTrait_<VT,MT>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsSparseVector<VT>::value && IsRowVector<VT>::value      &&
+                                IsDenseMatrix<MT>::value  && IsRowMajorMatrix<MT>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename TDVecScalarMultExprTrait<typename TSVecDMatMultExprTrait<VT,MT>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2244,11 +2254,11 @@ struct TSVecTDMatMultExprTrait< VT, DMatScalarMultExpr<MT,ST,true> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsSparseVector<VT>, IsRowVector<VT>
-                        , IsDenseMatrix<MT>, IsColumnMajorMatrix<MT>
-                        , IsNumeric<ST> >
-                   , TDVecScalarMultExprTrait_< TSVecTDMatMultExprTrait_<VT,MT>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsSparseVector<VT>::value && IsRowVector<VT>::value         &&
+                                IsDenseMatrix<MT>::value  && IsColumnMajorMatrix<MT>::value &&
+                                IsNumeric<ST>::value
+                              , typename TDVecScalarMultExprTrait<typename TSVecTDMatMultExprTrait<VT,MT>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2262,11 +2272,11 @@ struct TSVecTDMatMultExprTrait< SVecScalarMultExpr<VT,ST1,true>, DMatScalarMultE
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsSparseVector<VT>, IsRowVector<VT>
-                        , IsDenseMatrix<MT>, IsColumnMajorMatrix<MT>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , TDVecScalarMultExprTrait_< TSVecTDMatMultExprTrait_<VT,MT>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsSparseVector<VT>::value && IsRowVector<VT>::value         &&
+                                IsDenseMatrix<MT>::value  && IsColumnMajorMatrix<MT>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename TDVecScalarMultExprTrait<typename TSVecTDMatMultExprTrait<VT,MT>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2288,11 +2298,11 @@ struct DMatDMatMultExprTrait< DMatScalarMultExpr<MT1,ST,false>, MT2 >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsRowMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsRowMajorMatrix<MT2>
-                        , IsNumeric<ST> >
-                   , DMatScalarMultExprTrait_< DMatDMatMultExprTrait_<MT1,MT2>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value && IsRowMajorMatrix<MT1>::value &&
+                                IsDenseMatrix<MT2>::value && IsRowMajorMatrix<MT2>::value &&
+                                IsNumeric<ST>::value
+                              , typename DMatScalarMultExprTrait<typename DMatDMatMultExprTrait<MT1,MT2>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2306,11 +2316,11 @@ struct DMatDMatMultExprTrait< MT1, DMatScalarMultExpr<MT2,ST,false> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsRowMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsRowMajorMatrix<MT2>
-                        , IsNumeric<ST> >
-                   , DMatScalarMultExprTrait_< DMatDMatMultExprTrait_<MT1,MT2>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value && IsRowMajorMatrix<MT1>::value &&
+                                IsDenseMatrix<MT2>::value && IsRowMajorMatrix<MT2>::value &&
+                                IsNumeric<ST>::value
+                              , typename DMatScalarMultExprTrait<typename DMatDMatMultExprTrait<MT1,MT2>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2324,11 +2334,11 @@ struct DMatDMatMultExprTrait< DMatScalarMultExpr<MT1,ST1,false>, DMatScalarMultE
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsRowMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsRowMajorMatrix<MT2>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , DMatScalarMultExprTrait_< DMatDMatMultExprTrait_<MT1,MT2>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value && IsRowMajorMatrix<MT1>::value &&
+                                IsDenseMatrix<MT2>::value && IsRowMajorMatrix<MT2>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename DMatScalarMultExprTrait<typename DMatDMatMultExprTrait<MT1,MT2>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2350,11 +2360,11 @@ struct DMatTDMatMultExprTrait< DMatScalarMultExpr<MT1,ST,false>, MT2 >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsRowMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsColumnMajorMatrix<MT2>
-                        , IsNumeric<ST> >
-                   , DMatScalarMultExprTrait_< DMatTDMatMultExprTrait_<MT1,MT2>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value && IsRowMajorMatrix<MT1>::value    &&
+                                IsDenseMatrix<MT2>::value && IsColumnMajorMatrix<MT2>::value &&
+                                IsNumeric<ST>::value
+                              , typename DMatScalarMultExprTrait<typename DMatTDMatMultExprTrait<MT1,MT2>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2368,11 +2378,11 @@ struct DMatTDMatMultExprTrait< MT1, DMatScalarMultExpr<MT2,ST,true> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsRowMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsColumnMajorMatrix<MT2>
-                        , IsNumeric<ST> >
-                   , DMatScalarMultExprTrait_< DMatTDMatMultExprTrait_<MT1,MT2>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value && IsRowMajorMatrix<MT1>::value    &&
+                                IsDenseMatrix<MT2>::value && IsColumnMajorMatrix<MT2>::value &&
+                                IsNumeric<ST>::value
+                              , typename DMatScalarMultExprTrait<typename DMatTDMatMultExprTrait<MT1,MT2>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2386,11 +2396,11 @@ struct DMatTDMatMultExprTrait< DMatScalarMultExpr<MT1,ST1,false>, DMatScalarMult
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsRowMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsColumnMajorMatrix<MT2>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , DMatScalarMultExprTrait_< DMatTDMatMultExprTrait_<MT1,MT2>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value && IsRowMajorMatrix<MT1>::value    &&
+                                IsDenseMatrix<MT2>::value && IsColumnMajorMatrix<MT2>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename DMatScalarMultExprTrait<typename DMatTDMatMultExprTrait<MT1,MT2>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2412,11 +2422,11 @@ struct TDMatDMatMultExprTrait< DMatScalarMultExpr<MT1,ST,true>, MT2 >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsColumnMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsRowMajorMatrix<MT2>
-                        , IsNumeric<ST> >
-                   , TDMatScalarMultExprTrait_< TDMatDMatMultExprTrait_<MT1,MT2>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value && IsColumnMajorMatrix<MT1>::value &&
+                                IsDenseMatrix<MT2>::value && IsRowMajorMatrix<MT2>::value    &&
+                                IsNumeric<ST>::value
+                              , typename TDMatScalarMultExprTrait<typename TDMatDMatMultExprTrait<MT1,MT2>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2430,11 +2440,11 @@ struct TDMatDMatMultExprTrait< MT1, DMatScalarMultExpr<MT2,ST,false> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsColumnMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsRowMajorMatrix<MT2>
-                        , IsNumeric<ST> >
-                   , TDMatScalarMultExprTrait_< TDMatDMatMultExprTrait_<MT1,MT2>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value && IsColumnMajorMatrix<MT1>::value &&
+                                IsDenseMatrix<MT2>::value && IsRowMajorMatrix<MT2>::value    &&
+                                IsNumeric<ST>::value
+                              , typename TDMatScalarMultExprTrait<typename TDMatDMatMultExprTrait<MT1,MT2>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2448,11 +2458,11 @@ struct TDMatDMatMultExprTrait< DMatScalarMultExpr<MT1,ST1,true>, DMatScalarMultE
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsColumnMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsRowMajorMatrix<MT2>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , TDMatScalarMultExprTrait_< TDMatDMatMultExprTrait_<MT1,MT2>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value && IsColumnMajorMatrix<MT1>::value &&
+                                IsDenseMatrix<MT2>::value && IsRowMajorMatrix<MT2>::value    &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename TDMatScalarMultExprTrait<typename TDMatDMatMultExprTrait<MT1,MT2>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2474,11 +2484,11 @@ struct TDMatTDMatMultExprTrait< DMatScalarMultExpr<MT1,ST,true>, MT2 >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsColumnMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsColumnMajorMatrix<MT2>
-                        , IsNumeric<ST> >
-                   , TDMatScalarMultExprTrait_< TDMatTDMatMultExprTrait_<MT1,MT2>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value && IsColumnMajorMatrix<MT1>::value &&
+                                IsDenseMatrix<MT2>::value && IsColumnMajorMatrix<MT2>::value &&
+                                IsNumeric<ST>::value
+                              , typename TDMatScalarMultExprTrait<typename TDMatTDMatMultExprTrait<MT1,MT2>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2492,11 +2502,11 @@ struct TDMatTDMatMultExprTrait< MT1, DMatScalarMultExpr<MT2,ST,true> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsColumnMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsColumnMajorMatrix<MT2>
-                        , IsNumeric<ST> >
-                   , TDMatScalarMultExprTrait_< TDMatTDMatMultExprTrait_<MT1,MT2>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value && IsColumnMajorMatrix<MT1>::value &&
+                                IsDenseMatrix<MT2>::value && IsColumnMajorMatrix<MT2>::value &&
+                                IsNumeric<ST>::value
+                              , typename TDMatScalarMultExprTrait<typename TDMatTDMatMultExprTrait<MT1,MT2>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2510,11 +2520,11 @@ struct TDMatTDMatMultExprTrait< DMatScalarMultExpr<MT1,ST1,true>, DMatScalarMult
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsColumnMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsColumnMajorMatrix<MT2>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , TDMatScalarMultExprTrait_< TDMatTDMatMultExprTrait_<MT1,MT2>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value && IsColumnMajorMatrix<MT1>::value &&
+                                IsDenseMatrix<MT2>::value && IsColumnMajorMatrix<MT2>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename TDMatScalarMultExprTrait<typename TDMatTDMatMultExprTrait<MT1,MT2>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2536,11 +2546,11 @@ struct DMatSMatMultExprTrait< DMatScalarMultExpr<MT1,ST,false>, MT2 >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsRowMajorMatrix<MT1>
-                        , IsSparseMatrix<MT2>, IsRowMajorMatrix<MT2>
-                        , IsNumeric<ST> >
-                   , DMatScalarMultExprTrait_< DMatSMatMultExprTrait_<MT1,MT2>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value  && IsRowMajorMatrix<MT1>::value &&
+                                IsSparseMatrix<MT2>::value && IsRowMajorMatrix<MT2>::value &&
+                                IsNumeric<ST>::value
+                              , typename DMatScalarMultExprTrait<typename DMatSMatMultExprTrait<MT1,MT2>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2554,11 +2564,11 @@ struct DMatSMatMultExprTrait< DMatScalarMultExpr<MT1,ST1,false>, SMatScalarMultE
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsRowMajorMatrix<MT1>
-                        , IsSparseMatrix<MT2>, IsRowMajorMatrix<MT2>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , DMatScalarMultExprTrait_< DMatSMatMultExprTrait_<MT1,MT2>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value  && IsRowMajorMatrix<MT1>::value &&
+                                IsSparseMatrix<MT2>::value && IsRowMajorMatrix<MT2>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename DMatScalarMultExprTrait<typename DMatSMatMultExprTrait<MT1,MT2>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2580,11 +2590,11 @@ struct DMatTSMatMultExprTrait< DMatScalarMultExpr<MT1,ST,false>, MT2 >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsRowMajorMatrix<MT1>
-                        , IsSparseMatrix<MT2>, IsColumnMajorMatrix<MT2>
-                        , IsNumeric<ST> >
-                   , DMatScalarMultExprTrait_< DMatTSMatMultExprTrait_<MT1,MT2>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value  && IsRowMajorMatrix<MT1>::value    &&
+                                IsSparseMatrix<MT2>::value && IsColumnMajorMatrix<MT2>::value &&
+                                IsNumeric<ST>::value
+                              , typename DMatScalarMultExprTrait<typename DMatTSMatMultExprTrait<MT1,MT2>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2598,11 +2608,11 @@ struct DMatTSMatMultExprTrait< DMatScalarMultExpr<MT1,ST1,false>, SMatScalarMult
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsRowMajorMatrix<MT1>
-                        , IsSparseMatrix<MT2>, IsColumnMajorMatrix<MT2>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , DMatScalarMultExprTrait_< DMatTSMatMultExprTrait_<MT1,MT2>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value  && IsRowMajorMatrix<MT1>::value    &&
+                                IsSparseMatrix<MT2>::value && IsColumnMajorMatrix<MT2>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename DMatScalarMultExprTrait<typename DMatTSMatMultExprTrait<MT1,MT2>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2624,11 +2634,11 @@ struct TDMatSMatMultExprTrait< DMatScalarMultExpr<MT1,ST,true>, MT2 >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsColumnMajorMatrix<MT1>
-                        , IsSparseMatrix<MT2>, IsRowMajorMatrix<MT2>
-                        , IsNumeric<ST> >
-                   , TDMatScalarMultExprTrait_< TDMatSMatMultExprTrait_<MT1,MT2>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value  && IsColumnMajorMatrix<MT1>::value &&
+                                IsSparseMatrix<MT2>::value && IsRowMajorMatrix<MT2>::value    &&
+                                IsNumeric<ST>::value
+                              , typename TDMatScalarMultExprTrait<typename TDMatSMatMultExprTrait<MT1,MT2>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2642,11 +2652,11 @@ struct TDMatSMatMultExprTrait< DMatScalarMultExpr<MT1,ST1,true>, SMatScalarMultE
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsColumnMajorMatrix<MT1>
-                        , IsSparseMatrix<MT2>, IsRowMajorMatrix<MT2>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , TDMatScalarMultExprTrait_< TDMatSMatMultExprTrait_<MT1,MT2>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value  && IsColumnMajorMatrix<MT1>::value &&
+                                IsSparseMatrix<MT2>::value && IsRowMajorMatrix<MT2>::value    &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename TDMatScalarMultExprTrait<typename TDMatSMatMultExprTrait<MT1,MT2>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2668,11 +2678,11 @@ struct TDMatTSMatMultExprTrait< DMatScalarMultExpr<MT1,ST,true>, MT2 >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsColumnMajorMatrix<MT1>
-                        , IsSparseMatrix<MT2>, IsColumnMajorMatrix<MT2>
-                        , IsNumeric<ST> >
-                   , TDMatScalarMultExprTrait_< TDMatTSMatMultExprTrait_<MT1,MT2>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value  && IsColumnMajorMatrix<MT1>::value &&
+                                IsSparseMatrix<MT2>::value && IsColumnMajorMatrix<MT2>::value &&
+                                IsNumeric<ST>::value
+                              , typename TDMatScalarMultExprTrait<typename TDMatTSMatMultExprTrait<MT1,MT2>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2686,11 +2696,11 @@ struct TDMatTSMatMultExprTrait< DMatScalarMultExpr<MT1,ST1,true>, SMatScalarMult
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT1>, IsColumnMajorMatrix<MT1>
-                        , IsSparseMatrix<MT2>, IsColumnMajorMatrix<MT2>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , TDMatScalarMultExprTrait_< TDMatTSMatMultExprTrait_<MT1,MT2>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT1>::value  && IsColumnMajorMatrix<MT1>::value &&
+                                IsSparseMatrix<MT2>::value && IsColumnMajorMatrix<MT2>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename TDMatScalarMultExprTrait<typename TDMatTSMatMultExprTrait<MT1,MT2>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2712,11 +2722,11 @@ struct SMatDMatMultExprTrait< MT1, DMatScalarMultExpr<MT2,ST,false> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsSparseMatrix<MT1>, IsRowMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsRowMajorMatrix<MT2>
-                        , IsNumeric<ST> >
-                   , DMatScalarMultExprTrait_< SMatDMatMultExprTrait_<MT1,MT2>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsSparseMatrix<MT1>::value && IsRowMajorMatrix<MT1>::value &&
+                                IsDenseMatrix<MT2>::value  && IsRowMajorMatrix<MT2>::value &&
+                                IsNumeric<ST>::value
+                              , typename DMatScalarMultExprTrait<typename SMatDMatMultExprTrait<MT1,MT2>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2730,11 +2740,11 @@ struct SMatDMatMultExprTrait< SMatScalarMultExpr<MT1,ST1,false>, DMatScalarMultE
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsSparseMatrix<MT1>, IsRowMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsRowMajorMatrix<MT2>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , DMatScalarMultExprTrait_< SMatDMatMultExprTrait_<MT1,MT2>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsSparseMatrix<MT1>::value && IsRowMajorMatrix<MT1>::value &&
+                                IsDenseMatrix<MT2>::value  && IsRowMajorMatrix<MT2>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename DMatScalarMultExprTrait<typename SMatDMatMultExprTrait<MT1,MT2>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2756,11 +2766,11 @@ struct SMatTDMatMultExprTrait< MT1, DMatScalarMultExpr<MT2,ST,true> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsSparseMatrix<MT1>, IsRowMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsColumnMajorMatrix<MT2>
-                        , IsNumeric<ST> >
-                   , DMatScalarMultExprTrait_< SMatTDMatMultExprTrait_<MT1,MT2>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsSparseMatrix<MT1>::value && IsRowMajorMatrix<MT1>::value    &&
+                                IsDenseMatrix<MT2>::value  && IsColumnMajorMatrix<MT2>::value &&
+                                IsNumeric<ST>::value
+                              , typename DMatScalarMultExprTrait<typename SMatTDMatMultExprTrait<MT1,MT2>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2774,11 +2784,11 @@ struct SMatTDMatMultExprTrait< SMatScalarMultExpr<MT1,ST1,false>, DMatScalarMult
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsSparseMatrix<MT1>, IsRowMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsColumnMajorMatrix<MT2>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , DMatScalarMultExprTrait_< SMatTDMatMultExprTrait_<MT1,MT2>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsSparseMatrix<MT1>::value && IsRowMajorMatrix<MT1>::value    &&
+                                IsDenseMatrix<MT2>::value  && IsColumnMajorMatrix<MT2>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename DMatScalarMultExprTrait<typename SMatTDMatMultExprTrait<MT1,MT2>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2800,11 +2810,11 @@ struct TSMatDMatMultExprTrait< MT1, DMatScalarMultExpr<MT2,ST,false> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsSparseMatrix<MT1>, IsColumnMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsRowMajorMatrix<MT2>
-                        , IsNumeric<ST> >
-                   , TDMatScalarMultExprTrait_< TSMatDMatMultExprTrait_<MT1,MT2>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsSparseMatrix<MT1>::value && IsColumnMajorMatrix<MT1>::value &&
+                                IsDenseMatrix<MT2>::value  && IsRowMajorMatrix<MT2>::value    &&
+                                IsNumeric<ST>::value
+                              , typename TDMatScalarMultExprTrait<typename TSMatDMatMultExprTrait<MT1,MT2>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2818,11 +2828,11 @@ struct TSMatDMatMultExprTrait< SMatScalarMultExpr<MT1,ST1,true>, DMatScalarMultE
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsSparseMatrix<MT1>, IsColumnMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsRowMajorMatrix<MT2>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , TDMatScalarMultExprTrait_< TSMatDMatMultExprTrait_<MT1,MT2>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsSparseMatrix<MT1>::value && IsColumnMajorMatrix<MT1>::value &&
+                                IsDenseMatrix<MT2>::value  && IsRowMajorMatrix<MT2>::value    &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename TDMatScalarMultExprTrait<typename TSMatDMatMultExprTrait<MT1,MT2>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2844,11 +2854,11 @@ struct TSMatTDMatMultExprTrait< MT1, DMatScalarMultExpr<MT2,ST,true> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsSparseMatrix<MT1>, IsColumnMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsColumnMajorMatrix<MT2>
-                        , IsNumeric<ST> >
-                   , TDMatScalarMultExprTrait_< TSMatTDMatMultExprTrait_<MT1,MT2>, ST >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsSparseMatrix<MT1>::value && IsColumnMajorMatrix<MT1>::value &&
+                                IsDenseMatrix<MT2>::value  && IsColumnMajorMatrix<MT2>::value &&
+                                IsNumeric<ST>::value
+                              , typename TDMatScalarMultExprTrait<typename TSMatTDMatMultExprTrait<MT1,MT2>::Type,ST>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2862,11 +2872,11 @@ struct TSMatTDMatMultExprTrait< SMatScalarMultExpr<MT1,ST1,true>, DMatScalarMult
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsSparseMatrix<MT1>, IsColumnMajorMatrix<MT1>
-                        , IsDenseMatrix<MT2>, IsColumnMajorMatrix<MT2>
-                        , IsNumeric<ST1>, IsNumeric<ST2> >
-                   , TDMatScalarMultExprTrait_< TSMatTDMatMultExprTrait_<MT1,MT2>, MultTrait_<ST1,ST2> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsSparseMatrix<MT1>::value && IsColumnMajorMatrix<MT1>::value &&
+                                IsDenseMatrix<MT2>::value  && IsColumnMajorMatrix<MT2>::value &&
+                                IsNumeric<ST1>::value && IsNumeric<ST2>::value
+                              , typename TDMatScalarMultExprTrait<typename TSMatTDMatMultExprTrait<MT1,MT2>::Type,typename MultTrait<ST1,ST2>::Type>::Type
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2888,7 +2898,7 @@ struct SubmatrixExprTrait< DMatScalarMultExpr<MT,ST,SO>, AF >
 {
  public:
    //**********************************************************************************************
-   using Type = MultExprTrait_< SubmatrixExprTrait_<const MT,AF>, ST >;
+   typedef typename MultExprTrait< typename SubmatrixExprTrait<const MT,AF>::Type, ST >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2910,7 +2920,7 @@ struct RowExprTrait< DMatScalarMultExpr<MT,ST,SO> >
 {
  public:
    //**********************************************************************************************
-   using Type = MultExprTrait_< RowExprTrait_<const MT>, ST >;
+   typedef typename MultExprTrait< typename RowExprTrait<const MT>::Type, ST >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -2932,7 +2942,7 @@ struct ColumnExprTrait< DMatScalarMultExpr<MT,ST,SO> >
 {
  public:
    //**********************************************************************************************
-   using Type = MultExprTrait_< ColumnExprTrait_<const MT>, ST >;
+   typedef typename MultExprTrait< typename ColumnExprTrait<const MT>::Type, ST >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */

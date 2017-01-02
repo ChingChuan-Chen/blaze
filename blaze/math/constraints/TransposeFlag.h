@@ -42,6 +42,8 @@
 
 #include <blaze/math/typetraits/IsVector.h>
 #include <blaze/math/typetraits/TransposeFlag.h>
+#include <blaze/util/constraints/ConstraintTest.h>
+#include <blaze/util/Suffix.h>
 
 
 namespace blaze {
@@ -53,6 +55,22 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup math_constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_BE_VECTOR_WITH_TRANSPOSE_FLAG_FAILED;
+template<> struct CONSTRAINT_MUST_BE_VECTOR_WITH_TRANSPOSE_FLAG_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the data type.
 // \ingroup math_constraints
 //
@@ -61,8 +79,12 @@ namespace blaze {
 // compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_BE_VECTOR_WITH_TRANSPOSE_FLAG(T,TF) \
-   static_assert( ::blaze::IsVector<T>::value && \
-                  ::blaze::TransposeFlag<T>::value == TF, "Invalid transpose flag detected" )
+   typedef \
+      blaze::CONSTRAINT_TEST< \
+         blaze::CONSTRAINT_MUST_BE_VECTOR_WITH_TRANSPOSE_FLAG_FAILED< \
+            blaze::IsVector<T>::value && \
+            blaze::TransposeFlag<T>::value == TF >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_BE_VECTOR_WITH_TRANSPOSE_FLAG_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -75,6 +97,22 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup math_constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG_FAILED;
+template<> struct CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the data type.
 // \ingroup math_constraints
 //
@@ -82,9 +120,13 @@ namespace blaze {
 // the transpose flags of both vector types don't match, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG(T1,T2) \
-   static_assert( ::blaze::IsVector<T1>::value && \
-                  ::blaze::IsVector<T2>::value && \
-                  ::blaze::TransposeFlag<T1>::value == ::blaze::TransposeFlag<T2>::value, "Invalid transpose flag detected" )
+   typedef \
+      blaze::CONSTRAINT_TEST< \
+         blaze::CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG_FAILED< \
+            blaze::IsVector<T1>::value && \
+            blaze::IsVector<T2>::value && \
+            blaze::TransposeFlag<T1>::value == blaze::TransposeFlag<T2>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -97,6 +139,22 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup math_constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_VECTORS_MUST_HAVE_DIFFERENT_TRANSPOSE_FLAG_FAILED;
+template<> struct CONSTRAINT_VECTORS_MUST_HAVE_DIFFERENT_TRANSPOSE_FLAG_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the data type.
 // \ingroup math_constraints
 //
@@ -104,9 +162,13 @@ namespace blaze {
 // the transpose flags of both vector types does match, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_DIFFERENT_TRANSPOSE_FLAG(T1,T2) \
-   static_assert( ::blaze::IsVector<T1>::value && \
-                  ::blaze::IsVector<T2>::value && \
-                  ::blaze::TransposeFlag<T1>::value != ::blaze::TransposeFlag<T2>::value, "Invalid transpose flag detected" )
+   typedef \
+      blaze::CONSTRAINT_TEST< \
+         blaze::CONSTRAINT_VECTORS_MUST_HAVE_DIFFERENT_TRANSPOSE_FLAG_FAILED< \
+            blaze::IsVector<T1>::value && \
+            blaze::IsVector<T2>::value && \
+            blaze::TransposeFlag<T1>::value != blaze::TransposeFlag<T2>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_VECTORS_MUST_HAVE_DIFFERENT_TRANSPOSE_FLAG_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 } // namespace blaze

@@ -86,16 +86,8 @@ OperationTest::OperationTest()
    //testTrsv < float >();
    //testGeqrf< float >();
    //testOrgqr< float >();
-   //testOrmqr< float >();
    //testGerqf< float >();
    //testOrgrq< float >();
-   //testOrmrq< float >();
-   //testGeqlf< float >();
-   //testOrgql< float >();
-   //testOrmql< float >();
-   //testGelqf< float >();
-   //testOrglq< float >();
-   //testOrmlq< float >();
 
 
    //=====================================================================================
@@ -119,16 +111,12 @@ OperationTest::OperationTest()
    testTrsv < double >();
    testGeqrf< double >();
    testOrgqr< double >();
-   testOrmqr< double >();
    testGerqf< double >();
    testOrgrq< double >();
-   testOrmrq< double >();
    testGeqlf< double >();
    testOrgql< double >();
-   testOrmql< double >();
    testGelqf< double >();
    testOrglq< double >();
-   testOrmlq< double >();
 
 
    //=====================================================================================
@@ -156,16 +144,8 @@ OperationTest::OperationTest()
    //testTrsv < complex<float> >();
    //testGeqrf< complex<float> >();
    //testUngqr< complex<float> >();
-   //testUnmqr< complex<float> >();
    //testGerqf< complex<float> >();
    //testUngrq< complex<float> >();
-   //testUnmrq< complex<float> >();
-   //testGeqlf< complex<float> >();
-   //testUngql< complex<float> >();
-   //testUnmql< complex<float> >();
-   //testGelqf< complex<float> >();
-   //testUnglq< complex<float> >();
-   //testUnmlq< complex<float> >();
 
 
    //=====================================================================================
@@ -193,16 +173,12 @@ OperationTest::OperationTest()
    testTrsv < complex<double> >();
    testGeqrf< complex<double> >();
    testUngqr< complex<double> >();
-   testUnmqr< complex<double> >();
    testGerqf< complex<double> >();
    testUngrq< complex<double> >();
-   testUnmrq< complex<double> >();
    testGeqlf< complex<double> >();
    testUngql< complex<double> >();
-   testUnmql< complex<double> >();
    testGelqf< complex<double> >();
    testUnglq< complex<double> >();
-   testUnmlq< complex<double> >();
 }
 //*************************************************************************************************
 

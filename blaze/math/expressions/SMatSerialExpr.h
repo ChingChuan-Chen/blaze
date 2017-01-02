@@ -40,10 +40,9 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
+#include <cmath>
 #include <blaze/math/constraints/SparseMatrix.h>
 #include <blaze/math/constraints/StorageOrder.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/Computation.h>
 #include <blaze/math/expressions/Forward.h>
 #include <blaze/math/expressions/MatSerialExpr.h>
@@ -69,12 +68,13 @@
 #include <blaze/math/typetraits/IsUpper.h>
 #include <blaze/math/typetraits/Rows.h>
 #include <blaze/util/Assert.h>
-#include <blaze/util/IntegralConstant.h>
+#include <blaze/util/constraints/Reference.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/InvalidType.h>
 #include <blaze/util/logging/FunctionTrace.h>
-#include <blaze/util/mpl/And.h>
-#include <blaze/util/mpl/If.h>
+#include <blaze/util/SelectType.h>
 #include <blaze/util/Types.h>
+#include <blaze/util/valuetraits/IsTrue.h>
 
 
 namespace blaze {
@@ -100,23 +100,23 @@ class SMatSerialExpr : public SparseMatrix< SMatSerialExpr<MT,SO>, SO >
 {
  public:
    //**Type definitions****************************************************************************
-   typedef SMatSerialExpr<MT,SO>  This;           //!< Type of this SMatSerialExpr instance.
-   typedef ResultType_<MT>        ResultType;     //!< Result type for expression template evaluations.
-   typedef OppositeType_<MT>      OppositeType;   //!< Result type with opposite storage order for expression template evaluations.
-   typedef TransposeType_<MT>     TransposeType;  //!< Transpose type for expression template evaluations.
-   typedef ElementType_<MT>       ElementType;    //!< Resulting element type.
-   typedef ReturnType_<MT>        ReturnType;     //!< Return type for expression template evaluations.
+   typedef SMatSerialExpr<MT,SO>       This;           //!< Type of this SMatSerialExpr instance.
+   typedef typename MT::ResultType     ResultType;     //!< Result type for expression template evaluations.
+   typedef typename MT::OppositeType   OppositeType;   //!< Result type with opposite storage order for expression template evaluations.
+   typedef typename MT::TransposeType  TransposeType;  //!< Transpose type for expression template evaluations.
+   typedef typename MT::ElementType    ElementType;    //!< Resulting element type.
+   typedef typename MT::ReturnType     ReturnType;     //!< Return type for expression template evaluations.
 
    //! Data type for composite expression templates.
    typedef const ResultType  CompositeType;
 
    //! Composite data type of the sparse matrix expression.
-   typedef If_< IsExpression<MT>, const MT, const MT& >  Operand;
+   typedef typename SelectType< IsExpression<MT>::value, const MT, const MT& >::Type  Operand;
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = MT::smpAssignable };
+   enum { smpAssignable = MT::smpAssignable };
    //**********************************************************************************************
 
    //**Constructor*********************************************************************************
@@ -124,7 +124,7 @@ class SMatSerialExpr : public SparseMatrix< SMatSerialExpr<MT,SO>, SO >
    //
    // \param sm The sparse matrix operand of the serial evaluation expression.
    */
-   explicit inline SMatSerialExpr( const MT& sm ) noexcept
+   explicit inline SMatSerialExpr( const MT& sm )
       : sm_( sm )  // Sparse matrix of the serial evaluation expression
    {}
    //**********************************************************************************************
@@ -167,7 +167,7 @@ class SMatSerialExpr : public SparseMatrix< SMatSerialExpr<MT,SO>, SO >
    //
    // \return The number of rows of the matrix.
    */
-   inline size_t rows() const noexcept {
+   inline size_t rows() const {
       return sm_.rows();
    }
    //**********************************************************************************************
@@ -177,7 +177,7 @@ class SMatSerialExpr : public SparseMatrix< SMatSerialExpr<MT,SO>, SO >
    //
    // \return The number of columns of the matrix.
    */
-   inline size_t columns() const noexcept {
+   inline size_t columns() const {
       return sm_.columns();
    }
    //**********************************************************************************************
@@ -208,7 +208,7 @@ class SMatSerialExpr : public SparseMatrix< SMatSerialExpr<MT,SO>, SO >
    //
    // \return The sparse matrix operand.
    */
-   inline Operand operand() const noexcept {
+   inline Operand operand() const {
       return sm_;
    }
    //**********************************************************************************************
@@ -218,7 +218,7 @@ class SMatSerialExpr : public SparseMatrix< SMatSerialExpr<MT,SO>, SO >
    //
    // \return The sparse matrix operand.
    */
-   inline operator Operand() const noexcept {
+   inline operator Operand() const {
       return sm_;
    }
    //**********************************************************************************************
@@ -230,7 +230,7 @@ class SMatSerialExpr : public SparseMatrix< SMatSerialExpr<MT,SO>, SO >
    // \return \a true in case the expression can alias, \a false otherwise.
    */
    template< typename T >
-   inline bool canAlias( const T* alias ) const noexcept {
+   inline bool canAlias( const T* alias ) const {
       return sm_.canAlias( alias );
    }
    //**********************************************************************************************
@@ -242,7 +242,7 @@ class SMatSerialExpr : public SparseMatrix< SMatSerialExpr<MT,SO>, SO >
    // \return \a true in case an alias effect is detected, \a false otherwise.
    */
    template< typename T >
-   inline bool isAliased( const T* alias ) const noexcept {
+   inline bool isAliased( const T* alias ) const {
       return sm_.isAliased( alias );
    }
    //**********************************************************************************************
@@ -252,7 +252,7 @@ class SMatSerialExpr : public SparseMatrix< SMatSerialExpr<MT,SO>, SO >
    //
    // \return \a true in case the expression can be used in SMP assignments, \a false if not.
    */
-   inline bool canSMPAssign() const noexcept {
+   inline bool canSMPAssign() const {
       return sm_.canSMPAssign();
    }
    //**********************************************************************************************
@@ -294,7 +294,7 @@ class SMatSerialExpr : public SparseMatrix< SMatSerialExpr<MT,SO>, SO >
    // \ingroup sparse_matrix
    //
    // \param lhs The target left-hand side sparse matrix.
-   // \param rhs The right-hand side serial evaluation expression to be assigned.
+   // \param rhs The right-hand side serial evaluatin expression to be assigned.
    // \return void
    //
    // This function implements the performance optimized assignment of a sparse matrix serial
@@ -506,7 +506,7 @@ class SMatSerialExpr : public SparseMatrix< SMatSerialExpr<MT,SO>, SO >
    // \ingroup sparse_matrix
    //
    // \param lhs The target left-hand side sparse matrix.
-   // \param rhs The right-hand side serial evaluation expression to be assigned.
+   // \param rhs The right-hand side serial evaluatin expression to be assigned.
    // \return void
    //
    // This function implements the performance optimized SMP assignment of a sparse matrix
@@ -715,7 +715,7 @@ class SMatSerialExpr : public SparseMatrix< SMatSerialExpr<MT,SO>, SO >
 //
 // The \a serial function forces the serial evaluation of the given sparse matrix expression
 // \a sm. The function returns an expression representing the operation.\n
-// The following example demonstrates the use of the \a serial function:
+// The following example demonstrates the use of the \a serial function
 
    \code
    blaze::CompressedMatrix<double> A, B;
@@ -808,8 +808,7 @@ struct Columns< SMatSerialExpr<MT,SO> > : public Columns<MT>
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, bool SO >
-struct IsSymmetric< SMatSerialExpr<MT,SO> >
-   : public BoolConstant< IsSymmetric<MT>::value >
+struct IsSymmetric< SMatSerialExpr<MT,SO> > : public IsTrue< IsSymmetric<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -826,8 +825,7 @@ struct IsSymmetric< SMatSerialExpr<MT,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, bool SO >
-struct IsHermitian< SMatSerialExpr<MT,SO> >
-   : public BoolConstant< IsHermitian<MT>::value >
+struct IsHermitian< SMatSerialExpr<MT,SO> > : public IsTrue< IsHermitian<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -844,8 +842,7 @@ struct IsHermitian< SMatSerialExpr<MT,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, bool SO >
-struct IsLower< SMatSerialExpr<MT,SO> >
-   : public BoolConstant< IsLower<MT>::value >
+struct IsLower< SMatSerialExpr<MT,SO> > : public IsTrue< IsLower<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -862,8 +859,7 @@ struct IsLower< SMatSerialExpr<MT,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, bool SO >
-struct IsUniLower< SMatSerialExpr<MT,SO> >
-   : public BoolConstant< IsUniLower<MT>::value >
+struct IsUniLower< SMatSerialExpr<MT,SO> > : public IsTrue< IsUniLower<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -880,8 +876,7 @@ struct IsUniLower< SMatSerialExpr<MT,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, bool SO >
-struct IsStrictlyLower< SMatSerialExpr<MT,SO> >
-   : public BoolConstant< IsStrictlyLower<MT>::value >
+struct IsStrictlyLower< SMatSerialExpr<MT,SO> > : public IsTrue< IsStrictlyLower<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -898,8 +893,7 @@ struct IsStrictlyLower< SMatSerialExpr<MT,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, bool SO >
-struct IsUpper< SMatSerialExpr<MT,SO> >
-   : public BoolConstant< IsUpper<MT>::value >
+struct IsUpper< SMatSerialExpr<MT,SO> > : public IsTrue< IsUpper<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -916,8 +910,7 @@ struct IsUpper< SMatSerialExpr<MT,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, bool SO >
-struct IsUniUpper< SMatSerialExpr<MT,SO> >
-   : public BoolConstant< IsUniUpper<MT>::value >
+struct IsUniUpper< SMatSerialExpr<MT,SO> > : public IsTrue< IsUniUpper<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -934,8 +927,7 @@ struct IsUniUpper< SMatSerialExpr<MT,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, bool SO >
-struct IsStrictlyUpper< SMatSerialExpr<MT,SO> >
-   : public BoolConstant< IsStrictlyUpper<MT>::value >
+struct IsStrictlyUpper< SMatSerialExpr<MT,SO> > : public IsTrue< IsStrictlyUpper<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -956,9 +948,9 @@ struct SMatSerialExprTrait< SMatSerialExpr<MT,false> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsSparseMatrix<MT>, IsRowMajorMatrix<MT> >
-                   , SMatSerialExpr<MT,false>
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsSparseMatrix<MT>::value && IsRowMajorMatrix<MT>::value
+                              , SMatSerialExpr<MT,false>
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -972,9 +964,9 @@ struct TSMatSerialExprTrait< SMatSerialExpr<MT,true> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsSparseMatrix<MT>, IsColumnMajorMatrix<MT> >
-                   , SMatSerialExpr<MT,true>
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsSparseMatrix<MT>::value && IsColumnMajorMatrix<MT>::value
+                              , SMatSerialExpr<MT,true>
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -988,7 +980,7 @@ struct SubmatrixExprTrait< SMatSerialExpr<MT,SO>, AF >
 {
  public:
    //**********************************************************************************************
-   using Type = SerialExprTrait_< SubmatrixExprTrait_<const MT,AF> >;
+   typedef typename SerialExprTrait< typename SubmatrixExprTrait<const MT,AF>::Type >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -1002,7 +994,7 @@ struct RowExprTrait< SMatSerialExpr<MT,SO> >
 {
  public:
    //**********************************************************************************************
-   using Type = SerialExprTrait_< RowExprTrait_<const MT> >;
+   typedef typename SerialExprTrait< typename RowExprTrait<const MT>::Type >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -1016,7 +1008,7 @@ struct ColumnExprTrait< SMatSerialExpr<MT,SO> >
 {
  public:
    //**********************************************************************************************
-   using Type = SerialExprTrait_< ColumnExprTrait_<const MT> >;
+   typedef typename SerialExprTrait< typename ColumnExprTrait<const MT>::Type >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */

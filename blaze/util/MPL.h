@@ -47,12 +47,14 @@
 #include <blaze/util/mpl/Greater.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Int.h>
+#include <blaze/util/mpl/IntegralC.h>
 #include <blaze/util/mpl/Less.h>
 #include <blaze/util/mpl/Long.h>
 #include <blaze/util/mpl/Max.h>
 #include <blaze/util/mpl/Min.h>
 #include <blaze/util/mpl/Minus.h>
 #include <blaze/util/mpl/Modulus.h>
+#include <blaze/util/mpl/NextMultiple.h>
 #include <blaze/util/mpl/Not.h>
 #include <blaze/util/mpl/Or.h>
 #include <blaze/util/mpl/Plus.h>

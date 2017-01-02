@@ -40,7 +40,6 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/adaptors/hermitianmatrix/HermitianValue.h>
 #include <blaze/math/constraints/Expression.h>
 #include <blaze/math/constraints/Hermitian.h>
@@ -48,7 +47,6 @@
 #include <blaze/math/constraints/SparseMatrix.h>
 #include <blaze/math/constraints/Symmetric.h>
 #include <blaze/math/constraints/Upper.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/shims/Conjugate.h>
 #include <blaze/math/shims/IsDefault.h>
 #include <blaze/math/shims/IsReal.h>
@@ -60,6 +58,7 @@
 #include <blaze/util/constraints/Pointer.h>
 #include <blaze/util/constraints/Reference.h>
 #include <blaze/util/constraints/Volatile.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/typetraits/IsComplex.h>
 
@@ -111,8 +110,8 @@ class HermitianElement : private SparseElement
 {
  private:
    //**Type definitions****************************************************************************
-   typedef ElementType_<MT>  ElementType;   //!< Type of the represented matrix element.
-   typedef Iterator_<MT>     IteratorType;  //!< Type of the underlying sparse matrix iterators.
+   typedef typename MT::ElementType  ElementType;   //!< Type of the represented matrix element.
+   typedef typename MT::Iterator     IteratorType;  //!< Type of the underlying sparse matrix iterators.
    //**********************************************************************************************
 
  public:
@@ -145,7 +144,7 @@ class HermitianElement : private SparseElement
    //**Access operators****************************************************************************
    /*!\name Access operators */
    //@{
-   inline Pointer operator->() noexcept;
+   inline Pointer operator->();
    //@}
    //**********************************************************************************************
 
@@ -350,7 +349,7 @@ inline HermitianElement<MT>& HermitianElement<MT>::operator/=( const T& v )
 // \return Reference to the value of the Hermitian element.
 */
 template< typename MT >  // Type of the adapted matrix
-inline typename HermitianElement<MT>::Pointer HermitianElement<MT>::operator->() noexcept
+inline typename HermitianElement<MT>::Pointer HermitianElement<MT>::operator->()
 {
    return this;
 }

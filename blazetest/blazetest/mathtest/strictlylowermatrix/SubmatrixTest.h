@@ -44,9 +44,10 @@
 #include <stdexcept>
 #include <string>
 #include <blaze/math/CompressedMatrix.h>
+#include <blaze/math/DenseSubmatrix.h>
 #include <blaze/math/DynamicMatrix.h>
+#include <blaze/math/SparseSubmatrix.h>
 #include <blaze/math/StrictlyLowerMatrix.h>
-#include <blaze/math/Submatrix.h>
 #include <blaze/math/traits/SubmatrixExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blazetest/system/Types.h>
@@ -156,7 +157,7 @@ class SubmatrixTest
 template< typename LT >  // Type of the strictly lower matrix
 void SubmatrixTest::testAssignment()
 {
-   typedef blaze::SubmatrixExprTrait_<LT,blaze::unaligned>  SMT;
+   typedef typename blaze::SubmatrixExprTrait<LT,blaze::unaligned>::Type  SMT;
 
 
    //=====================================================================================
@@ -835,7 +836,7 @@ void SubmatrixTest::testAssignment()
 template< typename LT >  // Type of the strictly lower matrix
 void SubmatrixTest::testAddAssign()
 {
-   typedef blaze::SubmatrixExprTrait_<LT,blaze::unaligned>  SMT;
+   typedef typename blaze::SubmatrixExprTrait<LT,blaze::unaligned>::Type  SMT;
 
 
    //=====================================================================================
@@ -1514,7 +1515,7 @@ void SubmatrixTest::testAddAssign()
 template< typename LT >  // Type of the strictly lower matrix
 void SubmatrixTest::testSubAssign()
 {
-   typedef blaze::SubmatrixExprTrait_<LT,blaze::unaligned>  SMT;
+   typedef typename blaze::SubmatrixExprTrait<LT,blaze::unaligned>::Type  SMT;
 
 
    //=====================================================================================

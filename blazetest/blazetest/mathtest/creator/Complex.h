@@ -45,7 +45,10 @@
 #include <blaze/util/constraints/Const.h>
 #include <blaze/util/constraints/Void.h>
 #include <blaze/util/constraints/Volatile.h>
+#include <blaze/util/Random.h>
 #include <blazetest/mathtest/creator/Default.h>
+#include <blazetest/mathtest/RandomMaximum.h>
+#include <blazetest/mathtest/RandomMinimum.h>
 #include <blazetest/system/Types.h>
 
 
@@ -62,7 +65,7 @@ namespace blazetest {
 //
 // This specialization of the Creator class template is able to create random complex values.
 */
-template< typename T >  // Type to be created
+template< typename T >  // Element type of the complex type
 class Creator< complex<T> >
 {
  public:
@@ -83,7 +86,6 @@ class Creator< complex<T> >
    //@{
    // No explicitly declared copy assignment operator.
    const complex<T> operator()() const;
-   template< typename CP > const complex<T> operator()( const CP& policy ) const;
    //@}
    //**********************************************************************************************
 
@@ -114,25 +116,10 @@ class Creator< complex<T> >
 //
 // \return The randomly generated complex value.
 */
-template< typename T >  // Type to be created
+template< typename T >  // Element type of the complex type
 inline const complex<T> Creator< complex<T> >::operator()() const
 {
-   return (*this)( Default() );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Returns a randomly created complex value.
-//
-// \param policy The creation policy for the real and imaginary part.
-// \return The randomly generated complex value.
-*/
-template< typename T >   // Type to be created
-template< typename CP >  // Creation policy
-inline const complex<T> Creator< complex<T> >::operator()( const CP& policy ) const
-{
-   return complex<T>( policy.template create<T>(), policy.template create<T>() );
+   return complex<T>( blaze::rand<T>( T(randmin), T(randmax) ) );
 }
 //*************************************************************************************************
 

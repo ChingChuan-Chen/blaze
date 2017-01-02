@@ -39,7 +39,6 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <memory>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/CustomMatrix.h>
 #include <blaze/math/DiagonalMatrix.h>
@@ -50,6 +49,7 @@
 #include <blaze/util/Memory.h>
 #include <blaze/util/policies/Deallocate.h>
 #include <blaze/util/Random.h>
+#include <blaze/util/UniqueArray.h>
 #include <blazetest/mathtest/hybridmatrix/ClassTest.h>
 #include <blazetest/mathtest/RandomMaximum.h>
 #include <blazetest/mathtest/RandomMinimum.h>
@@ -262,66 +262,13 @@ void ClassTest::testConstructors()
 
 
    //=====================================================================================
-   // Row-major list initialization
-   //=====================================================================================
-
-   {
-      test_ = "Row-major HybridMatrix initializer list constructor (complete list)";
-
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat{ { 1, 2, 3 }, { 4, 5, 6 } };
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 3UL );
-      checkCapacity( mat, 6UL );
-      checkNonZeros( mat, 6UL );
-      checkNonZeros( mat, 0UL, 3UL );
-      checkNonZeros( mat, 1UL, 3UL );
-
-      if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 3 ||
-          mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "Row-major HybridMatrix initializer list constructor (incomplete list)";
-
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat{ { 1 }, { 4, 5, 6 } };
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 3UL );
-      checkCapacity( mat, 6UL );
-      checkNonZeros( mat, 4UL );
-      checkNonZeros( mat, 0UL, 1UL );
-      checkNonZeros( mat, 1UL, 3UL );
-
-      if( mat(0,0) != 1 || mat(0,1) != 0 || mat(0,2) != 0 ||
-          mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major array initialization
    //=====================================================================================
 
    {
       test_ = "Row-major HybridMatrix dynamic array initialization constructor";
 
-      std::unique_ptr<int[]> array( new int[6] );
+      blaze::UniqueArray<int> array( new int[6] );
       array[0] = 1;
       array[1] = 2;
       array[2] = 3;
@@ -415,8 +362,13 @@ void ClassTest::testConstructors()
    {
       test_ = "Row-major HybridMatrix copy constructor (2x3)";
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat1{ { 1, 2, 3 },
-                                                             { 4, 5, 6 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat1( 2UL, 3UL );
+      mat1(0,0) = 1;
+      mat1(0,1) = 2;
+      mat1(0,2) = 3;
+      mat1(1,0) = 4;
+      mat1(1,1) = 5;
+      mat1(1,2) = 6;
 
       blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2( mat1 );
 
@@ -489,7 +441,7 @@ void ClassTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1(0,0) = 1;
       mat1(0,1) = 2;
@@ -564,7 +516,7 @@ void ClassTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1(0,0) = 1;
       mat1(0,1) = 2;
@@ -783,68 +735,13 @@ void ClassTest::testConstructors()
 
 
    //=====================================================================================
-   // Column-major list initialization
-   //=====================================================================================
-
-   {
-      test_ = "Column-major HybridMatrix initializer list constructor (complete list)";
-
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat{ { 1, 2, 3 }, { 4, 5, 6 } };
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 3UL );
-      checkCapacity( mat, 6UL );
-      checkNonZeros( mat, 6UL );
-      checkNonZeros( mat, 0UL, 2UL );
-      checkNonZeros( mat, 1UL, 2UL );
-      checkNonZeros( mat, 2UL, 2UL );
-
-      if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 3 ||
-          mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "Column-major HybridMatrix initializer list constructor (incomplete list)";
-
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat{ { 1 }, { 4, 5, 6 } };
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 3UL );
-      checkCapacity( mat, 6UL );
-      checkNonZeros( mat, 4UL );
-      checkNonZeros( mat, 0UL, 2UL );
-      checkNonZeros( mat, 1UL, 1UL );
-      checkNonZeros( mat, 2UL, 1UL );
-
-      if( mat(0,0) != 1 || mat(0,1) != 0 || mat(0,2) != 0 ||
-          mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major array initialization
    //=====================================================================================
 
    {
       test_ = "Column-major HybridMatrix dynamic array initialization constructor";
 
-      std::unique_ptr<int[]> array( new int[6] );
+      blaze::UniqueArray<int> array( new int[6] );
       array[0] = 1;
       array[1] = 2;
       array[2] = 3;
@@ -940,8 +837,13 @@ void ClassTest::testConstructors()
    {
       test_ = "Column-major HybridMatrix copy constructor (2x3)";
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat1{ { 1, 2, 3 },
-                                                                { 4, 5, 6 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat1( 2UL, 3UL );
+      mat1(0,0) = 1;
+      mat1(0,1) = 2;
+      mat1(0,2) = 3;
+      mat1(1,0) = 4;
+      mat1(1,1) = 5;
+      mat1(1,2) = 6;
 
       blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2( mat1 );
 
@@ -1016,7 +918,7 @@ void ClassTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1(0,0) = 1;
       mat1(0,1) = 2;
@@ -1093,7 +995,7 @@ void ClassTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1(0,0) = 1;
       mat1(0,1) = 2;
@@ -1275,8 +1177,13 @@ void ClassTest::testAssignment()
    {
       test_ = "Row-major HybridMatrix copy assignment";
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat1{ { 1, 2, 3 },
-                                                             { 4, 5, 6 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat1( 2UL, 3UL );
+      mat1(0,0) = 1;
+      mat1(0,1) = 2;
+      mat1(0,2) = 3;
+      mat1(1,0) = 4;
+      mat1(1,1) = 5;
+      mat1(1,2) = 6;
 
       blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2;
       mat2 = mat1;
@@ -1335,32 +1242,6 @@ void ClassTest::testAssignment()
    //=====================================================================================
 
    {
-      test_ = "Row-major/row-major HybridMatrix dense matrix assignment (mixed type)";
-
-      blaze::HybridMatrix<short,2UL,3UL,blaze::rowMajor> mat1{ { 1, 2, 3 }, { 4, 5, 6 } };
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2;
-      mat2 = mat1;
-
-      checkRows    ( mat2, 2UL );
-      checkColumns ( mat2, 3UL );
-      checkCapacity( mat2, 6UL );
-      checkNonZeros( mat2, 6UL );
-      checkNonZeros( mat2, 0UL, 3UL );
-      checkNonZeros( mat2, 1UL, 3UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 2 || mat2(0,2) != 3 ||
-          mat2(1,0) != 4 || mat2(1,1) != 5 || mat2(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "Row-major/row-major HybridMatrix dense matrix assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -1406,7 +1287,7 @@ void ClassTest::testAssignment()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1(0,0) = 1;
       mat1(0,1) = 2;
@@ -1467,32 +1348,6 @@ void ClassTest::testAssignment()
    }
 
    {
-      test_ = "Row-major/column-major HybridMatrix dense matrix assignment (mixed type)";
-
-      blaze::HybridMatrix<short,2UL,3UL,blaze::columnMajor> mat1{ { 1, 2, 3 }, { 4, 5, 6 } };
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2;
-      mat2 = mat1;
-
-      checkRows    ( mat2, 2UL );
-      checkColumns ( mat2, 3UL );
-      checkCapacity( mat2, 6UL );
-      checkNonZeros( mat2, 6UL );
-      checkNonZeros( mat2, 0UL, 3UL );
-      checkNonZeros( mat2, 1UL, 3UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 2 || mat2(0,2) != 3 ||
-          mat2(1,0) != 4 || mat2(1,1) != 5 || mat2(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "Row-major/column-major HybridMatrix dense matrix assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -1538,7 +1393,7 @@ void ClassTest::testAssignment()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1(0,0) = 1;
       mat1(0,1) = 2;
@@ -2060,8 +1915,13 @@ void ClassTest::testAssignment()
    {
       test_ = "Column-major HybridMatrix copy assignment";
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat1{ { 1, 2, 3 },
-                                                                { 4, 5, 6 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat1( 2UL, 3UL );
+      mat1(0,0) = 1;
+      mat1(0,1) = 2;
+      mat1(0,2) = 3;
+      mat1(1,0) = 4;
+      mat1(1,1) = 5;
+      mat1(1,2) = 6;
 
       blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2;
       mat2 = mat1;
@@ -2121,33 +1981,6 @@ void ClassTest::testAssignment()
    //=====================================================================================
 
    {
-      test_ = "Column-major/row-major HybridMatrix dense matrix assignment (mixed type)";
-
-      blaze::HybridMatrix<short,2UL,3UL,blaze::rowMajor> mat1{ { 1, 2, 3 }, { 4, 5, 6 } };
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2;
-      mat2 = mat1;
-
-      checkRows    ( mat2, 2UL );
-      checkColumns ( mat2, 3UL );
-      checkCapacity( mat2, 6UL );
-      checkNonZeros( mat2, 6UL );
-      checkNonZeros( mat2, 0UL, 2UL );
-      checkNonZeros( mat2, 1UL, 2UL );
-      checkNonZeros( mat2, 2UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 2 || mat2(0,2) != 3 ||
-          mat2(1,0) != 4 || mat2(1,1) != 5 || mat2(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "Column-major/row-major HybridMatrix dense matrix assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -2194,7 +2027,7 @@ void ClassTest::testAssignment()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1(0,0) = 1;
       mat1(0,1) = 2;
@@ -2256,33 +2089,6 @@ void ClassTest::testAssignment()
    }
 
    {
-      test_ = "Column-major/column-major HybridMatrix dense matrix assignment (mixed type)";
-
-      blaze::HybridMatrix<short,2UL,3UL,blaze::columnMajor> mat1{ { 1, 2, 3 }, { 4, 5, 6 } };
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2;
-      mat2 = mat1;
-
-      checkRows    ( mat2, 2UL );
-      checkColumns ( mat2, 3UL );
-      checkCapacity( mat2, 6UL );
-      checkNonZeros( mat2, 6UL );
-      checkNonZeros( mat2, 0UL, 2UL );
-      checkNonZeros( mat2, 1UL, 2UL );
-      checkNonZeros( mat2, 2UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 2 || mat2(0,2) != 3 ||
-          mat2(1,0) != 4 || mat2(1,1) != 5 || mat2(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "Column-major/column-major HybridMatrix dense matrix assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -2329,7 +2135,7 @@ void ClassTest::testAssignment()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1(0,0) = 1;
       mat1(0,1) = 2;
@@ -2800,36 +2606,6 @@ void ClassTest::testAddAssign()
    //=====================================================================================
 
    {
-      test_ = "Row-major/row-major HybridMatrix dense matrix addition assignment (mixed type)";
-
-      blaze::HybridMatrix<short,2UL,3UL,blaze::rowMajor> mat1{ {  1, 2, 0 },
-                                                               { -3, 0, 4 } };
-
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2{ { 0, -2, 6 },
-                                                             { 5,  0, 0 } };
-
-      mat2 += mat1;
-
-      checkRows    ( mat2, 2UL );
-      checkColumns ( mat2, 3UL );
-      checkCapacity( mat2, 6UL );
-      checkNonZeros( mat2, 4UL );
-      checkNonZeros( mat2, 0UL, 2UL );
-      checkNonZeros( mat2, 1UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 0 || mat2(0,2) != 6 ||
-          mat2(1,0) != 2 || mat2(1,1) != 0 || mat2(1,2) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Addition assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 0 6 )\n( 2 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "Row-major/row-major HybridMatrix dense matrix addition assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -2844,8 +2620,10 @@ void ClassTest::testAddAssign()
       mat1(1,0) = -3;
       mat1(1,2) =  4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2{ { 0, -2, 6 },
-                                                             { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 += mat1;
 
@@ -2876,7 +2654,7 @@ void ClassTest::testAddAssign()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1 = 0;
       mat1(0,0) =  1;
@@ -2884,38 +2662,10 @@ void ClassTest::testAddAssign()
       mat1(1,0) = -3;
       mat1(1,2) =  4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2{ { 0, -2, 6 },
-                                                             { 5,  0, 0 } };
-
-      mat2 += mat1;
-
-      checkRows    ( mat2, 2UL );
-      checkColumns ( mat2, 3UL );
-      checkCapacity( mat2, 6UL );
-      checkNonZeros( mat2, 4UL );
-      checkNonZeros( mat2, 0UL, 2UL );
-      checkNonZeros( mat2, 1UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 0 || mat2(0,2) != 6 ||
-          mat2(1,0) != 2 || mat2(1,1) != 0 || mat2(1,2) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Addition assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 0 6 )\n( 2 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "Row-major/column-major HybridMatrix dense matrix addition assignment (mixed type)";
-
-      blaze::HybridMatrix<short,2UL,3UL,blaze::columnMajor> mat1{ {  1, 2, 0 },
-                                                                  { -3, 0, 4 } };
-
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2{ { 0, -2, 6 },
-                                                             { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 += mat1;
 
@@ -2953,8 +2703,10 @@ void ClassTest::testAddAssign()
       mat1(1,0) = -3;
       mat1(1,2) =  4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2{ { 0, -2, 6 },
-                                                             { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 += mat1;
 
@@ -2985,7 +2737,7 @@ void ClassTest::testAddAssign()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1 = 0;
       mat1(0,0) =  1;
@@ -2993,8 +2745,10 @@ void ClassTest::testAddAssign()
       mat1(1,0) = -3;
       mat1(1,2) =  4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2{ { 0, -2, 6 },
-                                                             { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 += mat1;
 
@@ -3157,8 +2911,10 @@ void ClassTest::testAddAssign()
       mat1(1,0) = -3;
       mat1(1,2) =  4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2{ { 0, -2, 6 },
-                                                             { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 += mat1;
 
@@ -3190,8 +2946,10 @@ void ClassTest::testAddAssign()
       mat1(1,0) = -3;
       mat1(1,2) =  4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2{ { 0, -2, 6 },
-                                                             { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 += mat1;
 
@@ -3346,37 +3104,6 @@ void ClassTest::testAddAssign()
    //=====================================================================================
 
    {
-      test_ = "Column-major/row-major HybridMatrix dense matrix addition assignment (mixed type)";
-
-      blaze::HybridMatrix<short,2UL,3UL,blaze::rowMajor> mat1{ {  1, 2, 0 },
-                                                               { -3, 0, 4 } };
-
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2{ { 0, -2, 6 },
-                                                                { 5,  0, 0 } };
-
-      mat2 += mat1;
-
-      checkRows    ( mat2, 2UL );
-      checkColumns ( mat2, 3UL );
-      checkCapacity( mat2, 6UL );
-      checkNonZeros( mat2, 4UL );
-      checkNonZeros( mat2, 0UL, 2UL );
-      checkNonZeros( mat2, 1UL, 0UL );
-      checkNonZeros( mat2, 2UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 0 || mat2(0,2) != 6 ||
-          mat2(1,0) != 2 || mat2(1,1) != 0 || mat2(1,2) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Addition assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 0 6 )\n( 2 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "Column-major/row-major HybridMatrix dense matrix addition assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -3391,8 +3118,10 @@ void ClassTest::testAddAssign()
       mat1(1,0) = -3;
       mat1(1,2) =  4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2{ { 0, -2, 6 },
-                                                                { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 += mat1;
 
@@ -3424,7 +3153,7 @@ void ClassTest::testAddAssign()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1 = 0;
       mat1(0,0) =  1;
@@ -3432,39 +3161,10 @@ void ClassTest::testAddAssign()
       mat1(1,0) = -3;
       mat1(1,2) =  4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2{ { 0, -2, 6 },
-                                                                { 5,  0, 0 } };
-
-      mat2 += mat1;
-
-      checkRows    ( mat2, 2UL );
-      checkColumns ( mat2, 3UL );
-      checkCapacity( mat2, 6UL );
-      checkNonZeros( mat2, 4UL );
-      checkNonZeros( mat2, 0UL, 2UL );
-      checkNonZeros( mat2, 1UL, 0UL );
-      checkNonZeros( mat2, 2UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 0 || mat2(0,2) != 6 ||
-          mat2(1,0) != 2 || mat2(1,1) != 0 || mat2(1,2) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Addition assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 0 6 )\n( 2 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "Column-major/column-major HybridMatrix dense matrix addition assignment (mixed type)";
-
-      blaze::HybridMatrix<short,2UL,3UL,blaze::columnMajor> mat1{ {  1, 2, 0 },
-                                                                  { -3, 0, 4 } };
-
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2{ { 0, -2, 6 },
-                                                                { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 += mat1;
 
@@ -3503,8 +3203,10 @@ void ClassTest::testAddAssign()
       mat1(1,0) = -3;
       mat1(1,2) =  4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2{ { 0, -2, 6 },
-                                                                { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 += mat1;
 
@@ -3536,7 +3238,7 @@ void ClassTest::testAddAssign()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1 = 0;
       mat1(0,0) =  1;
@@ -3544,8 +3246,10 @@ void ClassTest::testAddAssign()
       mat1(1,0) = -3;
       mat1(1,2) =  4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2{ { 0, -2, 6 },
-                                                                { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 += mat1;
 
@@ -3709,8 +3413,10 @@ void ClassTest::testAddAssign()
       mat1(1,0) = -3;
       mat1(1,2) =  4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2{ { 0, -2, 6 },
-                                                                { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 += mat1;
 
@@ -3743,8 +3449,10 @@ void ClassTest::testAddAssign()
       mat1(1,0) = -3;
       mat1(1,2) =  4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2{ { 0, -2, 6 },
-                                                                { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 += mat1;
 
@@ -3913,36 +3621,6 @@ void ClassTest::testSubAssign()
    //=====================================================================================
 
    {
-      test_ = "Row-major/row-major HybridMatrix dense matrix subtraction assignment (mixed type)";
-
-      blaze::HybridMatrix<short,2UL,3UL,blaze::rowMajor> mat1{ { -1, -2,  0 },
-                                                               {  3,  0, -4 } };
-
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2{ { 0, -2, 6 },
-                                                             { 5,  0, 0 } };
-
-      mat2 -= mat1;
-
-      checkRows    ( mat2, 2UL );
-      checkColumns ( mat2, 3UL );
-      checkCapacity( mat2, 6UL );
-      checkNonZeros( mat2, 4UL );
-      checkNonZeros( mat2, 0UL, 2UL );
-      checkNonZeros( mat2, 1UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 0 || mat2(0,2) != 6 ||
-          mat2(1,0) != 2 || mat2(1,1) != 0 || mat2(1,2) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Subtraction assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 0 6 )\n( 2 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "Row-major/row-major HybridMatrix dense matrix subtraction assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -3957,8 +3635,10 @@ void ClassTest::testSubAssign()
       mat1(1,0) =  3;
       mat1(1,2) = -4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2{ { 0, -2, 6 },
-                                                             { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 -= mat1;
 
@@ -3989,7 +3669,7 @@ void ClassTest::testSubAssign()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1 = 0;
       mat1(0,0) = -1;
@@ -3997,38 +3677,10 @@ void ClassTest::testSubAssign()
       mat1(1,0) =  3;
       mat1(1,2) = -4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2{ { 0, -2, 6 },
-                                                             { 5,  0, 0 } };
-
-      mat2 -= mat1;
-
-      checkRows    ( mat2, 2UL );
-      checkColumns ( mat2, 3UL );
-      checkCapacity( mat2, 6UL );
-      checkNonZeros( mat2, 4UL );
-      checkNonZeros( mat2, 0UL, 2UL );
-      checkNonZeros( mat2, 1UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 0 || mat2(0,2) != 6 ||
-          mat2(1,0) != 2 || mat2(1,1) != 0 || mat2(1,2) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Subtraction assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 0 6 )\n( 2 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "Row-major/column-major HybridMatrix dense matrix subtraction assignment (mixed type)";
-
-      blaze::HybridMatrix<short,2UL,3UL,blaze::columnMajor> mat1{ { -1, -2,  0 },
-                                                                  {  3,  0, -4 } };
-
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2{ { 0, -2, 6 },
-                                                             { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 -= mat1;
 
@@ -4066,8 +3718,10 @@ void ClassTest::testSubAssign()
       mat1(1,0) =  3;
       mat1(1,2) = -4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2{ { 0, -2, 6 },
-                                                             { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 -= mat1;
 
@@ -4098,7 +3752,7 @@ void ClassTest::testSubAssign()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1 = 0;
       mat1(0,0) = -1;
@@ -4106,8 +3760,10 @@ void ClassTest::testSubAssign()
       mat1(1,0) =  3;
       mat1(1,2) = -4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2{ { 0, -2, 6 },
-                                                             { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 -= mat1;
 
@@ -4270,8 +3926,10 @@ void ClassTest::testSubAssign()
       mat1(1,0) = -3;
       mat1(1,2) =  4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2{ { 0, -2, 6 },
-                                                             { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 += mat1;
 
@@ -4303,8 +3961,10 @@ void ClassTest::testSubAssign()
       mat1(1,0) = -3;
       mat1(1,2) =  4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2{ { 0, -2, 6 },
-                                                             { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 += mat1;
 
@@ -4459,37 +4119,6 @@ void ClassTest::testSubAssign()
    //=====================================================================================
 
    {
-      test_ = "Column-major/row-major HybridMatrix dense matrix subtraction assignment (mixed type)";
-
-      blaze::HybridMatrix<short,2UL,3UL,blaze::rowMajor> mat1{ { -1, -2,  0 },
-                                                               {  3,  0, -4 } };
-
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2{ { 0, -2, 6 },
-                                                                { 5,  0, 0 } };
-
-      mat2 -= mat1;
-
-      checkRows    ( mat2, 2UL );
-      checkColumns ( mat2, 3UL );
-      checkCapacity( mat2, 6UL );
-      checkNonZeros( mat2, 4UL );
-      checkNonZeros( mat2, 0UL, 2UL );
-      checkNonZeros( mat2, 1UL, 0UL );
-      checkNonZeros( mat2, 2UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 0 || mat2(0,2) != 6 ||
-          mat2(1,0) != 2 || mat2(1,1) != 0 || mat2(1,2) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Subtraction assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 0 6 )\n( 2 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "Column-major/row-major HybridMatrix dense matrix subtraction assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -4504,8 +4133,10 @@ void ClassTest::testSubAssign()
       mat1(1,0) =  3;
       mat1(1,2) = -4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2{ { 0, -2, 6 },
-                                                                { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 -= mat1;
 
@@ -4537,7 +4168,7 @@ void ClassTest::testSubAssign()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1 = 0;
       mat1(0,0) = -1;
@@ -4545,39 +4176,10 @@ void ClassTest::testSubAssign()
       mat1(1,0) =  3;
       mat1(1,2) = -4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2{ { 0, -2, 6 },
-                                                                { 5,  0, 0 } };
-
-      mat2 -= mat1;
-
-      checkRows    ( mat2, 2UL );
-      checkColumns ( mat2, 3UL );
-      checkCapacity( mat2, 6UL );
-      checkNonZeros( mat2, 4UL );
-      checkNonZeros( mat2, 0UL, 2UL );
-      checkNonZeros( mat2, 1UL, 0UL );
-      checkNonZeros( mat2, 2UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 0 || mat2(0,2) != 6 ||
-          mat2(1,0) != 2 || mat2(1,1) != 0 || mat2(1,2) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Subtraction assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 0 6 )\n( 2 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "Column-major/column-major HybridMatrix dense matrix subtraction assignment (mixed type)";
-
-      blaze::HybridMatrix<short,2UL,3UL,blaze::columnMajor> mat1{ { -1, -2,  0 },
-                                                                  {  3,  0, -4 } };
-
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2{ { 0, -2, 6 },
-                                                                { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 -= mat1;
 
@@ -4616,8 +4218,10 @@ void ClassTest::testSubAssign()
       mat1(1,0) =  3;
       mat1(1,2) = -4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2{ { 0, -2, 6 },
-                                                                { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 -= mat1;
 
@@ -4649,7 +4253,7 @@ void ClassTest::testSubAssign()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1 = 0;
       mat1(0,0) = -1;
@@ -4657,8 +4261,10 @@ void ClassTest::testSubAssign()
       mat1(1,0) =  3;
       mat1(1,2) = -4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2{ { 0, -2, 6 },
-                                                                { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 -= mat1;
 
@@ -4822,8 +4428,10 @@ void ClassTest::testSubAssign()
       mat1(1,0) =  3;
       mat1(1,2) = -4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2{ { 0, -2, 6 },
-                                                                { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 -= mat1;
 
@@ -4856,8 +4464,10 @@ void ClassTest::testSubAssign()
       mat1(1,0) =  3;
       mat1(1,2) = -4;
 
-      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2{ { 0, -2, 6 },
-                                                                { 5,  0, 0 } };
+      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat2( 2UL, 3UL, 0 );
+      mat2(0,1) = -2;
+      mat2(0,2) =  6;
+      mat2(1,0) =  5;
 
       mat2 -= mat1;
 
@@ -5026,39 +4636,6 @@ void ClassTest::testMultAssign()
    //=====================================================================================
 
    {
-      test_ = "Row-major/row-major HybridMatrix dense matrix multiplication assignment (mixed type)";
-
-      blaze::HybridMatrix<short,3UL,4UL,blaze::rowMajor> mat1{ { 0, 2, 0, 0 },
-                                                               { 1, 3, 0, 4 },
-                                                               { 0, 0, 0, 5 } };
-
-      blaze::HybridMatrix<int,3UL,4UL,blaze::rowMajor> mat2{ { 1, 0, 2 },
-                                                             { 0, 3, 0 },
-                                                             { 4, 0, 5 } };
-
-      mat2 *= mat1;
-
-      checkRows    ( mat2, 3UL );
-      checkColumns ( mat2, 4UL );
-      checkNonZeros( mat2, 7UL );
-      checkNonZeros( mat2, 0UL, 2UL );
-      checkNonZeros( mat2, 1UL, 3UL );
-      checkNonZeros( mat2, 2UL, 2UL );
-
-      if( mat2(0,0) != 0 || mat2(0,1) != 2 || mat2(0,2) != 0 || mat2(0,3) != 10 ||
-          mat2(1,0) != 3 || mat2(1,1) != 9 || mat2(1,2) != 0 || mat2(1,3) != 12 ||
-          mat2(2,0) != 0 || mat2(2,1) != 8 || mat2(2,2) != 0 || mat2(2,3) != 25 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Multiplication assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 0 2 0 10 )\n( 3 9 0 12 )\n( 0 8 0 25 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "Row-major/row-major HybridMatrix dense matrix multiplication assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -5074,9 +4651,12 @@ void ClassTest::testMultAssign()
       mat1(1,3) = 4;
       mat1(2,3) = 5;
 
-      blaze::HybridMatrix<int,3UL,4UL,blaze::rowMajor> mat2{ { 1, 0, 2 },
-                                                             { 0, 3, 0 },
-                                                             { 4, 0, 5 } };
+      blaze::HybridMatrix<int,3UL,4UL,blaze::rowMajor> mat2( 3UL, 3UL, 0 );
+      mat2(0,0) = 1;
+      mat2(0,2) = 2;
+      mat2(1,1) = 3;
+      mat2(2,0) = 4;
+      mat2(2,2) = 5;
 
       mat2 *= mat1;
 
@@ -5108,7 +4688,7 @@ void ClassTest::testMultAssign()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[13UL] );
+      blaze::UniqueArray<int> array( new int[13UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 3UL, 4UL );
       mat1 = 0;
       mat1(0,1) = 2;
@@ -5117,46 +4697,12 @@ void ClassTest::testMultAssign()
       mat1(1,3) = 4;
       mat1(2,3) = 5;
 
-      blaze::HybridMatrix<int,3UL,4UL,blaze::rowMajor> mat2{ { 1, 0, 2 },
-                                                             { 0, 3, 0 },
-                                                             { 4, 0, 5 } };
-
-      mat2 *= mat1;
-
-      checkRows    ( mat2, 3UL );
-      checkColumns ( mat2, 4UL );
-      checkNonZeros( mat2, 7UL );
-      checkNonZeros( mat2, 0UL, 2UL );
-      checkNonZeros( mat2, 1UL, 3UL );
-      checkNonZeros( mat2, 2UL, 2UL );
-
-      if( mat2(0,0) != 0 || mat2(0,1) != 2 || mat2(0,2) != 0 || mat2(0,3) != 10 ||
-          mat2(1,0) != 3 || mat2(1,1) != 9 || mat2(1,2) != 0 || mat2(1,3) != 12 ||
-          mat2(2,0) != 0 || mat2(2,1) != 8 || mat2(2,2) != 0 || mat2(2,3) != 25 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Multiplication assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 0 2 0 10 )\n( 3 9 0 12 )\n( 0 8 0 25 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "Row-major/column-major HybridMatrix dense matrix multiplication assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::padded;
-      using blaze::columnMajor;
-
-      blaze::HybridMatrix<short,3UL,4UL,blaze::columnMajor> mat1{ { 0, 2, 0, 0 },
-                                                                  { 1, 3, 0, 4 },
-                                                                  { 0, 0, 0, 5 } };
-
-      blaze::HybridMatrix<int,3UL,4UL,blaze::rowMajor> mat2{ { 1, 0, 2 },
-                                                             { 0, 3, 0 },
-                                                             { 4, 0, 5 } };
+      blaze::HybridMatrix<int,3UL,4UL,blaze::rowMajor> mat2( 3UL, 3UL, 0 );
+      mat2(0,0) = 1;
+      mat2(0,2) = 2;
+      mat2(1,1) = 3;
+      mat2(2,0) = 4;
+      mat2(2,2) = 5;
 
       mat2 *= mat1;
 
@@ -5196,9 +4742,12 @@ void ClassTest::testMultAssign()
       mat1(1,3) = 4;
       mat1(2,3) = 5;
 
-      blaze::HybridMatrix<int,3UL,4UL,blaze::rowMajor> mat2{ { 1, 0, 2 },
-                                                             { 0, 3, 0 },
-                                                             { 4, 0, 5 } };
+      blaze::HybridMatrix<int,3UL,4UL,blaze::rowMajor> mat2( 3UL, 3UL, 0 );
+      mat2(0,0) = 1;
+      mat2(0,2) = 2;
+      mat2(1,1) = 3;
+      mat2(2,0) = 4;
+      mat2(2,2) = 5;
 
       mat2 *= mat1;
 
@@ -5230,7 +4779,7 @@ void ClassTest::testMultAssign()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[13UL] );
+      blaze::UniqueArray<int> array( new int[13UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 3UL, 4UL );
       mat1 = 0;
       mat1(0,1) = 2;
@@ -5239,9 +4788,12 @@ void ClassTest::testMultAssign()
       mat1(1,3) = 4;
       mat1(2,3) = 5;
 
-      blaze::HybridMatrix<int,3UL,4UL,blaze::rowMajor> mat2{ { 1, 0, 2 },
-                                                             { 0, 3, 0 },
-                                                             { 4, 0, 5 } };
+      blaze::HybridMatrix<int,3UL,4UL,blaze::rowMajor> mat2( 3UL, 3UL, 0 );
+      mat2(0,0) = 1;
+      mat2(0,2) = 2;
+      mat2(1,1) = 3;
+      mat2(2,0) = 4;
+      mat2(2,2) = 5;
 
       mat2 *= mat1;
 
@@ -5280,9 +4832,12 @@ void ClassTest::testMultAssign()
       mat1(1,3) = 4;
       mat1(2,3) = 5;
 
-      blaze::HybridMatrix<int,3UL,4UL,blaze::rowMajor> mat2{ { 1, 0, 2 },
-                                                             { 0, 3, 0 },
-                                                             { 4, 0, 5 } };
+      blaze::HybridMatrix<int,3UL,4UL,blaze::rowMajor> mat2( 3UL, 3UL, 0 );
+      mat2(0,0) = 1;
+      mat2(0,2) = 2;
+      mat2(1,1) = 3;
+      mat2(2,0) = 4;
+      mat2(2,2) = 5;
 
       mat2 *= mat1;
 
@@ -5316,9 +4871,12 @@ void ClassTest::testMultAssign()
       mat1(1,3) = 4;
       mat1(2,3) = 5;
 
-      blaze::HybridMatrix<int,3UL,4UL,blaze::rowMajor> mat2{ { 1, 0, 2 },
-                                                             { 0, 3, 0 },
-                                                             { 4, 0, 5 } };
+      blaze::HybridMatrix<int,3UL,4UL,blaze::rowMajor> mat2( 3UL, 3UL, 0 );
+      mat2(0,0) = 1;
+      mat2(0,2) = 2;
+      mat2(1,1) = 3;
+      mat2(2,0) = 4;
+      mat2(2,2) = 5;
 
       mat2 *= mat1;
 
@@ -5348,44 +4906,6 @@ void ClassTest::testMultAssign()
    //=====================================================================================
 
    {
-      test_ = "Column-major/row-major HybridMatrix dense matrix multiplication assignment (mixed type))";
-
-      using blaze::aligned;
-      using blaze::padded;
-      using blaze::rowMajor;
-
-      blaze::HybridMatrix<short,3UL,4UL,blaze::rowMajor> mat1{ { 0, 2, 0, 0 },
-                                                               { 1, 3, 0, 4 },
-                                                               { 0, 0, 0, 5 } };
-
-      blaze::HybridMatrix<int,3UL,4UL,blaze::columnMajor> mat2{ { 1, 0, 2 },
-                                                                { 0, 3, 0 },
-                                                                { 4, 0, 5 } };
-
-      mat2 *= mat1;
-
-      checkRows    ( mat2, 3UL );
-      checkColumns ( mat2, 4UL );
-      checkNonZeros( mat2, 7UL );
-      checkNonZeros( mat2, 0UL, 1UL );
-      checkNonZeros( mat2, 1UL, 3UL );
-      checkNonZeros( mat2, 2UL, 0UL );
-      checkNonZeros( mat2, 3UL, 3UL );
-
-      if( mat2(0,0) != 0 || mat2(0,1) != 2 || mat2(0,2) != 0 || mat2(0,3) != 10 ||
-          mat2(1,0) != 3 || mat2(1,1) != 9 || mat2(1,2) != 0 || mat2(1,3) != 12 ||
-          mat2(2,0) != 0 || mat2(2,1) != 8 || mat2(2,2) != 0 || mat2(2,3) != 25 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Multiplication assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 0 2 0 10 )\n( 3 9 0 12 )\n( 0 8 0 25 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "Column-major/row-major HybridMatrix dense matrix multiplication assignment (aligned/padded))";
 
       using blaze::aligned;
@@ -5401,9 +4921,12 @@ void ClassTest::testMultAssign()
       mat1(1,3) = 4;
       mat1(2,3) = 5;
 
-      blaze::HybridMatrix<int,3UL,4UL,blaze::columnMajor> mat2{ { 1, 0, 2 },
-                                                                { 0, 3, 0 },
-                                                                { 4, 0, 5 } };
+      blaze::HybridMatrix<int,3UL,4UL,blaze::columnMajor> mat2( 3UL, 3UL, 0 );
+      mat2(0,0) = 1;
+      mat2(0,2) = 2;
+      mat2(1,1) = 3;
+      mat2(2,0) = 4;
+      mat2(2,2) = 5;
 
       mat2 *= mat1;
 
@@ -5436,7 +4959,7 @@ void ClassTest::testMultAssign()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[13UL] );
+      blaze::UniqueArray<int> array( new int[13UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 3UL, 4UL );
       mat1 = 0;
       mat1(0,1) = 2;
@@ -5445,47 +4968,12 @@ void ClassTest::testMultAssign()
       mat1(1,3) = 4;
       mat1(2,3) = 5;
 
-      blaze::HybridMatrix<int,3UL,4UL,blaze::columnMajor> mat2{ { 1, 0, 2 },
-                                                                { 0, 3, 0 },
-                                                                { 4, 0, 5 } };
-
-      mat2 *= mat1;
-
-      checkRows    ( mat2, 3UL );
-      checkColumns ( mat2, 4UL );
-      checkNonZeros( mat2, 7UL );
-      checkNonZeros( mat2, 0UL, 1UL );
-      checkNonZeros( mat2, 1UL, 3UL );
-      checkNonZeros( mat2, 2UL, 0UL );
-      checkNonZeros( mat2, 3UL, 3UL );
-
-      if( mat2(0,0) != 0 || mat2(0,1) != 2 || mat2(0,2) != 0 || mat2(0,3) != 10 ||
-          mat2(1,0) != 3 || mat2(1,1) != 9 || mat2(1,2) != 0 || mat2(1,3) != 12 ||
-          mat2(2,0) != 0 || mat2(2,1) != 8 || mat2(2,2) != 0 || mat2(2,3) != 25 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Multiplication assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 0 2 0 10 )\n( 3 9 0 12 )\n( 0 8 0 25 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "Column-major/column-major HybridMatrix dense matrix multiplication assignment (aligned/padded)";
-
-      using blaze::aligned;
-      using blaze::padded;
-      using blaze::columnMajor;
-
-      blaze::HybridMatrix<short,3UL,4UL,blaze::columnMajor> mat1{ { 0, 2, 0, 0 },
-                                                                  { 1, 3, 0, 4 },
-                                                                  { 0, 0, 0, 5 } };
-
-      blaze::HybridMatrix<int,3UL,4UL,blaze::columnMajor> mat2{ { 1, 0, 2 },
-                                                                { 0, 3, 0 },
-                                                                { 4, 0, 5 } };
+      blaze::HybridMatrix<int,3UL,4UL,blaze::columnMajor> mat2( 3UL, 3UL, 0 );
+      mat2(0,0) = 1;
+      mat2(0,2) = 2;
+      mat2(1,1) = 3;
+      mat2(2,0) = 4;
+      mat2(2,2) = 5;
 
       mat2 *= mat1;
 
@@ -5526,9 +5014,12 @@ void ClassTest::testMultAssign()
       mat1(1,3) = 4;
       mat1(2,3) = 5;
 
-      blaze::HybridMatrix<int,3UL,4UL,blaze::columnMajor> mat2{ { 1, 0, 2 },
-                                                                { 0, 3, 0 },
-                                                                { 4, 0, 5 } };
+      blaze::HybridMatrix<int,3UL,4UL,blaze::columnMajor> mat2( 3UL, 3UL, 0 );
+      mat2(0,0) = 1;
+      mat2(0,2) = 2;
+      mat2(1,1) = 3;
+      mat2(2,0) = 4;
+      mat2(2,2) = 5;
 
       mat2 *= mat1;
 
@@ -5561,7 +5052,7 @@ void ClassTest::testMultAssign()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[13UL] );
+      blaze::UniqueArray<int> array( new int[13UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 3UL, 4UL );
       mat1 = 0;
       mat1(0,1) = 2;
@@ -5570,9 +5061,12 @@ void ClassTest::testMultAssign()
       mat1(1,3) = 4;
       mat1(2,3) = 5;
 
-      blaze::HybridMatrix<int,3UL,4UL,blaze::columnMajor> mat2{ { 1, 0, 2 },
-                                                                { 0, 3, 0 },
-                                                                { 4, 0, 5 } };
+      blaze::HybridMatrix<int,3UL,4UL,blaze::columnMajor> mat2( 3UL, 3UL, 0 );
+      mat2(0,0) = 1;
+      mat2(0,2) = 2;
+      mat2(1,1) = 3;
+      mat2(2,0) = 4;
+      mat2(2,2) = 5;
 
       mat2 *= mat1;
 
@@ -5612,9 +5106,12 @@ void ClassTest::testMultAssign()
       mat1(1,3) = 4;
       mat1(2,3) = 5;
 
-      blaze::HybridMatrix<int,3UL,4UL,blaze::columnMajor> mat2{ { 1, 0, 2 },
-                                                                { 0, 3, 0 },
-                                                                { 4, 0, 5 } };
+      blaze::HybridMatrix<int,3UL,4UL,blaze::columnMajor> mat2( 3UL, 3UL, 0 );
+      mat2(0,0) = 1;
+      mat2(0,2) = 2;
+      mat2(1,1) = 3;
+      mat2(2,0) = 4;
+      mat2(2,2) = 5;
 
       mat2 *= mat1;
 
@@ -5649,9 +5146,12 @@ void ClassTest::testMultAssign()
       mat1(1,3) = 4;
       mat1(2,3) = 5;
 
-      blaze::HybridMatrix<int,3UL,4UL,blaze::columnMajor> mat2{ { 1, 0, 2 },
-                                                                { 0, 3, 0 },
-                                                                { 4, 0, 5 } };
+      blaze::HybridMatrix<int,3UL,4UL,blaze::columnMajor> mat2( 3UL, 3UL, 0 );
+      mat2(0,0) = 1;
+      mat2(0,2) = 2;
+      mat2(1,1) = 3;
+      mat2(2,0) = 4;
+      mat2(2,2) = 5;
 
       mat2 *= mat1;
 
@@ -5697,9 +5197,10 @@ void ClassTest::testScaling()
    {
       test_ = "Row-major self-scaling (M*=s)";
 
-      blaze::HybridMatrix<int,3UL,3UL,blaze::rowMajor> mat{ {  0, 0, 0 },
-                                                            {  0, 0, 1 },
-                                                            { -2, 0, 3 } };
+      blaze::HybridMatrix<int,3UL,3UL,blaze::rowMajor> mat( 3UL, 3UL, 0 );
+      mat(1,2) =  1;
+      mat(2,0) = -2;
+      mat(2,2) =  3;
 
       mat *= 2;
 
@@ -5731,9 +5232,10 @@ void ClassTest::testScaling()
    {
       test_ = "Row-major self-scaling (M=M*s)";
 
-      blaze::HybridMatrix<int,3UL,3UL,blaze::rowMajor> mat{ {  0, 0, 0 },
-                                                            {  0, 0, 1 },
-                                                            { -2, 0, 3 } };
+      blaze::HybridMatrix<int,3UL,3UL,blaze::rowMajor> mat( 3UL, 3UL, 0 );
+      mat(1,2) =  1;
+      mat(2,0) = -2;
+      mat(2,2) =  3;
 
       mat = mat * 2;
 
@@ -5765,9 +5267,10 @@ void ClassTest::testScaling()
    {
       test_ = "Row-major self-scaling (M=s*M)";
 
-      blaze::HybridMatrix<int,3UL,3UL,blaze::rowMajor> mat{ {  0, 0, 0 },
-                                                            {  0, 0, 1 },
-                                                            { -2, 0, 3 } };
+      blaze::HybridMatrix<int,3UL,3UL,blaze::rowMajor> mat( 3UL, 3UL, 0 );
+      mat(1,2) =  1;
+      mat(2,0) = -2;
+      mat(2,2) =  3;
 
       mat = 2 * mat;
 
@@ -5799,9 +5302,10 @@ void ClassTest::testScaling()
    {
       test_ = "Row-major self-scaling (M/=s)";
 
-      blaze::HybridMatrix<int,3UL,3UL,blaze::rowMajor> mat{ {  0, 0, 0 },
-                                                            {  0, 0, 2 },
-                                                            { -4, 0, 6 } };
+      blaze::HybridMatrix<int,3UL,3UL,blaze::rowMajor> mat( 3UL, 3UL, 0 );
+      mat(1,2) =  2;
+      mat(2,0) = -4;
+      mat(2,2) =  6;
 
       mat /= 2;
 
@@ -5833,9 +5337,10 @@ void ClassTest::testScaling()
    {
       test_ = "Row-major self-scaling (M=M/s)";
 
-      blaze::HybridMatrix<int,3UL,3UL,blaze::rowMajor> mat{ {  0, 0, 0 },
-                                                            {  0, 0, 2 },
-                                                            { -4, 0, 6 } };
+      blaze::HybridMatrix<int,3UL,3UL,blaze::rowMajor> mat( 3UL, 3UL, 0 );
+      mat(1,2) =  2;
+      mat(2,0) = -4;
+      mat(2,2) =  6;
 
       mat = mat / 2;
 
@@ -5868,9 +5373,13 @@ void ClassTest::testScaling()
       test_ = "Row-major HybridMatrix::scale() (int)";
 
       // Initialization check
-      blaze::HybridMatrix<int,3UL,2UL,blaze::rowMajor> mat{ { 1, 2 },
-                                                            { 3, 4 },
-                                                            { 5, 6 } };
+      blaze::HybridMatrix<int,3UL,2UL,blaze::rowMajor> mat( 3UL, 2UL );
+      mat(0,0) = 1;
+      mat(0,1) = 2;
+      mat(1,0) = 3;
+      mat(1,1) = 4;
+      mat(2,0) = 5;
+      mat(2,1) = 6;
 
       checkRows    ( mat, 3UL );
       checkColumns ( mat, 2UL );
@@ -5978,9 +5487,10 @@ void ClassTest::testScaling()
    {
       test_ = "Column-major self-scaling (M*=s)";
 
-      blaze::HybridMatrix<int,3UL,3UL,blaze::columnMajor> mat{ {  0, 0, 0 },
-                                                               {  0, 0, 1 },
-                                                               { -2, 0, 3 } };
+      blaze::HybridMatrix<int,3UL,3UL,blaze::columnMajor> mat( 3UL, 3UL, 0 );
+      mat(1,2) =  1;
+      mat(2,0) = -2;
+      mat(2,2) =  3;
 
       mat *= 2;
 
@@ -6012,9 +5522,10 @@ void ClassTest::testScaling()
    {
       test_ = "Column-major self-scaling (M=M*s)";
 
-      blaze::HybridMatrix<int,3UL,3UL,blaze::columnMajor> mat{ {  0, 0, 0 },
-                                                               {  0, 0, 1 },
-                                                               { -2, 0, 3 } };
+      blaze::HybridMatrix<int,3UL,3UL,blaze::columnMajor> mat( 3UL, 3UL, 0 );
+      mat(1,2) =  1;
+      mat(2,0) = -2;
+      mat(2,2) =  3;
 
       mat = mat * 2;
 
@@ -6046,9 +5557,10 @@ void ClassTest::testScaling()
    {
       test_ = "Column-major self-scaling (M=s*M)";
 
-      blaze::HybridMatrix<int,3UL,3UL,blaze::columnMajor> mat{ {  0, 0, 0 },
-                                                               {  0, 0, 1 },
-                                                               { -2, 0, 3 } };
+      blaze::HybridMatrix<int,3UL,3UL,blaze::columnMajor> mat( 3UL, 3UL, 0 );
+      mat(1,2) =  1;
+      mat(2,0) = -2;
+      mat(2,2) =  3;
 
       mat = 2 * mat;
 
@@ -6080,9 +5592,10 @@ void ClassTest::testScaling()
    {
       test_ = "Column-major self-scaling (M/=s)";
 
-      blaze::HybridMatrix<int,3UL,3UL,blaze::columnMajor> mat{ {  0, 0, 0 },
-                                                               {  0, 0, 2 },
-                                                               { -4, 0, 6 } };
+      blaze::HybridMatrix<int,3UL,3UL,blaze::columnMajor> mat( 3UL, 3UL, 0 );
+      mat(1,2) =  2;
+      mat(2,0) = -4;
+      mat(2,2) =  6;
 
       mat /= 2;
 
@@ -6114,9 +5627,10 @@ void ClassTest::testScaling()
    {
       test_ = "Column-major self-scaling (M=M/s)";
 
-      blaze::HybridMatrix<int,3UL,3UL,blaze::columnMajor> mat{ {  0, 0, 0 },
-                                                               {  0, 0, 2 },
-                                                               { -4, 0, 6 } };
+      blaze::HybridMatrix<int,3UL,3UL,blaze::columnMajor> mat( 3UL, 3UL, 0 );
+      mat(1,2) =  2;
+      mat(2,0) = -4;
+      mat(2,2) =  6;
 
       mat = mat / 2;
 
@@ -6149,9 +5663,7 @@ void ClassTest::testScaling()
       test_ = "Column-major HybridMatrix::scale() (int)";
 
       // Initialization check
-      blaze::HybridMatrix<int,3UL,2UL,blaze::columnMajor> mat{ { 1, 4 },
-                                                               { 2, 5 },
-                                                               { 3, 6 } };
+      blaze::HybridMatrix<int,3UL,2UL,blaze::columnMajor> mat( 3UL, 2UL );
       mat(0,0) = 1;
       mat(0,1) = 4;
       mat(1,0) = 2;
@@ -7105,9 +6617,12 @@ void ClassTest::testIterator()
       typedef MatrixType::Iterator                              Iterator;
       typedef MatrixType::ConstIterator                         ConstIterator;
 
-      MatrixType mat{ {  0,  1,  0 },
-                      { -2,  0, -3 },
-                      {  0,  4,  5 } };
+      MatrixType mat( 3UL, 3UL, 0 );
+      mat(0,1) =  1;
+      mat(1,0) = -2;
+      mat(1,2) = -3;
+      mat(2,1) =  4;
+      mat(2,2) =  5;
 
       // Testing the Iterator default constructor
       {
@@ -7405,9 +6920,12 @@ void ClassTest::testIterator()
       typedef MatrixType::Iterator                                 Iterator;
       typedef MatrixType::ConstIterator                            ConstIterator;
 
-      MatrixType mat{ { 0, -2,  0 },
-                      { 1,  0,  4 },
-                      { 0, -3,  5 } };
+      MatrixType mat( 3UL, 3UL, 0 );
+      mat(1,0) =  1;
+      mat(0,1) = -2;
+      mat(2,1) = -3;
+      mat(1,2) =  4;
+      mat(2,2) =  5;
 
       // Testing the Iterator default constructor
       {
@@ -7756,8 +7274,11 @@ void ClassTest::testNonZeros()
       }
 
       {
-         blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat{ { 0, 1, 2 },
-                                                               { 0, 3, 0 } };
+         blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat( 2UL, 3UL, 0 );
+         mat(0,1) = 1;
+         mat(0,2) = 2;
+         mat(1,1) = 3;
+         mat(1,2) = 0;
 
          checkRows    ( mat, 2UL );
          checkColumns ( mat, 3UL );
@@ -7811,8 +7332,11 @@ void ClassTest::testNonZeros()
       }
 
       {
-         blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat{ { 0, 1, 2 },
-                                                                  { 0, 3, 0 } };
+         blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat( 2UL, 3UL, 0 );
+         mat(0,1) = 1;
+         mat(0,2) = 2;
+         mat(1,1) = 3;
+         mat(1,2) = 0;
 
          checkRows    ( mat, 2UL );
          checkColumns ( mat, 3UL );
@@ -7859,103 +7383,94 @@ void ClassTest::testReset()
    {
       test_ = "Row-major HybridMatrix::reset()";
 
-      // Resetting a default constructed matrix
-      {
-         blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat;
+      // Initialization check
+      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat( 2UL, 3UL );
+      mat(0,0) = 1;
+      mat(0,1) = 2;
+      mat(0,2) = 3;
+      mat(1,0) = 4;
+      mat(1,1) = 5;
+      mat(1,2) = 6;
 
-         reset( mat );
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 3UL );
+      checkCapacity( mat, 6UL );
+      checkNonZeros( mat, 6UL );
+      checkNonZeros( mat, 0UL, 3UL );
+      checkNonZeros( mat, 1UL, 3UL );
 
-         checkRows    ( mat, 0UL );
-         checkColumns ( mat, 0UL );
-         checkNonZeros( mat, 0UL );
+      if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 3 ||
+          mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
+         throw std::runtime_error( oss.str() );
       }
 
-      // Resetting an initialized hybrid matrix
-      {
-         // Initialization check
-         blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat{ { 1, 2, 3 },
-                                                               { 4, 5, 6 } };
+      // Resetting a single element
+      reset( mat(0,2) );
 
-         checkRows    ( mat, 2UL );
-         checkColumns ( mat, 3UL );
-         checkCapacity( mat, 6UL );
-         checkNonZeros( mat, 6UL );
-         checkNonZeros( mat, 0UL, 3UL );
-         checkNonZeros( mat, 1UL, 3UL );
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 3UL );
+      checkCapacity( mat, 6UL );
+      checkNonZeros( mat, 5UL );
+      checkNonZeros( mat, 0UL, 2UL );
+      checkNonZeros( mat, 1UL, 3UL );
 
-         if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 3 ||
-             mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Initialization failed\n"
-                << " Details:\n"
-                << "   Result:\n" << mat << "\n"
-                << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-            throw std::runtime_error( oss.str() );
-         }
+      if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 0 ||
+          mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Reset operation failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n( 1 2 0 )\n( 4 5 6 )\n";
+         throw std::runtime_error( oss.str() );
+      }
 
-         // Resetting a single element
-         reset( mat(0,2) );
+      // Resetting row 1
+      reset( mat, 1UL );
 
-         checkRows    ( mat, 2UL );
-         checkColumns ( mat, 3UL );
-         checkCapacity( mat, 6UL );
-         checkNonZeros( mat, 5UL );
-         checkNonZeros( mat, 0UL, 2UL );
-         checkNonZeros( mat, 1UL, 3UL );
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 3UL );
+      checkCapacity( mat, 6UL );
+      checkNonZeros( mat, 2UL );
+      checkNonZeros( mat, 0UL, 2UL );
+      checkNonZeros( mat, 1UL, 0UL );
 
-         if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 0 ||
-             mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Reset operation failed\n"
-                << " Details:\n"
-                << "   Result:\n" << mat << "\n"
-                << "   Expected result:\n( 1 2 0 )\n( 4 5 6 )\n";
-            throw std::runtime_error( oss.str() );
-         }
+      if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 0 ||
+          mat(1,0) != 0 || mat(1,1) != 0 || mat(1,2) != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Reset operation failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n( 1 2 0 )\n( 0 0 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
 
-         // Resetting row 1
-         reset( mat, 1UL );
+      // Resetting the entire matrix
+      reset( mat );
 
-         checkRows    ( mat, 2UL );
-         checkColumns ( mat, 3UL );
-         checkCapacity( mat, 6UL );
-         checkNonZeros( mat, 2UL );
-         checkNonZeros( mat, 0UL, 2UL );
-         checkNonZeros( mat, 1UL, 0UL );
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 3UL );
+      checkCapacity( mat, 6UL );
+      checkNonZeros( mat, 0UL );
+      checkNonZeros( mat, 0UL, 0UL );
+      checkNonZeros( mat, 1UL, 0UL );
 
-         if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 0 ||
-             mat(1,0) != 0 || mat(1,1) != 0 || mat(1,2) != 0 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Reset operation failed\n"
-                << " Details:\n"
-                << "   Result:\n" << mat << "\n"
-                << "   Expected result:\n( 1 2 0 )\n( 0 0 0 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         // Resetting the entire matrix
-         reset( mat );
-
-         checkRows    ( mat, 2UL );
-         checkColumns ( mat, 3UL );
-         checkCapacity( mat, 6UL );
-         checkNonZeros( mat, 0UL );
-         checkNonZeros( mat, 0UL, 0UL );
-         checkNonZeros( mat, 1UL, 0UL );
-
-         if( mat(0,0) != 0 || mat(0,1) != 0 || mat(0,2) != 0 ||
-             mat(1,0) != 0 || mat(1,1) != 0 || mat(1,2) != 0 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Reset operation failed\n"
-                << " Details:\n"
-                << "   Result:\n" << mat << "\n"
-                << "   Expected result:\n( 0 0 0 )\n( 0 0 0 )\n";
-            throw std::runtime_error( oss.str() );
-         }
+      if( mat(0,0) != 0 || mat(0,1) != 0 || mat(0,2) != 0 ||
+          mat(1,0) != 0 || mat(1,1) != 0 || mat(1,2) != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Reset operation failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n( 0 0 0 )\n( 0 0 0 )\n";
+         throw std::runtime_error( oss.str() );
       }
    }
 
@@ -7967,107 +7482,98 @@ void ClassTest::testReset()
    {
       test_ = "Column-major HybridMatrix::reset()";
 
-      // Resetting a default constructed matrix
-      {
-         blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat;
+      // Initialization check
+      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat( 2UL, 3UL );
+      mat(0,0) = 1;
+      mat(0,1) = 2;
+      mat(0,2) = 3;
+      mat(1,0) = 4;
+      mat(1,1) = 5;
+      mat(1,2) = 6;
 
-         reset( mat );
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 3UL );
+      checkCapacity( mat, 6UL );
+      checkNonZeros( mat, 6UL );
+      checkNonZeros( mat, 0UL, 2UL );
+      checkNonZeros( mat, 1UL, 2UL );
+      checkNonZeros( mat, 2UL, 2UL );
 
-         checkRows    ( mat, 0UL );
-         checkColumns ( mat, 0UL );
-         checkNonZeros( mat, 0UL );
+      if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 3 ||
+          mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
+         throw std::runtime_error( oss.str() );
       }
 
-      // Resetting an initialized hybrid matrix
-      {
-         // Initialization check
-         blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat{ { 1, 2, 3 },
-                                                                  { 4, 5, 6 } };
+      // Resetting a single element
+      reset( mat(0,2) );
 
-         checkRows    ( mat, 2UL );
-         checkColumns ( mat, 3UL );
-         checkCapacity( mat, 6UL );
-         checkNonZeros( mat, 6UL );
-         checkNonZeros( mat, 0UL, 2UL );
-         checkNonZeros( mat, 1UL, 2UL );
-         checkNonZeros( mat, 2UL, 2UL );
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 3UL );
+      checkCapacity( mat, 6UL );
+      checkNonZeros( mat, 5UL );
+      checkNonZeros( mat, 0UL, 2UL );
+      checkNonZeros( mat, 1UL, 2UL );
+      checkNonZeros( mat, 2UL, 1UL );
 
-         if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 3 ||
-             mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Initialization failed\n"
-                << " Details:\n"
-                << "   Result:\n" << mat << "\n"
-                << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-            throw std::runtime_error( oss.str() );
-         }
+      if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 0 ||
+          mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Reset operation failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n( 1 2 0 )\n( 4 5 6 )\n";
+         throw std::runtime_error( oss.str() );
+      }
 
-         // Resetting a single element
-         reset( mat(0,2) );
+      // Resetting column 1
+      reset( mat, 1UL );
 
-         checkRows    ( mat, 2UL );
-         checkColumns ( mat, 3UL );
-         checkCapacity( mat, 6UL );
-         checkNonZeros( mat, 5UL );
-         checkNonZeros( mat, 0UL, 2UL );
-         checkNonZeros( mat, 1UL, 2UL );
-         checkNonZeros( mat, 2UL, 1UL );
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 3UL );
+      checkCapacity( mat, 6UL );
+      checkNonZeros( mat, 3UL );
+      checkNonZeros( mat, 0UL, 2UL );
+      checkNonZeros( mat, 1UL, 0UL );
+      checkNonZeros( mat, 2UL, 1UL );
 
-         if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 0 ||
-             mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Reset operation failed\n"
-                << " Details:\n"
-                << "   Result:\n" << mat << "\n"
-                << "   Expected result:\n( 1 2 0 )\n( 4 5 6 )\n";
-            throw std::runtime_error( oss.str() );
-         }
+      if( mat(0,0) != 1 || mat(0,1) != 0 || mat(0,2) != 0 ||
+          mat(1,0) != 4 || mat(1,1) != 0 || mat(1,2) != 6 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Reset operation failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n( 1 0 0 )\n( 4 0 6 )\n";
+         throw std::runtime_error( oss.str() );
+      }
 
-         // Resetting column 1
-         reset( mat, 1UL );
+      // Resetting the entire matrix
+      reset( mat );
 
-         checkRows    ( mat, 2UL );
-         checkColumns ( mat, 3UL );
-         checkCapacity( mat, 6UL );
-         checkNonZeros( mat, 3UL );
-         checkNonZeros( mat, 0UL, 2UL );
-         checkNonZeros( mat, 1UL, 0UL );
-         checkNonZeros( mat, 2UL, 1UL );
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 3UL );
+      checkCapacity( mat, 6UL );
+      checkNonZeros( mat, 0UL );
+      checkNonZeros( mat, 0UL, 0UL );
+      checkNonZeros( mat, 1UL, 0UL );
+      checkNonZeros( mat, 2UL, 0UL );
 
-         if( mat(0,0) != 1 || mat(0,1) != 0 || mat(0,2) != 0 ||
-             mat(1,0) != 4 || mat(1,1) != 0 || mat(1,2) != 6 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Reset operation failed\n"
-                << " Details:\n"
-                << "   Result:\n" << mat << "\n"
-                << "   Expected result:\n( 1 0 0 )\n( 4 0 6 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         // Resetting the entire matrix
-         reset( mat );
-
-         checkRows    ( mat, 2UL );
-         checkColumns ( mat, 3UL );
-         checkCapacity( mat, 6UL );
-         checkNonZeros( mat, 0UL );
-         checkNonZeros( mat, 0UL, 0UL );
-         checkNonZeros( mat, 1UL, 0UL );
-         checkNonZeros( mat, 2UL, 0UL );
-
-         if( mat(0,0) != 0 || mat(0,1) != 0 || mat(0,2) != 0 ||
-             mat(1,0) != 0 || mat(1,1) != 0 || mat(1,2) != 0 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Reset operation failed\n"
-                << " Details:\n"
-                << "   Result:\n" << mat << "\n"
-                << "   Expected result:\n( 0 0 0 )\n( 0 0 0 )\n";
-            throw std::runtime_error( oss.str() );
-         }
+      if( mat(0,0) != 0 || mat(0,1) != 0 || mat(0,2) != 0 ||
+          mat(1,0) != 0 || mat(1,1) != 0 || mat(1,2) != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Reset operation failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n( 0 0 0 )\n( 0 0 0 )\n";
+         throw std::runtime_error( oss.str() );
       }
    }
 }
@@ -8095,69 +7601,60 @@ void ClassTest::testClear()
    {
       test_ = "Row-major HybridMatrix::clear()";
 
-      // Clearing a default constructed matrix
-      {
-         blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat;
+      // Initialization check
+      blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat( 2UL, 3UL );
+      mat(0,0) = 1;
+      mat(0,1) = 2;
+      mat(0,2) = 3;
+      mat(1,0) = 4;
+      mat(1,1) = 5;
+      mat(1,2) = 6;
 
-         clear( mat );
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 3UL );
+      checkCapacity( mat, 6UL );
+      checkNonZeros( mat, 6UL );
+      checkNonZeros( mat, 0UL, 3UL );
+      checkNonZeros( mat, 1UL, 3UL );
 
-         checkRows    ( mat, 0UL );
-         checkColumns ( mat, 0UL );
-         checkNonZeros( mat, 0UL );
+      if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 3 ||
+          mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
+         throw std::runtime_error( oss.str() );
       }
 
-      // Clearing an initialized matrix
-      {
-         // Initialization check
-         blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor> mat{ { 1, 2, 3 },
-                                                               { 4, 5, 6 } };
+      // Clearing a single element
+      clear( mat(0,2) );
 
-         checkRows    ( mat, 2UL );
-         checkColumns ( mat, 3UL );
-         checkCapacity( mat, 6UL );
-         checkNonZeros( mat, 6UL );
-         checkNonZeros( mat, 0UL, 3UL );
-         checkNonZeros( mat, 1UL, 3UL );
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 3UL );
+      checkCapacity( mat, 6UL );
+      checkNonZeros( mat, 5UL );
+      checkNonZeros( mat, 0UL, 2UL );
+      checkNonZeros( mat, 1UL, 3UL );
 
-         if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 3 ||
-             mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Initialization failed\n"
-                << " Details:\n"
-                << "   Result:\n" << mat << "\n"
-                << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         // Clearing a single element
-         clear( mat(0,2) );
-
-         checkRows    ( mat, 2UL );
-         checkColumns ( mat, 3UL );
-         checkCapacity( mat, 6UL );
-         checkNonZeros( mat, 5UL );
-         checkNonZeros( mat, 0UL, 2UL );
-         checkNonZeros( mat, 1UL, 3UL );
-
-         if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 0 ||
-             mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Clear operation failed\n"
-                << " Details:\n"
-                << "   Result:\n" << mat << "\n"
-                << "   Expected result:\n( 1 2 0 )\n( 4 5 6 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         // Clearing the matrix
-         clear( mat );
-
-         checkRows    ( mat, 0UL );
-         checkColumns ( mat, 0UL );
-         checkNonZeros( mat, 0UL );
+      if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 0 ||
+          mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Clear operation failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n( 1 2 0 )\n( 4 5 6 )\n";
+         throw std::runtime_error( oss.str() );
       }
+
+      // Clearing the matrix
+      clear( mat );
+
+      checkRows    ( mat, 0UL );
+      checkColumns ( mat, 0UL );
+      checkNonZeros( mat, 0UL );
    }
 
 
@@ -8168,71 +7665,62 @@ void ClassTest::testClear()
    {
       test_ = "Column-major HybridMatrix::clear()";
 
-      // Clearing a default constructed matrix
-      {
-         blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat;
+      // Initialization check
+      blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat( 2UL, 3UL );
+      mat(0,0) = 1;
+      mat(0,1) = 2;
+      mat(0,2) = 3;
+      mat(1,0) = 4;
+      mat(1,1) = 5;
+      mat(1,2) = 6;
 
-         clear( mat );
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 3UL );
+      checkCapacity( mat, 6UL );
+      checkNonZeros( mat, 6UL );
+      checkNonZeros( mat, 0UL, 2UL );
+      checkNonZeros( mat, 1UL, 2UL );
+      checkNonZeros( mat, 2UL, 2UL );
 
-         checkRows    ( mat, 0UL );
-         checkColumns ( mat, 0UL );
-         checkNonZeros( mat, 0UL );
+      if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 3 ||
+          mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
+         throw std::runtime_error( oss.str() );
       }
 
-      // Clearing an initialized matrix
-      {
-         // Initialization check
-         blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor> mat{ { 1, 2, 3 },
-                                                                  { 4, 5, 6 } };
+      // Clearing a single element
+      clear( mat(0,2) );
 
-         checkRows    ( mat, 2UL );
-         checkColumns ( mat, 3UL );
-         checkCapacity( mat, 6UL );
-         checkNonZeros( mat, 6UL );
-         checkNonZeros( mat, 0UL, 2UL );
-         checkNonZeros( mat, 1UL, 2UL );
-         checkNonZeros( mat, 2UL, 2UL );
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 3UL );
+      checkCapacity( mat, 6UL );
+      checkNonZeros( mat, 5UL );
+      checkNonZeros( mat, 0UL, 2UL );
+      checkNonZeros( mat, 1UL, 2UL );
+      checkNonZeros( mat, 2UL, 1UL );
 
-         if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 3 ||
-             mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Initialization failed\n"
-                << " Details:\n"
-                << "   Result:\n" << mat << "\n"
-                << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         // Clearing a single element
-         clear( mat(0,2) );
-
-         checkRows    ( mat, 2UL );
-         checkColumns ( mat, 3UL );
-         checkCapacity( mat, 6UL );
-         checkNonZeros( mat, 5UL );
-         checkNonZeros( mat, 0UL, 2UL );
-         checkNonZeros( mat, 1UL, 2UL );
-         checkNonZeros( mat, 2UL, 1UL );
-
-         if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 0 ||
-             mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Clear operation failed\n"
-                << " Details:\n"
-                << "   Result:\n" << mat << "\n"
-                << "   Expected result:\n( 1 2 0 )\n( 4 5 6 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         // Clearing the matrix
-         clear( mat );
-
-         checkRows    ( mat, 0UL );
-         checkColumns ( mat, 0UL );
-         checkNonZeros( mat, 0UL );
+      if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 0 ||
+          mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Clear operation failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n( 1 2 0 )\n( 4 5 6 )\n";
+         throw std::runtime_error( oss.str() );
       }
+
+      // Clearing the matrix
+      clear( mat );
+
+      checkRows    ( mat, 0UL );
+      checkColumns ( mat, 0UL );
+      checkNonZeros( mat, 0UL );
    }
 }
 //*************************************************************************************************
@@ -8573,9 +8061,15 @@ void ClassTest::testTranspose()
 
       // Self-transpose of a 3x5 matrix
       {
-         blaze::HybridMatrix<int,5UL,5UL,blaze::rowMajor> mat{ { 1, 0, 2, 0, 3 },
-                                                               { 0, 4, 0, 5, 0 },
-                                                               { 6, 0, 7, 0, 8 } };
+         blaze::HybridMatrix<int,5UL,5UL,blaze::rowMajor> mat( 3UL, 5UL, 0 );
+         mat(0,0) = 1;
+         mat(0,2) = 2;
+         mat(0,4) = 3;
+         mat(1,1) = 4;
+         mat(1,3) = 5;
+         mat(2,0) = 6;
+         mat(2,2) = 7;
+         mat(2,4) = 8;
 
          transpose( mat );
 
@@ -8606,11 +8100,15 @@ void ClassTest::testTranspose()
 
       // Self-transpose of a 5x3 matrix
       {
-         blaze::HybridMatrix<int,5UL,5UL,blaze::rowMajor> mat{ { 1, 0, 6 },
-                                                               { 0, 4, 0 },
-                                                               { 2, 0, 7 },
-                                                               { 0, 5, 0 },
-                                                               { 3, 0, 8 } };
+         blaze::HybridMatrix<int,5UL,5UL,blaze::rowMajor> mat( 5UL, 3UL, 0 );
+         mat(0,0) = 1;
+         mat(0,2) = 6;
+         mat(1,1) = 4;
+         mat(2,0) = 2;
+         mat(2,2) = 7;
+         mat(3,1) = 5;
+         mat(4,0) = 3;
+         mat(4,2) = 8;
 
          transpose( mat );
 
@@ -8641,9 +8139,15 @@ void ClassTest::testTranspose()
 
       // Self-transpose of a 3x5 matrix
       {
-         blaze::HybridMatrix<int,5UL,5UL,blaze::rowMajor> mat{ { 1, 0, 2, 0, 3 },
-                                                               { 0, 4, 0, 5, 0 },
-                                                               { 6, 0, 7, 0, 8 } };
+         blaze::HybridMatrix<int,5UL,5UL,blaze::rowMajor> mat( 3UL, 5UL, 0 );
+         mat(0,0) = 1;
+         mat(0,2) = 2;
+         mat(0,4) = 3;
+         mat(1,1) = 4;
+         mat(1,3) = 5;
+         mat(2,0) = 6;
+         mat(2,2) = 7;
+         mat(2,4) = 8;
 
          mat = trans( mat );
 
@@ -8674,11 +8178,15 @@ void ClassTest::testTranspose()
 
       // Self-transpose of a 5x3 matrix
       {
-         blaze::HybridMatrix<int,5UL,5UL,blaze::rowMajor> mat{ { 1, 0, 6 },
-                                                               { 0, 4, 0 },
-                                                               { 2, 0, 7 },
-                                                               { 0, 5, 0 },
-                                                               { 3, 0, 8 } };
+         blaze::HybridMatrix<int,5UL,5UL,blaze::rowMajor> mat( 5UL, 3UL, 0 );
+         mat(0,0) = 1;
+         mat(0,2) = 6;
+         mat(1,1) = 4;
+         mat(2,0) = 2;
+         mat(2,2) = 7;
+         mat(3,1) = 5;
+         mat(4,0) = 3;
+         mat(4,2) = 8;
 
          mat = trans( mat );
 
@@ -8714,9 +8222,15 @@ void ClassTest::testTranspose()
 
       // Self-transpose of a 3x5 matrix
       {
-         blaze::HybridMatrix<int,5UL,5UL,blaze::columnMajor> mat{ { 1, 0, 2, 0, 3 },
-                                                                  { 0, 4, 0, 5, 0 },
-                                                                  { 6, 0, 7, 0, 8 } };
+         blaze::HybridMatrix<int,5UL,5UL,blaze::columnMajor> mat( 3UL, 5UL, 0 );
+         mat(0,0) = 1;
+         mat(0,2) = 2;
+         mat(0,4) = 3;
+         mat(1,1) = 4;
+         mat(1,3) = 5;
+         mat(2,0) = 6;
+         mat(2,2) = 7;
+         mat(2,4) = 8;
 
          transpose( mat );
 
@@ -8745,11 +8259,15 @@ void ClassTest::testTranspose()
 
       // Self-transpose of a 5x3 matrix
       {
-         blaze::HybridMatrix<int,5UL,5UL,blaze::columnMajor> mat{ { 1, 0, 6 },
-                                                                  { 0, 4, 0 },
-                                                                  { 2, 0, 7 },
-                                                                  { 0, 5, 0 },
-                                                                  { 3, 0, 8 } };
+         blaze::HybridMatrix<int,5UL,5UL,blaze::columnMajor> mat( 5UL, 3UL, 0 );
+         mat(0,0) = 1;
+         mat(0,2) = 6;
+         mat(1,1) = 4;
+         mat(2,0) = 2;
+         mat(2,2) = 7;
+         mat(3,1) = 5;
+         mat(4,0) = 3;
+         mat(4,2) = 8;
 
          transpose( mat );
 
@@ -8782,9 +8300,15 @@ void ClassTest::testTranspose()
 
       // Self-transpose of a 3x5 matrix
       {
-         blaze::HybridMatrix<int,5UL,5UL,blaze::columnMajor> mat{ { 1, 0, 2, 0, 3 },
-                                                                  { 0, 4, 0, 5, 0 },
-                                                                  { 6, 0, 7, 0, 8 } };
+         blaze::HybridMatrix<int,5UL,5UL,blaze::columnMajor> mat( 3UL, 5UL, 0 );
+         mat(0,0) = 1;
+         mat(0,2) = 2;
+         mat(0,4) = 3;
+         mat(1,1) = 4;
+         mat(1,3) = 5;
+         mat(2,0) = 6;
+         mat(2,2) = 7;
+         mat(2,4) = 8;
 
          mat = trans( mat );
 
@@ -8813,11 +8337,15 @@ void ClassTest::testTranspose()
 
       // Self-transpose of a 5x3 matrix
       {
-         blaze::HybridMatrix<int,5UL,5UL,blaze::columnMajor> mat{ { 1, 0, 6 },
-                                                                  { 0, 4, 0 },
-                                                                  { 2, 0, 7 },
-                                                                  { 0, 5, 0 },
-                                                                  { 3, 0, 8 } };
+         blaze::HybridMatrix<int,5UL,5UL,blaze::columnMajor> mat( 5UL, 3UL, 0 );
+         mat(0,0) = 1;
+         mat(0,2) = 6;
+         mat(1,1) = 4;
+         mat(2,0) = 2;
+         mat(2,2) = 7;
+         mat(3,1) = 5;
+         mat(4,0) = 3;
+         mat(4,2) = 8;
 
          mat = trans( mat );
 
@@ -9234,12 +8762,21 @@ void ClassTest::testSwap()
    {
       test_ = "Row-major HybridMatrix swap";
 
-      blaze::HybridMatrix<int,3UL,3UL,blaze::rowMajor> mat1{ { 1, 2 },
-                                                             { 0, 3 },
-                                                             { 4, 0 } };
+      blaze::HybridMatrix<int,3UL,3UL,blaze::rowMajor> mat1( 3UL, 2UL );
+      mat1(0,0) = 1;
+      mat1(0,1) = 2;
+      mat1(1,0) = 0;
+      mat1(1,1) = 3;
+      mat1(2,0) = 4;
+      mat1(2,1) = 0;
 
-      blaze::HybridMatrix<int,3UL,3UL,blaze::rowMajor> mat2{ { 6, 5, 4 },
-                                                             { 3, 2, 1 } };
+      blaze::HybridMatrix<int,3UL,3UL,blaze::rowMajor> mat2( 2UL, 3UL );
+      mat2(0,0) = 6;
+      mat2(0,1) = 5;
+      mat2(0,2) = 4;
+      mat2(1,0) = 3;
+      mat2(1,1) = 2;
+      mat2(1,2) = 1;
 
       swap( mat1, mat2 );
 
@@ -9290,12 +8827,21 @@ void ClassTest::testSwap()
    {
       test_ = "Column-major HybridMatrix swap";
 
-      blaze::HybridMatrix<int,3UL,3UL,blaze::columnMajor> mat1{ { 1, 2 },
-                                                                { 0, 3 },
-                                                                { 4, 0 } };
+      blaze::HybridMatrix<int,3UL,3UL,blaze::columnMajor> mat1( 3UL, 2UL );
+      mat1(0,0) = 1;
+      mat1(0,1) = 2;
+      mat1(1,0) = 0;
+      mat1(1,1) = 3;
+      mat1(2,0) = 4;
+      mat1(2,1) = 0;
 
-      blaze::HybridMatrix<int,3UL,3UL,blaze::columnMajor> mat2{ { 6, 5, 4 },
-                                                                { 3, 2, 1 } };
+      blaze::HybridMatrix<int,3UL,3UL,blaze::columnMajor> mat2( 2UL, 3UL );
+      mat2(0,0) = 6;
+      mat2(0,1) = 5;
+      mat2(0,2) = 4;
+      mat2(1,0) = 3;
+      mat2(1,1) = 2;
+      mat2(1,2) = 1;
 
       swap( mat1, mat2 );
 

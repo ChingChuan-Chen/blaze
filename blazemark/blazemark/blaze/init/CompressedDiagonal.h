@@ -46,6 +46,7 @@
 #include <blaze/util/Random.h>
 #include <blazemark/system/Config.h>
 #include <blazemark/system/Types.h>
+#include <blazemark/util/Indices.h>
 
 
 namespace blazemark {

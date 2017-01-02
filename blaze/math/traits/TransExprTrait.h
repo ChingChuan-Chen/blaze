@@ -57,11 +57,12 @@
 #include <blaze/util/InvalidType.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsNumeric.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -88,59 +89,50 @@ struct TransExprTrait
  private:
    //**struct Failure******************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   struct Failure { using Type = INVALID_TYPE; };
+   struct Failure { typedef INVALID_TYPE  Type; };
    /*! \endcond */
    //**********************************************************************************************
 
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Tmp = If_< IsMatrix<T>
-                  , If_< IsDenseMatrix<T>
-                       , If_< IsRowMajorMatrix<T>
-                            , DMatTransExprTrait<T>
-                            , TDMatTransExprTrait<T> >
-                       , If_< IsRowMajorMatrix<T>
-                            , SMatTransExprTrait<T>
-                            , TSMatTransExprTrait<T> > >
-                  , If_< IsVector<T>
-                       , If_< IsDenseVector<T>
-                            , If_< IsRowVector<T>
-                                 , TDVecTransExprTrait<T>
-                                 , DVecTransExprTrait<T> >
-                            , If_< IsRowVector<T>
-                                 , TSVecTransExprTrait<T>
-                                 , SVecTransExprTrait<T> > >
-                       , Failure > >;
+   typedef typename If< IsMatrix<T>
+                      , typename If< IsDenseMatrix<T>
+                                   , typename If< IsRowMajorMatrix<T>
+                                                , DMatTransExprTrait<T>
+                                                , TDMatTransExprTrait<T>
+                                                >::Type
+                                   , typename If< IsRowMajorMatrix<T>
+                                                , SMatTransExprTrait<T>
+                                                , TSMatTransExprTrait<T>
+                                                >::Type
+                                   >::Type
+                      , typename If< IsVector<T>
+                                   , typename If< IsDenseVector<T>
+                                                , typename If< IsRowVector<T>
+                                                             , TDVecTransExprTrait<T>
+                                                             , DVecTransExprTrait<T>
+                                                             >::Type
+                                                , typename If< IsRowVector<T>
+                                                             , TSVecTransExprTrait<T>
+                                                             , SVecTransExprTrait<T>
+                                                             >::Type
+                                                >::Type
+                                   , Failure
+                                   >::Type
+                      >::Type  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<T>::Type >::Type  Type1;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<T>, IsVolatile<T>, IsReference<T> >
-                            , TransExprTrait< Decay_<T> >
-                            , Tmp >::Type;
+   typedef typename If< Or< IsConst<T>, IsVolatile<T>, IsReference<T> >
+                      , TransExprTrait<Type1>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the TransExprTrait class template.
-// \ingroup math_traits
-//
-// The TransExprTrait_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the TransExprTrait class template. For instance, given the type \a T the following
-// two type definitions are identical:
-
-   \code
-   using Type1 = typename TransExprTrait<T>::Type;
-   using Type2 = TransExprTrait_<T>;
-   \endcode
-*/
-template< typename T >  // Type of the transpose operand
-using TransExprTrait_ = typename TransExprTrait<T>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

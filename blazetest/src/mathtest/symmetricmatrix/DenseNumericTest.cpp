@@ -39,17 +39,17 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <memory>
-#include <blaze/math/Column.h>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/CustomMatrix.h>
+#include <blaze/math/DenseColumn.h>
+#include <blaze/math/DenseRow.h>
+#include <blaze/math/DenseSubmatrix.h>
 #include <blaze/math/HybridMatrix.h>
-#include <blaze/math/Row.h>
 #include <blaze/math/StaticMatrix.h>
 #include <blaze/math/StaticVector.h>
-#include <blaze/math/Submatrix.h>
 #include <blaze/util/Complex.h>
 #include <blaze/util/policies/ArrayDelete.h>
+#include <blaze/util/UniqueArray.h>
 #include <blazetest/mathtest/symmetricmatrix/DenseNumericTest.h>
 
 
@@ -184,123 +184,6 @@ void DenseNumericTest::testConstructors()
 
 
    //=====================================================================================
-   // Row-major array initialization
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Row-major SymmetricMatrix initializer list constructor (complete list)";
-
-      const ST sym{ { 1, 2, 3 }, { 2, 4, 0 }, { 3, 0, 6 } };
-
-      checkRows    ( sym, 3UL );
-      checkColumns ( sym, 3UL );
-      checkCapacity( sym, 9UL );
-      checkNonZeros( sym, 7UL );
-
-      if( sym(0,0) != 1 || sym(0,1) != 2 || sym(0,2) != 3 ||
-          sym(1,0) != 2 || sym(1,1) != 4 || sym(1,2) != 0 ||
-          sym(2,0) != 3 || sym(2,1) != 0 || sym(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Row-major SymmetricMatrix initializer list constructor (incomplete list)";
-
-      const ST sym{ { 1, 2, 3 }, { 2, 4 }, { 3, 0, 6 } };
-
-      checkRows    ( sym, 3UL );
-      checkColumns ( sym, 3UL );
-      checkCapacity( sym, 9UL );
-      checkNonZeros( sym, 7UL );
-
-      if( sym(0,0) != 1 || sym(0,1) != 2 || sym(0,2) != 3 ||
-          sym(1,0) != 2 || sym(1,1) != 4 || sym(1,2) != 0 ||
-          sym(2,0) != 3 || sym(2,1) != 0 || sym(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major array initialization
-   //=====================================================================================
-
-   // Dynamic array initialization constructor
-   {
-      test_ = "Row-major SymmetricMatrix dynamic array initialization constructor";
-
-      std::unique_ptr<int[]> array( new int[9] );
-      array[0] = 1;
-      array[1] = 2;
-      array[2] = 3;
-      array[3] = 2;
-      array[4] = 4;
-      array[5] = 0;
-      array[6] = 3;
-      array[7] = 0;
-      array[8] = 6;
-      const ST sym( 3UL, array.get() );
-
-      checkRows    ( sym, 3UL );
-      checkColumns ( sym, 3UL );
-      checkCapacity( sym, 9UL );
-      checkNonZeros( sym, 7UL );
-
-      if( sym(0,0) != 1 || sym(0,1) != 2 || sym(0,2) != 3 ||
-          sym(1,0) != 2 || sym(1,1) != 4 || sym(1,2) != 0 ||
-          sym(2,0) != 3 || sym(2,1) != 0 || sym(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Static array initialization constructor
-   {
-      test_ = "Row-major SymmetricMatrix static array initialization constructor";
-
-      const int array[3][3] = { { 1, 2, 3 }, { 2, 4, 0 }, { 3, 0, 6 } };
-      const ST sym( array );
-
-      checkRows    ( sym, 3UL );
-      checkColumns ( sym, 3UL );
-      checkCapacity( sym, 9UL );
-      checkNonZeros( sym, 7UL );
-
-      if( sym(0,0) != 1 || sym(0,1) != 2 || sym(0,2) != 3 ||
-          sym(1,0) != 2 || sym(1,1) != 4 || sym(1,2) != 0 ||
-          sym(2,0) != 3 || sym(2,1) != 0 || sym(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major custom matrix constructors
    //=====================================================================================
 
@@ -313,7 +196,7 @@ void DenseNumericTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5UL] );
+      blaze::UniqueArray<int> array( new int[5UL] );
       array[1] = 1;
       array[2] = 2;
       array[3] = 2;
@@ -346,7 +229,7 @@ void DenseNumericTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[11UL] );
+      blaze::UniqueArray<int> array( new int[11UL] );
       array[1] = 1;
       array[2] = 2;
       array[6] = 2;
@@ -379,7 +262,7 @@ void DenseNumericTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[4UL] );
+      blaze::UniqueArray<int> array( new int[4UL] );
       array[0] = 1;
       array[1] = 2;
       array[2] = 2;
@@ -412,7 +295,7 @@ void DenseNumericTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[10UL] );
+      blaze::UniqueArray<int> array( new int[10UL] );
       array[0] = 1;
       array[1] = 2;
       array[5] = 2;
@@ -486,54 +369,6 @@ void DenseNumericTest::testConstructors()
 
 
    //=====================================================================================
-   // Row-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Row-major SymmetricMatrix move constructor (0x0)";
-
-      ST sym1;
-      ST sym2( std::move( sym1 ) );
-
-      checkRows    ( sym2, 0UL );
-      checkColumns ( sym2, 0UL );
-      checkNonZeros( sym2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Row-major SymmetricMatrix move constructor (3x3)";
-
-      ST sym1( 3UL );
-      sym1(0,0) =  1;
-      sym1(0,1) = -4;
-      sym1(0,2) =  7;
-      sym1(1,1) =  2;
-      sym1(2,2) =  3;
-
-      ST sym2( std::move( sym1 ) );
-
-      checkRows    ( sym2, 3UL );
-      checkColumns ( sym2, 3UL );
-      checkCapacity( sym2, 9UL );
-      checkNonZeros( sym2, 7UL );
-
-      if( sym2(0,0) !=  1 || sym2(0,1) != -4 || sym2(0,2) != 7 ||
-          sym2(1,0) != -4 || sym2(1,1) !=  2 || sym2(1,2) != 0 ||
-          sym2(2,0) !=  7 || sym2(2,1) !=  0 || sym2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym2 << "\n"
-             << "   Expected result:\n(  1 -4  7 )\n( -4  2  0 )\n(  7  0  3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major conversion constructor
    //=====================================================================================
 
@@ -553,9 +388,9 @@ void DenseNumericTest::testConstructors()
    {
       test_ = "Row-major SymmetricMatrix conversion constructor (symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat( { {  1, -4, 7 },
-                                                                    { -4,  2, 0 },
-                                                                    {  7,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat(  1, -4, 7,
+                                                                  -4,  2, 0,
+                                                                   7,  0, 3 );
 
       const ST sym( mat );
 
@@ -581,9 +416,9 @@ void DenseNumericTest::testConstructors()
    {
       test_ = "Row-major SymmetricMatrix conversion constructor (non-symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat( { {  1, -4, 7 },
-                                                                    { -4,  2, 0 },
-                                                                    { -5,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat(  1, -4, 7,
+                                                                  -4,  2, 0,
+                                                                  -5,  0, 3 );
 
       try {
          const ST sym( mat );
@@ -696,123 +531,6 @@ void DenseNumericTest::testConstructors()
 
 
    //=====================================================================================
-   // Column-major array initialization
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Column-major SymmetricMatrix initializer list constructor (complete list)";
-
-      const OST sym{ { 1, 2, 3 }, { 2, 4, 0 }, { 3, 0, 6 } };
-
-      checkRows    ( sym, 3UL );
-      checkColumns ( sym, 3UL );
-      checkCapacity( sym, 9UL );
-      checkNonZeros( sym, 7UL );
-
-      if( sym(0,0) != 1 || sym(0,1) != 2 || sym(0,2) != 3 ||
-          sym(1,0) != 2 || sym(1,1) != 4 || sym(1,2) != 0 ||
-          sym(2,0) != 3 || sym(2,1) != 0 || sym(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Column-major SymmetricMatrix initializer list constructor (incomplete list)";
-
-      const OST sym{ { 1, 2, 3 }, { 2, 4 }, { 3, 0, 6 } };
-
-      checkRows    ( sym, 3UL );
-      checkColumns ( sym, 3UL );
-      checkCapacity( sym, 9UL );
-      checkNonZeros( sym, 7UL );
-
-      if( sym(0,0) != 1 || sym(0,1) != 2 || sym(0,2) != 3 ||
-          sym(1,0) != 2 || sym(1,1) != 4 || sym(1,2) != 0 ||
-          sym(2,0) != 3 || sym(2,1) != 0 || sym(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major array initialization
-   //=====================================================================================
-
-   // Dynamic array initialization constructor
-   {
-      test_ = "Column-major SymmetricMatrix dynamic array initialization constructor";
-
-      std::unique_ptr<int[]> array( new int[9] );
-      array[0] = 1;
-      array[1] = 2;
-      array[2] = 3;
-      array[3] = 2;
-      array[4] = 4;
-      array[5] = 0;
-      array[6] = 3;
-      array[7] = 0;
-      array[8] = 6;
-      const OST sym( 3UL, array.get() );
-
-      checkRows    ( sym, 3UL );
-      checkColumns ( sym, 3UL );
-      checkCapacity( sym, 9UL );
-      checkNonZeros( sym, 7UL );
-
-      if( sym(0,0) != 1 || sym(0,1) != 2 || sym(0,2) != 3 ||
-          sym(1,0) != 2 || sym(1,1) != 4 || sym(1,2) != 0 ||
-          sym(2,0) != 3 || sym(2,1) != 0 || sym(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Static array initialization constructor
-   {
-      test_ = "Column-major SymmetricMatrix static array initialization constructor";
-
-      const int array[3][3] = { { 1, 2, 3 }, { 2, 4, 0 }, { 3, 0, 6 } };
-      const OST sym( array );
-
-      checkRows    ( sym, 3UL );
-      checkColumns ( sym, 3UL );
-      checkCapacity( sym, 9UL );
-      checkNonZeros( sym, 7UL );
-
-      if( sym(0,0) != 1 || sym(0,1) != 2 || sym(0,2) != 3 ||
-          sym(1,0) != 2 || sym(1,1) != 4 || sym(1,2) != 0 ||
-          sym(2,0) != 3 || sym(2,1) != 0 || sym(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major custom matrix constructors
    //=====================================================================================
 
@@ -825,7 +543,7 @@ void DenseNumericTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5UL] );
+      blaze::UniqueArray<int> array( new int[5UL] );
       array[1] = 1;
       array[2] = 2;
       array[3] = 2;
@@ -858,7 +576,7 @@ void DenseNumericTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[11UL] );
+      blaze::UniqueArray<int> array( new int[11UL] );
       array[1] = 1;
       array[2] = 2;
       array[6] = 2;
@@ -891,7 +609,7 @@ void DenseNumericTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[4UL] );
+      blaze::UniqueArray<int> array( new int[4UL] );
       array[0] = 1;
       array[1] = 2;
       array[2] = 2;
@@ -924,7 +642,7 @@ void DenseNumericTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[10UL] );
+      blaze::UniqueArray<int> array( new int[10UL] );
       array[0] = 1;
       array[1] = 2;
       array[5] = 2;
@@ -998,54 +716,6 @@ void DenseNumericTest::testConstructors()
 
 
    //=====================================================================================
-   // Column-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Column-major SymmetricMatrix move constructor (0x0)";
-
-      OST sym1;
-      OST sym2( std::move( sym1 ) );
-
-      checkRows    ( sym2, 0UL );
-      checkColumns ( sym2, 0UL );
-      checkNonZeros( sym2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Column-major SymmetricMatrix move constructor (3x3)";
-
-      OST sym1( 3UL );
-      sym1(0,0) =  1;
-      sym1(0,1) = -4;
-      sym1(0,2) =  7;
-      sym1(1,1) =  2;
-      sym1(2,2) =  3;
-
-      OST sym2( std::move( sym1 ) );
-
-      checkRows    ( sym2, 3UL );
-      checkColumns ( sym2, 3UL );
-      checkCapacity( sym2, 9UL );
-      checkNonZeros( sym2, 7UL );
-
-      if( sym2(0,0) !=  1 || sym2(0,1) != -4 || sym2(0,2) != 7 ||
-          sym2(1,0) != -4 || sym2(1,1) !=  2 || sym2(1,2) != 0 ||
-          sym2(2,0) !=  7 || sym2(2,1) !=  0 || sym2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym2 << "\n"
-             << "   Expected result:\n(  1 -4  7 )\n( -4  2  0 )\n(  7  0  3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major conversion constructor
    //=====================================================================================
 
@@ -1065,9 +735,9 @@ void DenseNumericTest::testConstructors()
    {
       test_ = "Column-major SymmetricMatrix conversion constructor (symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat( { {  1, -4, 7 },
-                                                                       { -4,  2, 0 },
-                                                                       {  7,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat(  1, -4, 7,
+                                                                     -4,  2, 0,
+                                                                      7,  0, 3 );
 
       const OST sym( mat );
 
@@ -1093,9 +763,9 @@ void DenseNumericTest::testConstructors()
    {
       test_ = "Column-major SymmetricMatrix conversion constructor (non-symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat( { {  1, -4, 7 },
-                                                                       { -4,  2, 0 },
-                                                                       { -5,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat(  1, -4, 7,
+                                                                     -4,  2, 0,
+                                                                     -5,  0, 3 );
 
       try {
          const OST sym( mat );
@@ -1156,101 +826,6 @@ void DenseNumericTest::testConstructors()
 void DenseNumericTest::testAssignment()
 {
    //=====================================================================================
-   // Row-major list assignment
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Row-major SymmetricMatrix initializer list assignment";
-
-      ST sym;
-      sym = { { 1, 2, 3 }, { 2, 4, 0 }, { 3, 0, 6 } };
-
-      checkRows    ( sym, 3UL );
-      checkColumns ( sym, 3UL );
-      checkCapacity( sym, 9UL );
-      checkNonZeros( sym, 7UL );
-      checkNonZeros( sym, 0UL, 3UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 2UL );
-
-      if( sym(0,0) != 1 || sym(0,1) != 2 || sym(0,2) != 3 ||
-          sym(1,0) != 2 || sym(1,1) != 4 || sym(1,2) != 0 ||
-          sym(2,0) != 3 || sym(2,1) != 0 || sym(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Row-major SymmetricMatrix initializer list assignment";
-
-      ST sym;
-      sym = { { 1, 2, 3 }, { 2, 4 }, { 3, 0, 6 } };
-
-      checkRows    ( sym, 3UL );
-      checkColumns ( sym, 3UL );
-      checkCapacity( sym, 9UL );
-      checkNonZeros( sym, 7UL );
-      checkNonZeros( sym, 0UL, 3UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 2UL );
-
-      if( sym(0,0) != 1 || sym(0,1) != 2 || sym(0,2) != 3 ||
-          sym(1,0) != 2 || sym(1,1) != 4 || sym(1,2) != 0 ||
-          sym(2,0) != 3 || sym(2,1) != 0 || sym(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major array assignment
-   //=====================================================================================
-
-   // Array assignment
-   {
-      test_ = "Row-major SymmetricMatrix array assignment";
-
-      const int array[3][3] = { { 1, 2, 3 }, { 2, 4, 0 }, { 3, 0, 6 } };
-      ST sym;
-      sym = array;
-
-      checkRows    ( sym, 3UL );
-      checkColumns ( sym, 3UL );
-      checkCapacity( sym, 9UL );
-      checkNonZeros( sym, 7UL );
-      checkNonZeros( sym, 0UL, 3UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 2UL );
-
-      if( sym(0,0) != 1 || sym(0,1) != 2 || sym(0,2) != 3 ||
-          sym(1,0) != 2 || sym(1,1) != 4 || sym(1,2) != 0 ||
-          sym(2,0) != 3 || sym(2,1) != 0 || sym(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major copy assignment
    //=====================================================================================
 
@@ -1300,55 +875,6 @@ void DenseNumericTest::testAssignment()
 
 
    //=====================================================================================
-   // Row-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Row-major SymmetricMatrix move assignment (0x0)";
-
-      ST sym1, sym2;
-
-      sym2 = std::move( sym1 );
-
-      checkRows    ( sym2, 0UL );
-      checkColumns ( sym2, 0UL );
-      checkNonZeros( sym2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Row-major SymmetricMatrix move assignment (3x3)";
-
-      ST sym1( 3UL );
-      sym1(0,0) =  1;
-      sym1(0,1) = -4;
-      sym1(0,2) =  7;
-      sym1(1,1) =  2;
-      sym1(2,2) =  3;
-
-      ST sym2;
-      sym2 = std::move( sym1 );
-
-      checkRows    ( sym2, 3UL );
-      checkColumns ( sym2, 3UL );
-      checkNonZeros( sym2, 7UL );
-
-      if( sym2(0,0) !=  1 || sym2(0,1) != -4 || sym2(0,2) != 7 ||
-          sym2(1,0) != -4 || sym2(1,1) !=  2 || sym2(1,2) != 0 ||
-          sym2(2,0) !=  7 || sym2(2,1) !=  0 || sym2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym2 << "\n"
-             << "   Expected result:\n(  1 -4  7 )\n( -4  2  0 )\n(  7  0  3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major dense matrix assignment
    //=====================================================================================
 
@@ -1370,9 +896,9 @@ void DenseNumericTest::testAssignment()
    {
       test_ = "Row-major/row-major SymmetricMatrix dense matrix assignment (symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat( { {  1, -4, 7 },
-                                                                    { -4,  2, 0 },
-                                                                    {  7,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat(  1, -4, 7,
+                                                                  -4,  2, 0,
+                                                                   7,  0, 3 );
 
       ST sym;
       sym = mat;
@@ -1398,9 +924,9 @@ void DenseNumericTest::testAssignment()
    {
       test_ = "Row-major/column-major SymmetricMatrix dense matrix assignment (symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat( { {  1, -4, 7 },
-                                                                       { -4,  2, 0 },
-                                                                       {  7,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat(  1, -4, 7,
+                                                                     -4,  2, 0,
+                                                                      7,  0, 3 );
 
       ST sym;
       sym = mat;
@@ -1426,9 +952,9 @@ void DenseNumericTest::testAssignment()
    {
       test_ = "Row-major/row-major SymmetricMatrix dense matrix assignment (non-symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat( { {  1, -4, 7 },
-                                                                    { -4,  2, 0 },
-                                                                    { -5,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat(  1, -4, 7,
+                                                                  -4,  2, 0,
+                                                                  -5,  0, 3 );
 
       try {
          ST sym;
@@ -1448,9 +974,9 @@ void DenseNumericTest::testAssignment()
    {
       test_ = "Row-major/column-major SymmetricMatrix dense matrix assignment (non-symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat( { {  1, -4, 7 },
-                                                                       { -4,  2, 0 },
-                                                                       { -5,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat(  1, -4, 7,
+                                                                     -4,  2, 0,
+                                                                     -5,  0, 3 );
 
       try {
          ST sym;
@@ -1733,101 +1259,6 @@ void DenseNumericTest::testAssignment()
 
 
    //=====================================================================================
-   // Column-major list assignment
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Column-major SymmetricMatrix initializer list assignment";
-
-      OST sym;
-      sym = { { 1, 2, 3 }, { 2, 4, 0 }, { 3, 0, 6 } };
-
-      checkRows    ( sym, 3UL );
-      checkColumns ( sym, 3UL );
-      checkCapacity( sym, 9UL );
-      checkNonZeros( sym, 7UL );
-      checkNonZeros( sym, 0UL, 3UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 2UL );
-
-      if( sym(0,0) != 1 || sym(0,1) != 2 || sym(0,2) != 3 ||
-          sym(1,0) != 2 || sym(1,1) != 4 || sym(1,2) != 0 ||
-          sym(2,0) != 3 || sym(2,1) != 0 || sym(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Column-major SymmetricMatrix initializer list assignment";
-
-      OST sym;
-      sym = { { 1, 2, 3 }, { 2, 4 }, { 3, 0, 6 } };
-
-      checkRows    ( sym, 3UL );
-      checkColumns ( sym, 3UL );
-      checkCapacity( sym, 9UL );
-      checkNonZeros( sym, 7UL );
-      checkNonZeros( sym, 0UL, 3UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 2UL );
-
-      if( sym(0,0) != 1 || sym(0,1) != 2 || sym(0,2) != 3 ||
-          sym(1,0) != 2 || sym(1,1) != 4 || sym(1,2) != 0 ||
-          sym(2,0) != 3 || sym(2,1) != 0 || sym(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major array assignment
-   //=====================================================================================
-
-   // Array assignment
-   {
-      test_ = "Column-major SymmetricMatrix array assignment";
-
-      const int array[3][3] = { { 1, 2, 3 }, { 2, 4, 0 }, { 3, 0, 6 } };
-      OST sym;
-      sym = array;
-
-      checkRows    ( sym, 3UL );
-      checkColumns ( sym, 3UL );
-      checkCapacity( sym, 9UL );
-      checkNonZeros( sym, 7UL );
-      checkNonZeros( sym, 0UL, 3UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 2UL );
-
-      if( sym(0,0) != 1 || sym(0,1) != 2 || sym(0,2) != 3 ||
-          sym(1,0) != 2 || sym(1,1) != 4 || sym(1,2) != 0 ||
-          sym(2,0) != 3 || sym(2,1) != 0 || sym(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major copy assignment
    //=====================================================================================
 
@@ -1877,55 +1308,6 @@ void DenseNumericTest::testAssignment()
 
 
    //=====================================================================================
-   // Column-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Column-major SymmetricMatrix move assignment (0x0)";
-
-      OST sym1, sym2;
-
-      sym2 = std::move( sym1 );
-
-      checkRows    ( sym2, 0UL );
-      checkColumns ( sym2, 0UL );
-      checkNonZeros( sym2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Column-major SymmetricMatrix move assignment (3x3)";
-
-      OST sym1( 3UL );
-      sym1(0,0) =  1;
-      sym1(0,1) = -4;
-      sym1(0,2) =  7;
-      sym1(1,1) =  2;
-      sym1(2,2) =  3;
-
-      OST sym2;
-      sym2 = std::move( sym1 );
-
-      checkRows    ( sym2, 3UL );
-      checkColumns ( sym2, 3UL );
-      checkNonZeros( sym2, 7UL );
-
-      if( sym2(0,0) !=  1 || sym2(0,1) != -4 || sym2(0,2) != 7 ||
-          sym2(1,0) != -4 || sym2(1,1) !=  2 || sym2(1,2) != 0 ||
-          sym2(2,0) !=  7 || sym2(2,1) !=  0 || sym2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym2 << "\n"
-             << "   Expected result:\n(  1 -4  7 )\n( -4  2  0 )\n(  7  0  3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major dense matrix assignment
    //=====================================================================================
 
@@ -1947,9 +1329,9 @@ void DenseNumericTest::testAssignment()
    {
       test_ = "Column-major/row-major SymmetricMatrix dense matrix assignment (symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat( { {  1, -4, 7 },
-                                                                    { -4,  2, 0 },
-                                                                    {  7,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat(  1, -4, 7,
+                                                                  -4,  2, 0,
+                                                                   7,  0, 3 );
 
       OST sym;
       sym = mat;
@@ -1975,9 +1357,9 @@ void DenseNumericTest::testAssignment()
    {
       test_ = "Column-major/column-major SymmetricMatrix dense matrix assignment (symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat( { {  1, -4, 7 },
-                                                                       { -4,  2, 0 },
-                                                                       {  7,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat(  1, -4, 7,
+                                                                     -4,  2, 0,
+                                                                      7,  0, 3 );
 
       OST sym;
       sym = mat;
@@ -2003,9 +1385,9 @@ void DenseNumericTest::testAssignment()
    {
       test_ = "Column-major/row-major SymmetricMatrix dense matrix assignment (non-symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat( { {  1, -4, 7 },
-                                                                    { -4,  2, 0 },
-                                                                    { -5,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat(  1, -4, 7,
+                                                                  -4,  2, 0,
+                                                                  -5,  0, 3 );
 
       try {
          OST sym;
@@ -2025,9 +1407,9 @@ void DenseNumericTest::testAssignment()
    {
       test_ = "Column-major/column-major SymmetricMatrix dense matrix assignment (non-symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat( { {  1, -4, 7 },
-                                                                       { -4,  2, 0 },
-                                                                       { -5,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat(  1, -4, 7,
+                                                                     -4,  2, 0,
+                                                                     -5,  0, 3 );
 
       try {
          OST sym;
@@ -8244,7 +7626,7 @@ void DenseNumericTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function";
 
-      typedef blaze::Submatrix<ST>  SMT;
+      typedef blaze::DenseSubmatrix<ST>  SMT;
 
       ST sym( 3UL );
       sym(0,0) =  1;
@@ -8336,7 +7718,7 @@ void DenseNumericTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function";
 
-      typedef blaze::Submatrix<OST>  SMT;
+      typedef blaze::DenseSubmatrix<OST>  SMT;
 
       OST sym( 3UL );
       sym(0,0) =  1;
@@ -8441,7 +7823,7 @@ void DenseNumericTest::testRow()
    {
       test_ = "Row-major row() function";
 
-      typedef blaze::Row<ST>  RT;
+      typedef blaze::DenseRow<ST>  RT;
 
       ST sym( 3UL );
       sym(0,0) =  1;
@@ -8531,7 +7913,7 @@ void DenseNumericTest::testRow()
    {
       test_ = "Column-major row() function";
 
-      typedef blaze::Row<OST>  RT;
+      typedef blaze::DenseRow<OST>  RT;
 
       OST sym( 3UL );
       sym(0,0) =  1;
@@ -8634,7 +8016,7 @@ void DenseNumericTest::testColumn()
    {
       test_ = "Row-major column() function";
 
-      typedef blaze::Column<ST>  CT;
+      typedef blaze::DenseColumn<ST>  CT;
 
       ST sym( 3UL );
       sym(0,0) =  1;
@@ -8724,7 +8106,7 @@ void DenseNumericTest::testColumn()
    {
       test_ = "Column-major column() function";
 
-      typedef blaze::Column<OST>  CT;
+      typedef blaze::DenseColumn<OST>  CT;
 
       OST sym( 3UL );
       sym(0,0) =  1;

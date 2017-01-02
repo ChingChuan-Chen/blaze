@@ -40,18 +40,18 @@
 // Includes
 //*************************************************************************************************
 
-#include <utility>
-#include <blaze/math/Aliases.h>
+#include <algorithm>
 #include <blaze/math/constraints/SparseVector.h>
-#include <blaze/math/InitializerList.h>
 #include <blaze/math/proxy/Proxy.h>
 #include <blaze/math/shims/Clear.h>
+#include <blaze/math/shims/Conjugate.h>
 #include <blaze/math/shims/IsDefault.h>
 #include <blaze/math/shims/IsNaN.h>
 #include <blaze/math/shims/IsOne.h>
 #include <blaze/math/shims/IsReal.h>
 #include <blaze/math/shims/IsZero.h>
 #include <blaze/math/shims/Reset.h>
+#include <blaze/math/traits/ConjExprTrait.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/Types.h>
 
@@ -97,12 +97,12 @@ namespace blaze {
 //
 */
 template< typename VT >  // Type of the sparse vector
-class VectorAccessProxy : public Proxy< VectorAccessProxy<VT>, ElementType_<VT> >
+class VectorAccessProxy : public Proxy< VectorAccessProxy<VT>, typename VT::ElementType >
 {
  public:
    //**Type definitions****************************************************************************
-   typedef ElementType_<VT>  RepresentedType;  //!< Type of the represented sparse vector element.
-   typedef RepresentedType&  RawReference;     //!< Raw reference to the represented element.
+   typedef typename VT::ElementType  RepresentedType;  //!< Type of the represented sparse vector element.
+   typedef RepresentedType&          RawReference;     //!< Raw reference to the represented element.
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
@@ -123,14 +123,7 @@ class VectorAccessProxy : public Proxy< VectorAccessProxy<VT>, ElementType_<VT> 
    //**Operators***********************************************************************************
    /*!\name Operators */
    //@{
-   inline const VectorAccessProxy& operator=( const VectorAccessProxy& vap ) const;
-
-   template< typename T >
-   inline const VectorAccessProxy& operator=( initializer_list<T> list ) const;
-
-   template< typename T >
-   inline const VectorAccessProxy& operator=( initializer_list< initializer_list<T> > list ) const;
-
+                          inline const VectorAccessProxy& operator= ( const VectorAccessProxy& vap ) const;
    template< typename T > inline const VectorAccessProxy& operator= ( const T& value ) const;
    template< typename T > inline const VectorAccessProxy& operator+=( const T& value ) const;
    template< typename T > inline const VectorAccessProxy& operator-=( const T& value ) const;
@@ -142,15 +135,15 @@ class VectorAccessProxy : public Proxy< VectorAccessProxy<VT>, ElementType_<VT> 
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-   inline RawReference get()          const noexcept;
-   inline bool         isRestricted() const noexcept;
+   inline RawReference get()          const;
+   inline bool         isRestricted() const;
    //@}
    //**********************************************************************************************
 
    //**Conversion operator*************************************************************************
    /*!\name Conversion operator */
    //@{
-   inline operator RawReference() const noexcept;
+   inline operator RawReference() const;
    //@}
    //**********************************************************************************************
 
@@ -198,7 +191,7 @@ inline VectorAccessProxy<VT>::VectorAccessProxy( VT& sv, size_t i )
    : sv_( sv )  // Reference to the accessed sparse vector
    , i_ ( i  )  // Index of the accessed sparse vector element
 {
-   const Iterator_<VT> element( sv_.find( i_ ) );
+   const typename VT::Iterator element( sv_.find( i_ ) );
    if( element == sv_.end() )
       sv_.insert( i_, RepresentedType() );
 }
@@ -234,7 +227,7 @@ inline VectorAccessProxy<VT>::VectorAccessProxy( const VectorAccessProxy& vap )
 template< typename VT >  // Type of the sparse vector
 inline VectorAccessProxy<VT>::~VectorAccessProxy()
 {
-   const Iterator_<VT> element( sv_.find( i_ ) );
+   const typename VT::Iterator element( sv_.find( i_ ) );
    if( element != sv_.end() && isDefault( element->value() ) )
       sv_.erase( element );
 }
@@ -259,40 +252,6 @@ template< typename VT >  // Type of the sparse vector
 inline const VectorAccessProxy<VT>& VectorAccessProxy<VT>::operator=( const VectorAccessProxy& vap ) const
 {
    get() = vap.get();
-   return *this;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Initializer list assignment to the accessed sparse vector element.
-//
-// \param list The list to be assigned to the sparse vector element.
-// \return Reference to the assigned access proxy.
-*/
-template< typename VT >  // Type of the sparse vector
-template< typename T >   // Type of the right-hand side elements
-inline const VectorAccessProxy<VT>&
-   VectorAccessProxy<VT>::operator=( initializer_list<T> list ) const
-{
-   get() = list;
-   return *this;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Initializer list assignment to the accessed sparse vector element.
-//
-// \param list The list to be assigned to the sparse vector element.
-// \return Reference to the assigned access proxy.
-*/
-template< typename VT >  // Type of the sparse vector
-template< typename T >   // Type of the right-hand side elements
-inline const VectorAccessProxy<VT>&
-   VectorAccessProxy<VT>::operator=( initializer_list< initializer_list<T> > list ) const
-{
-   get() = list;
    return *this;
 }
 //*************************************************************************************************
@@ -392,9 +351,9 @@ inline const VectorAccessProxy<VT>& VectorAccessProxy<VT>::operator/=( const T& 
 // \return Direct/raw reference to the accessed sparse vector element.
 */
 template< typename VT >  // Type of the sparse vector
-inline typename VectorAccessProxy<VT>::RawReference VectorAccessProxy<VT>::get() const noexcept
+inline typename VectorAccessProxy<VT>::RawReference VectorAccessProxy<VT>::get() const
 {
-   const Iterator_<VT> element( sv_.find( i_ ) );
+   const typename VT::Iterator element( sv_.find( i_ ) );
    BLAZE_INTERNAL_ASSERT( element != sv_.end(), "Missing vector element detected" );
    return element->value();
 }
@@ -407,7 +366,7 @@ inline typename VectorAccessProxy<VT>::RawReference VectorAccessProxy<VT>::get()
 // \return \a true in case access to the sparse vector element is restricted, \a false if not.
 */
 template< typename VT >  // Type of the sparse vector
-inline bool VectorAccessProxy<VT>::isRestricted() const noexcept
+inline bool VectorAccessProxy<VT>::isRestricted() const
 {
    return false;
 }
@@ -428,7 +387,7 @@ inline bool VectorAccessProxy<VT>::isRestricted() const noexcept
 // \return Direct/raw reference to the accessed sparse vector element.
 */
 template< typename VT >  // Type of the sparse vector
-inline VectorAccessProxy<VT>::operator RawReference() const noexcept
+inline VectorAccessProxy<VT>::operator RawReference() const
 {
    return get();
 }
@@ -446,6 +405,10 @@ inline VectorAccessProxy<VT>::operator RawReference() const noexcept
 //*************************************************************************************************
 /*!\name VectorAccessProxy global functions */
 //@{
+template< typename VT >
+inline typename ConjExprTrait< typename VectorAccessProxy<VT>::RepresentedType >::Type
+   conj( const VectorAccessProxy<VT>& proxy );
+
 template< typename VT >
 inline void reset( const VectorAccessProxy<VT>& proxy );
 
@@ -468,14 +431,36 @@ template< typename VT >
 inline bool isnan( const VectorAccessProxy<VT>& proxy );
 
 template< typename VT >
-inline void swap( const VectorAccessProxy<VT>& a, const VectorAccessProxy<VT>& b ) noexcept;
+inline void swap( const VectorAccessProxy<VT>& a, const VectorAccessProxy<VT>& b ) /* throw() */;
 
 template< typename VT, typename T >
-inline void swap( const VectorAccessProxy<VT>& a, T& b ) noexcept;
+inline void swap( const VectorAccessProxy<VT>& a, T& b ) /* throw() */;
 
 template< typename T, typename VT >
-inline void swap( T& a, const VectorAccessProxy<VT>& v ) noexcept;
+inline void swap( T& a, const VectorAccessProxy<VT>& v ) /* throw() */;
 //@}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Computing the complex conjugate of the represented element.
+// \ingroup sparse_vector
+//
+// \param proxy The given proxy instance.
+// \return The complex conjugate of the represented element.
+//
+// This function computes the complex conjugate of the element represented by the access proxy.
+// In case the proxy represents a vector- or matrix-like data structure the function returns an
+// expression representing the complex conjugate of the vector/matrix.
+*/
+template< typename VT >
+inline typename ConjExprTrait< typename VectorAccessProxy<VT>::RepresentedType >::Type
+   conj( const VectorAccessProxy<VT>& proxy )
+{
+   using blaze::conj;
+
+   return conj( (~proxy).get() );
+}
 //*************************************************************************************************
 
 
@@ -622,9 +607,10 @@ inline bool isnan( const VectorAccessProxy<VT>& proxy )
 // \param a The first access proxy to be swapped.
 // \param b The second access proxy to be swapped.
 // \return void
+// \exception no-throw guarantee.
 */
 template< typename VT >
-inline void swap( const VectorAccessProxy<VT>& a, const VectorAccessProxy<VT>& b ) noexcept
+inline void swap( const VectorAccessProxy<VT>& a, const VectorAccessProxy<VT>& b ) /* throw() */
 {
    using std::swap;
 
@@ -640,9 +626,10 @@ inline void swap( const VectorAccessProxy<VT>& a, const VectorAccessProxy<VT>& b
 // \param a The access proxy to be swapped.
 // \param b The other element to be swapped.
 // \return void
+// \exception no-throw guarantee.
 */
 template< typename VT, typename T >
-inline void swap( const VectorAccessProxy<VT>& a, T& b ) noexcept
+inline void swap( const VectorAccessProxy<VT>& a, T& b ) /* throw() */
 {
    using std::swap;
 
@@ -658,9 +645,10 @@ inline void swap( const VectorAccessProxy<VT>& a, T& b ) noexcept
 // \param a The other element to be swapped.
 // \param b The access proxy to be swapped.
 // \return void
+// \exception no-throw guarantee.
 */
 template< typename T, typename VT >
-inline void swap( T& a, const VectorAccessProxy<VT>& b ) noexcept
+inline void swap( T& a, const VectorAccessProxy<VT>& b ) /* throw() */
 {
    using std::swap;
 

@@ -40,7 +40,7 @@
 // Includes
 //*************************************************************************************************
 
-#include <type_traits>
+#include <boost/type_traits/make_unsigned.hpp>
 
 
 namespace blaze {
@@ -55,13 +55,13 @@ namespace blaze {
 /*!\brief Compile time type conversion into an unsigned integral type.
 // \ingroup type_traits
 //
-// This type trait provides the feature to convert the given integral or constant type \a T to
+// This type trait provides the feature to convert the given integral or enumeration type \a T to
 // the corresponding unsigned integral data type with the same size and with the same cv-qualifiers.
 // Note that in case \a T is bool or a non-integral data type, a compilation error is created.
 
    \code
    enum MyEnum { ... };
-
+   
    blaze::MakeUnsigned<int>::Type                  // Results in 'unsigned int'
    blaze::MakeUnsigned<const unsigned int>::Type   // Results in 'const unsigned int'
    blaze::MakeUnsigned<const unsigned long>::Type  // Results in 'const unsigned long'
@@ -75,28 +75,10 @@ struct MakeUnsigned
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   typedef typename std::make_unsigned<T>::type  Type;
+   typedef typename boost::make_unsigned<T>::type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the MakeUnsigned type trait.
-// \ingroup type_traits
-//
-// The MakeUnsigned_ alias declaration provides a convenient shortcut to access the nested \a Type
-// of the MakeUnsigned class template. For instance, given the type \a T the following two type
-// definitions are identical:
-
-   \code
-   using Type1 = typename MakeUnsigned<T>::Type;
-   using Type2 = MakeUnsigned_<T>;
-   \endcode
-*/
-template< typename T >
-using MakeUnsigned_ = typename MakeUnsigned<T>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

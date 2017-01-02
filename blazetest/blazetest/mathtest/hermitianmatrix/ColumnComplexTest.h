@@ -45,10 +45,11 @@
 #include <string>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/CompressedVector.h>
-#include <blaze/math/Column.h>
+#include <blaze/math/DenseColumn.h>
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/DynamicVector.h>
 #include <blaze/math/HermitianMatrix.h>
+#include <blaze/math/SparseColumn.h>
 #include <blaze/math/traits/ColumnExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blazetest/system/Types.h>
@@ -162,7 +163,7 @@ class ColumnComplexTest
 template< typename HT >  // Type of the Hermitian matrix
 void ColumnComplexTest::testAssignment()
 {
-   typedef blaze::ColumnExprTrait_<HT>  CT;
+   typedef typename blaze::ColumnExprTrait<HT>::Type  CT;
 
 
    //=====================================================================================
@@ -339,7 +340,7 @@ void ColumnComplexTest::testAssignment()
 template< typename HT >  // Type of the Hermitian matrix
 void ColumnComplexTest::testAddAssign()
 {
-   typedef blaze::ColumnExprTrait_<HT>  CT;
+   typedef typename blaze::ColumnExprTrait<HT>::Type  CT;
 
 
    //=====================================================================================
@@ -516,7 +517,7 @@ void ColumnComplexTest::testAddAssign()
 template< typename HT >  // Type of the Hermitian matrix
 void ColumnComplexTest::testSubAssign()
 {
-   typedef blaze::ColumnExprTrait_<HT>  CT;
+   typedef typename blaze::ColumnExprTrait<HT>::Type  CT;
 
 
    //=====================================================================================
@@ -693,7 +694,7 @@ void ColumnComplexTest::testSubAssign()
 template< typename HT >  // Type of the Hermitian matrix
 void ColumnComplexTest::testMultAssign()
 {
-   typedef blaze::ColumnExprTrait_<HT>  CT;
+   typedef typename blaze::ColumnExprTrait<HT>::Type  CT;
 
 
    //=====================================================================================
@@ -1010,7 +1011,7 @@ void runTest()
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Macro for the execution of the HermitianMatrix column complex test.
+/*!\brief Macro for the execution of the complex HermitianMatrix column test.
 */
 #define RUN_HERMITIANMATRIX_COLUMNCOMPLEX_TEST \
    blazetest::mathtest::hermitianmatrix::runTest()

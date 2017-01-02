@@ -42,7 +42,6 @@
 
 #include <blaze/math/adaptors/Forward.h>
 #include <blaze/math/dense/Forward.h>
-#include <blaze/math/functors/Forward.h>
 #include <blaze/math/sparse/Forward.h>
 #include <blaze/math/views/Forward.h>
 

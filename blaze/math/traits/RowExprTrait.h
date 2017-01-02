@@ -42,15 +42,14 @@
 
 #include <blaze/math/typetraits/IsComputation.h>
 #include <blaze/math/typetraits/IsDenseMatrix.h>
-#include <blaze/math/typetraits/IsMatrix.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
+#include <blaze/math/typetraits/IsSparseMatrix.h>
 #include <blaze/math/typetraits/IsSymmetric.h>
 #include <blaze/math/typetraits/IsTransExpr.h>
 #include <blaze/math/views/Forward.h>
 #include <blaze/util/InvalidType.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
@@ -81,57 +80,53 @@ struct RowExprTrait
  private:
    //**struct Failure******************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   struct Failure { using Type = INVALID_TYPE; };
+   struct Failure { typedef INVALID_TYPE  Type; };
    /*! \endcond */
    //**********************************************************************************************
 
-   //**struct Result*******************************************************************************
+   //**struct DenseResult**************************************************************************
    /*! \cond BLAZE_INTERNAL */
    template< typename T >
-   struct Result {
-      using Type = Row< T, IsRowMajorMatrix<T>::value, IsDenseMatrix<T>::value, IsSymmetric<T>::value >;
+   struct DenseResult {
+      typedef DenseRow<T,IsRowMajorMatrix<T>::value,IsSymmetric<T>::value>  Type;
+   };
+   /*! \endcond */
+   //**********************************************************************************************
+
+   //**struct SparseResult*************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   template< typename T >
+   struct SparseResult {
+      typedef SparseRow<T,IsRowMajorMatrix<T>::value,IsSymmetric<T>::value>  Type;
    };
    /*! \endcond */
    //**********************************************************************************************
 
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Tmp = RemoveReference_<MT>;
+   typedef typename RemoveReference<MT>::Type  Tmp;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsComputation<Tmp>, IsTransExpr<Tmp> >
-                            , If_< Or< IsConst<Tmp>, IsVolatile<Tmp> >
-                                 , RowExprTrait< RemoveCV_<Tmp> >
-                                 , Failure >
-                            , If_< IsMatrix<Tmp>
-                                 , Result<Tmp>
-                                 , Failure >
-                            >::Type;
+   typedef typename If< Or< IsComputation<Tmp>, IsTransExpr<Tmp> >
+                      , typename If< Or< IsConst<Tmp>, IsVolatile<Tmp> >
+                                   , RowExprTrait< typename RemoveCV<Tmp>::Type >
+                                   , Failure
+                                   >::Type
+                      , typename If< IsDenseMatrix<Tmp>
+                                   , DenseResult<Tmp>
+                                   , typename If< IsSparseMatrix<Tmp>
+                                                , SparseResult<Tmp>
+                                                , Failure
+                                                >::Type
+                                   >::Type
+                      >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the RowExprTrait type trait.
-// \ingroup math_traits
-//
-// The RowExprTrait_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the RowExprTrait class template. For instance, given the matrix type \a MT the
-// following two type definitions are identical:
-
-   \code
-   using Type1 = typename RowExprTrait<MT>::Type;
-   using Type2 = RowExprTrait_<MT>;
-   \endcode
-*/
-template< typename MT >  // Type of the matrix operand
-using RowExprTrait_ = typename RowExprTrait<MT>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

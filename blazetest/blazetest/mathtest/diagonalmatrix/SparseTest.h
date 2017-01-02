@@ -106,11 +106,11 @@ class SparseTest
    void testSet         ();
    void testInsert      ();
    void testAppend      ();
+   void testErase       ();
    void testResize      ();
    void testReserve     ();
    void testTrim        ();
    void testSwap        ();
-   void testErase       ();
    void testFind        ();
    void testLowerBound  ();
    void testUpperBound  ();
@@ -471,7 +471,7 @@ void runTest()
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Macro for the execution of the DiagonalMatrix sparse test.
+/*!\brief Macro for the execution of the sparse DiagonalMatrix test.
 */
 #define RUN_DIAGONALMATRIX_SPARSE_TEST \
    blazetest::mathtest::diagonalmatrix::runTest()

@@ -50,6 +50,7 @@
 #include <blaze/util/constraints/Numeric.h>
 #include <blaze/util/constraints/Volatile.h>
 #include <blaze/util/EnableIf.h>
+#include <blaze/util/Null.h>
 #include <blaze/util/typetraits/IsNumeric.h>
 #include <blazemark/classic/Vector.h>
 #include <blazemark/system/Types.h>
@@ -167,10 +168,10 @@ class Matrix
 template< typename Type  // Data type of the matrix
         , bool SO >      // Storage order
 inline Matrix<Type,SO>::Matrix()
-   : m_       ( 0UL )      // The current number of rows of the matrix
-   , n_       ( 0UL )      // The current number of columns of the matrix
-   , capacity_( 0UL )      // The maximum capacity of the matrix
-   , v_       ( nullptr )  // The matrix elements
+   : m_       ( 0UL  )  // The current number of rows of the matrix
+   , n_       ( 0UL  )  // The current number of columns of the matrix
+   , capacity_( 0UL  )  // The maximum capacity of the matrix
+   , v_       ( NULL )  // The matrix elements
 {}
 //*************************************************************************************************
 
@@ -255,7 +256,7 @@ template< typename Type  // Data type of the matrix
         , bool SO >      // Storage order
 inline Matrix<Type,SO>::~Matrix()
 {
-   delete[] v_;
+   delete [] v_;
 }
 //*************************************************************************************************
 
@@ -815,7 +816,7 @@ inline const Vector<Type> operator*( const Vector<Type>& x, const Matrix<Type,fa
 */
 template< typename Type  // Data type of the matrix
         , bool SO >      // Storage order
-inline const ::blaze::EnableIf_< ::blaze::IsNumeric<Type>, Matrix<Type,SO> >
+inline const typename ::blaze::EnableIf< ::blaze::IsNumeric<Type>, Matrix<Type,SO> >::Type
    operator*( const Matrix<Type,SO>& mat, Type scalar )
 {
    Matrix<Type,SO> res( mat.rows(), mat.columns() );
@@ -852,7 +853,7 @@ inline const ::blaze::EnableIf_< ::blaze::IsNumeric<Type>, Matrix<Type,SO> >
 */
 template< typename Type  // Data type of the matrix
         , bool SO >      // Storage order
-inline const ::blaze::EnableIf_< ::blaze::IsNumeric<Type>, Matrix<Type,SO> >
+inline const typename ::blaze::EnableIf< ::blaze::IsNumeric<Type>, Matrix<Type,SO> >::Type
    operator*( Type scalar, const Matrix<Type,SO>& mat )
 {
    Matrix<Type,SO> res( mat.rows(), mat.columns() );

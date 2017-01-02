@@ -47,10 +47,11 @@
 #include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -76,39 +77,21 @@ struct TSVecSerialExprTrait
  private:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Tmp = If< And< IsSparseVector<VT>, IsRowVector<VT> >
-                 , SVecSerialExpr<VT,true>
-                 , INVALID_TYPE >;
+   typedef If< And< IsSparseVector<VT>, IsRowVector<VT> >
+             , SVecSerialExpr<VT,true>, INVALID_TYPE >  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<VT>::Type >::Type  Type1;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<VT>, IsVolatile<VT>, IsReference<VT> >
-                            , TSVecSerialExprTrait< Decay_<VT> >
-                            , Tmp >::Type;
+   typedef typename If< Or< IsConst<VT>, IsVolatile<VT>, IsReference<VT> >
+                      , TSVecSerialExprTrait<Type1>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the TSVecSerialExprTrait class template.
-// \ingroup math_traits
-//
-// The TSVecSerialExprTrait_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the TSVecSerialExprTrait class template. For instance, given the transpose sparse
-// vector type \a VT the following two type definitions are identical:
-
-   \code
-   using Type1 = typename TSVecSerialExprTrait<VT>::Type;
-   using Type2 = TSVecSerialExprTrait_<VT>;
-   \endcode
-*/
-template< typename VT >  // Type of the sparse vector
-using TSVecSerialExprTrait_ = typename TSVecSerialExprTrait<VT>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

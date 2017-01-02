@@ -40,12 +40,10 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/DenseVector.h>
 #include <blaze/math/constraints/SparseVector.h>
 #include <blaze/math/constraints/VecVecAddExpr.h>
 #include <blaze/math/constraints/TransposeFlag.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/Computation.h>
 #include <blaze/math/expressions/DenseVector.h>
 #include <blaze/math/expressions/Forward.h>
@@ -66,11 +64,11 @@
 #include <blaze/util/Assert.h>
 #include <blaze/util/constraints/Reference.h>
 #include <blaze/util/EnableIf.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/InvalidType.h>
 #include <blaze/util/logging/FunctionTrace.h>
-#include <blaze/util/mpl/And.h>
-#include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Max.h>
+#include <blaze/util/SelectType.h>
 #include <blaze/util/Types.h>
 
 
@@ -98,14 +96,14 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
 {
  private:
    //**Type definitions****************************************************************************
-   typedef ResultType_<VT1>     RT1;  //!< Result type of the left-hand side dense vector expression.
-   typedef ResultType_<VT2>     RT2;  //!< Result type of the right-hand side sparse vector expression.
-   typedef ReturnType_<VT1>     RN1;  //!< Return type of the left-hand side dense vector expression.
-   typedef ReturnType_<VT2>     RN2;  //!< Return type of the right-hand side sparse vector expression.
-   typedef CompositeType_<VT1>  CT1;  //!< Composite type of the left-hand side dense vector expression.
-   typedef CompositeType_<VT2>  CT2;  //!< Composite type of the right-hand side sparse vector expression.
-   typedef TransposeType_<VT1>  TT1;  //!< Transpose type of the left-hand side dense vector expression.
-   typedef TransposeType_<VT2>  TT2;  //!< Transpose type of the right-hand side sparse vector expression.
+   typedef typename VT1::ResultType     RT1;  //!< Result type of the left-hand side dense vector expression.
+   typedef typename VT2::ResultType     RT2;  //!< Result type of the right-hand side sparse vector expression.
+   typedef typename VT1::ReturnType     RN1;  //!< Return type of the left-hand side dense vector expression.
+   typedef typename VT2::ReturnType     RN2;  //!< Return type of the right-hand side sparse vector expression.
+   typedef typename VT1::CompositeType  CT1;  //!< Composite type of the left-hand side dense vector expression.
+   typedef typename VT2::CompositeType  CT2;  //!< Composite type of the right-hand side sparse vector expression.
+   typedef typename VT1::TransposeType  TT1;  //!< Transpose type of the left-hand side dense vector expression.
+   typedef typename VT2::TransposeType  TT2;  //!< Transpose type of the right-hand side sparse vector expression.
    //**********************************************************************************************
 
    //**Return type evaluation**********************************************************************
@@ -115,10 +113,10 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
        or matrix, \a returnExpr will be set to \a false and the subscript operator will
        return it's result by value. Otherwise \a returnExpr will be set to \a true and
        the subscript operator may return it's result as an expression. */
-   enum : bool { returnExpr = !IsTemporary<RN1>::value && !IsTemporary<RN2>::value };
+   enum { returnExpr = !IsTemporary<RN1>::value && !IsTemporary<RN2>::value };
 
    //! Expression return type for the subscript operator.
-   typedef AddExprTrait_<RN1,RN2>  ExprReturnType;
+   typedef typename AddExprTrait<RN1,RN2>::Type  ExprReturnType;
    //**********************************************************************************************
 
    //**Parallel evaluation strategy****************************************************************
@@ -130,37 +128,37 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
        is set to 0 and the default strategy is chosen. */
    template< typename VT >
    struct UseSMPAssign {
-      enum : bool { value = ( !VT1::smpAssignable || !VT2::smpAssignable ) };
+      enum { value = ( !VT1::smpAssignable || !VT2::smpAssignable ) };
    };
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
-   typedef DVecSVecAddExpr<VT1,VT2,TF>  This;           //!< Type of this DVecSVecAddExpr instance.
-   typedef AddTrait_<RT1,RT2>           ResultType;     //!< Result type for expression template evaluations.
-   typedef TransposeType_<ResultType>   TransposeType;  //!< Transpose type for expression template evaluations.
-   typedef ElementType_<ResultType>     ElementType;    //!< Resulting element type.
+   typedef DVecSVecAddExpr<VT1,VT2,TF>         This;           //!< Type of this DVecSVecAddExpr instance.
+   typedef typename AddTrait<RT1,RT2>::Type    ResultType;     //!< Result type for expression template evaluations.
+   typedef typename ResultType::TransposeType  TransposeType;  //!< Transpose type for expression template evaluations.
+   typedef typename ResultType::ElementType    ElementType;    //!< Resulting element type.
 
    //! Return type for expression template evaluations.
-   typedef const IfTrue_< returnExpr, ExprReturnType, ElementType >  ReturnType;
+   typedef const typename SelectType< returnExpr, ExprReturnType, ElementType >::Type  ReturnType;
 
    //! Data type for composite expression templates.
    typedef const ResultType  CompositeType;
 
    //! Composite type of the left-hand side dense vector expression.
-   typedef If_< IsExpression<VT1>, const VT1, const VT1& >  LeftOperand;
+   typedef typename SelectType< IsExpression<VT1>::value, const VT1, const VT1& >::Type  LeftOperand;
 
    //! Composite type of the right-hand side sparse vector expression.
-   typedef If_< IsExpression<VT2>, const VT2, const VT2& >  RightOperand;
+   typedef typename SelectType< IsExpression<VT2>::value, const VT2, const VT2& >::Type  RightOperand;
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template evaluation strategy.
-   enum : bool { simdEnabled = false };
+   enum { vectorizable = 0 };
 
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = false };
+   enum { smpAssignable = 0 };
    //**********************************************************************************************
 
    //**Constructor*********************************************************************************
@@ -169,7 +167,7 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
    // \param lhs The left-hand side dense vector operand of the addition expression.
    // \param rhs The right-hand side sparse vector operand of the addition expression.
    */
-   explicit inline DVecSVecAddExpr( const VT1& lhs, const VT2& rhs ) noexcept
+   explicit inline DVecSVecAddExpr( const VT1& lhs, const VT2& rhs )
       : lhs_( lhs )  // Left-hand side dense vector of the addition expression
       , rhs_( rhs )  // Right-hand side sparse vector of the addition expression
    {
@@ -209,7 +207,7 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
    //
    // \return The size of the vector.
    */
-   inline size_t size() const noexcept {
+   inline size_t size() const {
       return lhs_.size();
    }
    //**********************************************************************************************
@@ -219,7 +217,7 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
    //
    // \return The left-hand side dense vector operand.
    */
-   inline LeftOperand leftOperand() const noexcept {
+   inline LeftOperand leftOperand() const {
       return lhs_;
    }
    //**********************************************************************************************
@@ -229,7 +227,7 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
    //
    // \return The right-hand side sparse vector operand.
    */
-   inline RightOperand rightOperand() const noexcept {
+   inline RightOperand rightOperand() const {
       return rhs_;
    }
    //**********************************************************************************************
@@ -241,7 +239,7 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
    // \return \a true in case the expression can alias effect is detected, \a false otherwise.
    */
    template< typename T >
-   inline bool canAlias( const T* alias ) const noexcept {
+   inline bool canAlias( const T* alias ) const {
       return ( IsExpression<VT1>::value && lhs_.canAlias( alias ) ) ||
              ( rhs_.canAlias( alias ) );
    }
@@ -254,7 +252,7 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
    // \return \a true in case an alias effect is detected, \a false otherwise.
    */
    template< typename T >
-   inline bool isAliased( const T* alias ) const noexcept {
+   inline bool isAliased( const T* alias ) const {
       return ( lhs_.isAliased( alias ) || rhs_.isAliased( alias ) );
    }
    //**********************************************************************************************
@@ -314,7 +312,7 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
 
       BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_VECTOR_WITH_TRANSPOSE_FLAG( ResultType, TF );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<ResultType> );
+      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( typename ResultType::CompositeType );
 
       BLAZE_INTERNAL_ASSERT( (~lhs).size() == rhs.size(), "Invalid vector sizes" );
 
@@ -401,7 +399,7 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
 
       BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_VECTOR_WITH_TRANSPOSE_FLAG( ResultType, TF );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<ResultType> );
+      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( typename ResultType::CompositeType );
 
       BLAZE_INTERNAL_ASSERT( (~lhs).size() == rhs.size(), "Invalid vector sizes" );
 
@@ -413,39 +411,6 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
 
    //**Multiplication assignment to sparse vectors*************************************************
    // No special implementation for the multiplication assignment to sparse vectors.
-   //**********************************************************************************************
-
-   //**Division assignment to dense vectors********************************************************
-   /*! \cond BLAZE_INTERNAL */
-   /*!\brief Division assignment of a dense vector-sparse vector addition to a dense vector.
-   // \ingroup dense_vector
-   //
-   // \param lhs The target left-hand side dense vector.
-   // \param rhs The right-hand side addition expression divisor.
-   // \return void
-   //
-   // This function implements the performance optimized division assignment of a dense vector-
-   // sparse vector addition expression to a dense vector.
-   */
-   template< typename VT >  // Type of the target dense vector
-   friend inline void divAssign( DenseVector<VT,TF>& lhs, const DVecSVecAddExpr& rhs )
-   {
-      BLAZE_FUNCTION_TRACE;
-
-      BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE( ResultType );
-      BLAZE_CONSTRAINT_MUST_BE_VECTOR_WITH_TRANSPOSE_FLAG( ResultType, TF );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<ResultType> );
-
-      BLAZE_INTERNAL_ASSERT( (~lhs).size() == rhs.size(), "Invalid vector sizes" );
-
-      const ResultType tmp( serial( rhs ) );
-      divAssign( ~lhs, tmp );
-   }
-   /*! \endcond */
-   //**********************************************************************************************
-
-   //**Division assignment to sparse vectors*******************************************************
-   // No special implementation for the division assignment to sparse vectors.
    //**********************************************************************************************
 
    //**SMP assignment to dense vectors*************************************************************
@@ -463,7 +428,7 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
    // specific parallel evaluation strategy is selected.
    */
    template< typename VT >  // Type of the target dense vector
-   friend inline EnableIf_< UseSMPAssign<VT> >
+   friend inline typename EnableIf< UseSMPAssign<VT> >::Type
       smpAssign( DenseVector<VT,TF>& lhs, const DVecSVecAddExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -496,14 +461,14 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
    // specific parallel evaluation strategy is selected.
    */
    template< typename VT >  // Type of the target sparse vector
-   friend inline EnableIf_< UseSMPAssign<VT> >
+   friend inline typename EnableIf< UseSMPAssign<VT> >::Type
       smpAssign( SparseVector<VT,TF>& lhs, const DVecSVecAddExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
 
       BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_VECTOR_WITH_TRANSPOSE_FLAG( ResultType, TF );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<ResultType> );
+      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( typename ResultType::CompositeType );
 
       BLAZE_INTERNAL_ASSERT( (~lhs).size() == rhs.size(), "Invalid vector sizes" );
 
@@ -528,7 +493,7 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
    // expression specific parallel evaluation strategy is selected.
    */
    template< typename VT >  // Type of the target dense vector
-   friend inline EnableIf_< UseSMPAssign<VT> >
+   friend inline typename EnableIf< UseSMPAssign<VT> >::Type
       smpAddAssign( DenseVector<VT,TF>& lhs, const DVecSVecAddExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -560,7 +525,7 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
    // specific parallel evaluation strategy is selected.
    */
    template< typename VT >  // Type of the target dense vector
-   friend inline EnableIf_< UseSMPAssign<VT> >
+   friend inline typename EnableIf< UseSMPAssign<VT> >::Type
       smpSubAssign( DenseVector<VT,TF>& lhs, const DVecSVecAddExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -593,14 +558,14 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
    // expression specific parallel evaluation strategy is selected.
    */
    template< typename VT >  // Type of the target dense vector
-   friend inline EnableIf_< UseSMPAssign<VT> >
+   friend inline typename EnableIf< UseSMPAssign<VT> >::Type
       smpMultAssign( DenseVector<VT,TF>& lhs, const DVecSVecAddExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
 
       BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_VECTOR_WITH_TRANSPOSE_FLAG( ResultType, TF );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<ResultType> );
+      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( typename ResultType::CompositeType );
 
       BLAZE_INTERNAL_ASSERT( (~lhs).size() == rhs.size(), "Invalid vector sizes" );
 
@@ -612,42 +577,6 @@ class DVecSVecAddExpr : public DenseVector< DVecSVecAddExpr<VT1,VT2,TF>, TF >
 
    //**SMP multiplication assignment to sparse vectors*********************************************
    // No special implementation for the SMP multiplication assignment to sparse vectors.
-   //**********************************************************************************************
-
-   //**SMP division assignment to dense vectors****************************************************
-   /*! \cond BLAZE_INTERNAL */
-   /*!\brief SMP division assignment of a dense vector-sparse vector addition to a dense vector.
-   // \ingroup dense_vector
-   //
-   // \param lhs The target left-hand side dense vector.
-   // \param rhs The right-hand side addition expression divisor.
-   // \return void
-   //
-   // This function implements the performance optimized SMP divison assignment of a dense vector-
-   // sparse vector addition expression to a dense vector. Due to the explicit application of the
-   // SFINAE principle, this function can only be selected by the compiler in case the expression
-   // specific parallel evaluation strategy is selected.
-   */
-   template< typename VT >  // Type of the target dense vector
-   friend inline EnableIf_< UseSMPAssign<VT> >
-      smpDivAssign( DenseVector<VT,TF>& lhs, const DVecSVecAddExpr& rhs )
-   {
-      BLAZE_FUNCTION_TRACE;
-
-      BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE( ResultType );
-      BLAZE_CONSTRAINT_MUST_BE_VECTOR_WITH_TRANSPOSE_FLAG( ResultType, TF );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<ResultType> );
-
-      BLAZE_INTERNAL_ASSERT( (~lhs).size() == rhs.size(), "Invalid vector sizes" );
-
-      const ResultType tmp( rhs );
-      smpDivAssign( ~lhs, tmp );
-   }
-   /*! \endcond */
-   //**********************************************************************************************
-
-   //**SMP division assignment to sparse vectors***************************************************
-   // No special implementation for the SMP division assignment to sparse vectors.
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************
@@ -782,7 +711,7 @@ template< typename T1    // Type of the dense vector of the left-hand side expre
         , typename T2    // Type of the sparse vector of the left-hand side expression
         , bool TF        // Transpose flag of the left-hand side expression
         , typename T3 >  // Type of the right-hand side dense vector
-inline const AddExprTrait_< DVecSVecAddExpr<T1,T2,TF>, T3 >
+inline const typename AddExprTrait< DVecSVecAddExpr<T1,T2,TF>, T3 >::Type
    operator+( const DVecSVecAddExpr<T1,T2,TF>& lhs, const DenseVector<T3,TF>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -810,7 +739,7 @@ template< typename T1    // Type of the dense vector of the left-hand side expre
         , typename T2    // Type of the sparse vector of the left-hand side expression
         , bool TF        // Transpose flag of the left-hand side expression
         , typename T3 >  // Type of the right-hand side dense vector
-inline const SubExprTrait_< DVecSVecAddExpr<T1,T2,TF>, T3 >
+inline const typename SubExprTrait< DVecSVecAddExpr<T1,T2,TF>, T3 >::Type
    operator-( const DVecSVecAddExpr<T1,T2,TF>& lhs, const DenseVector<T3,TF>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -855,11 +784,11 @@ struct DVecDVecAddExprTrait< DVecSVecAddExpr<VT1,VT2,false>, VT3 >
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = If_< And< IsDenseVector<VT1>, IsColumnVector<VT1>
-                        , IsSparseVector<VT2>, IsColumnVector<VT2>
-                        , IsDenseVector<VT3>, IsColumnVector<VT3> >
-                   , DVecSVecAddExprTrait_< DVecDVecAddExprTrait_<VT1,VT3>, VT2 >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseVector<VT1>::value  && IsColumnVector<VT1>::value &&
+                                IsSparseVector<VT2>::value && IsColumnVector<VT2>::value &&
+                                IsDenseVector<VT3>::value  && IsColumnVector<VT3>::value
+                              , typename DVecSVecAddExprTrait< typename DVecDVecAddExprTrait<VT1,VT3>::Type, VT2 >::Type
+                              , INVALID_TYPE >::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
@@ -875,11 +804,11 @@ struct TDVecTDVecAddExprTrait< DVecSVecAddExpr<VT1,VT2,true>, VT3 >
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = If_< And< IsDenseVector<VT1>, IsRowVector<VT1>
-                        , IsSparseVector<VT2>, IsRowVector<VT2>
-                        , IsDenseVector<VT3>, IsRowVector<VT3> >
-                   , TDVecTSVecAddExprTrait_< TDVecTDVecAddExprTrait_<VT1,VT3>, VT2 >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseVector<VT1>::value  && IsRowVector<VT1>::value &&
+                                IsSparseVector<VT2>::value && IsRowVector<VT2>::value &&
+                                IsDenseVector<VT3>::value  && IsRowVector<VT3>::value
+                              , typename TDVecTSVecAddExprTrait< typename TDVecTDVecAddExprTrait<VT1,VT3>::Type, VT2 >::Type
+                              , INVALID_TYPE >::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
@@ -895,11 +824,11 @@ struct DVecDVecSubExprTrait< DVecSVecAddExpr<VT1,VT2,false>, VT3 >
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = If_< And< IsDenseVector<VT1>, IsColumnVector<VT1>
-                        , IsSparseVector<VT2>, IsColumnVector<VT2>
-                        , IsDenseVector<VT3>, IsColumnVector<VT3> >
-                   , DVecSVecAddExprTrait_< DVecDVecSubExprTrait_<VT1,VT3>, VT2 >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseVector<VT1>::value  && IsColumnVector<VT1>::value &&
+                                IsSparseVector<VT2>::value && IsColumnVector<VT2>::value &&
+                                IsDenseVector<VT3>::value  && IsColumnVector<VT3>::value
+                              , typename DVecSVecAddExprTrait< typename DVecDVecSubExprTrait<VT1,VT3>::Type, VT2 >::Type
+                              , INVALID_TYPE >::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
@@ -915,11 +844,11 @@ struct TDVecTDVecSubExprTrait< DVecSVecAddExpr<VT1,VT2,true>, VT3 >
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = If_< And< IsDenseVector<VT1>, IsRowVector<VT1>
-                        , IsSparseVector<VT2>, IsRowVector<VT2>
-                        , IsDenseVector<VT3>, IsRowVector<VT3> >
-                   , TDVecTSVecAddExprTrait_< TDVecTDVecSubExprTrait_<VT1,VT3>, VT2 >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseVector<VT1>::value  && IsRowVector<VT1>::value &&
+                                IsSparseVector<VT2>::value && IsRowVector<VT2>::value &&
+                                IsDenseVector<VT3>::value  && IsRowVector<VT3>::value
+                              , typename TDVecTSVecAddExprTrait< typename TDVecTDVecSubExprTrait<VT1,VT3>::Type, VT2 >::Type
+                              , INVALID_TYPE >::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
@@ -934,8 +863,8 @@ struct SubvectorExprTrait< DVecSVecAddExpr<VT1,VT2,TF>, AF >
 {
  public:
    //**********************************************************************************************
-   using Type = AddExprTrait_< SubvectorExprTrait_<const VT1,AF>
-                             , SubvectorExprTrait_<const VT2,AF> >;
+   typedef typename AddExprTrait< typename SubvectorExprTrait<const VT1,AF>::Type
+                                , typename SubvectorExprTrait<const VT2,AF>::Type >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */

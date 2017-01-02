@@ -57,23 +57,31 @@ namespace blaze {
 // \ingroup type_traits
 //
 // This type trait tests whether or not the given template parameter is of float type. In
-// case the type is float (ignoring the cv-qualifiers), the \a value member constant is set
-// to \a true, the nested type definition \a Type is \a TrueType, and the class derives from
-// \a TrueType. Otherwise \a value is set to \a false, \a Type is \a FalseType, and the class
+// case the type is float (ignoring the cv-qualifiers), the \a value member enumeration is
+// set to 1, the nested type definition \a Type is \a TrueType, and the class derives from
+// \a TrueType. Otherwise \a value is set to 0, \a Type is \a FalseType, and the class
 // derives from \a FalseType.
 
    \code
-   blaze::IsFloat<float>::value          // Evaluates to 'true'
+   blaze::IsFloat<float>::value          // Evaluates to 1
    blaze::IsFloat<const float>::Type     // Results in TrueType
    blaze::IsFloat<const volatile float>  // Is derived from TrueType
-   blaze::IsFloat<double>::value         // Evaluates to 'false'
+   blaze::IsFloat<double>::value         // Evaluates to 0
    blaze::IsFloat<const int>::Type       // Results in FalseType
    blaze::IsFloat<volatile short>        // Is derived from FalseType
    \endcode
 */
 template< typename T >
 struct IsFloat : public FalseType
-{};
+{
+ public:
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   enum { value = 0 };
+   typedef FalseType  Type;
+   /*! \endcond */
+   //**********************************************************************************************
+};
 //*************************************************************************************************
 
 
@@ -82,7 +90,13 @@ struct IsFloat : public FalseType
 //! Specialization of the IsFloat type trait for the plain 'float' type.
 template<>
 struct IsFloat<float> : public TrueType
-{};
+{
+ public:
+   //**********************************************************************************************
+   enum { value = 1 };
+   typedef TrueType  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -92,7 +106,13 @@ struct IsFloat<float> : public TrueType
 //! Specialization of the IsFloat type trait for 'const float'.
 template<>
 struct IsFloat<const float> : public TrueType
-{};
+{
+ public:
+   //**********************************************************************************************
+   enum { value = 1 };
+   typedef TrueType  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -102,7 +122,13 @@ struct IsFloat<const float> : public TrueType
 //! Specialization of the IsFloat type trait for 'volatile float'.
 template<>
 struct IsFloat<volatile float> : public TrueType
-{};
+{
+ public:
+   //**********************************************************************************************
+   enum { value = 1 };
+   typedef TrueType  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -112,7 +138,13 @@ struct IsFloat<volatile float> : public TrueType
 //! Specialization of the IsFloat type trait for 'const volatile float'.
 template<>
 struct IsFloat<const volatile float> : public TrueType
-{};
+{
+ public:
+   //**********************************************************************************************
+   enum { value = 1 };
+   typedef TrueType  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 

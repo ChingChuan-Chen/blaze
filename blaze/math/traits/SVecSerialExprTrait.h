@@ -47,10 +47,11 @@
 #include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -76,39 +77,21 @@ struct SVecSerialExprTrait
  private:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Tmp = If< And< IsSparseVector<VT>, IsColumnVector<VT> >
-                 , SVecSerialExpr<VT,false>
-                 , INVALID_TYPE >;
+   typedef If< And< IsSparseVector<VT>, IsColumnVector<VT> >
+             , SVecSerialExpr<VT,false>, INVALID_TYPE >  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<VT>::Type >::Type  Type1;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<VT>, IsVolatile<VT>, IsReference<VT> >
-                            , SVecSerialExprTrait< Decay_<VT> >
-                            , Tmp >::Type;
+   typedef typename If< Or< IsConst<VT>, IsVolatile<VT>, IsReference<VT> >
+                      , SVecSerialExprTrait<Type1>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the SVecSerialExprTrait class template.
-// \ingroup math_traits
-//
-// The SVecSerialExprTrait_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the SVecSerialExprTrait class template. For instance, given the non-transpose sparse
-// vector type \a VT the following two type definitions are identical:
-
-   \code
-   using Type1 = typename SVecSerialExprTrait<VT>::Type;
-   using Type2 = SVecSerialExprTrait_<VT>;
-   \endcode
-*/
-template< typename VT >  // Type of the sparse vector
-using SVecSerialExprTrait_ = typename SVecSerialExprTrait<VT>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

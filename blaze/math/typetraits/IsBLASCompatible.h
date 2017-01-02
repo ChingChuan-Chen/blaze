@@ -1,7 +1,7 @@
 //=================================================================================================
 /*!
-//  \file blaze/math/typetraits/IsBLASCompatible.h
-//  \brief Header file for the IsBLASCompatible type trait
+//  \file blaze/math/typetraits/IsBlasCompatible.h
+//  \brief Header file for the IsBlasCompatible type trait
 //
 //  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
 //
@@ -40,8 +40,9 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/util/IntegralConstant.h>
-#include <blaze/util/mpl/Or.h>
+#include <blaze/util/FalseType.h>
+#include <blaze/util/SelectType.h>
+#include <blaze/util/TrueType.h>
 #include <blaze/util/typetraits/IsComplexDouble.h>
 #include <blaze/util/typetraits/IsComplexFloat.h>
 #include <blaze/util/typetraits/IsDouble.h>
@@ -57,29 +58,54 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Auxiliary helper struct for the IsBlasCompatible type trait.
+// \ingroup math_type_traits
+*/
+template< typename T >
+struct IsBlasCompatibleHelper
+{
+   //**********************************************************************************************
+   enum { value = ( IsFloat<T>::value  || IsComplexFloat<T>::value ||
+                    IsDouble<T>::value || IsComplexDouble<T>::value ) };
+   typedef typename SelectType<value,TrueType,FalseType>::Type  Type;
+   //**********************************************************************************************
+};
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Compile time check for data types.
 // \ingroup math_type_traits
 //
 // This type trait tests whether or not the given template parameter is a data type compatible
 // to the BLAS standard. The BLAS standard supports \c float, \c double, \c complex<float> and
-// \c complex<double> values. If the type is BLAS compatible, the \a value member constant is
-// set to \a true, the nested type definition \a Type is \a TrueType, and the class derives
-// from \a TrueType. Otherwise \a value is set to \a false, \a Type is \a FalseType, and the
-// class derives from \a FalseType.
+// \c complex<double> values. If the type is BLAS compatible, the \a value member enumeration
+// is set to 1, the nested type definition \a Type is \a TrueType, and the class derives from
+// \a TrueType. Otherwise \a value is set to 0, \a Type is \a FalseType, and the class derives
+// from \a FalseType.
 
    \code
-   blaze::IsBLASCompatible< float >::value         // Evaluates to 1
-   blaze::IsBLASCompatible< double >::Type         // Results in TrueType
-   blaze::IsBLASCompatible< complex<float> >       // Is derived from TrueType
-   blaze::IsBLASCompatible< int >::value           // Evaluates to 0
-   blaze::IsBLASCompatible< unsigned long >::Type  // Results in FalseType
-   blaze::IsBLASCompatible< long double >          // Is derived from FalseType
+   blaze::IsBlasCompatible< float >::value         // Evaluates to 1
+   blaze::IsBlasCompatible< double >::Type         // Results in TrueType
+   blaze::IsBlasCompatible< complex<float> >       // Is derived from TrueType
+   blaze::IsBlasCompatible< int >::value           // Evaluates to 0
+   blaze::IsBlasCompatible< unsigned long >::Type  // Results in FalseType
+   blaze::IsBlasCompatible< long double >          // Is derived from FalseType
    \endcode
 */
 template< typename T >
-struct IsBLASCompatible
-   : public BoolConstant< Or< IsFloat<T>, IsDouble<T>, IsComplexFloat<T>, IsComplexDouble<T> >::value >
-{};
+struct IsBlasCompatible : public IsBlasCompatibleHelper<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   enum { value = IsBlasCompatibleHelper<T>::value };
+   typedef typename IsBlasCompatibleHelper<T>::Type  Type;
+   /*! \endcond */
+   //**********************************************************************************************
+};
 //*************************************************************************************************
 
 } // namespace blaze

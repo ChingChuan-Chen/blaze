@@ -40,7 +40,7 @@
 // Includes
 //*************************************************************************************************
 
-#include <type_traits>
+#include <boost/type_traits/remove_extent.hpp>
 
 
 namespace blaze {
@@ -71,28 +71,10 @@ struct RemoveExtent
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   typedef typename std::remove_extent<T>::type  Type;
+   typedef typename boost::remove_extent<T>::type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the RemoveExtent type trait.
-// \ingroup type_traits
-//
-// The RemoveExtent_ alias declaration provides a convenient shortcut to access the nested \a Type
-// of the RemoveExtent class template. For instance, given the type \a T the following two type
-// definitions are identical:
-
-   \code
-   using Type1 = typename RemoveExtent<T>::Type;
-   using Type2 = RemoveExtent_<T>;
-   \endcode
-*/
-template< typename T >
-using RemoveExtent_ = typename RemoveExtent<T>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

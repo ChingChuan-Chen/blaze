@@ -41,44 +41,34 @@
 //*************************************************************************************************
 
 #include <algorithm>
-#include <utility>
 #include <boost/smart_ptr/shared_array.hpp>
-#include <blaze/math/Aliases.h>
 #include <blaze/math/AlignmentFlag.h>
 #include <blaze/math/constraints/Diagonal.h>
 #include <blaze/math/constraints/Symmetric.h>
 #include <blaze/math/dense/DenseIterator.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/DenseMatrix.h>
 #include <blaze/math/expressions/SparseMatrix.h>
 #include <blaze/math/Forward.h>
 #include <blaze/math/Functions.h>
-#include <blaze/math/InitializerList.h>
+#include <blaze/math/Intrinsics.h>
 #include <blaze/math/PaddingFlag.h>
 #include <blaze/math/shims/Clear.h>
 #include <blaze/math/shims/Conjugate.h>
 #include <blaze/math/shims/IsDefault.h>
-#include <blaze/math/SIMD.h>
 #include <blaze/math/traits/AddTrait.h>
 #include <blaze/math/traits/ColumnTrait.h>
-#include <blaze/math/traits/CTransExprTrait.h>
 #include <blaze/math/traits/DivTrait.h>
-#include <blaze/math/traits/InvExprTrait.h>
 #include <blaze/math/traits/MultTrait.h>
 #include <blaze/math/traits/RowTrait.h>
 #include <blaze/math/traits/SubmatrixTrait.h>
 #include <blaze/math/traits/SubTrait.h>
-#include <blaze/math/traits/TransExprTrait.h>
 #include <blaze/math/typetraits/HasConstDataAccess.h>
 #include <blaze/math/typetraits/HasMutableDataAccess.h>
-#include <blaze/math/typetraits/HasSIMDAdd.h>
-#include <blaze/math/typetraits/HasSIMDSub.h>
 #include <blaze/math/typetraits/IsAligned.h>
 #include <blaze/math/typetraits/IsCustom.h>
 #include <blaze/math/typetraits/IsDiagonal.h>
 #include <blaze/math/typetraits/IsLower.h>
 #include <blaze/math/typetraits/IsPadded.h>
-#include <blaze/math/typetraits/IsSIMDCombinable.h>
 #include <blaze/math/typetraits/IsSMPAssignable.h>
 #include <blaze/math/typetraits/IsSparseMatrix.h>
 #include <blaze/math/typetraits/IsStrictlyLower.h>
@@ -99,16 +89,19 @@
 #include <blaze/util/constraints/Volatile.h>
 #include <blaze/util/DisableIf.h>
 #include <blaze/util/EnableIf.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/Misalignment.h>
+#include <blaze/util/Null.h>
 #include <blaze/util/policies/NoDelete.h>
 #include <blaze/util/Template.h>
-#include <blaze/util/TrueType.h>
 #include <blaze/util/Types.h>
-#include <blaze/util/typetraits/IsIntegral.h>
+#include <blaze/util/typetraits/AlignmentOf.h>
+#include <blaze/util/typetraits/IsClass.h>
 #include <blaze/util/typetraits/IsNumeric.h>
 #include <blaze/util/typetraits/IsSame.h>
 #include <blaze/util/typetraits/IsVectorizable.h>
 #include <blaze/util/Unused.h>
+#include <blaze/util/valuetraits/IsTrue.h>
 
 
 namespace blaze {
@@ -316,7 +309,7 @@ namespace blaze {
 //
 // Adding padding elements to the end of an array can have a significant impact on performance.
 // For instance, assuming that AVX is available, then two aligned, padded, 3x3 double precision
-// matrices can be added via three SIMD addition operations:
+// matrices can be added via three intrinsic addition instruction:
 
    \code
    using blaze::CustomMatrix;
@@ -367,7 +360,7 @@ namespace blaze {
 //
 // The number of padding elements is required to be sufficient with respect to the available
 // instruction set: In case of an aligned padded custom matrix the added padding elements must
-// guarantee that the total number of elements in each row/column is a multiple of the SIMD
+// guarantee that the total number of elements in each row/column is a multiple of the intrinsic
 // vector width. In case of an unaligned padded matrix the number of padding elements can be
 // greater or equal the number of padding elements of an aligned padded custom matrix. In case
 // the padding is insufficient with respect to the available instruction set, a
@@ -434,15 +427,19 @@ template< typename Type                    // Data type of the matrix
         , bool SO = defaultStorageOrder >  // Storage order
 class CustomMatrix : public DenseMatrix< CustomMatrix<Type,AF,PF,SO>, SO >
 {
+ private:
+   //**Type definitions****************************************************************************
+   typedef IntrinsicTrait<Type>  IT;  //!< Intrinsic trait for the matrix element type.
+   //**********************************************************************************************
+
  public:
    //**Type definitions****************************************************************************
    typedef CustomMatrix<Type,AF,PF,SO>  This;           //!< Type of this CustomMatrix instance.
-   typedef DenseMatrix<This,SO>         BaseType;       //!< Base type of this CustomMatrix instance.
    typedef DynamicMatrix<Type,SO>       ResultType;     //!< Result type for expression template evaluations.
    typedef DynamicMatrix<Type,!SO>      OppositeType;   //!< Result type with opposite storage order for expression template evaluations.
    typedef DynamicMatrix<Type,!SO>      TransposeType;  //!< Transpose type for expression template evaluations.
    typedef Type                         ElementType;    //!< Type of the matrix elements.
-   typedef SIMDTrait_<ElementType>      SIMDType;       //!< SIMD type of the matrix elements.
+   typedef typename IT::Type            IntrinsicType;  //!< Intrinsic type of the matrix elements.
    typedef const Type&                  ReturnType;     //!< Return type for expression template evaluations.
    typedef const This&                  CompositeType;  //!< Data type for composite expression templates.
 
@@ -465,18 +462,18 @@ class CustomMatrix : public DenseMatrix< CustomMatrix<Type,AF,PF,SO>, SO >
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
-   //! Compilation flag for SIMD optimization.
-   /*! The \a simdEnabled compilation flag indicates whether expressions the matrix is involved
-       in can be optimized via SIMD operations. In case the element type of the matrix is a
-       vectorizable data type, the \a simdEnabled compilation flag is set to \a true, otherwise
-       it is set to \a false. */
-   enum : bool { simdEnabled = IsVectorizable<Type>::value };
+   //! Compilation flag for intrinsic optimization.
+   /*! The \a vectorizable compilation flag indicates whether expressions the matrix is involved
+       in can be optimized via intrinsics. In case the element type of the matrix is a vectorizable
+       data type, the \a vectorizable compilation flag is set to \a true, otherwise it is set to
+       \a false. */
+   enum { vectorizable = IsVectorizable<Type>::value };
 
    //! Compilation flag for SMP assignments.
    /*! The \a smpAssignable compilation flag indicates whether the matrix can be used in SMP
        (shared memory parallel) assignments (both on the left-hand and right-hand side of the
        assignment). */
-   enum : bool { smpAssignable = !IsSMPAssignable<Type>::value };
+   enum { smpAssignable = !IsSMPAssignable<Type>::value };
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
@@ -486,14 +483,13 @@ class CustomMatrix : public DenseMatrix< CustomMatrix<Type,AF,PF,SO>, SO >
    explicit inline CustomMatrix( Type* ptr, size_t m, size_t n );
    explicit inline CustomMatrix( Type* ptr, size_t m, size_t n, size_t nn );
 
-   template< typename Deleter, typename = DisableIf_< IsIntegral<Deleter> > >
+   template< typename Deleter >
    explicit inline CustomMatrix( Type* ptr, size_t m, size_t n, Deleter D );
 
    template< typename Deleter >
    explicit inline CustomMatrix( Type* ptr, size_t m, size_t n, size_t nn, Deleter D );
 
    inline CustomMatrix( const CustomMatrix& m );
-   inline CustomMatrix( CustomMatrix&& m ) noexcept;
    //@}
    //**********************************************************************************************
 
@@ -504,56 +500,54 @@ class CustomMatrix : public DenseMatrix< CustomMatrix<Type,AF,PF,SO>, SO >
    //**Data access functions***********************************************************************
    /*!\name Data access functions */
    //@{
-   inline Reference      operator()( size_t i, size_t j ) noexcept;
-   inline ConstReference operator()( size_t i, size_t j ) const noexcept;
+   inline Reference      operator()( size_t i, size_t j );
+   inline ConstReference operator()( size_t i, size_t j ) const;
    inline Reference      at( size_t i, size_t j );
    inline ConstReference at( size_t i, size_t j ) const;
-   inline Pointer        data  () noexcept;
-   inline ConstPointer   data  () const noexcept;
-   inline Pointer        data  ( size_t i ) noexcept;
-   inline ConstPointer   data  ( size_t i ) const noexcept;
-   inline Iterator       begin ( size_t i ) noexcept;
-   inline ConstIterator  begin ( size_t i ) const noexcept;
-   inline ConstIterator  cbegin( size_t i ) const noexcept;
-   inline Iterator       end   ( size_t i ) noexcept;
-   inline ConstIterator  end   ( size_t i ) const noexcept;
-   inline ConstIterator  cend  ( size_t i ) const noexcept;
+   inline Pointer        data  ();
+   inline ConstPointer   data  () const;
+   inline Pointer        data  ( size_t i );
+   inline ConstPointer   data  ( size_t i ) const;
+   inline Iterator       begin ( size_t i );
+   inline ConstIterator  begin ( size_t i ) const;
+   inline ConstIterator  cbegin( size_t i ) const;
+   inline Iterator       end   ( size_t i );
+   inline ConstIterator  end   ( size_t i ) const;
+   inline ConstIterator  cend  ( size_t i ) const;
    //@}
    //**********************************************************************************************
 
    //**Assignment operators************************************************************************
    /*!\name Assignment operators */
    //@{
-   inline CustomMatrix& operator=( const Type& set );
-   inline CustomMatrix& operator=( initializer_list< initializer_list<Type> > list );
-
    template< typename Other, size_t M, size_t N >
    inline CustomMatrix& operator=( const Other (&array)[M][N] );
 
-   inline CustomMatrix& operator=( const CustomMatrix& rhs );
-   inline CustomMatrix& operator=( CustomMatrix&& rhs ) noexcept;
-
+                                     inline CustomMatrix& operator= ( const Type& set );
+                                     inline CustomMatrix& operator= ( const CustomMatrix&   rhs );
    template< typename MT, bool SO2 > inline CustomMatrix& operator= ( const Matrix<MT,SO2>& rhs );
    template< typename MT, bool SO2 > inline CustomMatrix& operator+=( const Matrix<MT,SO2>& rhs );
    template< typename MT, bool SO2 > inline CustomMatrix& operator-=( const Matrix<MT,SO2>& rhs );
    template< typename MT, bool SO2 > inline CustomMatrix& operator*=( const Matrix<MT,SO2>& rhs );
 
    template< typename Other >
-   inline EnableIf_<IsNumeric<Other>, CustomMatrix >& operator*=( Other rhs );
+   inline typename EnableIf< IsNumeric<Other>, CustomMatrix >::Type&
+      operator*=( Other rhs );
 
    template< typename Other >
-   inline EnableIf_<IsNumeric<Other>, CustomMatrix >& operator/=( Other rhs );
+   inline typename EnableIf< IsNumeric<Other>, CustomMatrix >::Type&
+      operator/=( Other rhs );
    //@}
    //**********************************************************************************************
 
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-                              inline size_t        rows() const noexcept;
-                              inline size_t        columns() const noexcept;
-                              inline size_t        spacing() const noexcept;
-                              inline size_t        capacity() const noexcept;
-                              inline size_t        capacity( size_t i ) const noexcept;
+                              inline size_t        rows() const;
+                              inline size_t        columns() const;
+                              inline size_t        spacing() const;
+                              inline size_t        capacity() const;
+                              inline size_t        capacity( size_t i ) const;
                               inline size_t        nonZeros() const;
                               inline size_t        nonZeros( size_t i ) const;
                               inline void          reset();
@@ -562,21 +556,17 @@ class CustomMatrix : public DenseMatrix< CustomMatrix<Type,AF,PF,SO>, SO >
                               inline CustomMatrix& transpose();
                               inline CustomMatrix& ctranspose();
    template< typename Other > inline CustomMatrix& scale( const Other& scalar );
-                              inline void          swap( CustomMatrix& m ) noexcept;
+                              inline void          swap( CustomMatrix& m ) /* throw() */;
    //@}
    //**********************************************************************************************
 
    //**Resource management functions***************************************************************
    /*!\name Resource management functions */
    //@{
-   inline void reset( Type* ptr, size_t m, size_t n );
-   inline void reset( Type* ptr, size_t m, size_t n, size_t nn );
-
-   template< typename Deleter, typename = DisableIf_< IsIntegral<Deleter> > >
-   inline void reset( Type* ptr, size_t m, size_t n, Deleter d );
-
-   template< typename Deleter >
-   inline void reset( Type* ptr, size_t m, size_t n, size_t nn, Deleter d );
+                                inline void reset( Type* ptr, size_t m, size_t n );
+                                inline void reset( Type* ptr, size_t m, size_t n, size_t nn );
+   template< typename Deleter > inline void reset( Type* ptr, size_t m, size_t n, Deleter d );
+   template< typename Deleter > inline void reset( Type* ptr, size_t m, size_t n, size_t nn, Deleter d );
    //@}
    //**********************************************************************************************
 
@@ -586,9 +576,9 @@ class CustomMatrix : public DenseMatrix< CustomMatrix<Type,AF,PF,SO>, SO >
    //! Helper structure for the explicit application of the SFINAE principle.
    template< typename MT >
    struct VectorizedAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && MT::simdEnabled &&
-                            IsSIMDCombinable< Type, ElementType_<MT> >::value };
+      enum { value = useOptimizedKernels &&
+                     vectorizable && MT::vectorizable &&
+                     IsSame<Type,typename MT::ElementType>::value };
    };
    /*! \endcond */
    //**********************************************************************************************
@@ -598,11 +588,11 @@ class CustomMatrix : public DenseMatrix< CustomMatrix<Type,AF,PF,SO>, SO >
    //! Helper structure for the explicit application of the SFINAE principle.
    template< typename MT >
    struct VectorizedAddAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && MT::simdEnabled &&
-                            IsSIMDCombinable< Type, ElementType_<MT> >::value &&
-                            HasSIMDAdd< Type, ElementType_<MT> >::value &&
-                            !IsDiagonal<MT>::value };
+      enum { value = useOptimizedKernels &&
+                     vectorizable && MT::vectorizable &&
+                     IsSame<Type,typename MT::ElementType>::value &&
+                     IntrinsicTrait<Type>::addition &&
+                     !IsDiagonal<MT>::value };
    };
    /*! \endcond */
    //**********************************************************************************************
@@ -612,64 +602,65 @@ class CustomMatrix : public DenseMatrix< CustomMatrix<Type,AF,PF,SO>, SO >
    //! Helper structure for the explicit application of the SFINAE principle.
    template< typename MT >
    struct VectorizedSubAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && MT::simdEnabled &&
-                            IsSIMDCombinable< Type, ElementType_<MT> >::value &&
-                            HasSIMDSub< Type, ElementType_<MT> >::value &&
-                            !IsDiagonal<MT>::value };
+      enum { value = useOptimizedKernels &&
+                     vectorizable && MT::vectorizable &&
+                     IsSame<Type,typename MT::ElementType>::value &&
+                     IntrinsicTrait<Type>::subtraction &&
+                     !IsDiagonal<MT>::value };
    };
    /*! \endcond */
-   //**********************************************************************************************
-
-   //**SIMD properties*****************************************************************************
-   //! The number of elements packed within a single SIMD element.
-   enum : size_t { SIMDSIZE = SIMDTrait<ElementType>::size };
    //**********************************************************************************************
 
  public:
    //**Expression template evaluation functions****************************************************
    /*!\name Expression template evaluation functions */
    //@{
-   template< typename Other > inline bool canAlias ( const Other* alias ) const noexcept;
-   template< typename Other > inline bool isAliased( const Other* alias ) const noexcept;
+   template< typename Other > inline bool canAlias ( const Other* alias ) const;
+   template< typename Other > inline bool isAliased( const Other* alias ) const;
 
-   inline bool isAligned   () const noexcept;
-   inline bool canSMPAssign() const noexcept;
+   inline bool isAligned   () const;
+   inline bool canSMPAssign() const;
 
-   BLAZE_ALWAYS_INLINE SIMDType load ( size_t i, size_t j ) const noexcept;
-   BLAZE_ALWAYS_INLINE SIMDType loada( size_t i, size_t j ) const noexcept;
-   BLAZE_ALWAYS_INLINE SIMDType loadu( size_t i, size_t j ) const noexcept;
+   BLAZE_ALWAYS_INLINE IntrinsicType load ( size_t i, size_t j ) const;
+   BLAZE_ALWAYS_INLINE IntrinsicType loada( size_t i, size_t j ) const;
+   BLAZE_ALWAYS_INLINE IntrinsicType loadu( size_t i, size_t j ) const;
 
-   BLAZE_ALWAYS_INLINE void store ( size_t i, size_t j, const SIMDType& value ) noexcept;
-   BLAZE_ALWAYS_INLINE void storea( size_t i, size_t j, const SIMDType& value ) noexcept;
-   BLAZE_ALWAYS_INLINE void storeu( size_t i, size_t j, const SIMDType& value ) noexcept;
-   BLAZE_ALWAYS_INLINE void stream( size_t i, size_t j, const SIMDType& value ) noexcept;
-
-   template< typename MT >
-   inline DisableIf_<VectorizedAssign<MT> > assign( const DenseMatrix<MT,SO>& rhs );
+   BLAZE_ALWAYS_INLINE void store ( size_t i, size_t j, const IntrinsicType& value );
+   BLAZE_ALWAYS_INLINE void storea( size_t i, size_t j, const IntrinsicType& value );
+   BLAZE_ALWAYS_INLINE void storeu( size_t i, size_t j, const IntrinsicType& value );
+   BLAZE_ALWAYS_INLINE void stream( size_t i, size_t j, const IntrinsicType& value );
 
    template< typename MT >
-   inline EnableIf_<VectorizedAssign<MT> > assign( const DenseMatrix<MT,SO>& rhs );
+   inline typename DisableIf< VectorizedAssign<MT> >::Type
+      assign( const DenseMatrix<MT,SO>& rhs );
+
+   template< typename MT >
+   inline typename EnableIf< VectorizedAssign<MT> >::Type
+      assign( const DenseMatrix<MT,SO>& rhs );
 
    template< typename MT > inline void assign( const DenseMatrix<MT,!SO>&  rhs );
    template< typename MT > inline void assign( const SparseMatrix<MT,SO>&  rhs );
    template< typename MT > inline void assign( const SparseMatrix<MT,!SO>& rhs );
 
    template< typename MT >
-   inline DisableIf_<VectorizedAddAssign<MT> > addAssign( const DenseMatrix<MT,SO>& rhs );
+   inline typename DisableIf< VectorizedAddAssign<MT> >::Type
+      addAssign( const DenseMatrix<MT,SO>& rhs );
 
    template< typename MT >
-   inline EnableIf_<VectorizedAddAssign<MT> > addAssign( const DenseMatrix<MT,SO>& rhs );
+   inline typename EnableIf< VectorizedAddAssign<MT> >::Type
+      addAssign( const DenseMatrix<MT,SO>& rhs );
 
    template< typename MT > inline void addAssign( const DenseMatrix<MT,!SO>&  rhs );
    template< typename MT > inline void addAssign( const SparseMatrix<MT,SO>&  rhs );
    template< typename MT > inline void addAssign( const SparseMatrix<MT,!SO>& rhs );
 
    template< typename MT >
-   inline DisableIf_<VectorizedSubAssign<MT> > subAssign( const DenseMatrix<MT,SO>& rhs );
+   inline typename DisableIf< VectorizedSubAssign<MT> >::Type
+      subAssign( const DenseMatrix<MT,SO>& rhs );
 
    template< typename MT >
-   inline EnableIf_<VectorizedSubAssign<MT> > subAssign( const DenseMatrix<MT,SO>& rhs );
+   inline typename EnableIf< VectorizedSubAssign<MT> >::Type
+      subAssign( const DenseMatrix<MT,SO>& rhs );
 
    template< typename MT > inline void subAssign( const DenseMatrix<MT,!SO>&  rhs );
    template< typename MT > inline void subAssign( const SparseMatrix<MT,SO>&  rhs );
@@ -678,6 +669,19 @@ class CustomMatrix : public DenseMatrix< CustomMatrix<Type,AF,PF,SO>, SO >
    //**********************************************************************************************
 
  private:
+   //**Construction functions**********************************************************************
+   /*!\name Construction functions */
+   //@{
+   template< typename Arg >
+   inline typename DisableIf< IsClass<Arg> >::Type
+      construct( Type* ptr, size_t m, size_t n, Arg arg );
+
+   template< typename Arg >
+   inline typename EnableIf< IsClass<Arg> >::Type
+      construct( Type* ptr, size_t m, size_t n, Arg arg );
+   //@}
+   //**********************************************************************************************
+
    //**Member variables****************************************************************************
    /*!\name Member variables */
    //@{
@@ -744,7 +748,7 @@ inline CustomMatrix<Type,AF,PF,SO>::CustomMatrix()
 // This constructor creates an unpadded custom matrix of size \f$ m \times n \f$. The construction
 // fails if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...).
 //
@@ -765,11 +769,11 @@ inline CustomMatrix<Type,AF,PF,SO>::CustomMatrix( Type* ptr, size_t m, size_t n 
 {
    BLAZE_STATIC_ASSERT( PF == unpadded );
 
-   if( ptr == nullptr ) {
+   if( ptr == NULL ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid array of elements" );
    }
 
-   if( AF && ( !checkAlignment( ptr ) || nn_ % SIMDSIZE != 0UL ) ) {
+   if( AF && ( !checkAlignment( ptr ) || nn_ % IT::size != 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid alignment detected" );
    }
 
@@ -790,7 +794,7 @@ inline CustomMatrix<Type,AF,PF,SO>::CustomMatrix( Type* ptr, size_t m, size_t n 
 // This constructor creates a custom matrix of size \f$ m \times n \f$. The construction fails
 // if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...);
 //  - ... the specified spacing \a nn is insufficient for the given data type \a Type and the
@@ -810,15 +814,15 @@ inline CustomMatrix<Type,AF,PF,SO>::CustomMatrix( Type* ptr, size_t m, size_t n,
    , nn_( nn )  // The number of elements between two rows
    , v_ (    )  // The matrix elements
 {
-   if( ptr == nullptr ) {
+   if( ptr == NULL ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid array of elements" );
    }
 
-   if( AF && ( !checkAlignment( ptr ) || nn_ % SIMDSIZE != 0UL ) ) {
+   if( AF && ( !checkAlignment( ptr ) || nn_ % IT::size != 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid alignment detected" );
    }
 
-   if( PF && IsVectorizable<Type>::value && ( nn_ < nextMultiple<size_t>( n_, SIMDSIZE ) ) ) {
+   if( PF && IsVectorizable<Type>::value && ( nn_ < nextMultiple<size_t>( n_, IT::size ) ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Insufficient capacity for padded matrix" );
    }
 
@@ -846,7 +850,7 @@ inline CustomMatrix<Type,AF,PF,SO>::CustomMatrix( Type* ptr, size_t m, size_t n,
 // This constructor creates an unpadded custom matrix of size \f$ m \times n \f$. The construction
 // fails if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...).
 //
@@ -854,29 +858,18 @@ inline CustomMatrix<Type,AF,PF,SO>::CustomMatrix( Type* ptr, size_t m, size_t n,
 //
 // \note This constructor is \b NOT available for padded custom matrices!
 */
-template< typename Type     // Data type of the matrix
-        , bool AF           // Alignment flag
-        , bool PF           // Padding flag
-        , bool SO >         // Storage order
-template< typename Deleter  // Type of the custom deleter
-        , typename >        // Type restriction on the custom deleter
+template< typename Type       // Data type of the matrix
+        , bool AF             // Alignment flag
+        , bool PF             // Padding flag
+        , bool SO >           // Storage order
+template< typename Deleter >  // Type of the custom deleter
 inline CustomMatrix<Type,AF,PF,SO>::CustomMatrix( Type* ptr, size_t m, size_t n, Deleter d )
    : m_ ( m )  // The current number of rows of the matrix
    , n_ ( n )  // The current number of columns of the matrix
-   , nn_( n )  // The number of elements between two rows
+   , nn_(   )  // The number of elements between two rows
    , v_ (   )  // The matrix elements
 {
-   BLAZE_STATIC_ASSERT( PF == unpadded );
-
-   if( ptr == nullptr ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid array of elements" );
-   }
-
-   if( AF && ( !checkAlignment( ptr ) || nn_ % SIMDSIZE != 0UL ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid alignment detected" );
-   }
-
-   v_.reset( ptr, d );
+   construct( ptr, m, n, d );
 }
 //*************************************************************************************************
 
@@ -894,7 +887,7 @@ inline CustomMatrix<Type,AF,PF,SO>::CustomMatrix( Type* ptr, size_t m, size_t n,
 // This constructor creates a custom matrix of size \f$ m \times n \f$. The construction fails
 // if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...);
 //  - ... the specified spacing \a nn is insufficient for the given data type \a Type and the
@@ -913,15 +906,15 @@ inline CustomMatrix<Type,AF,PF,SO>::CustomMatrix( Type* ptr, size_t m, size_t n,
    , nn_( nn )  // The number of elements between two rows
    , v_ (    )  // The matrix elements
 {
-   if( ptr == nullptr ) {
+   if( ptr == NULL ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid array of elements" );
    }
 
-   if( AF && ( !checkAlignment( ptr ) || nn_ % SIMDSIZE != 0UL ) ) {
+   if( AF && ( !checkAlignment( ptr ) || nn_ % IT::size != 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid alignment detected" );
    }
 
-   if( PF && IsVectorizable<Type>::value && ( nn_ < nextMultiple<size_t>( n_, SIMDSIZE ) ) ) {
+   if( PF && IsVectorizable<Type>::value && ( nn_ < nextMultiple<size_t>( n_, IT::size ) ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Insufficient capacity for padded matrix" );
    }
 
@@ -957,30 +950,6 @@ inline CustomMatrix<Type,AF,PF,SO>::CustomMatrix( const CustomMatrix& m )
 //*************************************************************************************************
 
 
-//*************************************************************************************************
-/*!\brief The move constructor for CustomMatrix.
-//
-// \param m The matrix to be moved into this instance.
-*/
-template< typename Type  // Data type of the matrix
-        , bool AF        // Alignment flag
-        , bool PF        // Padding flag
-        , bool SO >      // Storage order
-inline CustomMatrix<Type,AF,PF,SO>::CustomMatrix( CustomMatrix&& m ) noexcept
-   : m_ ( m.m_  )              // The current number of rows of the matrix
-   , n_ ( m.n_  )              // The current number of columns of the matrix
-   , nn_( m.nn_ )              // The number of elements between two rows
-   , v_ ( std::move( m.v_ ) )  // The matrix elements
-{
-   m.m_  = 0UL;
-   m.n_  = 0UL;
-   m.nn_ = 0UL;
-
-   BLAZE_INTERNAL_ASSERT( m.data() == nullptr, "Invalid data reference detected" );
-}
-//*************************************************************************************************
-
-
 
 
 //=================================================================================================
@@ -1004,7 +973,7 @@ template< typename Type  // Data type of the matrix
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 inline typename CustomMatrix<Type,AF,PF,SO>::Reference
-   CustomMatrix<Type,AF,PF,SO>::operator()( size_t i, size_t j ) noexcept
+   CustomMatrix<Type,AF,PF,SO>::operator()( size_t i, size_t j )
 {
    BLAZE_USER_ASSERT( i<m_, "Invalid row access index"    );
    BLAZE_USER_ASSERT( j<n_, "Invalid column access index" );
@@ -1028,7 +997,7 @@ template< typename Type  // Data type of the matrix
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 inline typename CustomMatrix<Type,AF,PF,SO>::ConstReference
-   CustomMatrix<Type,AF,PF,SO>::operator()( size_t i, size_t j ) const noexcept
+   CustomMatrix<Type,AF,PF,SO>::operator()( size_t i, size_t j ) const
 {
    BLAZE_USER_ASSERT( i<m_, "Invalid row access index"    );
    BLAZE_USER_ASSERT( j<n_, "Invalid column access index" );
@@ -1111,8 +1080,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
-inline typename CustomMatrix<Type,AF,PF,SO>::Pointer
-   CustomMatrix<Type,AF,PF,SO>::data() noexcept
+inline typename CustomMatrix<Type,AF,PF,SO>::Pointer CustomMatrix<Type,AF,PF,SO>::data()
 {
    return v_.get();
 }
@@ -1135,8 +1103,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
-inline typename CustomMatrix<Type,AF,PF,SO>::ConstPointer
-   CustomMatrix<Type,AF,PF,SO>::data() const noexcept
+inline typename CustomMatrix<Type,AF,PF,SO>::ConstPointer CustomMatrix<Type,AF,PF,SO>::data() const
 {
    return v_.get();
 }
@@ -1156,7 +1123,7 @@ template< typename Type  // Data type of the matrix
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 inline typename CustomMatrix<Type,AF,PF,SO>::Pointer
-   CustomMatrix<Type,AF,PF,SO>::data( size_t i ) noexcept
+   CustomMatrix<Type,AF,PF,SO>::data( size_t i )
 {
    BLAZE_USER_ASSERT( i < m_, "Invalid dense matrix row access index" );
    return v_.get() + i*nn_;
@@ -1177,7 +1144,7 @@ template< typename Type  // Data type of the matrix
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 inline typename CustomMatrix<Type,AF,PF,SO>::ConstPointer
-   CustomMatrix<Type,AF,PF,SO>::data( size_t i ) const noexcept
+   CustomMatrix<Type,AF,PF,SO>::data( size_t i ) const
 {
    BLAZE_USER_ASSERT( i < m_, "Invalid dense matrix row access index" );
    return v_.get() + i*nn_;
@@ -1201,7 +1168,7 @@ template< typename Type  // Data type of the matrix
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 inline typename CustomMatrix<Type,AF,PF,SO>::Iterator
-   CustomMatrix<Type,AF,PF,SO>::begin( size_t i ) noexcept
+   CustomMatrix<Type,AF,PF,SO>::begin( size_t i )
 {
    BLAZE_USER_ASSERT( i < m_, "Invalid dense matrix row access index" );
    return Iterator( v_.get() + i*nn_ );
@@ -1225,7 +1192,7 @@ template< typename Type  // Data type of the matrix
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 inline typename CustomMatrix<Type,AF,PF,SO>::ConstIterator
-   CustomMatrix<Type,AF,PF,SO>::begin( size_t i ) const noexcept
+   CustomMatrix<Type,AF,PF,SO>::begin( size_t i ) const
 {
    BLAZE_USER_ASSERT( i < m_, "Invalid dense matrix row access index" );
    return ConstIterator( v_.get() + i*nn_ );
@@ -1249,7 +1216,7 @@ template< typename Type  // Data type of the matrix
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 inline typename CustomMatrix<Type,AF,PF,SO>::ConstIterator
-   CustomMatrix<Type,AF,PF,SO>::cbegin( size_t i ) const noexcept
+   CustomMatrix<Type,AF,PF,SO>::cbegin( size_t i ) const
 {
    BLAZE_USER_ASSERT( i < m_, "Invalid dense matrix row access index" );
    return ConstIterator( v_.get() + i*nn_ );
@@ -1273,7 +1240,7 @@ template< typename Type  // Data type of the matrix
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 inline typename CustomMatrix<Type,AF,PF,SO>::Iterator
-   CustomMatrix<Type,AF,PF,SO>::end( size_t i ) noexcept
+   CustomMatrix<Type,AF,PF,SO>::end( size_t i )
 {
    BLAZE_USER_ASSERT( i < m_, "Invalid dense matrix row access index" );
    return Iterator( v_.get() + i*nn_ + n_ );
@@ -1297,7 +1264,7 @@ template< typename Type  // Data type of the matrix
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 inline typename CustomMatrix<Type,AF,PF,SO>::ConstIterator
-   CustomMatrix<Type,AF,PF,SO>::end( size_t i ) const noexcept
+   CustomMatrix<Type,AF,PF,SO>::end( size_t i ) const
 {
    BLAZE_USER_ASSERT( i < m_, "Invalid dense matrix row access index" );
    return ConstIterator( v_.get() + i*nn_ + n_ );
@@ -1321,7 +1288,7 @@ template< typename Type  // Data type of the matrix
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 inline typename CustomMatrix<Type,AF,PF,SO>::ConstIterator
-   CustomMatrix<Type,AF,PF,SO>::cend( size_t i ) const noexcept
+   CustomMatrix<Type,AF,PF,SO>::cend( size_t i ) const
 {
    BLAZE_USER_ASSERT( i < m_, "Invalid dense matrix row access index" );
    return ConstIterator( v_.get() + i*nn_ + n_ );
@@ -1336,79 +1303,6 @@ inline typename CustomMatrix<Type,AF,PF,SO>::ConstIterator
 //  ASSIGNMENT OPERATORS
 //
 //=================================================================================================
-
-//*************************************************************************************************
-/*!\brief Homogenous assignment to all matrix elements.
-//
-// \param rhs Scalar value to be assigned to all matrix elements.
-// \return Reference to the assigned matrix.
-*/
-template< typename Type  // Data type of the matrix
-        , bool AF        // Alignment flag
-        , bool PF        // Padding flag
-        , bool SO >      // Storage order
-inline CustomMatrix<Type,AF,PF,SO>& CustomMatrix<Type,AF,PF,SO>::operator=( const Type& rhs )
-{
-   for( size_t i=0UL; i<m_; ++i )
-      for( size_t j=0UL; j<n_; ++j )
-         v_[i*nn_+j] = rhs;
-
-   return *this;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief List assignment to all matrix elements.
-//
-// \param list The initializer list.
-// \exception std::invalid_argument Invalid assignment to static matrix.
-//
-// This assignment operator offers the option to directly assign to all elements of the matrix
-// by means of an initializer list:
-
-   \code
-   using blaze::unaligned;
-   using blaze::unpadded;
-   using blaze::rowMajor;
-
-   const int array[9] = { 0, 0, 0,
-                          0, 0, 0,
-                          0, 0, 0 };
-   blaze::CustomMatrix<int,unaligned,unpadded,rowMajor> A( array, 3UL, 3UL );
-   A = { { 1, 2, 3 },
-         { 4, 5 },
-         { 7, 8, 9 } };
-   \endcode
-
-// The matrix elements are assigned the values from the given initializer list. Missing values
-// are initialized as default (as e.g. the value 6 in the example). Note that in case the size
-// of the top-level initializer list exceeds the number of rows or the size of any nested list
-// exceeds the number of columns, a \a std::invalid_argument exception is thrown.
-*/
-template< typename Type  // Data type of the matrix
-        , bool AF        // Alignment flag
-        , bool PF        // Padding flag
-        , bool SO >      // Storage order
-inline CustomMatrix<Type,AF,PF,SO>&
-   CustomMatrix<Type,AF,PF,SO>::operator=( initializer_list< initializer_list<Type> > list )
-{
-   if( list.size() != m_ || determineColumns( list ) > n_ ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to custom matrix" );
-   }
-
-   size_t i( 0UL );
-
-   for( const auto& rowList : list ) {
-      std::fill( std::copy( rowList.begin(), rowList.end(), v_.get()+i*nn_ ),
-                 v_.get()+i*nn_+( PF ? nn_ : n_ ), Type() );
-      ++i;
-   }
-
-   return *this;
-}
-//*************************************************************************************************
-
 
 //*************************************************************************************************
 /*!\brief Array assignment to all matrix elements.
@@ -1462,6 +1356,27 @@ inline CustomMatrix<Type,AF,PF,SO>& CustomMatrix<Type,AF,PF,SO>::operator=( cons
 
 
 //*************************************************************************************************
+/*!\brief Homogenous assignment to all matrix elements.
+//
+// \param rhs Scalar value to be assigned to all matrix elements.
+// \return Reference to the assigned matrix.
+*/
+template< typename Type  // Data type of the matrix
+        , bool AF        // Alignment flag
+        , bool PF        // Padding flag
+        , bool SO >      // Storage order
+inline CustomMatrix<Type,AF,PF,SO>& CustomMatrix<Type,AF,PF,SO>::operator=( const Type& rhs )
+{
+   for( size_t i=0UL; i<m_; ++i )
+      for( size_t j=0UL; j<n_; ++j )
+         v_[i*nn_+j] = rhs;
+
+   return *this;
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Copy assignment operator for CustomMatrix.
 //
 // \param rhs Matrix to be copied.
@@ -1489,35 +1404,6 @@ inline CustomMatrix<Type,AF,PF,SO>& CustomMatrix<Type,AF,PF,SO>::operator=( cons
 
 
 //*************************************************************************************************
-/*!\brief Move assignment operator for CustomMatrix.
-//
-// \param rhs Matrix to be copied.
-// \return Reference to the assigned matrix.
-*/
-template< typename Type  // Data type of the matrix
-        , bool AF        // Alignment flag
-        , bool PF        // Padding flag
-        , bool SO >      // Storage order
-inline CustomMatrix<Type,AF,PF,SO>&
-   CustomMatrix<Type,AF,PF,SO>::operator=( CustomMatrix&& rhs ) noexcept
-{
-   m_  = rhs.m_;
-   n_  = rhs.n_;
-   nn_ = rhs.nn_;
-   v_  = std::move( rhs.v_ );
-
-   rhs.m_  = 0UL;
-   rhs.n_  = 0UL;
-   rhs.nn_ = 0UL;
-
-   BLAZE_INTERNAL_ASSERT( rhs.data() == nullptr, "Invalid data reference detected" );
-
-   return *this;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
 /*!\brief Assignment operator for different matrices.
 //
 // \param rhs Matrix to be copied.
@@ -1535,22 +1421,12 @@ template< typename MT    // Type of the right-hand side matrix
         , bool SO2 >     // Storage order of the right-hand side matrix
 inline CustomMatrix<Type,AF,PF,SO>& CustomMatrix<Type,AF,PF,SO>::operator=( const Matrix<MT,SO2>& rhs )
 {
-   typedef TransExprTrait_<This>   TT;
-   typedef CTransExprTrait_<This>  CT;
-   typedef InvExprTrait_<This>     IT;
-
    if( (~rhs).rows() != m_ || (~rhs).columns() != n_ ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Matrix sizes do not match" );
    }
 
-   if( IsSame<MT,TT>::value && (~rhs).isAliased( this ) ) {
-      transpose();
-   }
-   else if( IsSame<MT,CT>::value && (~rhs).isAliased( this ) ) {
-      ctranspose();
-   }
-   else if( !IsSame<MT,IT>::value && (~rhs).canAlias( this ) ) {
-      const ResultType_<MT> tmp( ~rhs );
+   if( (~rhs).canAlias( this ) ) {
+      const typename MT::ResultType tmp( ~rhs );
       smpAssign( *this, tmp );
    }
    else {
@@ -1587,7 +1463,7 @@ inline CustomMatrix<Type,AF,PF,SO>& CustomMatrix<Type,AF,PF,SO>::operator+=( con
    }
 
    if( (~rhs).canAlias( this ) ) {
-      const ResultType_<MT> tmp( ~rhs );
+      const typename MT::ResultType tmp( ~rhs );
       smpAddAssign( *this, tmp );
    }
    else {
@@ -1622,7 +1498,7 @@ inline CustomMatrix<Type,AF,PF,SO>& CustomMatrix<Type,AF,PF,SO>::operator-=( con
    }
 
    if( (~rhs).canAlias( this ) ) {
-      const ResultType_<MT> tmp( ~rhs );
+      const typename MT::ResultType tmp( ~rhs );
       smpSubAssign( *this, tmp );
    }
    else {
@@ -1656,7 +1532,7 @@ inline CustomMatrix<Type,AF,PF,SO>& CustomMatrix<Type,AF,PF,SO>::operator*=( con
       BLAZE_THROW_INVALID_ARGUMENT( "Matrix sizes do not match" );
    }
 
-   const MultTrait_< ResultType, ResultType_<MT> > tmp( *this * (~rhs) );
+   const typename MultTrait<ResultType,typename MT::ResultType>::Type tmp( *this * (~rhs) );
    smpAssign( *this, tmp );
 
    return *this;
@@ -1676,7 +1552,7 @@ template< typename Type     // Data type of the matrix
         , bool PF           // Padding flag
         , bool SO >         // Storage order
 template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_<IsNumeric<Other>, CustomMatrix<Type,AF,PF,SO> >&
+inline typename EnableIf< IsNumeric<Other>, CustomMatrix<Type,AF,PF,SO> >::Type&
    CustomMatrix<Type,AF,PF,SO>::operator*=( Other rhs )
 {
    smpAssign( *this, (*this) * rhs );
@@ -1697,7 +1573,7 @@ template< typename Type     // Data type of the matrix
         , bool PF           // Padding flag
         , bool SO >         // Storage order
 template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_<IsNumeric<Other>, CustomMatrix<Type,AF,PF,SO> >&
+inline typename EnableIf< IsNumeric<Other>, CustomMatrix<Type,AF,PF,SO> >::Type&
    CustomMatrix<Type,AF,PF,SO>::operator/=( Other rhs )
 {
    BLAZE_USER_ASSERT( rhs != Other(0), "Division by zero detected" );
@@ -1725,7 +1601,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
-inline size_t CustomMatrix<Type,AF,PF,SO>::rows() const noexcept
+inline size_t CustomMatrix<Type,AF,PF,SO>::rows() const
 {
    return m_;
 }
@@ -1741,7 +1617,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
-inline size_t CustomMatrix<Type,AF,PF,SO>::columns() const noexcept
+inline size_t CustomMatrix<Type,AF,PF,SO>::columns() const
 {
    return n_;
 }
@@ -1762,7 +1638,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
-inline size_t CustomMatrix<Type,AF,PF,SO>::spacing() const noexcept
+inline size_t CustomMatrix<Type,AF,PF,SO>::spacing() const
 {
    return nn_;
 }
@@ -1778,7 +1654,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
-inline size_t CustomMatrix<Type,AF,PF,SO>::capacity() const noexcept
+inline size_t CustomMatrix<Type,AF,PF,SO>::capacity() const
 {
    return m_ * nn_;
 }
@@ -1800,7 +1676,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
-inline size_t CustomMatrix<Type,AF,PF,SO>::capacity( size_t i ) const noexcept
+inline size_t CustomMatrix<Type,AF,PF,SO>::capacity( size_t i ) const
 {
    UNUSED_PARAMETER( i );
    BLAZE_USER_ASSERT( i < rows(), "Invalid row access index" );
@@ -2016,12 +1892,13 @@ inline CustomMatrix<Type,AF,PF,SO>& CustomMatrix<Type,AF,PF,SO>::scale( const Ot
 //
 // \param m The matrix to be swapped.
 // \return void
+// \exception no-throw guarantee.
 */
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
-inline void CustomMatrix<Type,AF,PF,SO>::swap( CustomMatrix& m ) noexcept
+inline void CustomMatrix<Type,AF,PF,SO>::swap( CustomMatrix& m ) /* throw() */
 {
    using std::swap;
 
@@ -2053,7 +1930,7 @@ inline void CustomMatrix<Type,AF,PF,SO>::swap( CustomMatrix& m ) noexcept
 // This function resets the custom matrix to the given array of elements of size \f$ m \times n \f$.
 // The function fails if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...).
 //
@@ -2091,7 +1968,7 @@ inline void CustomMatrix<Type,AF,PF,SO>::reset( Type* ptr, size_t m, size_t n )
 // This function resets the custom matrix to the given array of elements of size \f$ m \times n \f$.
 // The function fails if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...).
 //
@@ -2126,7 +2003,7 @@ inline void CustomMatrix<Type,AF,PF,SO>::reset( Type* ptr, size_t m, size_t n, s
 // This function resets the custom matrix to the given array of elements of size \f$ m \times n \f$.
 // The function fails if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...).
 //
@@ -2136,15 +2013,14 @@ inline void CustomMatrix<Type,AF,PF,SO>::reset( Type* ptr, size_t m, size_t n, s
 // \note In case a deleter was specified, the previously referenced array will only be destroyed
 //       when the last custom matrix referencing the array goes out of scope.
 */
-template< typename Type     // Data type of the matrix
-        , bool AF           // Alignment flag
-        , bool PF           // Padding flag
-        , bool SO >         // Storage order
-template< typename Deleter  // Type of the custom deleter
-        , typename >        // Type restriction on the custom deleter
+template< typename Type       // Data type of the matrix
+        , bool AF             // Alignment flag
+        , bool PF             // Padding flag
+        , bool SO >           // Storage order
+template< typename Deleter >  // Type of the custom deleter
 inline void CustomMatrix<Type,AF,PF,SO>::reset( Type* ptr, size_t m, size_t n, Deleter d )
 {
-   BLAZE_STATIC_ASSERT( IsIntegral<Deleter>::value || PF == unpadded );
+   BLAZE_STATIC_ASSERT( !IsClass<Deleter>::value || PF == unpadded );
 
    CustomMatrix tmp( ptr, m, n, d );
    swap( tmp );
@@ -2166,7 +2042,7 @@ inline void CustomMatrix<Type,AF,PF,SO>::reset( Type* ptr, size_t m, size_t n, D
 // This function resets the custom matrix to the given array of elements of size \f$ m \times n \f$.
 // The function fails if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...).
 //
@@ -2211,7 +2087,7 @@ template< typename Type     // Data type of the matrix
         , bool PF           // Padding flag
         , bool SO >         // Storage order
 template< typename Other >  // Data type of the foreign expression
-inline bool CustomMatrix<Type,AF,PF,SO>::canAlias( const Other* alias ) const noexcept
+inline bool CustomMatrix<Type,AF,PF,SO>::canAlias( const Other* alias ) const
 {
    return static_cast<const void*>( this ) == static_cast<const void*>( alias );
 }
@@ -2233,7 +2109,7 @@ template< typename Type     // Data type of the matrix
         , bool PF           // Padding flag
         , bool SO >         // Storage order
 template< typename Other >  // Data type of the foreign expression
-inline bool CustomMatrix<Type,AF,PF,SO>::isAliased( const Other* alias ) const noexcept
+inline bool CustomMatrix<Type,AF,PF,SO>::isAliased( const Other* alias ) const
 {
    return static_cast<const void*>( this ) == static_cast<const void*>( alias );
 }
@@ -2253,9 +2129,9 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
-inline bool CustomMatrix<Type,AF,PF,SO>::isAligned() const noexcept
+inline bool CustomMatrix<Type,AF,PF,SO>::isAligned() const
 {
-   return ( AF || ( checkAlignment( v_.get() ) && columns() % SIMDSIZE == 0UL ) );
+   return ( AF || ( checkAlignment( v_.get() ) && columns() % IT::size == 0UL ) );
 }
 //*************************************************************************************************
 
@@ -2274,34 +2150,34 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
-inline bool CustomMatrix<Type,AF,PF,SO>::canSMPAssign() const noexcept
+inline bool CustomMatrix<Type,AF,PF,SO>::canSMPAssign() const
 {
-   return ( rows() * columns() >= SMP_DMATASSIGN_THRESHOLD );
+   return ( rows() > SMP_DMATASSIGN_THRESHOLD );
 }
 //*************************************************************************************************
 
 
 //*************************************************************************************************
-/*!\brief Load of a SIMD element of the matrix.
+/*!\brief Load of an intrinsic element of the matrix.
 //
 // \param i Access index for the row. The index has to be in the range [0..M-1].
 // \param j Access index for the column. The index has to be in the range [0..N-1].
-// \return The loaded SIMD element.
+// \return The loaded intrinsic element.
 //
-// This function performs a load of a specific SIMD element of the dense matrix. The row index
-// must be smaller than the number of rows and the column index must be smaller then the number
-// of columns. Additionally, the column index (in case of a row-major matrix) or the row index
-// (in case of a column-major matrix) must be a multiple of the number of values inside the
-// SIMD element. This function must \b NOT be called explicitly! It is used internally for the
-// performance optimized evaluation of expression templates. Calling this function explicitly
-// might result in erroneous results and/or in compilation errors.
+// This function performs a load of a specific intrinsic element of the dense matrix. The row
+// index must be smaller than the number of rows and the column index must be smaller than the
+// number of columns. Additionally, the column index (in case of a row-major matrix) or the row
+// index (in case of a column-major matrix) must be a multiple of the number of values inside
+// the intrinsic element. This function must \b NOT be called explicitly! It is used internally
+// for the performance optimized evaluation of expression templates. Calling this function
+// explicitly might result in erroneous results and/or in compilation errors.
 */
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
-BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,SO>::SIMDType
-   CustomMatrix<Type,AF,PF,SO>::load( size_t i, size_t j ) const noexcept
+BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,SO>::IntrinsicType
+   CustomMatrix<Type,AF,PF,SO>::load( size_t i, size_t j ) const
 {
    if( AF && PF )
       return loada( i, j );
@@ -2312,26 +2188,26 @@ BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,SO>::SIMDType
 
 
 //*************************************************************************************************
-/*!\brief Aligned load of a SIMD element of the matrix.
+/*!\brief Aligned load of an intrinsic element of the matrix.
 //
 // \param i Access index for the row. The index has to be in the range [0..M-1].
 // \param j Access index for the column. The index has to be in the range [0..N-1].
-// \return The loaded SIMD element.
+// \return The loaded intrinsic element.
 //
-// This function performs an aligned load of a specific SIMD element of the dense matrix.
+// This function performs an aligned load of a specific intrinsic element of the dense matrix.
 // The row index must be smaller than the number of rows and the column index must be smaller
 // than the number of columns. Additionally, the column index (in case of a row-major matrix)
 // or the row index (in case of a column-major matrix) must be a multiple of the number of
-// values inside the SIMD element. This function must \b NOT be called explicitly! It is used
-// internally for the performance optimized evaluation of expression templates. Calling this
-// function explicitly might result in erroneous results and/or in compilation errors.
+// values inside the intrinsic element. This function must \b NOT be called explicitly! It is
+// used internally for the performance optimized evaluation of expression templates. Calling
+// this function explicitly might result in erroneous results and/or in compilation errors.
 */
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
-BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,SO>::SIMDType
-   CustomMatrix<Type,AF,PF,SO>::loada( size_t i, size_t j ) const noexcept
+BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,SO>::IntrinsicType
+   CustomMatrix<Type,AF,PF,SO>::loada( size_t i, size_t j ) const
 {
    using blaze::loada;
 
@@ -2339,8 +2215,8 @@ BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,SO>::SIMDType
 
    BLAZE_INTERNAL_ASSERT( i < m_, "Invalid row access index" );
    BLAZE_INTERNAL_ASSERT( j < n_, "Invalid column access index" );
-   BLAZE_INTERNAL_ASSERT( j + SIMDSIZE <= ( PF ? nn_ : n_ ), "Invalid column access index" );
-   BLAZE_INTERNAL_ASSERT( !PF || j % SIMDSIZE == 0UL, "Invalid column access index" );
+   BLAZE_INTERNAL_ASSERT( j + IT::size <= ( PF ? nn_ : n_ ), "Invalid column access index" );
+   BLAZE_INTERNAL_ASSERT( !PF || j % IT::size == 0UL, "Invalid column access index" );
    BLAZE_INTERNAL_ASSERT( checkAlignment( v_.get()+i*nn_+j ), "Invalid alignment detected" );
 
    return loada( v_.get()+i*nn_+j );
@@ -2349,26 +2225,26 @@ BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,SO>::SIMDType
 
 
 //*************************************************************************************************
-/*!\brief Unaligned load of a SIMD element of the matrix.
+/*!\brief Unaligned load of an intrinsic element of the matrix.
 //
 // \param i Access index for the row. The index has to be in the range [0..M-1].
 // \param j Access index for the column. The index has to be in the range [0..N-1].
-// \return The loaded SIMD element.
+// \return The loaded intrinsic element.
 //
-// This function performs an unaligned load of a specific SIMD element of the dense matrix.
+// This function performs an unaligned load of a specific intrinsic element of the dense matrix.
 // The row index must be smaller than the number of rows and the column index must be smaller
 // than the number of columns. Additionally, the column index (in case of a row-major matrix)
 // or the row index (in case of a column-major matrix) must be a multiple of the number of
-// values inside the SIMD element. This function must \b NOT be called explicitly! It is used
-// internally for the performance optimized evaluation of expression templates. Calling this
-// function explicitly might result in erroneous results and/or in compilation errors.
+// values inside the intrinsic element. This function must \b NOT be called explicitly! It is
+// used internally for the performance optimized evaluation of expression templates. Calling
+// this function explicitly might result in erroneous results and/or in compilation errors.
 */
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
-BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,SO>::SIMDType
-   CustomMatrix<Type,AF,PF,SO>::loadu( size_t i, size_t j ) const noexcept
+BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,SO>::IntrinsicType
+   CustomMatrix<Type,AF,PF,SO>::loadu( size_t i, size_t j ) const
 {
    using blaze::loadu;
 
@@ -2376,7 +2252,7 @@ BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,SO>::SIMDType
 
    BLAZE_INTERNAL_ASSERT( i < m_, "Invalid row access index" );
    BLAZE_INTERNAL_ASSERT( j < n_, "Invalid column access index" );
-   BLAZE_INTERNAL_ASSERT( j + SIMDSIZE <= ( PF ? nn_ : n_ ), "Invalid column access index" );
+   BLAZE_INTERNAL_ASSERT( j + IT::size <= ( PF ? nn_ : n_ ), "Invalid column access index" );
 
    return loadu( v_.get()+i*nn_+j );
 }
@@ -2384,27 +2260,27 @@ BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,SO>::SIMDType
 
 
 //*************************************************************************************************
-/*!\brief Store of a SIMD element of the matrix.
+/*!\brief Store of an intrinsic element of the matrix.
 //
 // \param i Access index for the row. The index has to be in the range [0..M-1].
 // \param j Access index for the column. The index has to be in the range [0..N-1].
-// \param value The SIMD element to be stored.
+// \param value The intrinsic element to be stored.
 // \return void
 //
-// This function performs a store of a specific SIMD element of the dense matrix. The row index
-// must be smaller than the number of rows and the column index must be smaller than the number
-// of columns. Additionally, the column index (in case of a row-major matrix) or the row index
-// (in case of a column-major matrix) must be a multiple of the number of values inside the
-// SIMD element. This function must \b NOT be called explicitly! It is used internally for the
-// performance optimized evaluation of expression templates. Calling this function explicitly
-// might result in erroneous results and/or in compilation errors.
+// This function performs a store of a specific intrinsic element of the dense matrix. The row
+// index must be smaller than the number of rows and the column index must be smaller than the
+// number of columns. Additionally, the column index (in case of a row-major matrix) or the row
+// index (in case of a column-major matrix) must be a multiple of the number of values inside
+// the intrinsic element. This function must \b NOT be called explicitly! It is used internally
+// for the performance optimized evaluation of expression templates. Calling this function
+// explicitly might result in erroneous results and/or in compilation errors.
 */
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 BLAZE_ALWAYS_INLINE void
-   CustomMatrix<Type,AF,PF,SO>::store( size_t i, size_t j, const SIMDType& value ) noexcept
+   CustomMatrix<Type,AF,PF,SO>::store( size_t i, size_t j, const IntrinsicType& value )
 {
    if( AF && PF )
       storea( i, j, value );
@@ -2415,27 +2291,27 @@ BLAZE_ALWAYS_INLINE void
 
 
 //*************************************************************************************************
-/*!\brief Aligned store of a SIMD element of the matrix.
+/*!\brief Aligned store of an intrinsic element of the matrix.
 //
 // \param i Access index for the row. The index has to be in the range [0..M-1].
 // \param j Access index for the column. The index has to be in the range [0..N-1].
-// \param value The SIMD element to be stored.
+// \param value The intrinsic element to be stored.
 // \return void
 //
-// This function performs an aligned store of a specific SIMD element of the dense matrix.
+// This function performs an aligned store of a specific intrinsic element of the dense matrix.
 // The row index must be smaller than the number of rows and the column index must be smaller
 // than the number of columns. Additionally, the column index (in case of a row-major matrix)
 // or the row index (in case of a column-major matrix) must be a multiple of the number of
-// values inside the SIMD element. This function must \b NOT be called explicitly! It is used
-// internally for the performance optimized evaluation of expression templates. Calling this
-// function explicitly might result in erroneous results and/or in compilation errors.
+// values inside the intrinsic element. This function must \b NOT be called explicitly! It is
+// used internally for the performance optimized evaluation of expression templates. Calling
+// this function explicitly might result in erroneous results and/or in compilation errors.
 */
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 BLAZE_ALWAYS_INLINE void
-   CustomMatrix<Type,AF,PF,SO>::storea( size_t i, size_t j, const SIMDType& value ) noexcept
+   CustomMatrix<Type,AF,PF,SO>::storea( size_t i, size_t j, const IntrinsicType& value )
 {
    using blaze::storea;
 
@@ -2443,8 +2319,8 @@ BLAZE_ALWAYS_INLINE void
 
    BLAZE_INTERNAL_ASSERT( i < m_, "Invalid row access index" );
    BLAZE_INTERNAL_ASSERT( j < n_, "Invalid column access index" );
-   BLAZE_INTERNAL_ASSERT( j + SIMDSIZE <= ( PF ? nn_ : n_ ), "Invalid column access index" );
-   BLAZE_INTERNAL_ASSERT( !PF || j % SIMDSIZE == 0UL, "Invalid column access index" );
+   BLAZE_INTERNAL_ASSERT( j + IT::size <= ( PF ? nn_ : n_ ), "Invalid column access index" );
+   BLAZE_INTERNAL_ASSERT( !PF || j % IT::size == 0UL, "Invalid column access index" );
    BLAZE_INTERNAL_ASSERT( checkAlignment( v_.get()+i*nn_+j ), "Invalid alignment detected" );
 
    storea( v_.get()+i*nn_+j, value );
@@ -2453,27 +2329,27 @@ BLAZE_ALWAYS_INLINE void
 
 
 //*************************************************************************************************
-/*!\brief Unaligned store of a SIMD element of the matrix.
+/*!\brief Unaligned store of an intrinsic element of the matrix.
 //
 // \param i Access index for the row. The index has to be in the range [0..M-1].
 // \param j Access index for the column. The index has to be in the range [0..N-1].
-// \param value The SIMD element to be stored.
+// \param value The intrinsic element to be stored.
 // \return void
 //
-// This function performs an unaligned store of a specific SIMD element of the dense matrix.
+// This function performs an unaligned store of a specific intrinsic element of the dense matrix.
 // The row index must be smaller than the number of rows and the column index must be smaller
 // than the number of columns. Additionally, the column index (in case of a row-major matrix)
 // or the row index (in case of a column-major matrix) must be a multiple of the number of
-// values inside the SIMD element. This function must \b NOT be called explicitly! It is used
-// internally for the performance optimized evaluation of expression templates. Calling this
-// function explicitly might result in erroneous results and/or in compilation errors.
+// values inside the intrinsic element. This function must \b NOT be called explicitly! It is
+// used internally for the performance optimized evaluation of expression templates. Calling
+// this function explicitly might result in erroneous results and/or in compilation errors.
 */
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 BLAZE_ALWAYS_INLINE void
-   CustomMatrix<Type,AF,PF,SO>::storeu( size_t i, size_t j, const SIMDType& value ) noexcept
+   CustomMatrix<Type,AF,PF,SO>::storeu( size_t i, size_t j, const IntrinsicType& value )
 {
    using blaze::storeu;
 
@@ -2481,7 +2357,7 @@ BLAZE_ALWAYS_INLINE void
 
    BLAZE_INTERNAL_ASSERT( i < m_, "Invalid row access index" );
    BLAZE_INTERNAL_ASSERT( j < n_, "Invalid column access index" );
-   BLAZE_INTERNAL_ASSERT( j + SIMDSIZE <= ( PF ? nn_ : n_ ), "Invalid column access index" );
+   BLAZE_INTERNAL_ASSERT( j + IT::size <= ( PF ? nn_ : n_ ), "Invalid column access index" );
 
    storeu( v_.get()+i*nn_+j, value );
 }
@@ -2489,28 +2365,27 @@ BLAZE_ALWAYS_INLINE void
 
 
 //*************************************************************************************************
-/*!\brief Aligned, non-temporal store of a SIMD element of the matrix.
+/*!\brief Aligned, non-temporal store of an intrinsic element of the matrix.
 //
 // \param i Access index for the row. The index has to be in the range [0..M-1].
 // \param j Access index for the column. The index has to be in the range [0..N-1].
-// \param value The SIMD element to be stored.
+// \param value The intrinsic element to be stored.
 // \return void
 //
-// This function performs an aligned, non-temporal store of a specific SIMD element of the
-// dense matrix. The row index must be smaller than the number of rows and the column index
-// must be smaller than the number of columns. Additionally, the column index (in case of a
-// row-major matrix) or the row index (in case of a column-major matrix) must be a multiple
-// of the number of values inside the SIMD element. This function must \b NOT be called
-// explicitly! It is used internally for the performance optimized evaluation of expression
-// templates. Calling this function explicitly might result in erroneous results and/or in
-// compilation errors.
+// This function performs an aligned, non-temporal store of a specific intrinsic element of the
+// dense matrix. The row index must be smaller than the number of rows and the column index must
+// be smaller than the number of columns. Additionally, the column index (in case of a row-major
+// matrix) or the row index (in case of a column-major matrix) must be a multiple of the number
+// of values inside the intrinsic element. This function must \b NOT be called explicitly! It
+// is used internally for the performance optimized evaluation of expression templates. Calling
+// this function explicitly might result in erroneous results and/or in compilation errors.
 */
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 BLAZE_ALWAYS_INLINE void
-   CustomMatrix<Type,AF,PF,SO>::stream( size_t i, size_t j, const SIMDType& value ) noexcept
+   CustomMatrix<Type,AF,PF,SO>::stream( size_t i, size_t j, const IntrinsicType& value )
 {
    using blaze::stream;
 
@@ -2518,8 +2393,8 @@ BLAZE_ALWAYS_INLINE void
 
    BLAZE_INTERNAL_ASSERT( i < m_, "Invalid row access index" );
    BLAZE_INTERNAL_ASSERT( j < n_, "Invalid column access index" );
-   BLAZE_INTERNAL_ASSERT( j + SIMDSIZE <= ( PF ? nn_ : n_ ), "Invalid column access index" );
-   BLAZE_INTERNAL_ASSERT( !PF || j % SIMDSIZE == 0UL, "Invalid column access index" );
+   BLAZE_INTERNAL_ASSERT( j + IT::size <= ( PF ? nn_ : n_ ), "Invalid column access index" );
+   BLAZE_INTERNAL_ASSERT( !PF || j % IT::size == 0UL, "Invalid column access index" );
    BLAZE_INTERNAL_ASSERT( checkAlignment( v_.get()+i*nn_+j ), "Invalid alignment detected" );
 
    stream( v_.get()+i*nn_+j, value );
@@ -2543,7 +2418,7 @@ template< typename Type  // Data type of the matrix
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 template< typename MT >  // Type of the right-hand side dense matrix
-inline DisableIf_<typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE VectorizedAssign<MT> >
+inline typename DisableIf< typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE VectorizedAssign<MT> >::Type
    CustomMatrix<Type,AF,PF,SO>::assign( const DenseMatrix<MT,SO>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
@@ -2566,7 +2441,7 @@ inline DisableIf_<typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE Vectorize
 
 
 //*************************************************************************************************
-/*!\brief SIMD optimized implementation of the assignment of a row-major dense matrix.
+/*!\brief Intrinsic optimized implementation of the assignment of a row-major dense matrix.
 //
 // \param rhs The right-hand side dense matrix to be assigned.
 // \return void
@@ -2581,7 +2456,7 @@ template< typename Type  // Data type of the matrix
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 template< typename MT >  // Type of the right-hand side dense matrix
-inline EnableIf_<typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE VectorizedAssign<MT> >
+inline typename EnableIf< typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE VectorizedAssign<MT> >::Type
    CustomMatrix<Type,AF,PF,SO>::assign( const DenseMatrix<MT,SO>& rhs )
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
@@ -2589,10 +2464,10 @@ inline EnableIf_<typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE Vectorized
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
-   constexpr bool remainder( !PF || !IsPadded<MT>::value );
+   const bool remainder( !PF || !IsPadded<MT>::value );
 
-   const size_t jpos( ( remainder )?( n_ & size_t(-SIMDSIZE) ):( n_ ) );
-   BLAZE_INTERNAL_ASSERT( !remainder || ( n_ - ( n_ % (SIMDSIZE) ) ) == jpos, "Invalid end calculation" );
+   const size_t jpos( ( remainder )?( n_ & size_t(-IT::size) ):( n_ ) );
+   BLAZE_INTERNAL_ASSERT( !remainder || ( n_ - ( n_ % (IT::size) ) ) == jpos, "Invalid end calculation" );
 
    if( AF && PF && useStreaming &&
        ( m_*n_ > ( cacheSize / ( sizeof(Type) * 3UL ) ) ) && !(~rhs).isAliased( this ) )
@@ -2601,7 +2476,7 @@ inline EnableIf_<typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE Vectorized
       {
          size_t j( 0UL );
 
-         for( ; j<jpos; j+=SIMDSIZE ) {
+         for( ; j<jpos; j+=IT::size ) {
             stream( i, j, (~rhs).load(i,j) );
          }
          for( ; remainder && j<n_; ++j ) {
@@ -2614,15 +2489,15 @@ inline EnableIf_<typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE Vectorized
       for( size_t i=0UL; i<m_; ++i )
       {
          size_t j( 0UL );
-         ConstIterator_<MT> it( (~rhs).begin(i) );
+         typename MT::ConstIterator it( (~rhs).begin(i) );
 
-         for( ; (j+SIMDSIZE*3UL) < jpos; j+=SIMDSIZE*4UL ) {
-            store( i, j             , it.load() ); it += SIMDSIZE;
-            store( i, j+SIMDSIZE    , it.load() ); it += SIMDSIZE;
-            store( i, j+SIMDSIZE*2UL, it.load() ); it += SIMDSIZE;
-            store( i, j+SIMDSIZE*3UL, it.load() ); it += SIMDSIZE;
+         for( ; (j+IT::size*3UL) < jpos; j+=IT::size*4UL ) {
+            store( i, j             , it.load() ); it += IT::size;
+            store( i, j+IT::size    , it.load() ); it += IT::size;
+            store( i, j+IT::size*2UL, it.load() ); it += IT::size;
+            store( i, j+IT::size*3UL, it.load() ); it += IT::size;
          }
-         for( ; j<jpos; j+=SIMDSIZE, it+=SIMDSIZE ) {
+         for( ; j<jpos; j+=IT::size, it+=IT::size ) {
             store( i, j, it.load() );
          }
          for( ; remainder && j<n_; ++j, ++it ) {
@@ -2657,7 +2532,7 @@ inline void CustomMatrix<Type,AF,PF,SO>::assign( const DenseMatrix<MT,!SO>& rhs 
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
-   constexpr size_t block( BLOCK_SIZE );
+   const size_t block( BLOCK_SIZE );
 
    for( size_t ii=0UL; ii<m_; ii+=block ) {
       const size_t iend( min( m_, ii+block ) );
@@ -2696,7 +2571,7 @@ inline void CustomMatrix<Type,AF,PF,SO>::assign( const SparseMatrix<MT,SO>& rhs 
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
    for( size_t i=0UL; i<m_; ++i )
-      for( ConstIterator_<MT> element=(~rhs).begin(i); element!=(~rhs).end(i); ++element )
+      for( typename MT::ConstIterator element=(~rhs).begin(i); element!=(~rhs).end(i); ++element )
          v_[i*nn_+element->index()] = element->value();
 }
 //*************************************************************************************************
@@ -2726,7 +2601,7 @@ inline void CustomMatrix<Type,AF,PF,SO>::assign( const SparseMatrix<MT,!SO>& rhs
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
    for( size_t j=0UL; j<n_; ++j )
-      for( ConstIterator_<MT> element=(~rhs).begin(j); element!=(~rhs).end(j); ++element )
+      for( typename MT::ConstIterator element=(~rhs).begin(j); element!=(~rhs).end(j); ++element )
          v_[element->index()*nn_+j] = element->value();
 }
 //*************************************************************************************************
@@ -2748,7 +2623,7 @@ template< typename Type  // Data type of the matrix
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 template< typename MT >  // Type of the right-hand side dense matrix
-inline DisableIf_<typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE VectorizedAddAssign<MT> >
+inline typename DisableIf< typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE VectorizedAddAssign<MT> >::Type
    CustomMatrix<Type,AF,PF,SO>::addAssign( const DenseMatrix<MT,SO>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
@@ -2786,7 +2661,7 @@ inline DisableIf_<typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE Vectorize
 
 
 //*************************************************************************************************
-/*!\brief SIMD optimized implementation of the addition assignment of a row-major dense matrix.
+/*!\brief Intrinsic optimized implementation of the addition assignment of a row-major dense matrix.
 //
 // \param rhs The right-hand side dense matrix to be added.
 // \return void
@@ -2801,7 +2676,7 @@ template< typename Type  // Data type of the matrix
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 template< typename MT >  // Type of the right-hand side dense matrix
-inline EnableIf_<typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE VectorizedAddAssign<MT> >
+inline typename EnableIf< typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE VectorizedAddAssign<MT> >::Type
    CustomMatrix<Type,AF,PF,SO>::addAssign( const DenseMatrix<MT,SO>& rhs )
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
@@ -2810,31 +2685,31 @@ inline EnableIf_<typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE Vectorized
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
-   constexpr bool remainder( !PF || !IsPadded<MT>::value );
+   const bool remainder( !PF || !IsPadded<MT>::value );
 
    for( size_t i=0UL; i<m_; ++i )
    {
       const size_t jbegin( ( IsUpper<MT>::value )
-                           ?( ( IsStrictlyUpper<MT>::value ? i+1UL : i ) & size_t(-SIMDSIZE) )
+                           ?( ( IsStrictlyUpper<MT>::value ? i+1UL : i ) & size_t(-IT::size) )
                            :( 0UL ) );
       const size_t jend  ( ( IsLower<MT>::value )
                            ?( IsStrictlyLower<MT>::value ? i : i+1UL )
                            :( n_ ) );
       BLAZE_INTERNAL_ASSERT( jbegin <= jend, "Invalid loop indices detected" );
 
-      const size_t jpos( ( remainder )?( jend & size_t(-SIMDSIZE) ):( jend ) );
-      BLAZE_INTERNAL_ASSERT( !remainder || ( jend - ( jend % (SIMDSIZE) ) ) == jpos, "Invalid end calculation" );
+      const size_t jpos( ( remainder )?( jend & size_t(-IT::size) ):( jend ) );
+      BLAZE_INTERNAL_ASSERT( !remainder || ( jend - ( jend % (IT::size) ) ) == jpos, "Invalid end calculation" );
 
       size_t j( jbegin );
-      ConstIterator_<MT> it( (~rhs).begin(i) + jbegin );
+      typename MT::ConstIterator it( (~rhs).begin(i) + jbegin );
 
-      for( ; (j+SIMDSIZE*3UL) < jpos; j+=SIMDSIZE*4UL ) {
-         store( i, j             , load(i,j             ) + it.load() ); it += SIMDSIZE;
-         store( i, j+SIMDSIZE    , load(i,j+SIMDSIZE    ) + it.load() ); it += SIMDSIZE;
-         store( i, j+SIMDSIZE*2UL, load(i,j+SIMDSIZE*2UL) + it.load() ); it += SIMDSIZE;
-         store( i, j+SIMDSIZE*3UL, load(i,j+SIMDSIZE*3UL) + it.load() ); it += SIMDSIZE;
+      for( ; (j+IT::size*3UL) < jpos; j+=IT::size*4UL ) {
+         store( i, j             , load(i,j             ) + it.load() ); it += IT::size;
+         store( i, j+IT::size    , load(i,j+IT::size    ) + it.load() ); it += IT::size;
+         store( i, j+IT::size*2UL, load(i,j+IT::size*2UL) + it.load() ); it += IT::size;
+         store( i, j+IT::size*3UL, load(i,j+IT::size*3UL) + it.load() ); it += IT::size;
       }
-      for( ; j<jpos; j+=SIMDSIZE, it+=SIMDSIZE ) {
+      for( ; j<jpos; j+=IT::size, it+=IT::size ) {
          store( i, j, load(i,j) + it.load() );
       }
       for( ; remainder && j<jend; ++j, ++it ) {
@@ -2868,7 +2743,7 @@ inline void CustomMatrix<Type,AF,PF,SO>::addAssign( const DenseMatrix<MT,!SO>& r
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
-   constexpr size_t block( BLOCK_SIZE );
+   const size_t block( BLOCK_SIZE );
 
    for( size_t ii=0UL; ii<m_; ii+=block ) {
       const size_t iend( min( m_, ii+block ) );
@@ -2919,7 +2794,7 @@ inline void CustomMatrix<Type,AF,PF,SO>::addAssign( const SparseMatrix<MT,SO>& r
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
    for( size_t i=0UL; i<m_; ++i )
-      for( ConstIterator_<MT> element=(~rhs).begin(i); element!=(~rhs).end(i); ++element )
+      for( typename MT::ConstIterator element=(~rhs).begin(i); element!=(~rhs).end(i); ++element )
          v_[i*nn_+element->index()] += element->value();
 }
 //*************************************************************************************************
@@ -2949,7 +2824,7 @@ inline void CustomMatrix<Type,AF,PF,SO>::addAssign( const SparseMatrix<MT,!SO>& 
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
    for( size_t j=0UL; j<n_; ++j )
-      for( ConstIterator_<MT> element=(~rhs).begin(j); element!=(~rhs).end(j); ++element )
+      for( typename MT::ConstIterator element=(~rhs).begin(j); element!=(~rhs).end(j); ++element )
          v_[element->index()*nn_+j] += element->value();
 }
 //*************************************************************************************************
@@ -2971,7 +2846,7 @@ template< typename Type  // Data type of the matrix
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 template< typename MT >  // Type of the right-hand side dense matrix
-inline DisableIf_<typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE VectorizedSubAssign<MT> >
+inline typename DisableIf< typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE VectorizedSubAssign<MT> >::Type
    CustomMatrix<Type,AF,PF,SO>::subAssign( const DenseMatrix<MT,SO>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
@@ -3009,7 +2884,7 @@ inline DisableIf_<typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE Vectorize
 
 
 //*************************************************************************************************
-/*!\brief SIMD optimized implementation of the subtraction assignment of a row-major dense matrix.
+/*!\brief Intrinsic optimized implementation of the subtraction assignment of a row-major dense matrix.
 //
 // \param rhs The right-hand side dense matrix to be subtracted.
 // \return void
@@ -3024,7 +2899,7 @@ template< typename Type  // Data type of the matrix
         , bool PF        // Padding flag
         , bool SO >      // Storage order
 template< typename MT >  // Type of the right-hand side dense matrix
-inline EnableIf_<typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE VectorizedSubAssign<MT> >
+inline typename EnableIf< typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE VectorizedSubAssign<MT> >::Type
    CustomMatrix<Type,AF,PF,SO>::subAssign( const DenseMatrix<MT,SO>& rhs )
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
@@ -3033,31 +2908,31 @@ inline EnableIf_<typename CustomMatrix<Type,AF,PF,SO>::BLAZE_TEMPLATE Vectorized
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
-   constexpr bool remainder( !PF || !IsPadded<MT>::value );
+   const bool remainder( !PF || !IsPadded<MT>::value );
 
    for( size_t i=0UL; i<m_; ++i )
    {
       const size_t jbegin( ( IsUpper<MT>::value )
-                           ?( ( IsStrictlyUpper<MT>::value ? i+1UL : i ) & size_t(-SIMDSIZE) )
+                           ?( ( IsStrictlyUpper<MT>::value ? i+1UL : i ) & size_t(-IT::size) )
                            :( 0UL ) );
       const size_t jend  ( ( IsLower<MT>::value )
                            ?( IsStrictlyLower<MT>::value ? i : i+1UL )
                            :( n_ ) );
       BLAZE_INTERNAL_ASSERT( jbegin <= jend, "Invalid loop indices detected" );
 
-      const size_t jpos( ( remainder )?( jend & size_t(-SIMDSIZE) ):( jend ) );
-      BLAZE_INTERNAL_ASSERT( !remainder || ( jend - ( jend % (SIMDSIZE) ) ) == jpos, "Invalid end calculation" );
+      const size_t jpos( ( remainder )?( jend & size_t(-IT::size) ):( jend ) );
+      BLAZE_INTERNAL_ASSERT( !remainder || ( jend - ( jend % (IT::size) ) ) == jpos, "Invalid end calculation" );
 
       size_t j( jbegin );
-      ConstIterator_<MT> it( (~rhs).begin(i) + jbegin );
+      typename MT::ConstIterator it( (~rhs).begin(i) + jbegin );
 
-      for( ; (j+SIMDSIZE*3UL) < jpos; j+=SIMDSIZE*4UL ) {
-         store( i, j             , load(i,j             ) - it.load() ); it += SIMDSIZE;
-         store( i, j+SIMDSIZE    , load(i,j+SIMDSIZE    ) - it.load() ); it += SIMDSIZE;
-         store( i, j+SIMDSIZE*2UL, load(i,j+SIMDSIZE*2UL) - it.load() ); it += SIMDSIZE;
-         store( i, j+SIMDSIZE*3UL, load(i,j+SIMDSIZE*3UL) - it.load() ); it += SIMDSIZE;
+      for( ; (j+IT::size*3UL) < jpos; j+=IT::size*4UL ) {
+         store( i, j             , load(i,j             ) - it.load() ); it += IT::size;
+         store( i, j+IT::size    , load(i,j+IT::size    ) - it.load() ); it += IT::size;
+         store( i, j+IT::size*2UL, load(i,j+IT::size*2UL) - it.load() ); it += IT::size;
+         store( i, j+IT::size*3UL, load(i,j+IT::size*3UL) - it.load() ); it += IT::size;
       }
-      for( ; j<jpos; j+=SIMDSIZE, it+=SIMDSIZE ) {
+      for( ; j<jpos; j+=IT::size, it+=IT::size ) {
          store( i, j, load(i,j) - it.load() );
       }
       for( ; remainder && j<jend; ++j, ++it ) {
@@ -3091,7 +2966,7 @@ inline void CustomMatrix<Type,AF,PF,SO>::subAssign( const DenseMatrix<MT,!SO>& r
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
-   constexpr size_t block( BLOCK_SIZE );
+   const size_t block( BLOCK_SIZE );
 
    for( size_t ii=0UL; ii<m_; ii+=block ) {
       const size_t iend( min( m_, ii+block ) );
@@ -3142,7 +3017,7 @@ inline void CustomMatrix<Type,AF,PF,SO>::subAssign( const SparseMatrix<MT,SO>& r
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
    for( size_t i=0UL; i<m_; ++i )
-      for( ConstIterator_<MT> element=(~rhs).begin(i); element!=(~rhs).end(i); ++element )
+      for( typename MT::ConstIterator element=(~rhs).begin(i); element!=(~rhs).end(i); ++element )
          v_[i*nn_+element->index()] -= element->value();
 }
 //*************************************************************************************************
@@ -3172,8 +3047,90 @@ inline void CustomMatrix<Type,AF,PF,SO>::subAssign( const SparseMatrix<MT,!SO>& 
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
    for( size_t j=0UL; j<n_; ++j )
-      for( ConstIterator_<MT> element=(~rhs).begin(j); element!=(~rhs).end(j); ++element )
+      for( typename MT::ConstIterator element=(~rhs).begin(j); element!=(~rhs).end(j); ++element )
          v_[element->index()*nn_+j] -= element->value();
+}
+//*************************************************************************************************
+
+
+
+
+//=================================================================================================
+//
+//  CONSTRUCTION FUNCTIONS
+//
+//=================================================================================================
+
+//*************************************************************************************************
+/*!\brief Finalizing the construction of an unmanaged custom matrix.
+//
+// \param ptr The array of elements to be used by the matrix.
+// \param m The number of rows of the array of elements.
+// \param n The number of columns of the array of elements.
+// \param arg The total number of elements between two rows/columns.
+// \return void
+//
+// This function finalizes the construction of an unmanaged custom matrix.
+*/
+template< typename Type   // Data type of the matrix
+        , bool AF         // Alignment flag
+        , bool PF         // Padding flag
+        , bool SO >       // Storage order
+template< typename Arg >  // Type of the constructor argument
+inline typename DisableIf< IsClass<Arg> >::Type
+   CustomMatrix<Type,AF,PF,SO>::construct( Type* ptr, size_t m, size_t n, Arg arg )
+{
+   UNUSED_PARAMETER( m );
+
+   if( ptr == NULL ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid array of elements" );
+   }
+
+   if( AF && ( !checkAlignment( ptr ) || arg % IT::size != 0UL ) ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid alignment detected" );
+   }
+
+   if( PF && IsVectorizable<Type>::value && ( arg < nextMultiple<size_t>( n, IT::size ) ) ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Insufficient capacity for padded matrix" );
+   }
+
+   nn_ = arg;
+   v_.reset( ptr, NoDelete() );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Finalizing the construction of a managed custom matrix.
+//
+// \param ptr The array of elements to be used by the matrix.
+// \param m The number of rows of the array of elements.
+// \param n The number of columns of the array of elements.
+// \param arg The deleter to destroy the array of elements.
+// \return void
+*/
+template< typename Type   // Data type of the matrix
+        , bool AF         // Alignment flag
+        , bool PF         // Padding flag
+        , bool SO >       // Storage order
+template< typename Arg >  // Type of the constructor argument
+inline typename EnableIf< IsClass<Arg> >::Type
+   CustomMatrix<Type,AF,PF,SO>::construct( Type* ptr, size_t m, size_t n, Arg arg )
+{
+   BLAZE_STATIC_ASSERT( PF == unpadded );
+
+   UNUSED_PARAMETER( m );
+
+   if( ptr == NULL ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid array of elements" );
+   }
+
+   if( AF && ( !checkAlignment( ptr ) || n % IT::size != 0UL ) ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid alignment detected" );
+   }
+
+   nn_ = n;
+   v_.reset( ptr, arg );
 }
 //*************************************************************************************************
 
@@ -3203,15 +3160,19 @@ template< typename Type  // Data type of the matrix
         , bool PF >      // Padding flag
 class CustomMatrix<Type,AF,PF,true> : public DenseMatrix< CustomMatrix<Type,AF,PF,true>, true >
 {
+ private:
+   //**Type definitions****************************************************************************
+   typedef IntrinsicTrait<Type>  IT;  //!< Intrinsic trait for the matrix element type.
+   //**********************************************************************************************
+
  public:
    //**Type definitions****************************************************************************
    typedef CustomMatrix<Type,AF,PF,true>  This;           //!< Type of this CustomMatrix instance.
-   typedef DenseMatrix<This,true>         BaseType;       //!< Base type of this CustomMatrix instance.
    typedef DynamicMatrix<Type,true>       ResultType;     //!< Result type for expression template evaluations.
    typedef DynamicMatrix<Type,false>      OppositeType;   //!< Result type with opposite storage order for expression template evaluations.
    typedef DynamicMatrix<Type,false>      TransposeType;  //!< Transpose type for expression template evaluations.
    typedef Type                           ElementType;    //!< Type of the matrix elements.
-   typedef SIMDTrait_<ElementType>        SIMDType;       //!< SIMD type of the matrix elements.
+   typedef typename IT::Type              IntrinsicType;  //!< Intrinsic type of the matrix elements.
    typedef const Type&                    ReturnType;     //!< Return type for expression template evaluations.
    typedef const This&                    CompositeType;  //!< Data type for composite expression templates.
 
@@ -3234,18 +3195,18 @@ class CustomMatrix<Type,AF,PF,true> : public DenseMatrix< CustomMatrix<Type,AF,P
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
-   //! Compilation flag for SIMD optimization.
-   /*! The \a simdEnabled compilation flag indicates whether expressions the matrix is involved
-       in can be optimized via SIMD operations. In case the element type of the matrix is a
-       vectorizable data type, the \a simdEnabled compilation flag is set to \a true, otherwise
-       it is set to \a false. */
-   enum : bool { simdEnabled = IsVectorizable<Type>::value };
+   //! Compilation flag for intrinsic optimization.
+   /*! The \a vectorizable compilation flag indicates whether expressions the matrix is involved
+       in can be optimized via intrinsics. In case the element type of the matrix is a vectorizable
+       data type, the \a vectorizable compilation flag is set to \a true, otherwise it is set to
+       \a false. */
+   enum { vectorizable = IsVectorizable<Type>::value };
 
    //! Compilation flag for SMP assignments.
    /*! The \a smpAssignable compilation flag indicates whether the matrix can be used in SMP
        (shared memory parallel) assignments (both on the left-hand and right-hand side of the
        assignment). */
-   enum : bool { smpAssignable = !IsSMPAssignable<Type>::value };
+   enum { smpAssignable = !IsSMPAssignable<Type>::value };
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
@@ -3255,14 +3216,13 @@ class CustomMatrix<Type,AF,PF,true> : public DenseMatrix< CustomMatrix<Type,AF,P
    explicit inline CustomMatrix( Type* ptr, size_t m, size_t n );
    explicit inline CustomMatrix( Type* ptr, size_t m, size_t n, size_t mm );
 
-   template< typename Deleter, typename = DisableIf_< IsIntegral<Deleter> > >
-   explicit inline CustomMatrix( Type* ptr, size_t m, size_t n, Deleter d );
+   template< typename Deleter >
+   explicit inline CustomMatrix( Type* ptr, size_t m, size_t n, Deleter D );
 
    template< typename Deleter >
-   explicit inline CustomMatrix( Type* ptr, size_t m, size_t n, size_t mm, Deleter d );
+   explicit inline CustomMatrix( Type* ptr, size_t m, size_t n, size_t mm, Deleter D );
 
    inline CustomMatrix( const CustomMatrix& m );
-   inline CustomMatrix( CustomMatrix&& m ) noexcept;
    //@}
    //**********************************************************************************************
 
@@ -3273,56 +3233,54 @@ class CustomMatrix<Type,AF,PF,true> : public DenseMatrix< CustomMatrix<Type,AF,P
    //**Data access functions***********************************************************************
    /*!\name Data access functions */
    //@{
-   inline Reference      operator()( size_t i, size_t j ) noexcept;
-   inline ConstReference operator()( size_t i, size_t j ) const noexcept;
+   inline Reference      operator()( size_t i, size_t j );
+   inline ConstReference operator()( size_t i, size_t j ) const;
    inline Reference      at( size_t i, size_t j );
    inline ConstReference at( size_t i, size_t j ) const;
-   inline Pointer        data  () noexcept;
-   inline ConstPointer   data  () const noexcept;
-   inline Pointer        data  ( size_t j ) noexcept;
-   inline ConstPointer   data  ( size_t j ) const noexcept;
-   inline Iterator       begin ( size_t j ) noexcept;
-   inline ConstIterator  begin ( size_t j ) const noexcept;
-   inline ConstIterator  cbegin( size_t j ) const noexcept;
-   inline Iterator       end   ( size_t j ) noexcept;
-   inline ConstIterator  end   ( size_t j ) const noexcept;
-   inline ConstIterator  cend  ( size_t j ) const noexcept;
+   inline Pointer        data  ();
+   inline ConstPointer   data  () const;
+   inline Pointer        data  ( size_t j );
+   inline ConstPointer   data  ( size_t j ) const;
+   inline Iterator       begin ( size_t j );
+   inline ConstIterator  begin ( size_t j ) const;
+   inline ConstIterator  cbegin( size_t j ) const;
+   inline Iterator       end   ( size_t j );
+   inline ConstIterator  end   ( size_t j ) const;
+   inline ConstIterator  cend  ( size_t j ) const;
    //@}
    //**********************************************************************************************
 
    //**Assignment operators************************************************************************
    /*!\name Assignment operators */
    //@{
-   inline CustomMatrix& operator=( const Type& set );
-   inline CustomMatrix& operator=( initializer_list< initializer_list<Type> > list );
-
    template< typename Other, size_t M, size_t N >
    inline CustomMatrix& operator=( const Other (&array)[M][N] );
 
-   inline CustomMatrix& operator=( const CustomMatrix& rhs );
-   inline CustomMatrix& operator=( CustomMatrix&& rhs ) noexcept;
-
+                                    inline CustomMatrix& operator= ( const Type& set );
+                                    inline CustomMatrix& operator= ( const CustomMatrix& rhs );
    template< typename MT, bool SO > inline CustomMatrix& operator= ( const Matrix<MT,SO>& rhs );
    template< typename MT, bool SO > inline CustomMatrix& operator+=( const Matrix<MT,SO>& rhs );
    template< typename MT, bool SO > inline CustomMatrix& operator-=( const Matrix<MT,SO>& rhs );
    template< typename MT, bool SO > inline CustomMatrix& operator*=( const Matrix<MT,SO>& rhs );
 
    template< typename Other >
-   inline EnableIf_<IsNumeric<Other>, CustomMatrix >& operator*=( Other rhs );
+   inline typename EnableIf< IsNumeric<Other>, CustomMatrix >::Type&
+      operator*=( Other rhs );
 
    template< typename Other >
-   inline EnableIf_<IsNumeric<Other>, CustomMatrix >& operator/=( Other rhs );
+   inline typename EnableIf< IsNumeric<Other>, CustomMatrix >::Type&
+      operator/=( Other rhs );
    //@}
    //**********************************************************************************************
 
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-                              inline size_t        rows() const noexcept;
-                              inline size_t        columns() const noexcept;
-                              inline size_t        spacing() const noexcept;
-                              inline size_t        capacity() const noexcept;
-                              inline size_t        capacity( size_t j ) const noexcept;
+                              inline size_t        rows() const;
+                              inline size_t        columns() const;
+                              inline size_t        spacing() const;
+                              inline size_t        capacity() const;
+                              inline size_t        capacity( size_t j ) const;
                               inline size_t        nonZeros() const;
                               inline size_t        nonZeros( size_t j ) const;
                               inline void          reset();
@@ -3331,21 +3289,17 @@ class CustomMatrix<Type,AF,PF,true> : public DenseMatrix< CustomMatrix<Type,AF,P
                               inline CustomMatrix& transpose();
                               inline CustomMatrix& ctranspose();
    template< typename Other > inline CustomMatrix& scale( const Other& scalar );
-                              inline void          swap( CustomMatrix& m ) noexcept;
+                              inline void          swap( CustomMatrix& m ) /* throw() */;
    //@}
    //**********************************************************************************************
 
    //**Resource management functions***************************************************************
    /*!\name Resource management functions */
    //@{
-   inline void reset( Type* ptr, size_t m, size_t n );
-   inline void reset( Type* ptr, size_t m, size_t n, size_t mm );
-
-   template< typename Deleter, typename = DisableIf_< IsIntegral<Deleter> > >
-   inline void reset( Type* ptr, size_t m, size_t n, Deleter d );
-
-   template< typename Deleter >
-   inline void reset( Type* ptr, size_t m, size_t n, size_t mm, Deleter d );
+                                inline void reset( Type* ptr, size_t m, size_t n );
+                                inline void reset( Type* ptr, size_t m, size_t n, size_t mm );
+   template< typename Deleter > inline void reset( Type* ptr, size_t m, size_t n, Deleter d );
+   template< typename Deleter > inline void reset( Type* ptr, size_t m, size_t n, size_t mm, Deleter d );
    //@}
    //**********************************************************************************************
 
@@ -3354,9 +3308,9 @@ class CustomMatrix<Type,AF,PF,true> : public DenseMatrix< CustomMatrix<Type,AF,P
    //! Helper structure for the explicit application of the SFINAE principle.
    template< typename MT >
    struct VectorizedAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && MT::simdEnabled &&
-                            IsSIMDCombinable< Type, ElementType_<MT> >::value };
+      enum { value = useOptimizedKernels &&
+                     vectorizable && MT::vectorizable &&
+                     IsSame<Type,typename MT::ElementType>::value };
    };
    //**********************************************************************************************
 
@@ -3364,11 +3318,11 @@ class CustomMatrix<Type,AF,PF,true> : public DenseMatrix< CustomMatrix<Type,AF,P
    //! Helper structure for the explicit application of the SFINAE principle.
    template< typename MT >
    struct VectorizedAddAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && MT::simdEnabled &&
-                            IsSIMDCombinable< Type, ElementType_<MT> >::value &&
-                            HasSIMDAdd< Type, ElementType_<MT> >::value &&
-                            !IsDiagonal<MT>::value };
+      enum { value = useOptimizedKernels &&
+                     vectorizable && MT::vectorizable &&
+                     IsSame<Type,typename MT::ElementType>::value &&
+                     IntrinsicTrait<Type>::addition &&
+                     !IsDiagonal<MT>::value };
    };
    //**********************************************************************************************
 
@@ -3376,63 +3330,64 @@ class CustomMatrix<Type,AF,PF,true> : public DenseMatrix< CustomMatrix<Type,AF,P
    //! Helper structure for the explicit application of the SFINAE principle.
    template< typename MT >
    struct VectorizedSubAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && MT::simdEnabled &&
-                            IsSIMDCombinable< Type, ElementType_<MT> >::value &&
-                            HasSIMDSub< Type, ElementType_<MT> >::value &&
-                            !IsDiagonal<MT>::value };
+      enum { value = useOptimizedKernels &&
+                     vectorizable && MT::vectorizable &&
+                     IsSame<Type,typename MT::ElementType>::value &&
+                     IntrinsicTrait<Type>::subtraction &&
+                     !IsDiagonal<MT>::value };
    };
-   //**********************************************************************************************
-
-   //**SIMD properties*****************************************************************************
-   //! The number of elements packed within a single SIMD element.
-   enum : size_t { SIMDSIZE = SIMDTrait<ElementType>::size };
    //**********************************************************************************************
 
  public:
    //**Expression template evaluation functions****************************************************
    /*!\name Expression template evaluation functions */
    //@{
-   template< typename Other > inline bool canAlias ( const Other* alias ) const noexcept;
-   template< typename Other > inline bool isAliased( const Other* alias ) const noexcept;
+   template< typename Other > inline bool canAlias ( const Other* alias ) const;
+   template< typename Other > inline bool isAliased( const Other* alias ) const;
 
-   inline bool isAligned   () const noexcept;
-   inline bool canSMPAssign() const noexcept;
+   inline bool isAligned   () const;
+   inline bool canSMPAssign() const;
 
-   BLAZE_ALWAYS_INLINE SIMDType load ( size_t i, size_t j ) const noexcept;
-   BLAZE_ALWAYS_INLINE SIMDType loada( size_t i, size_t j ) const noexcept;
-   BLAZE_ALWAYS_INLINE SIMDType loadu( size_t i, size_t j ) const noexcept;
+   BLAZE_ALWAYS_INLINE IntrinsicType load ( size_t i, size_t j ) const;
+   BLAZE_ALWAYS_INLINE IntrinsicType loada( size_t i, size_t j ) const;
+   BLAZE_ALWAYS_INLINE IntrinsicType loadu( size_t i, size_t j ) const;
 
-   BLAZE_ALWAYS_INLINE void store ( size_t i, size_t j, const SIMDType& value ) noexcept;
-   BLAZE_ALWAYS_INLINE void storea( size_t i, size_t j, const SIMDType& value ) noexcept;
-   BLAZE_ALWAYS_INLINE void storeu( size_t i, size_t j, const SIMDType& value ) noexcept;
-   BLAZE_ALWAYS_INLINE void stream( size_t i, size_t j, const SIMDType& value ) noexcept;
-
-   template< typename MT >
-   inline DisableIf_<VectorizedAssign<MT> > assign( const DenseMatrix<MT,true>& rhs );
+   BLAZE_ALWAYS_INLINE void store ( size_t i, size_t j, const IntrinsicType& value );
+   BLAZE_ALWAYS_INLINE void storea( size_t i, size_t j, const IntrinsicType& value );
+   BLAZE_ALWAYS_INLINE void storeu( size_t i, size_t j, const IntrinsicType& value );
+   BLAZE_ALWAYS_INLINE void stream( size_t i, size_t j, const IntrinsicType& value );
 
    template< typename MT >
-   inline EnableIf_<VectorizedAssign<MT> > assign( const DenseMatrix<MT,true>& rhs );
+   inline typename DisableIf< VectorizedAssign<MT> >::Type
+      assign( const DenseMatrix<MT,true>& rhs );
+
+   template< typename MT >
+   inline typename EnableIf< VectorizedAssign<MT> >::Type
+      assign( const DenseMatrix<MT,true>& rhs );
 
    template< typename MT > inline void assign( const DenseMatrix<MT,false>&  rhs );
    template< typename MT > inline void assign( const SparseMatrix<MT,true>&  rhs );
    template< typename MT > inline void assign( const SparseMatrix<MT,false>& rhs );
 
    template< typename MT >
-   inline DisableIf_<VectorizedAddAssign<MT> > addAssign( const DenseMatrix<MT,true>& rhs );
+   inline typename DisableIf< VectorizedAddAssign<MT> >::Type
+      addAssign( const DenseMatrix<MT,true>& rhs );
 
    template< typename MT >
-   inline EnableIf_<VectorizedAddAssign<MT> > addAssign( const DenseMatrix<MT,true>& rhs );
+   inline typename EnableIf< VectorizedAddAssign<MT> >::Type
+      addAssign( const DenseMatrix<MT,true>& rhs );
 
    template< typename MT > inline void addAssign( const DenseMatrix<MT,false>&  rhs );
    template< typename MT > inline void addAssign( const SparseMatrix<MT,true>&  rhs );
    template< typename MT > inline void addAssign( const SparseMatrix<MT,false>& rhs );
 
    template< typename MT >
-   inline DisableIf_<VectorizedSubAssign<MT> > subAssign ( const DenseMatrix<MT,true>& rhs );
+   inline typename DisableIf< VectorizedSubAssign<MT> >::Type
+      subAssign ( const DenseMatrix<MT,true>& rhs );
 
    template< typename MT >
-   inline EnableIf_<VectorizedSubAssign<MT> > subAssign ( const DenseMatrix<MT,true>& rhs );
+   inline typename EnableIf< VectorizedSubAssign<MT> >::Type
+      subAssign ( const DenseMatrix<MT,true>& rhs );
 
    template< typename MT > inline void subAssign( const DenseMatrix<MT,false>&  rhs );
    template< typename MT > inline void subAssign( const SparseMatrix<MT,true>&  rhs );
@@ -3441,6 +3396,19 @@ class CustomMatrix<Type,AF,PF,true> : public DenseMatrix< CustomMatrix<Type,AF,P
    //**********************************************************************************************
 
  private:
+   //**Construction functions**********************************************************************
+   /*!\name Construction functions */
+   //@{
+   template< typename Arg >
+   inline typename DisableIf< IsClass<Arg> >::Type
+      construct( Type* ptr, size_t m, size_t n, Arg arg );
+
+   template< typename Arg >
+   inline typename EnableIf< IsClass<Arg> >::Type
+      construct( Type* ptr, size_t m, size_t n, Arg arg );
+   //@}
+   //**********************************************************************************************
+
    //**Member variables****************************************************************************
    /*!\name Member variables */
    //@{
@@ -3501,7 +3469,7 @@ inline CustomMatrix<Type,AF,PF,true>::CustomMatrix()
 // This constructor creates an unpadded custom matrix of size \f$ m \times n \f$. The construction
 // fails if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...).
 //
@@ -3521,11 +3489,11 @@ inline CustomMatrix<Type,AF,PF,true>::CustomMatrix( Type* ptr, size_t m, size_t 
 {
    BLAZE_STATIC_ASSERT( PF == unpadded );
 
-   if( ptr == nullptr ) {
+   if( ptr == NULL ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid array of elements" );
    }
 
-   if( AF && ( !checkAlignment( ptr ) || mm_ % SIMDSIZE != 0UL ) ) {
+   if( AF && ( !checkAlignment( ptr ) || mm_ % IT::size != 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid alignment detected" );
    }
 
@@ -3548,7 +3516,7 @@ inline CustomMatrix<Type,AF,PF,true>::CustomMatrix( Type* ptr, size_t m, size_t 
 // This constructor creates a custom matrix of size \f$ m \times n \f$. The construction fails
 // if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...);
 //  - ... the specified spacing \a mm is insufficient for the given data type \a Type and the
@@ -3567,15 +3535,15 @@ inline CustomMatrix<Type,AF,PF,true>::CustomMatrix( Type* ptr, size_t m, size_t 
    , n_ ( n  )  // The current number of columns of the matrix
    , v_ (    )  // The matrix elements
 {
-   if( ptr == nullptr ) {
+   if( ptr == NULL ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid array of elements" );
    }
 
-   if( AF && ( !checkAlignment( ptr ) || mm_ % SIMDSIZE != 0UL ) ) {
+   if( AF && ( !checkAlignment( ptr ) || mm_ % IT::size != 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid alignment detected" );
    }
 
-   if( PF && IsVectorizable<Type>::value && ( mm_ < nextMultiple<size_t>( m_, SIMDSIZE ) ) ) {
+   if( PF && IsVectorizable<Type>::value && ( mm_ < nextMultiple<size_t>( m_, IT::size ) ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Insufficient capacity for padded matrix" );
    }
 
@@ -3605,7 +3573,7 @@ inline CustomMatrix<Type,AF,PF,true>::CustomMatrix( Type* ptr, size_t m, size_t 
 // This constructor creates an unpadded custom matrix of size \f$ m \times n \f$. The construction
 // fails if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...).
 //
@@ -3613,28 +3581,17 @@ inline CustomMatrix<Type,AF,PF,true>::CustomMatrix( Type* ptr, size_t m, size_t 
 //
 // \note This constructor is \b NOT available for padded custom matrices!
 */
-template< typename Type     // Data type of the matrix
-        , bool AF           // Alignment flag
-        , bool PF >         // Padding flag
-template< typename Deleter  // Type of the custom deleter
-        , typename >        // Type restriction on the custom deleter
+template< typename Type       // Data type of the matrix
+        , bool AF             // Alignment flag
+        , bool PF >           // Padding flag
+template< typename Deleter >  // Type of the custom deleter
 inline CustomMatrix<Type,AF,PF,true>::CustomMatrix( Type* ptr, size_t m, size_t n, Deleter d )
    : m_ ( m )  // The current number of rows of the matrix
-   , mm_( m )  // The number of elements between two columns
+   , mm_(   )  // The number of elements between two columns
    , n_ ( n )  // The current number of columns of the matrix
    , v_ (   )  // The matrix elements
 {
-   BLAZE_STATIC_ASSERT( PF == unpadded );
-
-   if( ptr == nullptr ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid array of elements" );
-   }
-
-   if( AF && ( !checkAlignment( ptr ) || mm_ % SIMDSIZE != 0UL ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid alignment detected" );
-   }
-
-   v_.reset( ptr, d );
+   construct( ptr, m, n, d );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -3654,7 +3611,7 @@ inline CustomMatrix<Type,AF,PF,true>::CustomMatrix( Type* ptr, size_t m, size_t 
 // This constructor creates a custom matrix of size \f$ m \times n \f$. The construction fails
 // if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...);
 //  - ... the specified spacing \a mm is insufficient for the given data type \a Type and the
@@ -3672,15 +3629,15 @@ inline CustomMatrix<Type,AF,PF,true>::CustomMatrix( Type* ptr, size_t m, size_t 
    , n_ ( n  )  // The current number of columns of the matrix
    , v_ (    )  // The matrix elements
 {
-   if( ptr == nullptr ) {
+   if( ptr == NULL ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid array of elements" );
    }
 
-   if( AF && ( !checkAlignment( ptr ) || mm_ % SIMDSIZE != 0UL ) ) {
+   if( AF && ( !checkAlignment( ptr ) || mm_ % IT::size != 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid alignment detected" );
    }
 
-   if( PF && IsVectorizable<Type>::value && ( mm_ < nextMultiple<size_t>( m_, SIMDSIZE ) ) ) {
+   if( PF && IsVectorizable<Type>::value && ( mm_ < nextMultiple<size_t>( m_, IT::size ) ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Insufficient capacity for padded matrix" );
    }
 
@@ -3719,31 +3676,6 @@ inline CustomMatrix<Type,AF,PF,true>::CustomMatrix( const CustomMatrix& m )
 //*************************************************************************************************
 
 
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief The move constructor for CustomMatrix.
-//
-// \param m The matrix to be moved into this instance.
-*/
-template< typename Type  // Data type of the matrix
-        , bool AF        // Alignment flag
-        , bool PF >      // Padding flag
-inline CustomMatrix<Type,AF,PF,true>::CustomMatrix( CustomMatrix&& m ) noexcept
-   : m_ ( m.m_  )              // The current number of rows of the matrix
-   , mm_( m.mm_ )              // The number of elements between two columns
-   , n_ ( m.n_  )              // The current number of columns of the matrix
-   , v_ ( std::move( m.v_ ) )  // The matrix elements
-{
-   m.m_  = 0UL;
-   m.mm_ = 0UL;
-   m.n_  = 0UL;
-
-   BLAZE_INTERNAL_ASSERT( m.data() == nullptr, "Invalid data reference detected" );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
 
 
 //=================================================================================================
@@ -3767,7 +3699,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 inline typename CustomMatrix<Type,AF,PF,true>::Reference
-   CustomMatrix<Type,AF,PF,true>::operator()( size_t i, size_t j ) noexcept
+   CustomMatrix<Type,AF,PF,true>::operator()( size_t i, size_t j )
 {
    BLAZE_USER_ASSERT( i<m_, "Invalid row access index"    );
    BLAZE_USER_ASSERT( j<n_, "Invalid column access index" );
@@ -3792,7 +3724,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 inline typename CustomMatrix<Type,AF,PF,true>::ConstReference
-   CustomMatrix<Type,AF,PF,true>::operator()( size_t i, size_t j ) const noexcept
+   CustomMatrix<Type,AF,PF,true>::operator()( size_t i, size_t j ) const
 {
    BLAZE_USER_ASSERT( i<m_, "Invalid row access index"    );
    BLAZE_USER_ASSERT( j<n_, "Invalid column access index" );
@@ -3878,7 +3810,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 inline typename CustomMatrix<Type,AF,PF,true>::Pointer
-   CustomMatrix<Type,AF,PF,true>::data() noexcept
+   CustomMatrix<Type,AF,PF,true>::data()
 {
    return v_.get();
 }
@@ -3902,7 +3834,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 inline typename CustomMatrix<Type,AF,PF,true>::ConstPointer
-   CustomMatrix<Type,AF,PF,true>::data() const noexcept
+   CustomMatrix<Type,AF,PF,true>::data() const
 {
    return v_.get();
 }
@@ -3923,7 +3855,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 inline typename CustomMatrix<Type,AF,PF,true>::Pointer
-   CustomMatrix<Type,AF,PF,true>::data( size_t j ) noexcept
+   CustomMatrix<Type,AF,PF,true>::data( size_t j )
 {
    BLAZE_USER_ASSERT( j < n_, "Invalid dense matrix column access index" );
    return v_.get() + j*mm_;
@@ -3945,7 +3877,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 inline typename CustomMatrix<Type,AF,PF,true>::ConstPointer
-   CustomMatrix<Type,AF,PF,true>::data( size_t j ) const noexcept
+   CustomMatrix<Type,AF,PF,true>::data( size_t j ) const
 {
    BLAZE_USER_ASSERT( j < n_, "Invalid dense matrix column access index" );
    return v_.get() + j*mm_;
@@ -3965,7 +3897,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 inline typename CustomMatrix<Type,AF,PF,true>::Iterator
-   CustomMatrix<Type,AF,PF,true>::begin( size_t j ) noexcept
+   CustomMatrix<Type,AF,PF,true>::begin( size_t j )
 {
    BLAZE_USER_ASSERT( j < n_, "Invalid dense matrix column access index" );
    return Iterator( v_.get() + j*mm_ );
@@ -3985,7 +3917,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 inline typename CustomMatrix<Type,AF,PF,true>::ConstIterator
-   CustomMatrix<Type,AF,PF,true>::begin( size_t j ) const noexcept
+   CustomMatrix<Type,AF,PF,true>::begin( size_t j ) const
 {
    BLAZE_USER_ASSERT( j < n_, "Invalid dense matrix column access index" );
    return ConstIterator( v_.get() + j*mm_ );
@@ -4005,7 +3937,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 inline typename CustomMatrix<Type,AF,PF,true>::ConstIterator
-   CustomMatrix<Type,AF,PF,true>::cbegin( size_t j ) const noexcept
+   CustomMatrix<Type,AF,PF,true>::cbegin( size_t j ) const
 {
    BLAZE_USER_ASSERT( j < n_, "Invalid dense matrix column access index" );
    return ConstIterator( v_.get() + j*mm_ );
@@ -4025,7 +3957,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 inline typename CustomMatrix<Type,AF,PF,true>::Iterator
-   CustomMatrix<Type,AF,PF,true>::end( size_t j ) noexcept
+   CustomMatrix<Type,AF,PF,true>::end( size_t j )
 {
    BLAZE_USER_ASSERT( j < n_, "Invalid dense matrix column access index" );
    return Iterator( v_.get() + j*mm_ + m_ );
@@ -4045,7 +3977,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 inline typename CustomMatrix<Type,AF,PF,true>::ConstIterator
-   CustomMatrix<Type,AF,PF,true>::end( size_t j ) const noexcept
+   CustomMatrix<Type,AF,PF,true>::end( size_t j ) const
 {
    BLAZE_USER_ASSERT( j < n_, "Invalid dense matrix column access index" );
    return ConstIterator( v_.get() + j*mm_ + m_ );
@@ -4065,7 +3997,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 inline typename CustomMatrix<Type,AF,PF,true>::ConstIterator
-   CustomMatrix<Type,AF,PF,true>::cend( size_t j ) const noexcept
+   CustomMatrix<Type,AF,PF,true>::cend( size_t j ) const
 {
    BLAZE_USER_ASSERT( j < n_, "Invalid dense matrix column access index" );
    return ConstIterator( v_.get() + j*mm_ + m_ );
@@ -4081,87 +4013,6 @@ inline typename CustomMatrix<Type,AF,PF,true>::ConstIterator
 //  ASSIGNMENT OPERATORS
 //
 //=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Homogenous assignment to all matrix elements.
-//
-// \param rhs Scalar value to be assigned to all matrix elements.
-// \return Reference to the assigned matrix.
-*/
-template< typename Type  // Data type of the matrix
-        , bool AF        // Alignment flag
-        , bool PF >      // Padding flag
-inline CustomMatrix<Type,AF,PF,true>& CustomMatrix<Type,AF,PF,true>::operator=( const Type& rhs )
-{
-   for( size_t j=0UL; j<n_; ++j )
-      for( size_t i=0UL; i<m_; ++i )
-         v_[i+j*mm_] = rhs;
-
-   return *this;
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief List assignment to all matrix elements.
-//
-// \param list The initializer list.
-// \exception std::invalid_argument Invalid assignment to static matrix.
-//
-// This assignment operator offers the option to directly assign to all elements of the matrix
-// by means of an initializer list:
-
-   \code
-   using blaze::unaligned;
-   using blaze::unpadded;
-   using blaze::rowMajor;
-
-   const int array[9] = { 0, 0, 0,
-                          0, 0, 0,
-                          0, 0, 0 };
-   blaze::CustomMatrix<int,unaligned,unpadded,rowMajor> A( array, 3UL, 3UL );
-   A = { { 1, 2, 3 },
-         { 4, 5 },
-         { 7, 8, 9 } };
-   \endcode
-
-// The matrix elements are assigned the values from the given initializer list. Missing values
-// are initialized as default (as e.g. the value 6 in the example). Note that in case the size
-// of the top-level initializer list exceeds the number of rows or the size of any nested list
-// exceeds the number of columns, a \a std::invalid_argument exception is thrown.
-*/
-template< typename Type  // Data type of the matrix
-        , bool AF        // Alignment flag
-        , bool PF >      // Padding flag
-inline CustomMatrix<Type,AF,PF,true>&
-   CustomMatrix<Type,AF,PF,true>::operator=( initializer_list< initializer_list<Type> > list )
-{
-   if( list.size() != m_ || determineColumns( list ) > n_ ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to custom matrix" );
-   }
-
-   size_t i( 0UL );
-
-   for( const auto& rowList : list ) {
-      size_t j( 0UL );
-      for( const auto& element : rowList ) {
-         v_[i+j*mm_] = element;
-         ++j;
-      }
-      for( ; j<n_; ++j ) {
-         v_[i+j*mm_] = Type();
-      }
-      ++i;
-   }
-
-   return *this;
-}
-/*! \endcond */
-//*************************************************************************************************
-
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
@@ -4218,6 +4069,28 @@ inline CustomMatrix<Type,AF,PF,true>&
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
+/*!\brief Homogenous assignment to all matrix elements.
+//
+// \param rhs Scalar value to be assigned to all matrix elements.
+// \return Reference to the assigned matrix.
+*/
+template< typename Type  // Data type of the matrix
+        , bool AF        // Alignment flag
+        , bool PF >      // Padding flag
+inline CustomMatrix<Type,AF,PF,true>& CustomMatrix<Type,AF,PF,true>::operator=( const Type& rhs )
+{
+   for( size_t j=0UL; j<n_; ++j )
+      for( size_t i=0UL; i<m_; ++i )
+         v_[i+j*mm_] = rhs;
+
+   return *this;
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
 /*!\brief Copy assignment operator for CustomMatrix.
 //
 // \param rhs Matrix to be copied.
@@ -4247,36 +4120,6 @@ inline CustomMatrix<Type,AF,PF,true>&
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Move assignment operator for CustomMatrix.
-//
-// \param rhs The matrix to be moved into this instance.
-// \return Reference to the assigned matrix.
-*/
-template< typename Type  // Data type of the matrix
-        , bool AF        // Alignment flag
-        , bool PF >      // Padding flag
-inline CustomMatrix<Type,AF,PF,true>&
-   CustomMatrix<Type,AF,PF,true>::operator=( CustomMatrix&& rhs ) noexcept
-{
-   m_  = rhs.m_;
-   mm_ = rhs.mm_;
-   n_  = rhs.n_;
-   v_  = std::move( rhs.v_ );
-
-   rhs.m_  = 0UL;
-   rhs.mm_ = 0UL;
-   rhs.n_  = 0UL;
-
-   BLAZE_INTERNAL_ASSERT( rhs.data() == nullptr, "Invalid data reference detected" );
-
-   return *this;
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
 /*!\brief Assignment operator for different matrices.
 //
 // \param rhs Matrix to be copied.
@@ -4294,22 +4137,12 @@ template< typename MT    // Type of the right-hand side matrix
 inline CustomMatrix<Type,AF,PF,true>&
    CustomMatrix<Type,AF,PF,true>::operator=( const Matrix<MT,SO>& rhs )
 {
-   typedef TransExprTrait_<This>   TT;
-   typedef CTransExprTrait_<This>  CT;
-   typedef InvExprTrait_<This>     IT;
-
    if( (~rhs).rows() != m_ || (~rhs).columns() != n_ ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Matrix sizes do not match" );
    }
 
-   if( IsSame<MT,TT>::value && (~rhs).isAliased( this ) ) {
-      transpose();
-   }
-   else if( IsSame<MT,CT>::value && (~rhs).isAliased( this ) ) {
-      ctranspose();
-   }
-   else if( !IsSame<MT,IT>::value && (~rhs).canAlias( this ) ) {
-      const ResultType_<MT> tmp( ~rhs );
+   if( (~rhs).canAlias( this ) ) {
+      const typename MT::ResultType tmp( ~rhs );
       smpAssign( *this, tmp );
    }
    else {
@@ -4348,7 +4181,7 @@ inline CustomMatrix<Type,AF,PF,true>&
    }
 
    if( (~rhs).canAlias( this ) ) {
-      const ResultType_<MT> tmp( ~rhs );
+      const typename MT::ResultType tmp( ~rhs );
       smpAddAssign( *this, tmp );
    }
    else {
@@ -4385,7 +4218,7 @@ inline CustomMatrix<Type,AF,PF,true>&
    }
 
    if( (~rhs).canAlias( this ) ) {
-      const ResultType_<MT> tmp( ~rhs );
+      const typename MT::ResultType tmp( ~rhs );
       smpSubAssign( *this, tmp );
    }
    else {
@@ -4421,7 +4254,7 @@ inline CustomMatrix<Type,AF,PF,true>&
       BLAZE_THROW_INVALID_ARGUMENT( "Matrix sizes do not match" );
    }
 
-   const MultTrait_< ResultType, ResultType_<MT> > tmp( *this * (~rhs) );
+   const typename MultTrait<ResultType,typename MT::ResultType>::Type tmp( *this * (~rhs) );
    smpAssign( *this, tmp );
 
    return *this;
@@ -4442,7 +4275,7 @@ template< typename Type     // Data type of the matrix
         , bool AF           // Alignment flag
         , bool PF >         // Padding flag
 template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_<IsNumeric<Other>, CustomMatrix<Type,AF,PF,true> >&
+inline typename EnableIf< IsNumeric<Other>, CustomMatrix<Type,AF,PF,true> >::Type&
    CustomMatrix<Type,AF,PF,true>::operator*=( Other rhs )
 {
    smpAssign( *this, (*this) * rhs );
@@ -4464,7 +4297,7 @@ template< typename Type     // Data type of the matrix
         , bool AF           // Alignment flag
         , bool PF >         // Padding flag
 template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_<IsNumeric<Other>, CustomMatrix<Type,AF,PF,true> >&
+inline typename EnableIf< IsNumeric<Other>, CustomMatrix<Type,AF,PF,true> >::Type&
    CustomMatrix<Type,AF,PF,true>::operator/=( Other rhs )
 {
    BLAZE_USER_ASSERT( rhs != Other(0), "Division by zero detected" );
@@ -4493,7 +4326,7 @@ inline EnableIf_<IsNumeric<Other>, CustomMatrix<Type,AF,PF,true> >&
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
-inline size_t CustomMatrix<Type,AF,PF,true>::rows() const noexcept
+inline size_t CustomMatrix<Type,AF,PF,true>::rows() const
 {
    return m_;
 }
@@ -4510,7 +4343,7 @@ inline size_t CustomMatrix<Type,AF,PF,true>::rows() const noexcept
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
-inline size_t CustomMatrix<Type,AF,PF,true>::columns() const noexcept
+inline size_t CustomMatrix<Type,AF,PF,true>::columns() const
 {
    return n_;
 }
@@ -4530,7 +4363,7 @@ inline size_t CustomMatrix<Type,AF,PF,true>::columns() const noexcept
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
-inline size_t CustomMatrix<Type,AF,PF,true>::spacing() const noexcept
+inline size_t CustomMatrix<Type,AF,PF,true>::spacing() const
 {
    return mm_;
 }
@@ -4547,7 +4380,7 @@ inline size_t CustomMatrix<Type,AF,PF,true>::spacing() const noexcept
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
-inline size_t CustomMatrix<Type,AF,PF,true>::capacity() const noexcept
+inline size_t CustomMatrix<Type,AF,PF,true>::capacity() const
 {
    return mm_ * n_;
 }
@@ -4565,7 +4398,7 @@ inline size_t CustomMatrix<Type,AF,PF,true>::capacity() const noexcept
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
-inline size_t CustomMatrix<Type,AF,PF,true>::capacity( size_t j ) const noexcept
+inline size_t CustomMatrix<Type,AF,PF,true>::capacity( size_t j ) const
 {
    UNUSED_PARAMETER( j );
    BLAZE_USER_ASSERT( j < columns(), "Invalid column access index" );
@@ -4784,11 +4617,12 @@ inline CustomMatrix<Type,AF,PF,true>& CustomMatrix<Type,AF,PF,true>::scale( cons
 //
 // \param m The matrix to be swapped.
 // \return void
+// \exception no-throw guarantee.
 */
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
-inline void CustomMatrix<Type,AF,PF,true>::swap( CustomMatrix& m ) noexcept
+inline void CustomMatrix<Type,AF,PF,true>::swap( CustomMatrix& m ) /* throw() */
 {
    using std::swap;
 
@@ -4822,7 +4656,7 @@ inline void CustomMatrix<Type,AF,PF,true>::swap( CustomMatrix& m ) noexcept
 // This function resets the custom matrix to the given array of elements of size \f$ m \times n \f$.
 // The function fails if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...).
 //
@@ -4861,7 +4695,7 @@ inline void CustomMatrix<Type,AF,PF,true>::reset( Type* ptr, size_t m, size_t n 
 // This function resets the custom matrix to the given array of elements of size \f$ m \times n \f$.
 // The function fails if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...).
 //
@@ -4897,7 +4731,7 @@ inline void CustomMatrix<Type,AF,PF,true>::reset( Type* ptr, size_t m, size_t n,
 // This function resets the custom matrix to the given array of elements of size \f$ m \times n \f$.
 // The function fails if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...).
 //
@@ -4907,14 +4741,13 @@ inline void CustomMatrix<Type,AF,PF,true>::reset( Type* ptr, size_t m, size_t n,
 // \note In case a deleter was specified, the previously referenced array will only be destroyed
 //       when the last custom matrix referencing the array goes out of scope.
 */
-template< typename Type     // Data type of the matrix
-        , bool AF           // Alignment flag
-        , bool PF >         // Padding flag
-template< typename Deleter  // Type of the custom deleter
-        , typename >        // Type restriction on the custom deleter
+template< typename Type       // Data type of the matrix
+        , bool AF             // Alignment flag
+        , bool PF >           // Padding flag
+template< typename Deleter >  // Type of the custom deleter
 inline void CustomMatrix<Type,AF,PF,true>::reset( Type* ptr, size_t m, size_t n, Deleter d )
 {
-   BLAZE_STATIC_ASSERT( IsIntegral<Deleter>::value || PF == unpadded );
+   BLAZE_STATIC_ASSERT( !IsClass<Deleter>::value || PF == unpadded );
 
    CustomMatrix tmp( ptr, m, n, d );
    swap( tmp );
@@ -4938,7 +4771,7 @@ inline void CustomMatrix<Type,AF,PF,true>::reset( Type* ptr, size_t m, size_t n,
 // This function resets the custom matrix to the given array of elements of size \f$ m \times n \f$.
 // The function fails if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...).
 //
@@ -4983,7 +4816,7 @@ template< typename Type     // Data type of the matrix
         , bool AF           // Alignment flag
         , bool PF >         // Padding flag
 template< typename Other >  // Data type of the foreign expression
-inline bool CustomMatrix<Type,AF,PF,true>::canAlias( const Other* alias ) const noexcept
+inline bool CustomMatrix<Type,AF,PF,true>::canAlias( const Other* alias ) const
 {
    return static_cast<const void*>( this ) == static_cast<const void*>( alias );
 }
@@ -5006,7 +4839,7 @@ template< typename Type     // Data type of the matrix
         , bool AF           // Alignment flag
         , bool PF >         // Padding flag
 template< typename Other >  // Data type of the foreign expression
-inline bool CustomMatrix<Type,AF,PF,true>::isAliased( const Other* alias ) const noexcept
+inline bool CustomMatrix<Type,AF,PF,true>::isAliased( const Other* alias ) const
 {
    return static_cast<const void*>( this ) == static_cast<const void*>( alias );
 }
@@ -5027,9 +4860,9 @@ inline bool CustomMatrix<Type,AF,PF,true>::isAliased( const Other* alias ) const
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
-inline bool CustomMatrix<Type,AF,PF,true>::isAligned() const noexcept
+inline bool CustomMatrix<Type,AF,PF,true>::isAligned() const
 {
-   return ( AF || ( checkAlignment( v_.get() ) && rows() % SIMDSIZE == 0UL ) );
+   return ( AF || ( checkAlignment( v_.get() ) && rows() % IT::size == 0UL ) );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5049,9 +4882,9 @@ inline bool CustomMatrix<Type,AF,PF,true>::isAligned() const noexcept
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
-inline bool CustomMatrix<Type,AF,PF,true>::canSMPAssign() const noexcept
+inline bool CustomMatrix<Type,AF,PF,true>::canSMPAssign() const
 {
-   return ( rows() * columns() >= SMP_DMATASSIGN_THRESHOLD );
+   return ( columns() > SMP_DMATASSIGN_THRESHOLD );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5059,24 +4892,24 @@ inline bool CustomMatrix<Type,AF,PF,true>::canSMPAssign() const noexcept
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Load of a SIMD element of the matrix.
+/*!\brief Load of an intrinsic element of the matrix.
 //
 // \param i Access index for the row. The index has to be in the range [0..M-1].
 // \param j Access index for the column. The index has to be in the range [0..N-1].
-// \return The loaded SIMD element.
+// \return The loaded intrinsic element.
 //
-// This function performs a load of a specific SIMD element of the dense matrix. The row index
-// must be smaller than the number of rows and the column index must be smaller than the number
-// of columns. Additionally, the row index must be a multiple of the number of values inside
-// the SIMD element. This function must \b NOT be called explicitly! It is used internally
-// for the performance optimized evaluation of expression templates. Calling this function
-// explicitly might result in erroneous results and/or in compilation errors.
+// This function performs a load of a specific intrinsic element of the dense matrix. The row
+// index must be smaller than the number of rows and the column index must be smaller than the
+// number of columns. Additionally, the row index must be a multiple of the number of values
+// inside the intrinsic element. This function must \b NOT be called explicitly! It is used
+// internally for the performance optimized evaluation of expression templates. Calling this
+// function explicitly might result in erroneous results and/or in compilation errors.
 */
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
-BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,true>::SIMDType
-   CustomMatrix<Type,AF,PF,true>::load( size_t i, size_t j ) const noexcept
+BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,true>::IntrinsicType
+   CustomMatrix<Type,AF,PF,true>::load( size_t i, size_t j ) const
 {
    if( AF && PF )
       return loada( i, j );
@@ -5089,32 +4922,32 @@ BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,true>::SIMDType
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Aligned load of a SIMD element of the matrix.
+/*!\brief Aligned load of an intrinsic element of the matrix.
 //
 // \param i Access index for the row. The index has to be in the range [0..M-1].
 // \param j Access index for the column. The index has to be in the range [0..N-1].
-// \return The loaded SIMD element.
+// \return The loaded intrinsic element.
 //
-// This function performs an aligned load of a specific SIMD element of the dense matrix.
+// This function performs an aligned load of a specific intrinsic element of the dense matrix.
 // The row index must be smaller than the number of rows and the column index must be smaller
 // than the number of columns. Additionally, the row index must be a multiple of the number of
-// values inside the SIMD element. This function must \b NOT be called explicitly! It is used
-// internally for the performance optimized evaluation of expression templates. Calling this
-// function explicitly might result in erroneous results and/or in compilation errors.
+// values inside the intrinsic element. This function must \b NOT be called explicitly! It is
+// used internally for the performance optimized evaluation of expression templates. Calling
+// this function explicitly might result in erroneous results and/or in compilation errors.
 */
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
-BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,true>::SIMDType
-   CustomMatrix<Type,AF,PF,true>::loada( size_t i, size_t j ) const noexcept
+BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,true>::IntrinsicType
+   CustomMatrix<Type,AF,PF,true>::loada( size_t i, size_t j ) const
 {
    using blaze::loada;
 
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
 
    BLAZE_INTERNAL_ASSERT( i < m_, "Invalid row access index" );
-   BLAZE_INTERNAL_ASSERT( i + SIMDSIZE <= ( PF ? mm_ : m_ ), "Invalid row access index" );
-   BLAZE_INTERNAL_ASSERT( !PF || i % SIMDSIZE == 0UL, "Invalid row access index" );
+   BLAZE_INTERNAL_ASSERT( i + IT::size <= ( PF ? mm_ : m_ ), "Invalid row access index" );
+   BLAZE_INTERNAL_ASSERT( !PF || i % IT::size == 0UL, "Invalid row access index" );
    BLAZE_INTERNAL_ASSERT( j < n_, "Invalid column access index" );
    BLAZE_INTERNAL_ASSERT( checkAlignment( v_.get()+i+j*mm_ ), "Invalid alignment detected" );
 
@@ -5126,31 +4959,31 @@ BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,true>::SIMDType
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Unaligned load of a SIMD element of the matrix.
+/*!\brief Unaligned load of an intrinsic element of the matrix.
 //
 // \param i Access index for the row. The index has to be in the range [0..M-1].
 // \param j Access index for the column. The index has to be in the range [0..N-1].
-// \return The loaded SIMD element.
+// \return The loaded intrinsic element.
 //
-// This function performs an unaligned load of a specific SIMD element of the dense matrix.
+// This function performs an unaligned load of a specific intrinsic element of the dense matrix.
 // The row index must be smaller than the number of rows and the column index must be smaller
 // than the number of columns. Additionally, the row index must be a multiple of the number of
-// values inside the SIMD element. This function must \b NOT be called explicitly! It is used
-// internally for the performance optimized evaluation of expression templates. Calling this
-// function explicitly might result in erroneous results and/or in compilation errors.
+// values inside the intrinsic element. This function must \b NOT be called explicitly! It is
+// used internally for the performance optimized evaluation of expression templates. Calling
+// this function explicitly might result in erroneous results and/or in compilation errors.
 */
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
-BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,true>::SIMDType
-   CustomMatrix<Type,AF,PF,true>::loadu( size_t i, size_t j ) const noexcept
+BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,true>::IntrinsicType
+   CustomMatrix<Type,AF,PF,true>::loadu( size_t i, size_t j ) const
 {
    using blaze::loadu;
 
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
 
    BLAZE_INTERNAL_ASSERT( i < m_, "Invalid row access index" );
-   BLAZE_INTERNAL_ASSERT( i + SIMDSIZE <= ( PF ? mm_ : m_ ), "Invalid row access index" );
+   BLAZE_INTERNAL_ASSERT( i + IT::size <= ( PF ? mm_ : m_ ), "Invalid row access index" );
    BLAZE_INTERNAL_ASSERT( j < n_, "Invalid column access index" );
 
    return loadu( v_.get()+i+j*mm_ );
@@ -5161,25 +4994,25 @@ BLAZE_ALWAYS_INLINE typename CustomMatrix<Type,AF,PF,true>::SIMDType
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Store of a SIMD element of the matrix.
+/*!\brief Store of an intrinsic element of the matrix.
 //
 // \param i Access index for the row. The index has to be in the range [0..M-1].
 // \param j Access index for the column. The index has to be in the range [0..N-1].
-// \param value The SIMD element to be stored.
+// \param value The intrinsic element to be stored.
 // \return void
 //
-// This function performs a store of a specific SIMD element of the dense matrix. The row index
-// must be smaller than the number of rows and the column index must be smaller then the number
-// of columns. Additionally, the row index must be a multiple of the number of values inside the
-// SIMD element. This function must \b NOT be called explicitly! It is used internally for the
-// performance optimized evaluation of expression templates. Calling this function explicitly
-// might result in erroneous results and/or in compilation errors.
+// This function performs a store of a specific intrinsic element of the dense matrix. The row
+// index must be smaller than the number of rows and the column index must be smaller than the
+// number of columns. Additionally, the row index must be a multiple of the number of values
+// inside the intrinsic element. This function must \b NOT be called explicitly! It is used
+// internally for the performance optimized evaluation of expression templates. Calling this
+// function explicitly might result in erroneous results and/or in compilation errors.
 */
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 BLAZE_ALWAYS_INLINE void
-   CustomMatrix<Type,AF,PF,true>::store( size_t i, size_t j, const SIMDType& value ) noexcept
+   CustomMatrix<Type,AF,PF,true>::store( size_t i, size_t j, const IntrinsicType& value )
 {
    if( AF && PF )
       storea( i, j, value );
@@ -5192,33 +5025,33 @@ BLAZE_ALWAYS_INLINE void
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Aligned store of a SIMD element of the matrix.
+/*!\brief Aligned store of an intrinsic element of the matrix.
 //
 // \param i Access index for the row. The index has to be in the range [0..M-1].
 // \param j Access index for the column. The index has to be in the range [0..N-1].
-// \param value The SIMD element to be stored.
+// \param value The intrinsic element to be stored.
 // \return void
 //
-// This function performs an aligned store of a specific SIMD element of the dense matrix.
+// This function performs an aligned store of a specific intrinsic element of the dense matrix.
 // The row index must be smaller than the number of rows and the column index must be smaller
 // than the number of columns. Additionally, the row index must be a multiple of the number of
-// values inside the SIMD element. This function must \b NOT be called explicitly! It is used
-// internally for the performance optimized evaluation of expression templates. Calling this
-// function explicitly might result in erroneous results and/or in compilation errors.
+// values inside the intrinsic element. This function must \b NOT be called explicitly! It is
+// used internally for the performance optimized evaluation of expression templates. Calling
+// this function explicitly might result in erroneous results and/or in compilation errors.
 */
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 BLAZE_ALWAYS_INLINE void
-   CustomMatrix<Type,AF,PF,true>::storea( size_t i, size_t j, const SIMDType& value ) noexcept
+   CustomMatrix<Type,AF,PF,true>::storea( size_t i, size_t j, const IntrinsicType& value )
 {
    using blaze::storea;
 
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
 
    BLAZE_INTERNAL_ASSERT( i < m_, "Invalid row access index" );
-   BLAZE_INTERNAL_ASSERT( i + SIMDSIZE <= ( PF ? mm_ : m_ ), "Invalid row access index" );
-   BLAZE_INTERNAL_ASSERT( !PF || i % SIMDSIZE == 0UL, "Invalid row access index" );
+   BLAZE_INTERNAL_ASSERT( i + IT::size <= ( PF ? mm_ : m_ ), "Invalid row access index" );
+   BLAZE_INTERNAL_ASSERT( !PF || i % IT::size == 0UL, "Invalid row access index" );
    BLAZE_INTERNAL_ASSERT( j < n_, "Invalid column access index" );
    BLAZE_INTERNAL_ASSERT( checkAlignment( v_.get()+i+j*mm_ ), "Invalid alignment detected" );
 
@@ -5230,32 +5063,32 @@ BLAZE_ALWAYS_INLINE void
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Unaligned store of a SIMD element of the matrix.
+/*!\brief Unaligned store of an intrinsic element of the matrix.
 //
 // \param i Access index for the row. The index has to be in the range [0..M-1].
 // \param j Access index for the column. The index has to be in the range [0..N-1].
-// \param value The SIMD element to be stored.
+// \param value The intrinsic element to be stored.
 // \return void
 //
-// This function performs an unaligned store of a specific SIMD element of the dense matrix.
+// This function performs an unaligned store of a specific intrinsic element of the dense matrix.
 // The row index must be smaller than the number of rows and the column index must be smaller
 // than the number of columns. Additionally, the row index must be a multiple of the number of
-// values inside the SIMD element. This function must \b NOT be called explicitly! It is used
-// internally for the performance optimized evaluation of expression templates. Calling this
-// function explicitly might result in erroneous results and/or in compilation errors.
+// values inside the intrinsic element. This function must \b NOT be called explicitly! It is
+// used internally for the performance optimized evaluation of expression templates. Calling
+// this function explicitly might result in erroneous results and/or in compilation errors.
 */
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 BLAZE_ALWAYS_INLINE void
-   CustomMatrix<Type,AF,PF,true>::storeu( size_t i, size_t j, const SIMDType& value ) noexcept
+   CustomMatrix<Type,AF,PF,true>::storeu( size_t i, size_t j, const IntrinsicType& value )
 {
    using blaze::storeu;
 
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
 
    BLAZE_INTERNAL_ASSERT( i < m_, "Invalid row access index" );
-   BLAZE_INTERNAL_ASSERT( i + SIMDSIZE <= ( PF ? mm_ : m_ ), "Invalid row access index" );
+   BLAZE_INTERNAL_ASSERT( i + IT::size <= ( PF ? mm_ : m_ ), "Invalid row access index" );
    BLAZE_INTERNAL_ASSERT( j < n_, "Invalid column access index" );
 
    storeu( v_.get()+i+j*mm_, value );
@@ -5266,34 +5099,33 @@ BLAZE_ALWAYS_INLINE void
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Aligned, non-temporal store of a SIMD element of the matrix.
+/*!\brief Aligned, non-temporal store of an intrinsic element of the matrix.
 //
 // \param i Access index for the row. The index has to be in the range [0..M-1].
 // \param j Access index for the column. The index has to be in the range [0..N-1].
-// \param value The SIMD element to be stored.
+// \param value The intrinsic element to be stored.
 // \return void
 //
-// This function performs an aligned, non-temporal store of a specific SIMD element of the
-// dense matrix. The row index must be smaller than the number of rows and the column index
-// must be smaller than the number of columns. Additionally, the row index must be a multiple
-// of the number of values inside the SIMD element. This function must \b NOT be called
-// explicitly! It is used internally for the performance optimized evaluation of expression
-// templates. Calling this function explicitly might result in erroneous results and/or in
-// compilation errors.
+// This function performs an aligned, non-temporal store of a specific intrinsic element of the
+// dense matrix. The row index must be smaller than the number of rows and the column index must
+// be smaller than the number of columns. Additionally, the row index must be a multiple of the
+// number of values inside the intrinsic element. This function must \b NOT be called explicitly!
+// It is used internally for the performance optimized evaluation of expression templates. Calling
+// this function explicitly might result in erroneous results and/or in compilation errors.
 */
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 BLAZE_ALWAYS_INLINE void
-   CustomMatrix<Type,AF,PF,true>::stream( size_t i, size_t j, const SIMDType& value ) noexcept
+   CustomMatrix<Type,AF,PF,true>::stream( size_t i, size_t j, const IntrinsicType& value )
 {
    using blaze::stream;
 
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
 
    BLAZE_INTERNAL_ASSERT( i < m_, "Invalid row access index" );
-   BLAZE_INTERNAL_ASSERT( i + SIMDSIZE <= ( PF ? mm_ : m_ ), "Invalid row access index" );
-   BLAZE_INTERNAL_ASSERT( !PF || i % SIMDSIZE == 0UL, "Invalid row access index" );
+   BLAZE_INTERNAL_ASSERT( i + IT::size <= ( PF ? mm_ : m_ ), "Invalid row access index" );
+   BLAZE_INTERNAL_ASSERT( !PF || i % IT::size == 0UL, "Invalid row access index" );
    BLAZE_INTERNAL_ASSERT( j < n_, "Invalid column access index" );
    BLAZE_INTERNAL_ASSERT( checkAlignment( v_.get()+i+j*mm_ ), "Invalid alignment detected" );
 
@@ -5319,7 +5151,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 template< typename MT >  // Type of the right-hand side dense matrix
-inline DisableIf_<typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE VectorizedAssign<MT> >
+inline typename DisableIf< typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE VectorizedAssign<MT> >::Type
    CustomMatrix<Type,AF,PF,true>::assign( const DenseMatrix<MT,true>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
@@ -5344,7 +5176,7 @@ inline DisableIf_<typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE Vectori
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief SIMD optimized implementation of the assignment of a column-major dense matrix.
+/*!\brief Intrinsic optimized implementation of the assignment of a column-major dense matrix.
 //
 // \param rhs The right-hand side dense matrix to be assigned.
 // \return void
@@ -5358,7 +5190,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 template< typename MT >  // Type of the right-hand side dense matrix
-inline EnableIf_<typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE VectorizedAssign<MT> >
+inline typename EnableIf< typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE VectorizedAssign<MT> >::Type
    CustomMatrix<Type,AF,PF,true>::assign( const DenseMatrix<MT,true>& rhs )
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
@@ -5366,10 +5198,10 @@ inline EnableIf_<typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE Vectoriz
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
-   constexpr bool remainder( !PF || !IsPadded<MT>::value );
+   const bool remainder( !PF || !IsPadded<MT>::value );
 
-   const size_t ipos( ( remainder )?( m_ & size_t(-SIMDSIZE) ):( m_ ) );
-   BLAZE_INTERNAL_ASSERT( !remainder || ( m_ - ( m_ % (SIMDSIZE) ) ) == ipos, "Invalid end calculation" );
+   const size_t ipos( ( remainder )?( m_ & size_t(-IT::size) ):( m_ ) );
+   BLAZE_INTERNAL_ASSERT( !remainder || ( m_ - ( m_ % (IT::size) ) ) == ipos, "Invalid end calculation" );
 
    if( AF && PF && useStreaming &&
        ( m_*n_ > ( cacheSize / ( sizeof(Type) * 3UL ) ) ) && !(~rhs).isAliased( this ) )
@@ -5378,7 +5210,7 @@ inline EnableIf_<typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE Vectoriz
       {
          size_t i( 0UL );
 
-         for( ; i<ipos; i+=SIMDSIZE ) {
+         for( ; i<ipos; i+=IT::size ) {
             stream( i, j, (~rhs).load(i,j) );
          }
          for( ; remainder && i<m_; ++i ) {
@@ -5391,15 +5223,15 @@ inline EnableIf_<typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE Vectoriz
       for( size_t j=0UL; j<n_; ++j )
       {
          size_t i( 0UL );
-         ConstIterator_<MT> it( (~rhs).begin(j) );
+         typename MT::ConstIterator it( (~rhs).begin(j) );
 
-         for( ; (i+SIMDSIZE*3UL) < ipos; i+=SIMDSIZE*4UL ) {
-            store( i             , j, it.load() ); it += SIMDSIZE;
-            store( i+SIMDSIZE    , j, it.load() ); it += SIMDSIZE;
-            store( i+SIMDSIZE*2UL, j, it.load() ); it += SIMDSIZE;
-            store( i+SIMDSIZE*3UL, j, it.load() ); it += SIMDSIZE;
+         for( ; (i+IT::size*3UL) < ipos; i+=IT::size*4UL ) {
+            store( i             , j, it.load() ); it += IT::size;
+            store( i+IT::size    , j, it.load() ); it += IT::size;
+            store( i+IT::size*2UL, j, it.load() ); it += IT::size;
+            store( i+IT::size*3UL, j, it.load() ); it += IT::size;
          }
-         for( ; i<ipos; i+=SIMDSIZE, it+=SIMDSIZE ) {
+         for( ; i<ipos; i+=IT::size, it+=IT::size ) {
             store( i, j, it.load() );
          }
          for( ; remainder && i<m_; ++i, ++it ) {
@@ -5435,7 +5267,7 @@ inline void CustomMatrix<Type,AF,PF,true>::assign( const DenseMatrix<MT,false>& 
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
-   constexpr size_t block( BLOCK_SIZE );
+   const size_t block( BLOCK_SIZE );
 
    for( size_t jj=0UL; jj<n_; jj+=block ) {
       const size_t jend( min( n_, jj+block ) );
@@ -5475,7 +5307,7 @@ inline void CustomMatrix<Type,AF,PF,true>::assign( const SparseMatrix<MT,true>& 
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
    for( size_t j=0UL; j<(~rhs).columns(); ++j )
-      for( ConstIterator_<MT> element=(~rhs).begin(j); element!=(~rhs).end(j); ++element )
+      for( typename MT::ConstIterator element=(~rhs).begin(j); element!=(~rhs).end(j); ++element )
          v_[element->index()+j*mm_] = element->value();
 }
 /*! \endcond */
@@ -5506,7 +5338,7 @@ inline void CustomMatrix<Type,AF,PF,true>::assign( const SparseMatrix<MT,false>&
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
    for( size_t i=0UL; i<(~rhs).rows(); ++i )
-      for( ConstIterator_<MT> element=(~rhs).begin(i); element!=(~rhs).end(i); ++element )
+      for( typename MT::ConstIterator element=(~rhs).begin(i); element!=(~rhs).end(i); ++element )
          v_[i+element->index()*mm_] = element->value();
 }
 /*! \endcond */
@@ -5529,7 +5361,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 template< typename MT >  // Type of the right-hand side dense matrix
-inline DisableIf_<typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE VectorizedAddAssign<MT> >
+inline typename DisableIf< typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE VectorizedAddAssign<MT> >::Type
    CustomMatrix<Type,AF,PF,true>::addAssign( const DenseMatrix<MT,true>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
@@ -5569,7 +5401,7 @@ inline DisableIf_<typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE Vectori
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief SIMD optimized implementation of the addition assignment of a column-major dense matrix.
+/*!\brief Intrinsic optimized implementation of the addition assignment of a column-major dense matrix.
 //
 // \param rhs The right-hand side dense matrix to be added.
 // \return void
@@ -5583,7 +5415,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 template< typename MT >  // Type of the right-hand side dense matrix
-inline EnableIf_<typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE VectorizedAddAssign<MT> >
+inline typename EnableIf< typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE VectorizedAddAssign<MT> >::Type
    CustomMatrix<Type,AF,PF,true>::addAssign( const DenseMatrix<MT,true>& rhs )
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
@@ -5592,31 +5424,31 @@ inline EnableIf_<typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE Vectoriz
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
-   constexpr bool remainder( !PF || !IsPadded<MT>::value );
+   const bool remainder( !PF || !IsPadded<MT>::value );
 
    for( size_t j=0UL; j<n_; ++j )
    {
       const size_t ibegin( ( IsLower<MT>::value )
-                           ?( ( IsStrictlyLower<MT>::value ? j+1UL : j ) & size_t(-SIMDSIZE) )
+                           ?( ( IsStrictlyLower<MT>::value ? j+1UL : j ) & size_t(-IT::size) )
                            :( 0UL ) );
       const size_t iend  ( ( IsUpper<MT>::value )
                            ?( IsStrictlyUpper<MT>::value ? j : j+1UL )
                            :( m_ ) );
       BLAZE_INTERNAL_ASSERT( ibegin <= iend, "Invalid loop indices detected" );
 
-      const size_t ipos( ( remainder )?( iend & size_t(-SIMDSIZE) ):( iend ) );
-      BLAZE_INTERNAL_ASSERT( !remainder || ( iend - ( iend % (SIMDSIZE) ) ) == ipos, "Invalid end calculation" );
+      const size_t ipos( ( remainder )?( iend & size_t(-IT::size) ):( iend ) );
+      BLAZE_INTERNAL_ASSERT( !remainder || ( iend - ( iend % (IT::size) ) ) == ipos, "Invalid end calculation" );
 
       size_t i( ibegin );
-      ConstIterator_<MT> it( (~rhs).begin(j) + ibegin );
+      typename MT::ConstIterator it( (~rhs).begin(j) + ibegin );
 
-      for( ; (i+SIMDSIZE*3UL) < ipos; i+=SIMDSIZE*4UL ) {
-         store( i             , j, load(i             ,j) + it.load() ); it += SIMDSIZE;
-         store( i+SIMDSIZE    , j, load(i+SIMDSIZE    ,j) + it.load() ); it += SIMDSIZE;
-         store( i+SIMDSIZE*2UL, j, load(i+SIMDSIZE*2UL,j) + it.load() ); it += SIMDSIZE;
-         store( i+SIMDSIZE*3UL, j, load(i+SIMDSIZE*3UL,j) + it.load() ); it += SIMDSIZE;
+      for( ; (i+IT::size*3UL) < ipos; i+=IT::size*4UL ) {
+         store( i             , j, load(i             ,j) + it.load() ); it += IT::size;
+         store( i+IT::size    , j, load(i+IT::size    ,j) + it.load() ); it += IT::size;
+         store( i+IT::size*2UL, j, load(i+IT::size*2UL,j) + it.load() ); it += IT::size;
+         store( i+IT::size*3UL, j, load(i+IT::size*3UL,j) + it.load() ); it += IT::size;
       }
-      for( ; i<ipos; i+=SIMDSIZE, it+=SIMDSIZE ) {
+      for( ; i<ipos; i+=IT::size, it+=IT::size ) {
          store( i, j, load(i,j) + it.load() );
       }
       for( ; remainder && i<iend; ++i, ++it ) {
@@ -5651,7 +5483,7 @@ inline void CustomMatrix<Type,AF,PF,true>::addAssign( const DenseMatrix<MT,false
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
-   constexpr size_t block( BLOCK_SIZE );
+   const size_t block( BLOCK_SIZE );
 
    for( size_t jj=0UL; jj<n_; jj+=block ) {
       const size_t jend( min( n_, jj+block ) );
@@ -5703,7 +5535,7 @@ inline void CustomMatrix<Type,AF,PF,true>::addAssign( const SparseMatrix<MT,true
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
    for( size_t j=0UL; j<(~rhs).columns(); ++j )
-      for( ConstIterator_<MT> element=(~rhs).begin(j); element!=(~rhs).end(j); ++element )
+      for( typename MT::ConstIterator element=(~rhs).begin(j); element!=(~rhs).end(j); ++element )
          v_[element->index()+j*mm_] += element->value();
 }
 /*! \endcond */
@@ -5734,7 +5566,7 @@ inline void CustomMatrix<Type,AF,PF,true>::addAssign( const SparseMatrix<MT,fals
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
    for( size_t i=0UL; i<(~rhs).rows(); ++i )
-      for( ConstIterator_<MT> element=(~rhs).begin(i); element!=(~rhs).end(i); ++element )
+      for( typename MT::ConstIterator element=(~rhs).begin(i); element!=(~rhs).end(i); ++element )
          v_[i+element->index()*mm_] += element->value();
 }
 /*! \endcond */
@@ -5757,7 +5589,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 template< typename MT >  // Type of the right-hand side dense matrix
-inline DisableIf_<typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE VectorizedSubAssign<MT> >
+inline typename DisableIf< typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE VectorizedSubAssign<MT> >::Type
    CustomMatrix<Type,AF,PF,true>::subAssign( const DenseMatrix<MT,true>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
@@ -5797,7 +5629,7 @@ inline DisableIf_<typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE Vectori
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief SIMD optimized implementation of the subtraction assignment of a column-major
+/*!\brief Intrinsic optimized implementation of the subtraction assignment of a column-major
 //        dense matrix.
 //
 // \param rhs The right-hand side dense matrix to be subtracted.
@@ -5812,7 +5644,7 @@ template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF >      // Padding flag
 template< typename MT >  // Type of the right-hand side dense matrix
-inline EnableIf_<typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE VectorizedSubAssign<MT> >
+inline typename EnableIf< typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE VectorizedSubAssign<MT> >::Type
    CustomMatrix<Type,AF,PF,true>::subAssign( const DenseMatrix<MT,true>& rhs )
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
@@ -5821,31 +5653,31 @@ inline EnableIf_<typename CustomMatrix<Type,AF,PF,true>::BLAZE_TEMPLATE Vectoriz
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
-   constexpr bool remainder( !PF || !IsPadded<MT>::value );
+   const bool remainder( !PF || !IsPadded<MT>::value );
 
    for( size_t j=0UL; j<n_; ++j )
    {
       const size_t ibegin( ( IsLower<MT>::value )
-                           ?( ( IsStrictlyLower<MT>::value ? j+1UL : j ) & size_t(-SIMDSIZE) )
+                           ?( ( IsStrictlyLower<MT>::value ? j+1UL : j ) & size_t(-IT::size) )
                            :( 0UL ) );
       const size_t iend  ( ( IsUpper<MT>::value )
                            ?( IsStrictlyUpper<MT>::value ? j : j+1UL )
                            :( m_ ) );
       BLAZE_INTERNAL_ASSERT( ibegin <= iend, "Invalid loop indices detected" );
 
-      const size_t ipos( ( remainder )?( iend & size_t(-SIMDSIZE) ):( iend ) );
-      BLAZE_INTERNAL_ASSERT( !remainder || ( iend - ( iend % (SIMDSIZE) ) ) == ipos, "Invalid end calculation" );
+      const size_t ipos( ( remainder )?( iend & size_t(-IT::size) ):( iend ) );
+      BLAZE_INTERNAL_ASSERT( !remainder || ( iend - ( iend % (IT::size) ) ) == ipos, "Invalid end calculation" );
 
       size_t i( ibegin );
-      ConstIterator_<MT> it( (~rhs).begin(j) + ibegin );
+      typename MT::ConstIterator it( (~rhs).begin(j) + ibegin );
 
-      for( ; (i+SIMDSIZE*3UL) < ipos; i+=SIMDSIZE*4UL ) {
-         store( i             , j, load(i             ,j) - it.load() ); it += SIMDSIZE;
-         store( i+SIMDSIZE    , j, load(i+SIMDSIZE    ,j) - it.load() ); it += SIMDSIZE;
-         store( i+SIMDSIZE*2UL, j, load(i+SIMDSIZE*2UL,j) - it.load() ); it += SIMDSIZE;
-         store( i+SIMDSIZE*3UL, j, load(i+SIMDSIZE*3UL,j) - it.load() ); it += SIMDSIZE;
+      for( ; (i+IT::size*3UL) < ipos; i+=IT::size*4UL ) {
+         store( i             , j, load(i             ,j) - it.load() ); it += IT::size;
+         store( i+IT::size    , j, load(i+IT::size    ,j) - it.load() ); it += IT::size;
+         store( i+IT::size*2UL, j, load(i+IT::size*2UL,j) - it.load() ); it += IT::size;
+         store( i+IT::size*3UL, j, load(i+IT::size*3UL,j) - it.load() ); it += IT::size;
       }
-      for( ; i<ipos; i+=SIMDSIZE, it+=SIMDSIZE ) {
+      for( ; i<ipos; i+=IT::size, it+=IT::size ) {
          store( i, j, load(i,j) - it.load() );
       }
       for( ; remainder && i<iend; ++i, ++it ) {
@@ -5880,7 +5712,7 @@ inline void CustomMatrix<Type,AF,PF,true>::subAssign( const DenseMatrix<MT,false
    BLAZE_INTERNAL_ASSERT( m_ == (~rhs).rows()   , "Invalid number of rows"    );
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
-   constexpr size_t block( BLOCK_SIZE );
+   const size_t block( BLOCK_SIZE );
 
    for( size_t jj=0UL; jj<n_; jj+=block ) {
       const size_t jend( min( n_, jj+block ) );
@@ -5932,7 +5764,7 @@ inline void CustomMatrix<Type,AF,PF,true>::subAssign( const SparseMatrix<MT,true
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
    for( size_t j=0UL; j<(~rhs).columns(); ++j )
-      for( ConstIterator_<MT> element=(~rhs).begin(j); element!=(~rhs).end(j); ++element )
+      for( typename MT::ConstIterator element=(~rhs).begin(j); element!=(~rhs).end(j); ++element )
          v_[element->index()+j*mm_] -= element->value();
 }
 /*! \endcond */
@@ -5963,8 +5795,92 @@ inline void CustomMatrix<Type,AF,PF,true>::subAssign( const SparseMatrix<MT,fals
    BLAZE_INTERNAL_ASSERT( n_ == (~rhs).columns(), "Invalid number of columns" );
 
    for( size_t i=0UL; i<(~rhs).rows(); ++i )
-      for( ConstIterator_<MT> element=(~rhs).begin(i); element!=(~rhs).end(i); ++element )
+      for( typename MT::ConstIterator element=(~rhs).begin(i); element!=(~rhs).end(i); ++element )
          v_[i+element->index()*mm_] -= element->value();
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+
+
+//=================================================================================================
+//
+//  CONSTRUCTION FUNCTIONS
+//
+//=================================================================================================
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Finalizing the construction of an unmanaged custom matrix.
+//
+// \param ptr The array of elements to be used by the matrix.
+// \param m The number of rows of the array of elements.
+// \param n The number of columns of the array of elements.
+// \param arg The total number of elements between two rows/columns.
+// \return void
+//
+// This function finalizes the construction of an unmanaged custom matrix.
+*/
+template< typename Type  // Data type of the matrix
+        , bool AF        // Alignment flag
+        , bool PF >      // Padding flag
+template< typename Arg >  // Type of the constructor argument
+inline typename DisableIf< IsClass<Arg> >::Type
+   CustomMatrix<Type,AF,PF,true>::construct( Type* ptr, size_t m, size_t n, Arg arg )
+{
+   UNUSED_PARAMETER( n );
+
+   if( ptr == NULL ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid array of elements" );
+   }
+
+   if( AF && ( !checkAlignment( ptr ) || arg % IT::size != 0UL ) ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid alignment detected" );
+   }
+
+   if( PF && IsVectorizable<Type>::value && ( arg < nextMultiple<size_t>( m, IT::size ) ) ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Insufficient capacity for padded matrix" );
+   }
+
+   mm_ = arg;
+   v_.reset( ptr, NoDelete() );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Finalizing the construction of a managed custom matrix.
+//
+// \param ptr The array of elements to be used by the matrix.
+// \param m The number of rows of the array of elements.
+// \param n The number of columns of the array of elements.
+// \param arg The deleter to destroy the array of elements.
+// \return void
+*/
+template< typename Type  // Data type of the matrix
+        , bool AF        // Alignment flag
+        , bool PF >      // Padding flag
+template< typename Arg >  // Type of the constructor argument
+inline typename EnableIf< IsClass<Arg> >::Type
+   CustomMatrix<Type,AF,PF,true>::construct( Type* ptr, size_t m, size_t n, Arg arg )
+{
+   BLAZE_STATIC_ASSERT( PF == unpadded );
+
+   UNUSED_PARAMETER( n );
+
+   if( ptr == NULL ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid array of elements" );
+   }
+
+   if( AF && ( !checkAlignment( ptr ) || m % IT::size != 0UL ) ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid alignment detected" );
+   }
+
+   mm_ = m;
+   v_.reset( ptr, arg );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -6001,7 +5917,10 @@ template< typename Type, bool AF, bool PF, bool SO >
 inline bool isIntact( const CustomMatrix<Type,AF,PF,SO>& m );
 
 template< typename Type, bool AF, bool PF, bool SO >
-inline void swap( CustomMatrix<Type,AF,PF,SO>& a, CustomMatrix<Type,AF,PF,SO>& b ) noexcept;
+inline void swap( CustomMatrix<Type,AF,PF,SO>& a, CustomMatrix<Type,AF,PF,SO>& b ) /* throw() */;
+
+template< typename Type, bool AF, bool PF, bool SO >
+inline void move( CustomMatrix<Type,AF,PF,SO>& dst, CustomMatrix<Type,AF,PF,SO>& src ) /* throw() */;
 //@}
 //*************************************************************************************************
 
@@ -6137,14 +6056,35 @@ inline bool isIntact( const CustomMatrix<Type,AF,PF,SO>& m )
 // \param a The first matrix to be swapped.
 // \param b The second matrix to be swapped.
 // \return void
+// \exception no-throw guarantee.
 */
 template< typename Type  // Data type of the matrix
         , bool AF        // Alignment flag
         , bool PF        // Padding flag
         , bool SO >      // Storage order
-inline void swap( CustomMatrix<Type,AF,PF,SO>& a, CustomMatrix<Type,AF,PF,SO>& b ) noexcept
+inline void swap( CustomMatrix<Type,AF,PF,SO>& a, CustomMatrix<Type,AF,PF,SO>& b ) /* throw() */
 {
    a.swap( b );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Moving the contents of one custom matrix to another.
+// \ingroup custom_matrix
+//
+// \param dst The destination matrix.
+// \param src The source matrix.
+// \return void
+// \exception no-throw guarantee.
+*/
+template< typename Type  // Data type of the matrix
+        , bool AF        // Alignment flag
+        , bool PF        // Padding flag
+        , bool SO >      // Storage order
+inline void move( CustomMatrix<Type,AF,PF,SO>& dst, CustomMatrix<Type,AF,PF,SO>& src ) /* throw() */
+{
+   dst.swap( src );
 }
 //*************************************************************************************************
 
@@ -6160,7 +6100,7 @@ inline void swap( CustomMatrix<Type,AF,PF,SO>& a, CustomMatrix<Type,AF,PF,SO>& b
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T, bool AF, bool PF, bool SO >
-struct HasConstDataAccess< CustomMatrix<T,AF,PF,SO> > : public TrueType
+struct HasConstDataAccess< CustomMatrix<T,AF,PF,SO> > : public IsTrue<true>
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -6177,7 +6117,7 @@ struct HasConstDataAccess< CustomMatrix<T,AF,PF,SO> > : public TrueType
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T, bool AF, bool PF, bool SO >
-struct HasMutableDataAccess< CustomMatrix<T,AF,PF,SO> > : public TrueType
+struct HasMutableDataAccess< CustomMatrix<T,AF,PF,SO> > : public IsTrue<true>
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -6194,7 +6134,7 @@ struct HasMutableDataAccess< CustomMatrix<T,AF,PF,SO> > : public TrueType
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T, bool AF, bool PF, bool SO >
-struct IsCustom< CustomMatrix<T,AF,PF,SO> > : public TrueType
+struct IsCustom< CustomMatrix<T,AF,PF,SO> > : public IsTrue<true>
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -6211,7 +6151,7 @@ struct IsCustom< CustomMatrix<T,AF,PF,SO> > : public TrueType
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T, bool PF, bool SO >
-struct IsAligned< CustomMatrix<T,aligned,PF,SO> > : public TrueType
+struct IsAligned< CustomMatrix<T,aligned,PF,SO> > : public IsTrue<true>
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -6228,7 +6168,7 @@ struct IsAligned< CustomMatrix<T,aligned,PF,SO> > : public TrueType
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T, bool AF, bool SO >
-struct IsPadded< CustomMatrix<T,AF,padded,SO> > : public TrueType
+struct IsPadded< CustomMatrix<T,AF,padded,SO> > : public IsTrue<true>
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -6247,85 +6187,85 @@ struct IsPadded< CustomMatrix<T,AF,padded,SO> > : public TrueType
 template< typename T1, bool AF, bool PF, bool SO, typename T2, size_t M, size_t N >
 struct AddTrait< CustomMatrix<T1,AF,PF,SO>, StaticMatrix<T2,M,N,SO> >
 {
-   using Type = StaticMatrix< AddTrait_<T1,T2>, M, N, SO >;
+   typedef StaticMatrix< typename AddTrait<T1,T2>::Type, M, N, SO >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool SO1, typename T2, size_t M, size_t N, bool SO2 >
 struct AddTrait< CustomMatrix<T1,AF,PF,SO1>, StaticMatrix<T2,M,N,SO2> >
 {
-   using Type = StaticMatrix< AddTrait_<T1,T2>, M, N, false >;
+   typedef StaticMatrix< typename AddTrait<T1,T2>::Type, M, N, false >  Type;
 };
 
 template< typename T1, size_t M, size_t N, bool SO, typename T2, bool AF, bool PF >
 struct AddTrait< StaticMatrix<T1,M,N,SO>, CustomMatrix<T2,AF,PF,SO> >
 {
-   using Type = StaticMatrix< AddTrait_<T1,T2>, M, N, SO >;
+   typedef StaticMatrix< typename AddTrait<T1,T2>::Type, M, N, SO >  Type;
 };
 
 template< typename T1, size_t M, size_t N, bool SO1, typename T2, bool AF, bool PF, bool SO2 >
 struct AddTrait< StaticMatrix<T1,M,N,SO1>, CustomMatrix<T2,AF,PF,SO2> >
 {
-   using Type = StaticMatrix< AddTrait_<T1,T2>, M, N, false >;
+   typedef StaticMatrix< typename AddTrait<T1,T2>::Type, M, N, false >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool SO, typename T2, size_t M, size_t N >
 struct AddTrait< CustomMatrix<T1,AF,PF,SO>, HybridMatrix<T2,M,N,SO> >
 {
-   using Type = HybridMatrix< AddTrait_<T1,T2>, M, N, SO >;
+   typedef HybridMatrix< typename AddTrait<T1,T2>::Type, M, N, SO >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool SO1, typename T2, size_t M, size_t N, bool SO2 >
 struct AddTrait< CustomMatrix<T1,AF,PF,SO1>, HybridMatrix<T2,M,N,SO2> >
 {
-   using Type = HybridMatrix< AddTrait_<T1,T2>, M, N, false >;
+   typedef HybridMatrix< typename AddTrait<T1,T2>::Type, M, N, false >  Type;
 };
 
 template< typename T1, size_t M, size_t N, bool SO, typename T2, bool AF, bool PF >
 struct AddTrait< HybridMatrix<T1,M,N,SO>, CustomMatrix<T2,AF,PF,SO> >
 {
-   using Type = HybridMatrix< AddTrait_<T1,T2>, M, N, SO >;
+   typedef HybridMatrix< typename AddTrait<T1,T2>::Type, M, N, SO >  Type;
 };
 
 template< typename T1, size_t M, size_t N, bool SO1, typename T2, bool AF, bool PF, bool SO2 >
 struct AddTrait< HybridMatrix<T1,M,N,SO1>, CustomMatrix<T2,AF,PF,SO2> >
 {
-   using Type = HybridMatrix< AddTrait_<T1,T2>, M, N, false >;
+   typedef HybridMatrix< typename AddTrait<T1,T2>::Type, M, N, false >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool SO, typename T2 >
 struct AddTrait< CustomMatrix<T1,AF,PF,SO>, DynamicMatrix<T2,SO> >
 {
-   using Type = DynamicMatrix< AddTrait_<T1,T2>, SO >;
+   typedef DynamicMatrix< typename AddTrait<T1,T2>::Type, SO >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool SO1, typename T2, bool SO2 >
 struct AddTrait< CustomMatrix<T1,AF,PF,SO1>, DynamicMatrix<T2,SO2> >
 {
-   using Type = DynamicMatrix< AddTrait_<T1,T2>, false >;
+   typedef DynamicMatrix< typename AddTrait<T1,T2>::Type, false >  Type;
 };
 
 template< typename T1, bool SO, typename T2, bool AF, bool PF >
 struct AddTrait< DynamicMatrix<T1,SO>, CustomMatrix<T2,AF,PF,SO> >
 {
-   using Type = DynamicMatrix< AddTrait_<T1,T2>, SO >;
+   typedef DynamicMatrix< typename AddTrait<T1,T2>::Type, SO >  Type;
 };
 
 template< typename T1, bool SO1, typename T2, bool AF, bool PF, bool SO2 >
 struct AddTrait< DynamicMatrix<T1,SO1>, CustomMatrix<T2,AF,PF,SO2> >
 {
-   using Type = DynamicMatrix< AddTrait_<T1,T2>, false >;
+   typedef DynamicMatrix< typename AddTrait<T1,T2>::Type, false >  Type;
 };
 
 template< typename T1, bool AF1, bool PF1, bool SO, typename T2, bool AF2, bool PF2 >
 struct AddTrait< CustomMatrix<T1,AF1,PF1,SO>, CustomMatrix<T2,AF2,PF2,SO> >
 {
-   using Type = DynamicMatrix< AddTrait_<T1,T2>, SO >;
+   typedef DynamicMatrix< typename AddTrait<T1,T2>::Type, SO >  Type;
 };
 
 template< typename T1, bool AF1, bool PF1, bool SO1, typename T2, bool AF2, bool PF2, bool SO2 >
 struct AddTrait< CustomMatrix<T1,AF1,PF1,SO1>, CustomMatrix<T2,AF2,PF2,SO2> >
 {
-   using Type = DynamicMatrix< AddTrait_<T1,T2>, false >;
+   typedef DynamicMatrix< typename AddTrait<T1,T2>::Type, false >  Type;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -6344,85 +6284,85 @@ struct AddTrait< CustomMatrix<T1,AF1,PF1,SO1>, CustomMatrix<T2,AF2,PF2,SO2> >
 template< typename T1, bool AF, bool PF, bool SO, typename T2, size_t M, size_t N >
 struct SubTrait< CustomMatrix<T1,AF,PF,SO>, StaticMatrix<T2,M,N,SO> >
 {
-   using Type = StaticMatrix< SubTrait_<T1,T2>, M, N, SO >;
+   typedef StaticMatrix< typename SubTrait<T1,T2>::Type, M, N, SO >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool SO1, typename T2, size_t M, size_t N, bool SO2 >
 struct SubTrait< CustomMatrix<T1,AF,PF,SO1>, StaticMatrix<T2,M,N,SO2> >
 {
-   using Type = StaticMatrix< SubTrait_<T1,T2>, M, N, false >;
+   typedef StaticMatrix< typename SubTrait<T1,T2>::Type, M, N, false >  Type;
 };
 
 template< typename T1, size_t M, size_t N, bool SO, typename T2, bool AF, bool PF >
 struct SubTrait< StaticMatrix<T1,M,N,SO>, CustomMatrix<T2,AF,PF,SO> >
 {
-   using Type = StaticMatrix< SubTrait_<T1,T2>, M, N, SO >;
+   typedef StaticMatrix< typename SubTrait<T1,T2>::Type, M, N, SO >  Type;
 };
 
 template< typename T1, size_t M, size_t N, bool SO1, typename T2, bool AF, bool PF, bool SO2 >
 struct SubTrait< StaticMatrix<T1,M,N,SO1>, CustomMatrix<T2,AF,PF,SO2> >
 {
-   using Type = StaticMatrix< SubTrait_<T1,T2>, M, N, false >;
+   typedef StaticMatrix< typename SubTrait<T1,T2>::Type, M, N, false >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool SO, typename T2, size_t M, size_t N >
 struct SubTrait< CustomMatrix<T1,AF,PF,SO>, HybridMatrix<T2,M,N,SO> >
 {
-   using Type = HybridMatrix< SubTrait_<T1,T2>, M, N, SO >;
+   typedef HybridMatrix< typename SubTrait<T1,T2>::Type, M, N, SO >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool SO1, typename T2, size_t M, size_t N, bool SO2 >
 struct SubTrait< CustomMatrix<T1,AF,PF,SO1>, HybridMatrix<T2,M,N,SO2> >
 {
-   using Type = HybridMatrix< SubTrait_<T1,T2>, M, N, false >;
+   typedef HybridMatrix< typename SubTrait<T1,T2>::Type, M, N, false >  Type;
 };
 
 template< typename T1, size_t M, size_t N, bool SO, typename T2, bool AF, bool PF >
 struct SubTrait< HybridMatrix<T1,M,N,SO>, CustomMatrix<T2,AF,PF,SO> >
 {
-   using Type = HybridMatrix< SubTrait_<T1,T2>, M, N, SO >;
+   typedef HybridMatrix< typename SubTrait<T1,T2>::Type, M, N, SO >  Type;
 };
 
 template< typename T1, size_t M, size_t N, bool SO1, typename T2, bool AF, bool PF, bool SO2 >
 struct SubTrait< HybridMatrix<T1,M,N,SO1>, CustomMatrix<T2,AF,PF,SO2> >
 {
-   using Type = HybridMatrix< SubTrait_<T1,T2>, M, N, false >;
+   typedef HybridMatrix< typename SubTrait<T1,T2>::Type, M, N, false >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool SO, typename T2 >
 struct SubTrait< CustomMatrix<T1,AF,PF,SO>, DynamicMatrix<T2,SO> >
 {
-   using Type = DynamicMatrix< SubTrait_<T1,T2>, SO >;
+   typedef DynamicMatrix< typename SubTrait<T1,T2>::Type, SO >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool SO1, typename T2, bool SO2 >
 struct SubTrait< CustomMatrix<T1,AF,PF,SO1>, DynamicMatrix<T2,SO2> >
 {
-   using Type = DynamicMatrix< SubTrait_<T1,T2>, false >;
+   typedef DynamicMatrix< typename SubTrait<T1,T2>::Type, false >  Type;
 };
 
 template< typename T1, bool SO, typename T2, bool AF, bool PF >
 struct SubTrait< DynamicMatrix<T1,SO>, CustomMatrix<T2,AF,PF,SO> >
 {
-   using Type = DynamicMatrix< SubTrait_<T1,T2>, SO >;
+   typedef DynamicMatrix< typename SubTrait<T1,T2>::Type, SO >  Type;
 };
 
 template< typename T1, bool SO1, typename T2, bool AF, bool PF, bool SO2 >
 struct SubTrait< DynamicMatrix<T1,SO1>, CustomMatrix<T2,AF,PF,SO2> >
 {
-   using Type = DynamicMatrix< SubTrait_<T1,T2>, false >;
+   typedef DynamicMatrix< typename SubTrait<T1,T2>::Type, false >  Type;
 };
 
 template< typename T1, bool AF1, bool PF1, bool SO, typename T2, bool AF2, bool PF2 >
 struct SubTrait< CustomMatrix<T1,AF1,PF1,SO>, CustomMatrix<T2,AF2,PF2,SO> >
 {
-   using Type = DynamicMatrix< SubTrait_<T1,T2>, SO >;
+   typedef DynamicMatrix< typename SubTrait<T1,T2>::Type, SO >  Type;
 };
 
 template< typename T1, bool AF1, bool PF1, bool SO1, typename T2, bool AF2, bool PF2, bool SO2 >
 struct SubTrait< CustomMatrix<T1,AF1,PF1,SO1>, CustomMatrix<T2,AF2,PF2,SO2> >
 {
-   using Type = DynamicMatrix< SubTrait_<T1,T2>, false >;
+   typedef DynamicMatrix< typename SubTrait<T1,T2>::Type, false >  Type;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -6439,117 +6379,117 @@ struct SubTrait< CustomMatrix<T1,AF1,PF1,SO1>, CustomMatrix<T2,AF2,PF2,SO2> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T1, bool AF, bool PF, bool SO, typename T2 >
-struct MultTrait< CustomMatrix<T1,AF,PF,SO>, T2, EnableIf_<IsNumeric<T2> > >
+struct MultTrait< CustomMatrix<T1,AF,PF,SO>, T2, typename EnableIf< IsNumeric<T2> >::Type >
 {
-   using Type = DynamicMatrix< MultTrait_<T1,T2>, SO >;
+   typedef DynamicMatrix< typename MultTrait<T1,T2>::Type, SO >  Type;
 };
 
 template< typename T1, typename T2, bool AF, bool PF, bool SO >
-struct MultTrait< T1, CustomMatrix<T2,AF,PF,SO>, EnableIf_<IsNumeric<T1> > >
+struct MultTrait< T1, CustomMatrix<T2,AF,PF,SO>, typename EnableIf< IsNumeric<T1> >::Type >
 {
-   using Type = DynamicMatrix< MultTrait_<T1,T2>, SO >;
+   typedef DynamicMatrix< typename MultTrait<T1,T2>::Type, SO >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool SO, typename T2, size_t N >
 struct MultTrait< CustomMatrix<T1,AF,PF,SO>, StaticVector<T2,N,false> >
 {
-   using Type = DynamicVector< MultTrait_<T1,T2>, false >;
+   typedef DynamicVector< typename MultTrait<T1,T2>::Type, false >  Type;
 };
 
 template< typename T1, size_t N, typename T2, bool AF, bool PF, bool SO >
 struct MultTrait< StaticVector<T1,N,true>, CustomMatrix<T2,AF,PF,SO> >
 {
-   using Type = DynamicVector< MultTrait_<T1,T2>, true >;
+   typedef DynamicVector< typename MultTrait<T1,T2>::Type, true >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool SO, typename T2, size_t N >
 struct MultTrait< CustomMatrix<T1,AF,PF,SO>, HybridVector<T2,N,false> >
 {
-   using Type = DynamicVector< MultTrait_<T1,T2>, false >;
+   typedef DynamicVector< typename MultTrait<T1,T2>::Type, false >  Type;
 };
 
 template< typename T1, size_t N, typename T2, bool AF, bool PF, bool SO >
 struct MultTrait< HybridVector<T1,N,true>, CustomMatrix<T2,AF,PF,SO> >
 {
-   using Type = DynamicVector< MultTrait_<T1,T2>, true >;
+   typedef DynamicVector< typename MultTrait<T1,T2>::Type, true >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool SO, typename T2 >
 struct MultTrait< CustomMatrix<T1,AF,PF,SO>, DynamicVector<T2,false> >
 {
-   using Type = DynamicVector< MultTrait_<T1,T2>, false >;
+   typedef DynamicVector< typename MultTrait<T1,T2>::Type, false >  Type;
 };
 
 template< typename T1, typename T2, bool AF, bool PF, bool SO >
 struct MultTrait< DynamicVector<T1,true>, CustomMatrix<T2,AF,PF,SO> >
 {
-   using Type = DynamicVector< MultTrait_<T1,T2>, true >;
+   typedef DynamicVector< typename MultTrait<T1,T2>::Type, true >  Type;
 };
 
 template< typename T1, bool AF1, bool PF1, bool SO, typename T2, bool AF2, bool PF2 >
 struct MultTrait< CustomMatrix<T1,AF1,PF1,SO>, CustomVector<T2,AF2,PF2,false> >
 {
-   using Type = DynamicVector< MultTrait_<T1,T2>, false >;
+   typedef DynamicVector< typename MultTrait<T1,T2>::Type, false >  Type;
 };
 
 template< typename T1, bool AF1, bool PF1, typename T2, bool AF2, bool PF2, bool SO >
 struct MultTrait< CustomVector<T1,AF1,PF1,true>, CustomMatrix<T2,AF2,PF2,SO> >
 {
-   using Type = DynamicVector< MultTrait_<T1,T2>, true >;
+   typedef DynamicVector< typename MultTrait<T1,T2>::Type, true >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool SO, typename T2 >
 struct MultTrait< CustomMatrix<T1,AF,PF,SO>, CompressedVector<T2,false> >
 {
-   using Type = DynamicVector< MultTrait_<T1,T2>, false >;
+   typedef DynamicVector< typename MultTrait<T1,T2>::Type, false >  Type;
 };
 
 template< typename T1, typename T2, bool AF, bool PF, bool SO >
 struct MultTrait< CompressedVector<T1,true>, CustomMatrix<T2,AF,PF,SO> >
 {
-   using Type = DynamicVector< MultTrait_<T1,T2>, true >;
+   typedef DynamicVector< typename MultTrait<T1,T2>::Type, true >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool SO1, typename T2, size_t M, size_t N, bool SO2 >
 struct MultTrait< CustomMatrix<T1,AF,PF,SO1>, StaticMatrix<T2,M,N,SO2> >
 {
-   using Type = DynamicMatrix< MultTrait_<T1,T2>, SO1 >;
+   typedef DynamicMatrix< typename MultTrait<T1,T2>::Type, SO1 >  Type;
 };
 
 template< typename T1, size_t M, size_t N, bool SO1, typename T2, bool AF, bool PF, bool SO2 >
 struct MultTrait< StaticMatrix<T1,M,N,SO1>, CustomMatrix<T2,AF,PF,SO2> >
 {
-   using Type = DynamicMatrix< MultTrait_<T1,T2>, SO1 >;
+   typedef DynamicMatrix< typename MultTrait<T1,T2>::Type, SO1 >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool SO1, typename T2, size_t M, size_t N, bool SO2 >
 struct MultTrait< CustomMatrix<T1,AF,PF,SO1>, HybridMatrix<T2,M,N,SO2> >
 {
-   using Type = DynamicMatrix< MultTrait_<T1,T2>, SO1 >;
+   typedef DynamicMatrix< typename MultTrait<T1,T2>::Type, SO1 >  Type;
 };
 
 template< typename T1, size_t M, size_t N, bool SO1, typename T2, bool AF, bool PF, bool SO2 >
 struct MultTrait< HybridMatrix<T1,M,N,SO1>, CustomMatrix<T2,AF,PF,SO2> >
 {
-   using Type = DynamicMatrix< MultTrait_<T1,T2>, SO1 >;
+   typedef DynamicMatrix< typename MultTrait<T1,T2>::Type, SO1 >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool SO1, typename T2, bool SO2 >
 struct MultTrait< CustomMatrix<T1,AF,PF,SO1>, DynamicMatrix<T2,SO2> >
 {
-   using Type = DynamicMatrix< MultTrait_<T1,T2>, SO1 >;
+   typedef DynamicMatrix< typename MultTrait<T1,T2>::Type, SO1 >  Type;
 };
 
 template< typename T1, bool SO1, typename T2, bool AF, bool PF, bool SO2 >
 struct MultTrait< DynamicMatrix<T1,SO1>, CustomMatrix<T2,AF,PF,SO2> >
 {
-   using Type = DynamicMatrix< MultTrait_<T1,T2>, SO1 >;
+   typedef DynamicMatrix< typename MultTrait<T1,T2>::Type, SO1 >  Type;
 };
 
 template< typename T1, bool AF1, bool PF1, bool SO1, typename T2, bool AF2, bool PF2, bool SO2 >
 struct MultTrait< CustomMatrix<T1,AF1,PF1,SO1>, CustomMatrix<T2,AF2,PF2,SO2> >
 {
-   using Type = DynamicMatrix< MultTrait_<T1,T2>, SO1 >;
+   typedef DynamicMatrix< typename MultTrait<T1,T2>::Type, SO1 >  Type;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -6566,9 +6506,9 @@ struct MultTrait< CustomMatrix<T1,AF1,PF1,SO1>, CustomMatrix<T2,AF2,PF2,SO2> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T1, bool AF, bool PF, bool SO, typename T2 >
-struct DivTrait< CustomMatrix<T1,AF,PF,SO>, T2, EnableIf_<IsNumeric<T2> > >
+struct DivTrait< CustomMatrix<T1,AF,PF,SO>, T2, typename EnableIf< IsNumeric<T2> >::Type >
 {
-   using Type = DynamicMatrix< DivTrait_<T1,T2>, SO >;
+   typedef DynamicMatrix< typename DivTrait<T1,T2>::Type , SO >  Type;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -6587,7 +6527,7 @@ struct DivTrait< CustomMatrix<T1,AF,PF,SO>, T2, EnableIf_<IsNumeric<T2> > >
 template< typename T1, bool AF, bool PF, bool SO >
 struct SubmatrixTrait< CustomMatrix<T1,AF,PF,SO> >
 {
-   using Type = DynamicMatrix<T1,SO>;
+   typedef DynamicMatrix<T1,SO>  Type;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -6606,7 +6546,7 @@ struct SubmatrixTrait< CustomMatrix<T1,AF,PF,SO> >
 template< typename T1, bool AF, bool PF, bool SO >
 struct RowTrait< CustomMatrix<T1,AF,PF,SO> >
 {
-   using Type = DynamicVector<T1,true>;
+   typedef DynamicVector<T1,true>  Type;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -6625,7 +6565,7 @@ struct RowTrait< CustomMatrix<T1,AF,PF,SO> >
 template< typename T1, bool AF, bool PF, bool SO >
 struct ColumnTrait< CustomMatrix<T1,AF,PF,SO> >
 {
-   using Type = DynamicVector<T1,false>;
+   typedef DynamicVector<T1,false>  Type;
 };
 /*! \endcond */
 //*************************************************************************************************

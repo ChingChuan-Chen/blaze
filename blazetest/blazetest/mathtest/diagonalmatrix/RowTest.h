@@ -45,10 +45,11 @@
 #include <string>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/CompressedVector.h>
+#include <blaze/math/DenseRow.h>
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/DynamicVector.h>
 #include <blaze/math/DiagonalMatrix.h>
-#include <blaze/math/Row.h>
+#include <blaze/math/SparseRow.h>
 #include <blaze/math/traits/RowExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blazetest/system/Types.h>
@@ -159,7 +160,7 @@ class RowTest
 template< typename DT >  // Type of the diagonal matrix
 void RowTest::testAssignment()
 {
-   typedef blaze::RowExprTrait_<DT>  RT;
+   typedef typename blaze::RowExprTrait<DT>::Type  RT;
 
 
    //=====================================================================================
@@ -386,7 +387,7 @@ void RowTest::testAssignment()
 template< typename DT >  // Type of the diagonal matrix
 void RowTest::testAddAssign()
 {
-   typedef blaze::RowExprTrait_<DT>  RT;
+   typedef typename blaze::RowExprTrait<DT>::Type  RT;
 
 
    //=====================================================================================
@@ -613,7 +614,7 @@ void RowTest::testAddAssign()
 template< typename DT >  // Type of the diagonal matrix
 void RowTest::testSubAssign()
 {
-   typedef blaze::RowExprTrait_<DT>  RT;
+   typedef typename blaze::RowExprTrait<DT>::Type  RT;
 
 
    //=====================================================================================
@@ -840,7 +841,7 @@ void RowTest::testSubAssign()
 template< typename DT >  // Type of the diagonal matrix
 void RowTest::testMultAssign()
 {
-   typedef blaze::RowExprTrait_<DT>  RT;
+   typedef typename blaze::RowExprTrait<DT>::Type  RT;
 
 
    //=====================================================================================

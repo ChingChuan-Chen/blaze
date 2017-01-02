@@ -48,10 +48,11 @@
 #include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -80,43 +81,24 @@ struct SVecTSVecMultExprTrait
  private:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Tmp = If< And< IsSparseVector<VT1>, IsColumnVector<VT1>
-                      , IsSparseVector<VT2>, IsRowVector<VT2> >
-                 , SVecTSVecMultExpr<VT1,VT2>
-                 , INVALID_TYPE >;
+   typedef If< And< IsSparseVector<VT1>, IsColumnVector<VT1>
+                  , IsSparseVector<VT2>, IsRowVector<VT2> >
+             , SVecTSVecMultExpr<VT1,VT2>, INVALID_TYPE >  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<VT1>::Type >::Type  Type1;
+   typedef typename RemoveReference< typename RemoveCV<VT2>::Type >::Type  Type2;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<VT1>, IsVolatile<VT1>, IsReference<VT1>
-                                , IsConst<VT2>, IsVolatile<VT2>, IsReference<VT2> >
-                            , SVecTSVecMultExprTrait< Decay_<VT1>, Decay_<VT2> >
-                            , Tmp >::Type;
+   typedef typename If< Or< IsConst<VT1>, IsVolatile<VT1>, IsReference<VT1>
+                          , IsConst<VT2>, IsVolatile<VT2>, IsReference<VT2> >
+                      , SVecTSVecMultExprTrait<Type1,Type2>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the SVecTSVecMultExprTrait class template.
-// \ingroup math_traits
-//
-// The SVecTSVecMultExprTrait_ alias declaration provides a convenient shortcut to access
-// the nested \a Type of the SVecTSVecMultExprTrait class template. For instance, given the
-// non-transpose sparse vector type \a VT1 and the transpose sparse vector type \a VT2 the
-// following two type definitions are identical:
-
-   \code
-   using Type1 = typename SVecTSVecMultExprTrait<VT1,VT2>::Type;
-   using Type2 = SVecTSVecMultExprTrait_<VT1,VT2>;
-   \endcode
-*/
-template< typename VT1    // Type of the left-hand side non-transpose sparse vector
-        , typename VT2 >  // Type of the right-hand side transpose sparse vector
-using SVecTSVecMultExprTrait_ = typename SVecTSVecMultExprTrait<VT1,VT2>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

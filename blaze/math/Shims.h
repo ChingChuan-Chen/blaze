@@ -40,50 +40,20 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/shims/Abs.h>
-#include <blaze/math/shims/Acos.h>
-#include <blaze/math/shims/Acosh.h>
-#include <blaze/math/shims/Asin.h>
-#include <blaze/math/shims/Asinh.h>
-#include <blaze/math/shims/Atan.h>
-#include <blaze/math/shims/Atanh.h>
-#include <blaze/math/shims/Cbrt.h>
-#include <blaze/math/shims/Ceil.h>
-#include <blaze/math/shims/Clamp.h>
 #include <blaze/math/shims/Clear.h>
 #include <blaze/math/shims/Conjugate.h>
-#include <blaze/math/shims/Cos.h>
-#include <blaze/math/shims/Cosh.h>
 #include <blaze/math/shims/Equal.h>
-#include <blaze/math/shims/Erf.h>
-#include <blaze/math/shims/Erfc.h>
-#include <blaze/math/shims/Exp.h>
-#include <blaze/math/shims/Exp2.h>
-#include <blaze/math/shims/Floor.h>
 #include <blaze/math/shims/Imaginary.h>
-#include <blaze/math/shims/InvCbrt.h>
 #include <blaze/math/shims/Invert.h>
-#include <blaze/math/shims/InvSqrt.h>
 #include <blaze/math/shims/IsDefault.h>
-#include <blaze/math/shims/IsDivisor.h>
 #include <blaze/math/shims/IsNaN.h>
 #include <blaze/math/shims/IsOne.h>
 #include <blaze/math/shims/IsReal.h>
 #include <blaze/math/shims/IsZero.h>
-#include <blaze/math/shims/Log.h>
-#include <blaze/math/shims/Log2.h>
-#include <blaze/math/shims/Log10.h>
-#include <blaze/math/shims/Pow.h>
+#include <blaze/math/shims/Move.h>
 #include <blaze/math/shims/Real.h>
 #include <blaze/math/shims/Reset.h>
-#include <blaze/math/shims/Round.h>
 #include <blaze/math/shims/Serial.h>
-#include <blaze/math/shims/Sin.h>
-#include <blaze/math/shims/Sinh.h>
-#include <blaze/math/shims/Sqrt.h>
 #include <blaze/math/shims/Square.h>
-#include <blaze/math/shims/Tan.h>
-#include <blaze/math/shims/Tanh.h>
-#include <blaze/math/shims/Trunc.h>
 
 #endif

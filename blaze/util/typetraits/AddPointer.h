@@ -40,7 +40,7 @@
 // Includes
 //*************************************************************************************************
 
-#include <type_traits>
+#include <boost/type_traits/add_pointer.hpp>
 
 
 namespace blaze {
@@ -56,7 +56,7 @@ namespace blaze {
 // \ingroup type_traits
 //
 // The AddPointer type trait adds a top level pointer to the given type \a T. It has the same
-// effect as \c blaze::RemovePointer<T>::Type*.
+// effect as \c blaze::RemoveReference<T>::Type*.
 
    \code
    blaze::AddPointer<int>::Type        // Results in 'int*'
@@ -71,28 +71,10 @@ struct AddPointer
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   typedef typename std::add_pointer<T>::type  Type;
+   typedef typename boost::add_pointer<T>::type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the AddPointer type trait.
-// \ingroup type_traits
-//
-// The AddPointer_ alias declaration provides a convenient shortcut to access the nested \a Type
-// of the AddPointer class template. For instance, given the type \a T the following two type
-// definitions are identical:
-
-   \code
-   using Type1 = typename AddPointer<T>::Type;
-   using Type2 = AddPointer_<T>;
-   \endcode
-*/
-template< typename T >
-using AddPointer_ = typename AddPointer<T>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

@@ -40,7 +40,7 @@
 // Includes
 //*************************************************************************************************
 
-#include <type_traits>
+#include <boost/type_traits/add_cv.hpp>
 
 
 namespace blaze {
@@ -72,28 +72,10 @@ struct AddCV
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   typedef typename std::add_cv<T>::type  Type;
+   typedef typename boost::add_cv<T>::type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the AddCV type trait.
-// \ingroup type_traits
-//
-// The AddCV_ alias declaration provides a convenient shortcut to access the nested \a Type
-// of the AddCV class template. For instance, given the type \a T the following two type
-// definitions are identical:
-
-   \code
-   using Type1 = typename AddCV<T>::Type;
-   using Type2 = AddCV_<T>;
-   \endcode
-*/
-template< typename T >
-using AddCV_ = typename AddCV<T>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

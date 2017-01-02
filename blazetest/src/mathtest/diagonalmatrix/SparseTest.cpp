@@ -39,13 +39,13 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <blaze/math/Column.h>
 #include <blaze/math/CompressedVector.h>
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/DynamicVector.h>
-#include <blaze/math/Row.h>
+#include <blaze/math/SparseColumn.h>
+#include <blaze/math/SparseRow.h>
+#include <blaze/math/SparseSubmatrix.h>
 #include <blaze/math/StaticMatrix.h>
-#include <blaze/math/Submatrix.h>
 #include <blaze/util/Complex.h>
 #include <blazetest/mathtest/diagonalmatrix/SparseTest.h>
 
@@ -83,11 +83,11 @@ SparseTest::SparseTest()
    testSet();
    testInsert();
    testAppend();
+   testErase();
    testResize();
    testReserve();
    testTrim();
    testSwap();
-   testErase();
    testFind();
    testLowerBound();
    testUpperBound();
@@ -176,55 +176,6 @@ void SparseTest::testConstructors()
       diag1(2,2) = 3;
 
       const DT diag2( diag1 );
-
-      checkRows    ( diag2, 3UL );
-      checkColumns ( diag2, 3UL );
-      checkCapacity( diag2, 3UL );
-      checkNonZeros( diag2, 3UL );
-      checkNonZeros( diag2, 0UL, 1UL );
-      checkNonZeros( diag2, 1UL, 1UL );
-      checkNonZeros( diag2, 2UL, 1UL );
-
-      if( diag2(0,0) != 1 || diag2(0,1) != 0 || diag2(0,2) != 0 ||
-          diag2(1,0) != 0 || diag2(1,1) != 2 || diag2(1,2) != 0 ||
-          diag2(2,0) != 0 || diag2(2,1) != 0 || diag2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag2 << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Row-major DiagonalMatrix move constructor (0x0)";
-
-      DT diag1;
-      DT diag2( std::move( diag1 ) );
-
-      checkRows    ( diag2, 0UL );
-      checkColumns ( diag2, 0UL );
-      checkNonZeros( diag2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Row-major DiagonalMatrix move constructor (3x3)";
-
-      DT diag1( 3UL );
-      diag1(0,0) = 1;
-      diag1(1,1) = 2;
-      diag1(2,2) = 3;
-
-      DT diag2( std::move( diag1 ) );
 
       checkRows    ( diag2, 3UL );
       checkColumns ( diag2, 3UL );
@@ -457,55 +408,6 @@ void SparseTest::testConstructors()
 
 
    //=====================================================================================
-   // Column-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Column-major DiagonalMatrix move constructor (0x0)";
-
-      ODT diag1;
-      ODT diag2( std::move( diag1 ) );
-
-      checkRows    ( diag2, 0UL );
-      checkColumns ( diag2, 0UL );
-      checkNonZeros( diag2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Column-major DiagonalMatrix move constructor (3x3)";
-
-      ODT diag1( 3UL );
-      diag1(0,0) = 1;
-      diag1(1,1) = 2;
-      diag1(2,2) = 3;
-
-      ODT diag2( std::move( diag1 ) );
-
-      checkRows    ( diag2, 3UL );
-      checkColumns ( diag2, 3UL );
-      checkCapacity( diag2, 3UL );
-      checkNonZeros( diag2, 3UL );
-      checkNonZeros( diag2, 0UL, 1UL );
-      checkNonZeros( diag2, 1UL, 1UL );
-      checkNonZeros( diag2, 2UL, 1UL );
-
-      if( diag2(0,0) != 1 || diag2(0,1) != 0 || diag2(0,2) != 0 ||
-          diag2(1,0) != 0 || diag2(1,1) != 2 || diag2(1,2) != 0 ||
-          diag2(2,0) != 0 || diag2(2,1) != 0 || diag2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag2 << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major conversion constructor
    //=====================================================================================
 
@@ -673,56 +575,6 @@ void SparseTest::testAssignment()
 
       DT diag2;
       diag2 = diag1;
-
-      checkRows    ( diag2, 3UL );
-      checkColumns ( diag2, 3UL );
-      checkNonZeros( diag2, 3UL );
-      checkNonZeros( diag2, 0UL, 1UL );
-      checkNonZeros( diag2, 1UL, 1UL );
-      checkNonZeros( diag2, 2UL, 1UL );
-
-      if( diag2(0,0) != 1 || diag2(0,1) != 0 || diag2(0,2) != 0 ||
-          diag2(1,0) != 0 || diag2(1,1) != 2 || diag2(1,2) != 0 ||
-          diag2(2,0) != 0 || diag2(2,1) != 0 || diag2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag2 << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Row-major DiagonalMatrix move assignment (0x0)";
-
-      DT diag1, diag2;
-
-      diag2 = std::move( diag1 );
-
-      checkRows    ( diag2, 0UL );
-      checkColumns ( diag2, 0UL );
-      checkNonZeros( diag2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Row-major DiagonalMatrix move assignment (3x3)";
-
-      DT diag1( 3UL );
-      diag1(0,0) = 1;
-      diag1(1,1) = 2;
-      diag1(2,2) = 3;
-
-      DT diag2;
-      diag2 = std::move( diag1 );
 
       checkRows    ( diag2, 3UL );
       checkColumns ( diag2, 3UL );
@@ -1263,56 +1115,6 @@ void SparseTest::testAssignment()
 
       ODT diag2;
       diag2 = diag1;
-
-      checkRows    ( diag2, 3UL );
-      checkColumns ( diag2, 3UL );
-      checkNonZeros( diag2, 3UL );
-      checkNonZeros( diag2, 0UL, 1UL );
-      checkNonZeros( diag2, 1UL, 1UL );
-      checkNonZeros( diag2, 2UL, 1UL );
-
-      if( diag2(0,0) != 1 || diag2(0,1) != 0 || diag2(0,2) != 0 ||
-          diag2(1,0) != 0 || diag2(1,1) != 2 || diag2(1,2) != 0 ||
-          diag2(2,0) != 0 || diag2(2,1) != 0 || diag2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag2 << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Column-major DiagonalMatrix move assignment (0x0)";
-
-      ODT diag1, diag2;
-
-      diag2 = std::move( diag1 );
-
-      checkRows    ( diag2, 0UL );
-      checkColumns ( diag2, 0UL );
-      checkNonZeros( diag2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Column-major DiagonalMatrix move assignment (3x3)";
-
-      ODT diag1( 3UL );
-      diag1(0,0) = 1;
-      diag1(1,1) = 2;
-      diag1(2,2) = 3;
-
-      ODT diag2;
-      diag2 = std::move( diag1 );
 
       checkRows    ( diag2, 3UL );
       checkColumns ( diag2, 3UL );
@@ -8177,532 +7979,6 @@ void SparseTest::testAppend()
 
 
 //*************************************************************************************************
-/*!\brief Test of the \c resize() member function of the DiagonalMatrix specialization.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c resize() member function of the DiagonalMatrix
-// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void SparseTest::testResize()
-{
-   //=====================================================================================
-   // Row-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Row-major DiagonalMatrix::resize()";
-
-      // Initialization check
-      DT diag;
-
-      checkRows    ( diag, 0UL );
-      checkColumns ( diag, 0UL );
-      checkNonZeros( diag, 0UL );
-
-      // Resizing to 2x2
-      diag.resize( 2UL );
-
-      checkRows    ( diag, 2UL );
-      checkColumns ( diag, 2UL );
-      checkNonZeros( diag, 0UL );
-      checkNonZeros( diag, 0UL, 0UL );
-      checkNonZeros( diag, 1UL, 0UL );
-
-      // Resizing to 4x4 and preserving the elements
-      diag(0,0) = 1;
-      diag(1,1) = 2;
-      diag.resize( 4UL, true );
-
-      checkRows    ( diag, 4UL );
-      checkColumns ( diag, 4UL );
-      checkCapacity( diag, 2UL );
-      checkNonZeros( diag, 2UL );
-      checkNonZeros( diag, 0UL, 1UL );
-      checkNonZeros( diag, 1UL, 1UL );
-      checkNonZeros( diag, 2UL, 0UL );
-      checkNonZeros( diag, 3UL, 0UL );
-
-      // Resizing to 2x2
-      diag(2,2) = 3;
-      diag.resize( 2UL );
-
-      checkRows    ( diag, 2UL );
-      checkColumns ( diag, 2UL );
-      checkCapacity( diag, 2UL );
-      checkNonZeros( diag, 2UL );
-      checkNonZeros( diag, 0UL, 1UL );
-      checkNonZeros( diag, 1UL, 1UL );
-
-      // Resizing to 0x0
-      diag.resize( 0UL );
-
-      checkRows    ( diag, 0UL );
-      checkColumns ( diag, 0UL );
-      checkNonZeros( diag, 0UL );
-   }
-
-
-   //=====================================================================================
-   // Column-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Column-major DiagonalMatrix::resize()";
-
-      // Initialization check
-      ODT diag;
-
-      checkRows    ( diag, 0UL );
-      checkColumns ( diag, 0UL );
-      checkNonZeros( diag, 0UL );
-
-      // Resizing to 2x2
-      diag.resize( 2UL );
-
-      checkRows    ( diag, 2UL );
-      checkColumns ( diag, 2UL );
-      checkNonZeros( diag, 0UL );
-      checkNonZeros( diag, 0UL, 0UL );
-      checkNonZeros( diag, 1UL, 0UL );
-
-      // Resizing to 4x4 and preserving the elements
-      diag(0,0) = 1;
-      diag(1,1) = 2;
-      diag.resize( 4UL, true );
-
-      checkRows    ( diag, 4UL );
-      checkColumns ( diag, 4UL );
-      checkCapacity( diag, 2UL );
-      checkNonZeros( diag, 2UL );
-      checkNonZeros( diag, 0UL, 1UL );
-      checkNonZeros( diag, 1UL, 1UL );
-      checkNonZeros( diag, 2UL, 0UL );
-      checkNonZeros( diag, 3UL, 0UL );
-
-      // Resizing to 2x2
-      diag(2,2) = 3;
-      diag.resize( 2UL );
-
-      checkRows    ( diag, 2UL );
-      checkColumns ( diag, 2UL );
-      checkCapacity( diag, 2UL );
-      checkNonZeros( diag, 2UL );
-      checkNonZeros( diag, 0UL, 1UL );
-      checkNonZeros( diag, 1UL, 1UL );
-
-      // Resizing to 0x0
-      diag.resize( 0UL );
-
-      checkRows    ( diag, 0UL );
-      checkColumns ( diag, 0UL );
-      checkNonZeros( diag, 0UL );
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Test of the \c reserve() member function of the DiagonalMatrix specialization.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c reserve() member function of the DiagonalMatrix
-// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void SparseTest::testReserve()
-{
-   //=====================================================================================
-   // Row-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Row-major DiagonalMatrix::reserve()";
-
-      // Initialization check
-      DT diag;
-
-      checkRows    ( diag, 0UL );
-      checkColumns ( diag, 0UL );
-      checkNonZeros( diag, 0UL );
-
-      // Increasing the capacity of the matrix
-      diag.reserve( 10UL );
-
-      checkRows    ( diag,  0UL );
-      checkColumns ( diag,  0UL );
-      checkCapacity( diag, 10UL );
-      checkNonZeros( diag,  0UL );
-
-      // Further increasing the capacity of the matrix
-      diag.reserve( 20UL );
-
-      checkRows    ( diag,  0UL );
-      checkColumns ( diag,  0UL );
-      checkCapacity( diag, 20UL );
-      checkNonZeros( diag,  0UL );
-   }
-
-
-   //=====================================================================================
-   // Column-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Column-major DiagonalMatrix::reserve()";
-
-      // Initialization check
-      ODT diag;
-
-      checkRows    ( diag, 0UL );
-      checkColumns ( diag, 0UL );
-      checkNonZeros( diag, 0UL );
-
-      // Increasing the capacity of the matrix
-      diag.reserve( 10UL );
-
-      checkRows    ( diag,  0UL );
-      checkColumns ( diag,  0UL );
-      checkCapacity( diag, 10UL );
-      checkNonZeros( diag,  0UL );
-
-      // Further increasing the capacity of the matrix
-      diag.reserve( 20UL );
-
-      checkRows    ( diag,  0UL );
-      checkColumns ( diag,  0UL );
-      checkCapacity( diag, 20UL );
-      checkNonZeros( diag,  0UL );
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Test of the \c trim() member function of the DiagonalMatrix specialization.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c trim() member function of the DiagonalMatrix
-// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void SparseTest::testTrim()
-{
-   //=====================================================================================
-   // Row-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Row-major DiagonalMatrix::trim()";
-
-      // Initialization check
-      DT diag( 3UL );
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkNonZeros( diag, 0UL );
-
-      // Increasing the row capacity of the matrix
-      diag.reserve( 0UL, 10UL );
-      diag.reserve( 1UL, 15UL );
-      diag.reserve( 2UL, 20UL );
-
-      checkRows    ( diag,  3UL );
-      checkColumns ( diag,  3UL );
-      checkCapacity( diag, 45UL );
-      checkCapacity( diag,  0UL, 10UL );
-      checkCapacity( diag,  1UL, 15UL );
-      checkCapacity( diag,  2UL, 20UL );
-
-      // Trimming the matrix
-      diag.trim();
-
-      checkRows    ( diag,  3UL );
-      checkColumns ( diag,  3UL );
-      checkCapacity( diag, 45UL );
-      checkCapacity( diag,  0UL, 0UL );
-      checkCapacity( diag,  1UL, 0UL );
-      checkCapacity( diag,  2UL, 0UL );
-   }
-
-   {
-      test_ = "Row-major DiagonalMatrix::trim( size_t )";
-
-      // Initialization check
-      DT diag( 3UL, 3UL );
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkNonZeros( diag, 0UL );
-
-      // Increasing the row capacity of the matrix
-      diag.reserve( 0UL, 10UL );
-      diag.reserve( 1UL, 15UL );
-      diag.reserve( 2UL, 20UL );
-
-      checkRows    ( diag,  3UL );
-      checkColumns ( diag,  3UL );
-      checkCapacity( diag, 45UL );
-      checkCapacity( diag,  0UL, 10UL );
-      checkCapacity( diag,  1UL, 15UL );
-      checkCapacity( diag,  2UL, 20UL );
-
-      // Trimming the 0th row
-      diag.trim( 0UL );
-
-      checkRows    ( diag,  3UL );
-      checkColumns ( diag,  3UL );
-      checkCapacity( diag, 45UL );
-      checkCapacity( diag,  0UL,  0UL );
-      checkCapacity( diag,  1UL, 25UL );
-      checkCapacity( diag,  2UL, 20UL );
-
-      // Trimming the 1st row
-      diag.trim( 1UL );
-
-      checkRows    ( diag,  3UL );
-      checkColumns ( diag,  3UL );
-      checkCapacity( diag, 45UL );
-      checkCapacity( diag,  0UL,  0UL );
-      checkCapacity( diag,  1UL,  0UL );
-      checkCapacity( diag,  2UL, 45UL );
-
-      // Trimming the 2nd row
-      diag.trim( 2UL );
-
-      checkRows    ( diag,  3UL );
-      checkColumns ( diag,  3UL );
-      checkCapacity( diag, 45UL );
-      checkCapacity( diag,  0UL, 0UL );
-      checkCapacity( diag,  1UL, 0UL );
-      checkCapacity( diag,  2UL, 0UL );
-   }
-
-
-   //=====================================================================================
-   // Column-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Column-major DiagonalMatrix::trim()";
-
-      // Initialization check
-      ODT diag( 3UL );
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkNonZeros( diag, 0UL );
-
-      // Increasing the row capacity of the matrix
-      diag.reserve( 0UL, 10UL );
-      diag.reserve( 1UL, 15UL );
-      diag.reserve( 2UL, 20UL );
-
-      checkRows    ( diag,  3UL );
-      checkColumns ( diag,  3UL );
-      checkCapacity( diag, 45UL );
-      checkCapacity( diag,  0UL, 10UL );
-      checkCapacity( diag,  1UL, 15UL );
-      checkCapacity( diag,  2UL, 20UL );
-
-      // Trimming the matrix
-      diag.trim();
-
-      checkRows    ( diag,  3UL );
-      checkColumns ( diag,  3UL );
-      checkCapacity( diag, 45UL );
-      checkCapacity( diag,  0UL, 0UL );
-      checkCapacity( diag,  1UL, 0UL );
-      checkCapacity( diag,  2UL, 0UL );
-   }
-
-   {
-      test_ = "Column-major DiagonalMatrix::trim( size_t )";
-
-      // Initialization check
-      ODT diag( 3UL, 3UL );
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkNonZeros( diag, 0UL );
-
-      // Increasing the column capacity of the matrix
-      diag.reserve( 0UL, 10UL );
-      diag.reserve( 1UL, 15UL );
-      diag.reserve( 2UL, 20UL );
-
-      checkRows    ( diag,  3UL );
-      checkColumns ( diag,  3UL );
-      checkCapacity( diag, 45UL );
-      checkCapacity( diag,  0UL, 10UL );
-      checkCapacity( diag,  1UL, 15UL );
-      checkCapacity( diag,  2UL, 20UL );
-
-      // Trimming the 0th column
-      diag.trim( 0UL );
-
-      checkRows    ( diag,  3UL );
-      checkColumns ( diag,  3UL );
-      checkCapacity( diag, 45UL );
-      checkCapacity( diag,  0UL,  0UL );
-      checkCapacity( diag,  1UL, 25UL );
-      checkCapacity( diag,  2UL, 20UL );
-
-      // Trimming the 1st column
-      diag.trim( 1UL );
-
-      checkRows    ( diag,  3UL );
-      checkColumns ( diag,  3UL );
-      checkCapacity( diag, 45UL );
-      checkCapacity( diag,  0UL,  0UL );
-      checkCapacity( diag,  1UL,  0UL );
-      checkCapacity( diag,  2UL, 45UL );
-
-      // Trimming the 2nd column
-      diag.trim( 2UL );
-
-      checkRows    ( diag,  3UL );
-      checkColumns ( diag,  3UL );
-      checkCapacity( diag, 45UL );
-      checkCapacity( diag,  0UL, 0UL );
-      checkCapacity( diag,  1UL, 0UL );
-      checkCapacity( diag,  2UL, 0UL );
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Test of the \c swap() functionality of the DiagonalMatrix specialization.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c swap() function of the DiagonalMatrix specialization.
-// In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void SparseTest::testSwap()
-{
-   //=====================================================================================
-   // Row-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Row-major DiagonalMatrix swap";
-
-      DT diag1( 2UL );
-      diag1(0,0) = 1;
-      diag1(1,1) = 2;
-
-      DT diag2( 3UL );
-      diag2(0,0) = 3;
-      diag2(1,1) = 4;
-      diag2(2,2) = 5;
-
-      swap( diag1, diag2 );
-
-      checkRows    ( diag1, 3UL );
-      checkColumns ( diag1, 3UL );
-      checkCapacity( diag1, 3UL );
-      checkNonZeros( diag1, 3UL );
-      checkNonZeros( diag1, 0UL, 1UL );
-      checkNonZeros( diag1, 1UL, 1UL );
-      checkNonZeros( diag1, 2UL, 1UL );
-
-      if( diag1(0,0) != 3 || diag1(0,1) != 0 || diag1(0,2) != 0 ||
-          diag1(1,0) != 0 || diag1(1,1) != 4 || diag1(1,2) != 0 ||
-          diag1(2,0) != 0 || diag1(2,1) != 0 || diag1(2,2) != 5 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Swapping the first matrix failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag1 << "\n"
-             << "   Expected result:\n( 3 0 0 )\n( 0 4 0 )\n( 0 0 5 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      checkRows    ( diag2, 2UL );
-      checkColumns ( diag2, 2UL );
-      checkCapacity( diag2, 2UL );
-      checkNonZeros( diag2, 2UL );
-      checkNonZeros( diag2, 0UL, 1UL );
-      checkNonZeros( diag2, 1UL, 1UL );
-
-      if( diag2(0,0) != 1 || diag2(0,1) != 0 || diag2(1,0) != 0 || diag2(1,1) != 2 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Swapping the second matrix failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag2 << "\n"
-             << "   Expected result:\n( 1 0 )\n( 0 2 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Column-major DiagonalMatrix swap";
-
-      ODT diag1( 2UL );
-      diag1(0,0) = 1;
-      diag1(1,1) = 2;
-
-      ODT diag2( 3UL );
-      diag2(0,0) = 3;
-      diag2(1,1) = 4;
-      diag2(2,2) = 5;
-
-      swap( diag1, diag2 );
-
-      checkRows    ( diag1, 3UL );
-      checkColumns ( diag1, 3UL );
-      checkCapacity( diag1, 3UL );
-      checkNonZeros( diag1, 3UL );
-      checkNonZeros( diag1, 0UL, 1UL );
-      checkNonZeros( diag1, 1UL, 1UL );
-      checkNonZeros( diag1, 2UL, 1UL );
-
-      if( diag1(0,0) != 3 || diag1(0,1) != 0 || diag1(0,2) != 0 ||
-          diag1(1,0) != 0 || diag1(1,1) != 4 || diag1(1,2) != 0 ||
-          diag1(2,0) != 0 || diag1(2,1) != 0 || diag1(2,2) != 5 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Swapping the first matrix failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag1 << "\n"
-             << "   Expected result:\n( 3 0 0 )\n( 0 4 0 )\n( 0 0 5 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      checkRows    ( diag2, 2UL );
-      checkColumns ( diag2, 2UL );
-      checkCapacity( diag2, 2UL );
-      checkNonZeros( diag2, 2UL );
-      checkNonZeros( diag2, 0UL, 1UL );
-      checkNonZeros( diag2, 1UL, 1UL );
-
-      if( diag2(0,0) != 1 || diag2(0,1) != 0 || diag2(1,0) != 0 || diag2(1,1) != 2 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Swapping the second matrix failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag2 << "\n"
-             << "   Expected result:\n( 1 0 )\n( 0 2 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
 /*!\brief Test of the \c erase() member function of the DiagonalMatrix specialization.
 //
 // \return void
@@ -9309,182 +8585,6 @@ void SparseTest::testErase()
 
 
    //=====================================================================================
-   // Row-major erase function with predicate
-   //=====================================================================================
-
-   {
-      test_ = "Row-major DiagonalMatrix::erase( Predicate )";
-
-      // Initialization check
-      DT diag( 4UL, 4UL );
-      diag(0,0) = 1;
-      diag(1,1) = 2;
-      diag(2,2) = 3;
-      diag(3,3) = 4;
-
-      checkRows    ( diag, 4UL );
-      checkColumns ( diag, 4UL );
-      checkCapacity( diag, 4UL );
-      checkNonZeros( diag, 4UL );
-      checkNonZeros( diag, 0UL, 1UL );
-      checkNonZeros( diag, 1UL, 1UL );
-      checkNonZeros( diag, 2UL, 1UL );
-      checkNonZeros( diag, 3UL, 1UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 || diag(0,3) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 || diag(1,3) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 || diag(2,3) != 0 ||
-          diag(3,0) != 0 || diag(3,1) != 0 || diag(3,2) != 0 || diag(3,3) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 0 2 0 0 )\n( 0 0 3 0 )\n( 0 0 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing a selection of elements
-      diag.erase( []( int value ){ return value == 1 || value == 3; } );
-
-      checkRows    ( diag, 4UL );
-      checkColumns ( diag, 4UL );
-      checkCapacity( diag, 4UL );
-      checkNonZeros( diag, 2UL );
-      checkNonZeros( diag, 0UL, 0UL );
-      checkNonZeros( diag, 1UL, 1UL );
-      checkNonZeros( diag, 2UL, 0UL );
-      checkNonZeros( diag, 3UL, 1UL );
-
-      if( diag(0,0) != 0 || diag(0,1) != 0 || diag(0,2) != 0 || diag(0,3) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 || diag(1,3) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 0 || diag(2,3) != 0 ||
-          diag(3,0) != 0 || diag(3,1) != 0 || diag(3,2) != 0 || diag(3,3) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 0 0 0 0 )\n( 0 2 0 0 )\n( 0 0 0 0 )\n( 0 0 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase all elements with value 1
-      diag.erase( []( int value ){ return value == 1; } );
-
-      checkRows    ( diag, 4UL );
-      checkColumns ( diag, 4UL );
-      checkCapacity( diag, 4UL );
-      checkNonZeros( diag, 2UL );
-      checkNonZeros( diag, 0UL, 0UL );
-      checkNonZeros( diag, 1UL, 1UL );
-      checkNonZeros( diag, 2UL, 0UL );
-      checkNonZeros( diag, 3UL, 1UL );
-
-      if( diag(0,0) != 0 || diag(0,1) != 0 || diag(0,2) != 0 || diag(0,3) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 || diag(1,3) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 0 || diag(2,3) != 0 ||
-          diag(3,0) != 0 || diag(3,1) != 0 || diag(3,2) != 0 || diag(3,3) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing all elements with value 1 failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 0 0 0 0 )\n( 0 2 0 0 )\n( 0 0 0 0 )\n( 0 0 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major iterator-range-based erase function with predicate
-   //=====================================================================================
-
-   {
-      test_ = "Row-major DiagonalMatrix::erase( size_t, Iterator, Iterator, Predicate )";
-
-      // Initialization check
-      DT diag( 4UL, 4UL );
-      diag(0,0) = 1;
-      diag(1,1) = 2;
-      diag(2,2) = 3;
-      diag(3,3) = 4;
-
-      checkRows    ( diag, 4UL );
-      checkColumns ( diag, 4UL );
-      checkCapacity( diag, 4UL );
-      checkNonZeros( diag, 4UL );
-      checkNonZeros( diag, 0UL, 1UL );
-      checkNonZeros( diag, 1UL, 1UL );
-      checkNonZeros( diag, 2UL, 1UL );
-      checkNonZeros( diag, 3UL, 1UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 || diag(0,3) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 || diag(1,3) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 || diag(2,3) != 0 ||
-          diag(3,0) != 0 || diag(3,1) != 0 || diag(3,2) != 0 || diag(3,3) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 0 2 0 0 )\n( 0 0 3 0 )\n( 0 0 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing a selection of elements
-      diag.erase( 1UL, diag.begin( 1UL ), diag.end( 1UL ), []( int value ){ return value == 2; } );
-
-      checkRows    ( diag, 4UL );
-      checkColumns ( diag, 4UL );
-      checkCapacity( diag, 4UL );
-      checkNonZeros( diag, 3UL );
-      checkNonZeros( diag, 0UL, 1UL );
-      checkNonZeros( diag, 1UL, 0UL );
-      checkNonZeros( diag, 2UL, 1UL );
-      checkNonZeros( diag, 3UL, 1UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 || diag(0,3) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 0 || diag(1,2) != 0 || diag(1,3) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 || diag(2,3) != 0 ||
-          diag(3,0) != 0 || diag(3,1) != 0 || diag(3,2) != 0 || diag(3,3) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 0 0 0 0 )\n( 0 0 3 0 )\n( 0 0 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase from an empty range
-      diag.erase( 2UL, diag.begin( 2UL ), diag.begin( 2UL ), []( int ){ return true; } );
-
-      checkRows    ( diag, 4UL );
-      checkColumns ( diag, 4UL );
-      checkCapacity( diag, 4UL );
-      checkNonZeros( diag, 3UL );
-      checkNonZeros( diag, 0UL, 1UL );
-      checkNonZeros( diag, 1UL, 0UL );
-      checkNonZeros( diag, 2UL, 1UL );
-      checkNonZeros( diag, 3UL, 1UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 || diag(0,3) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 0 || diag(1,2) != 0 || diag(1,3) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 || diag(2,3) != 0 ||
-          diag(3,0) != 0 || diag(3,1) != 0 || diag(3,2) != 0 || diag(3,3) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing from an empty range failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 0 0 0 0 )\n( 0 0 3 0 )\n( 0 0 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major index-based erase function
    //=====================================================================================
 
@@ -10077,179 +9177,529 @@ void SparseTest::testErase()
          }
       }
    }
+}
+//*************************************************************************************************
 
 
+//*************************************************************************************************
+/*!\brief Test of the \c resize() member function of the DiagonalMatrix specialization.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c resize() member function of the DiagonalMatrix
+// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void SparseTest::testResize()
+{
    //=====================================================================================
-   // Column-major erase function with predicate
+   // Row-major matrix tests
    //=====================================================================================
 
    {
-      test_ = "Column-major DiagonalMatrix::erase( Predicate )";
+      test_ = "Row-major DiagonalMatrix::resize()";
 
       // Initialization check
-      ODT diag( 4UL, 4UL );
+      DT diag;
+
+      checkRows    ( diag, 0UL );
+      checkColumns ( diag, 0UL );
+      checkNonZeros( diag, 0UL );
+
+      // Resizing to 2x2
+      diag.resize( 2UL );
+
+      checkRows    ( diag, 2UL );
+      checkColumns ( diag, 2UL );
+      checkNonZeros( diag, 0UL );
+      checkNonZeros( diag, 0UL, 0UL );
+      checkNonZeros( diag, 1UL, 0UL );
+
+      // Resizing to 4x4 and preserving the elements
       diag(0,0) = 1;
       diag(1,1) = 2;
-      diag(2,2) = 3;
-      diag(3,3) = 4;
+      diag.resize( 4UL, true );
 
       checkRows    ( diag, 4UL );
       checkColumns ( diag, 4UL );
-      checkCapacity( diag, 4UL );
-      checkNonZeros( diag, 4UL );
+      checkCapacity( diag, 2UL );
+      checkNonZeros( diag, 2UL );
       checkNonZeros( diag, 0UL, 1UL );
       checkNonZeros( diag, 1UL, 1UL );
-      checkNonZeros( diag, 2UL, 1UL );
-      checkNonZeros( diag, 3UL, 1UL );
+      checkNonZeros( diag, 2UL, 0UL );
+      checkNonZeros( diag, 3UL, 0UL );
 
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 || diag(0,3) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 || diag(1,3) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 || diag(2,3) != 0 ||
-          diag(3,0) != 0 || diag(3,1) != 0 || diag(3,2) != 0 || diag(3,3) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 0 2 0 0 )\n( 0 0 3 0 )\n( 0 0 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
+      // Resizing to 2x2
+      diag(2,2) = 3;
+      diag.resize( 2UL );
 
-      // Erasing a selection of elements
-      diag.erase( []( int value ){ return value == 1 || value == 3; } );
+      checkRows    ( diag, 2UL );
+      checkColumns ( diag, 2UL );
+      checkCapacity( diag, 2UL );
+      checkNonZeros( diag, 2UL );
+      checkNonZeros( diag, 0UL, 1UL );
+      checkNonZeros( diag, 1UL, 1UL );
+
+      // Resizing to 0x0
+      diag.resize( 0UL );
+
+      checkRows    ( diag, 0UL );
+      checkColumns ( diag, 0UL );
+      checkNonZeros( diag, 0UL );
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Column-major DiagonalMatrix::resize()";
+
+      // Initialization check
+      ODT diag;
+
+      checkRows    ( diag, 0UL );
+      checkColumns ( diag, 0UL );
+      checkNonZeros( diag, 0UL );
+
+      // Resizing to 2x2
+      diag.resize( 2UL );
+
+      checkRows    ( diag, 2UL );
+      checkColumns ( diag, 2UL );
+      checkNonZeros( diag, 0UL );
+      checkNonZeros( diag, 0UL, 0UL );
+      checkNonZeros( diag, 1UL, 0UL );
+
+      // Resizing to 4x4 and preserving the elements
+      diag(0,0) = 1;
+      diag(1,1) = 2;
+      diag.resize( 4UL, true );
 
       checkRows    ( diag, 4UL );
       checkColumns ( diag, 4UL );
-      checkCapacity( diag, 4UL );
+      checkCapacity( diag, 2UL );
       checkNonZeros( diag, 2UL );
-      checkNonZeros( diag, 0UL, 0UL );
+      checkNonZeros( diag, 0UL, 1UL );
       checkNonZeros( diag, 1UL, 1UL );
       checkNonZeros( diag, 2UL, 0UL );
-      checkNonZeros( diag, 3UL, 1UL );
+      checkNonZeros( diag, 3UL, 0UL );
 
-      if( diag(0,0) != 0 || diag(0,1) != 0 || diag(0,2) != 0 || diag(0,3) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 || diag(1,3) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 0 || diag(2,3) != 0 ||
-          diag(3,0) != 0 || diag(3,1) != 0 || diag(3,2) != 0 || diag(3,3) != 4 ) {
+      // Resizing to 2x2
+      diag(2,2) = 3;
+      diag.resize( 2UL );
+
+      checkRows    ( diag, 2UL );
+      checkColumns ( diag, 2UL );
+      checkCapacity( diag, 2UL );
+      checkNonZeros( diag, 2UL );
+      checkNonZeros( diag, 0UL, 1UL );
+      checkNonZeros( diag, 1UL, 1UL );
+
+      // Resizing to 0x0
+      diag.resize( 0UL );
+
+      checkRows    ( diag, 0UL );
+      checkColumns ( diag, 0UL );
+      checkNonZeros( diag, 0UL );
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the \c reserve() member function of the DiagonalMatrix specialization.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c reserve() member function of the DiagonalMatrix
+// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void SparseTest::testReserve()
+{
+   //=====================================================================================
+   // Row-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Row-major DiagonalMatrix::reserve()";
+
+      // Initialization check
+      DT diag;
+
+      checkRows    ( diag, 0UL );
+      checkColumns ( diag, 0UL );
+      checkNonZeros( diag, 0UL );
+
+      // Increasing the capacity of the matrix
+      diag.reserve( 10UL );
+
+      checkRows    ( diag,  0UL );
+      checkColumns ( diag,  0UL );
+      checkCapacity( diag, 10UL );
+      checkNonZeros( diag,  0UL );
+
+      // Further increasing the capacity of the matrix
+      diag.reserve( 20UL );
+
+      checkRows    ( diag,  0UL );
+      checkColumns ( diag,  0UL );
+      checkCapacity( diag, 20UL );
+      checkNonZeros( diag,  0UL );
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Column-major DiagonalMatrix::reserve()";
+
+      // Initialization check
+      ODT diag;
+
+      checkRows    ( diag, 0UL );
+      checkColumns ( diag, 0UL );
+      checkNonZeros( diag, 0UL );
+
+      // Increasing the capacity of the matrix
+      diag.reserve( 10UL );
+
+      checkRows    ( diag,  0UL );
+      checkColumns ( diag,  0UL );
+      checkCapacity( diag, 10UL );
+      checkNonZeros( diag,  0UL );
+
+      // Further increasing the capacity of the matrix
+      diag.reserve( 20UL );
+
+      checkRows    ( diag,  0UL );
+      checkColumns ( diag,  0UL );
+      checkCapacity( diag, 20UL );
+      checkNonZeros( diag,  0UL );
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the \c trim() member function of the DiagonalMatrix specialization.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c trim() member function of the DiagonalMatrix
+// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void SparseTest::testTrim()
+{
+   //=====================================================================================
+   // Row-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Row-major DiagonalMatrix::trim()";
+
+      // Initialization check
+      DT diag( 3UL );
+
+      checkRows    ( diag, 3UL );
+      checkColumns ( diag, 3UL );
+      checkNonZeros( diag, 0UL );
+
+      // Increasing the row capacity of the matrix
+      diag.reserve( 0UL, 10UL );
+      diag.reserve( 1UL, 15UL );
+      diag.reserve( 2UL, 20UL );
+
+      checkRows    ( diag,  3UL );
+      checkColumns ( diag,  3UL );
+      checkCapacity( diag, 45UL );
+      checkCapacity( diag,  0UL, 10UL );
+      checkCapacity( diag,  1UL, 15UL );
+      checkCapacity( diag,  2UL, 20UL );
+
+      // Trimming the matrix
+      diag.trim();
+
+      checkRows    ( diag,  3UL );
+      checkColumns ( diag,  3UL );
+      checkCapacity( diag, 45UL );
+      checkCapacity( diag,  0UL, 0UL );
+      checkCapacity( diag,  1UL, 0UL );
+      checkCapacity( diag,  2UL, 0UL );
+   }
+
+   {
+      test_ = "Row-major DiagonalMatrix::trim( size_t )";
+
+      // Initialization check
+      DT diag( 3UL, 3UL );
+
+      checkRows    ( diag, 3UL );
+      checkColumns ( diag, 3UL );
+      checkNonZeros( diag, 0UL );
+
+      // Increasing the row capacity of the matrix
+      diag.reserve( 0UL, 10UL );
+      diag.reserve( 1UL, 15UL );
+      diag.reserve( 2UL, 20UL );
+
+      checkRows    ( diag,  3UL );
+      checkColumns ( diag,  3UL );
+      checkCapacity( diag, 45UL );
+      checkCapacity( diag,  0UL, 10UL );
+      checkCapacity( diag,  1UL, 15UL );
+      checkCapacity( diag,  2UL, 20UL );
+
+      // Trimming the 0th row
+      diag.trim( 0UL );
+
+      checkRows    ( diag,  3UL );
+      checkColumns ( diag,  3UL );
+      checkCapacity( diag, 45UL );
+      checkCapacity( diag,  0UL,  0UL );
+      checkCapacity( diag,  1UL, 25UL );
+      checkCapacity( diag,  2UL, 20UL );
+
+      // Trimming the 1st row
+      diag.trim( 1UL );
+
+      checkRows    ( diag,  3UL );
+      checkColumns ( diag,  3UL );
+      checkCapacity( diag, 45UL );
+      checkCapacity( diag,  0UL,  0UL );
+      checkCapacity( diag,  1UL,  0UL );
+      checkCapacity( diag,  2UL, 45UL );
+
+      // Trimming the 2nd row
+      diag.trim( 2UL );
+
+      checkRows    ( diag,  3UL );
+      checkColumns ( diag,  3UL );
+      checkCapacity( diag, 45UL );
+      checkCapacity( diag,  0UL, 0UL );
+      checkCapacity( diag,  1UL, 0UL );
+      checkCapacity( diag,  2UL, 0UL );
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Column-major DiagonalMatrix::trim()";
+
+      // Initialization check
+      ODT diag( 3UL );
+
+      checkRows    ( diag, 3UL );
+      checkColumns ( diag, 3UL );
+      checkNonZeros( diag, 0UL );
+
+      // Increasing the row capacity of the matrix
+      diag.reserve( 0UL, 10UL );
+      diag.reserve( 1UL, 15UL );
+      diag.reserve( 2UL, 20UL );
+
+      checkRows    ( diag,  3UL );
+      checkColumns ( diag,  3UL );
+      checkCapacity( diag, 45UL );
+      checkCapacity( diag,  0UL, 10UL );
+      checkCapacity( diag,  1UL, 15UL );
+      checkCapacity( diag,  2UL, 20UL );
+
+      // Trimming the matrix
+      diag.trim();
+
+      checkRows    ( diag,  3UL );
+      checkColumns ( diag,  3UL );
+      checkCapacity( diag, 45UL );
+      checkCapacity( diag,  0UL, 0UL );
+      checkCapacity( diag,  1UL, 0UL );
+      checkCapacity( diag,  2UL, 0UL );
+   }
+
+   {
+      test_ = "Column-major DiagonalMatrix::trim( size_t )";
+
+      // Initialization check
+      ODT diag( 3UL, 3UL );
+
+      checkRows    ( diag, 3UL );
+      checkColumns ( diag, 3UL );
+      checkNonZeros( diag, 0UL );
+
+      // Increasing the column capacity of the matrix
+      diag.reserve( 0UL, 10UL );
+      diag.reserve( 1UL, 15UL );
+      diag.reserve( 2UL, 20UL );
+
+      checkRows    ( diag,  3UL );
+      checkColumns ( diag,  3UL );
+      checkCapacity( diag, 45UL );
+      checkCapacity( diag,  0UL, 10UL );
+      checkCapacity( diag,  1UL, 15UL );
+      checkCapacity( diag,  2UL, 20UL );
+
+      // Trimming the 0th column
+      diag.trim( 0UL );
+
+      checkRows    ( diag,  3UL );
+      checkColumns ( diag,  3UL );
+      checkCapacity( diag, 45UL );
+      checkCapacity( diag,  0UL,  0UL );
+      checkCapacity( diag,  1UL, 25UL );
+      checkCapacity( diag,  2UL, 20UL );
+
+      // Trimming the 1st column
+      diag.trim( 1UL );
+
+      checkRows    ( diag,  3UL );
+      checkColumns ( diag,  3UL );
+      checkCapacity( diag, 45UL );
+      checkCapacity( diag,  0UL,  0UL );
+      checkCapacity( diag,  1UL,  0UL );
+      checkCapacity( diag,  2UL, 45UL );
+
+      // Trimming the 2nd column
+      diag.trim( 2UL );
+
+      checkRows    ( diag,  3UL );
+      checkColumns ( diag,  3UL );
+      checkCapacity( diag, 45UL );
+      checkCapacity( diag,  0UL, 0UL );
+      checkCapacity( diag,  1UL, 0UL );
+      checkCapacity( diag,  2UL, 0UL );
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the \c swap() functionality of the DiagonalMatrix specialization.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c swap() function of the DiagonalMatrix specialization.
+// In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void SparseTest::testSwap()
+{
+   //=====================================================================================
+   // Row-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Row-major DiagonalMatrix swap";
+
+      DT diag1( 2UL );
+      diag1(0,0) = 1;
+      diag1(1,1) = 2;
+
+      DT diag2( 3UL );
+      diag2(0,0) = 3;
+      diag2(1,1) = 4;
+      diag2(2,2) = 5;
+
+      swap( diag1, diag2 );
+
+      checkRows    ( diag1, 3UL );
+      checkColumns ( diag1, 3UL );
+      checkCapacity( diag1, 3UL );
+      checkNonZeros( diag1, 3UL );
+      checkNonZeros( diag1, 0UL, 1UL );
+      checkNonZeros( diag1, 1UL, 1UL );
+      checkNonZeros( diag1, 2UL, 1UL );
+
+      if( diag1(0,0) != 3 || diag1(0,1) != 0 || diag1(0,2) != 0 ||
+          diag1(1,0) != 0 || diag1(1,1) != 4 || diag1(1,2) != 0 ||
+          diag1(2,0) != 0 || diag1(2,1) != 0 || diag1(2,2) != 5 ) {
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
+             << " Error: Swapping the first matrix failed\n"
              << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 0 0 0 0 )\n( 0 2 0 0 )\n( 0 0 0 0 )\n( 0 0 0 4 )\n";
+             << "   Result:\n" << diag1 << "\n"
+             << "   Expected result:\n( 3 0 0 )\n( 0 4 0 )\n( 0 0 5 )\n";
          throw std::runtime_error( oss.str() );
       }
 
-      // Trying to erase all elements with value 1
-      diag.erase( []( int value ){ return value == 1; } );
+      checkRows    ( diag2, 2UL );
+      checkColumns ( diag2, 2UL );
+      checkCapacity( diag2, 2UL );
+      checkNonZeros( diag2, 2UL );
+      checkNonZeros( diag2, 0UL, 1UL );
+      checkNonZeros( diag2, 1UL, 1UL );
 
-      checkRows    ( diag, 4UL );
-      checkColumns ( diag, 4UL );
-      checkCapacity( diag, 4UL );
-      checkNonZeros( diag, 2UL );
-      checkNonZeros( diag, 0UL, 0UL );
-      checkNonZeros( diag, 1UL, 1UL );
-      checkNonZeros( diag, 2UL, 0UL );
-      checkNonZeros( diag, 3UL, 1UL );
-
-      if( diag(0,0) != 0 || diag(0,1) != 0 || diag(0,2) != 0 || diag(0,3) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 || diag(1,3) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 0 || diag(2,3) != 0 ||
-          diag(3,0) != 0 || diag(3,1) != 0 || diag(3,2) != 0 || diag(3,3) != 4 ) {
+      if( diag2(0,0) != 1 || diag2(0,1) != 0 || diag2(1,0) != 0 || diag2(1,1) != 2 ) {
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Erasing all elements with value 1 failed\n"
+             << " Error: Swapping the second matrix failed\n"
              << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 0 0 0 0 )\n( 0 2 0 0 )\n( 0 0 0 0 )\n( 0 0 0 4 )\n";
+             << "   Result:\n" << diag2 << "\n"
+             << "   Expected result:\n( 1 0 )\n( 0 2 )\n";
          throw std::runtime_error( oss.str() );
       }
    }
 
 
    //=====================================================================================
-   // Column-major iterator-range-based erase function with predicate
+   // Column-major matrix tests
    //=====================================================================================
 
    {
-      test_ = "Column-major DiagonalMatrix::erase( size_t, Iterator, Iterator, Predicate )";
+      test_ = "Column-major DiagonalMatrix swap";
 
-      // Initialization check
-      ODT diag( 4UL, 4UL );
-      diag(0,0) = 1;
-      diag(1,1) = 2;
-      diag(2,2) = 3;
-      diag(3,3) = 4;
+      ODT diag1( 2UL );
+      diag1(0,0) = 1;
+      diag1(1,1) = 2;
 
-      checkRows    ( diag, 4UL );
-      checkColumns ( diag, 4UL );
-      checkCapacity( diag, 4UL );
-      checkNonZeros( diag, 4UL );
-      checkNonZeros( diag, 0UL, 1UL );
-      checkNonZeros( diag, 1UL, 1UL );
-      checkNonZeros( diag, 2UL, 1UL );
-      checkNonZeros( diag, 3UL, 1UL );
+      ODT diag2( 3UL );
+      diag2(0,0) = 3;
+      diag2(1,1) = 4;
+      diag2(2,2) = 5;
 
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 || diag(0,3) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 || diag(1,3) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 || diag(2,3) != 0 ||
-          diag(3,0) != 0 || diag(3,1) != 0 || diag(3,2) != 0 || diag(3,3) != 4 ) {
+      swap( diag1, diag2 );
+
+      checkRows    ( diag1, 3UL );
+      checkColumns ( diag1, 3UL );
+      checkCapacity( diag1, 3UL );
+      checkNonZeros( diag1, 3UL );
+      checkNonZeros( diag1, 0UL, 1UL );
+      checkNonZeros( diag1, 1UL, 1UL );
+      checkNonZeros( diag1, 2UL, 1UL );
+
+      if( diag1(0,0) != 3 || diag1(0,1) != 0 || diag1(0,2) != 0 ||
+          diag1(1,0) != 0 || diag1(1,1) != 4 || diag1(1,2) != 0 ||
+          diag1(2,0) != 0 || diag1(2,1) != 0 || diag1(2,2) != 5 ) {
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
+             << " Error: Swapping the first matrix failed\n"
              << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 0 2 0 0 )\n( 0 0 3 0 )\n( 0 0 0 4 )\n";
+             << "   Result:\n" << diag1 << "\n"
+             << "   Expected result:\n( 3 0 0 )\n( 0 4 0 )\n( 0 0 5 )\n";
          throw std::runtime_error( oss.str() );
       }
 
-      // Erasing a selection of elements
-      diag.erase( 1UL, diag.begin( 1UL ), diag.end( 1UL ), []( int value ){ return value == 2; } );
+      checkRows    ( diag2, 2UL );
+      checkColumns ( diag2, 2UL );
+      checkCapacity( diag2, 2UL );
+      checkNonZeros( diag2, 2UL );
+      checkNonZeros( diag2, 0UL, 1UL );
+      checkNonZeros( diag2, 1UL, 1UL );
 
-      checkRows    ( diag, 4UL );
-      checkColumns ( diag, 4UL );
-      checkCapacity( diag, 4UL );
-      checkNonZeros( diag, 3UL );
-      checkNonZeros( diag, 0UL, 1UL );
-      checkNonZeros( diag, 1UL, 0UL );
-      checkNonZeros( diag, 2UL, 1UL );
-      checkNonZeros( diag, 3UL, 1UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 || diag(0,3) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 0 || diag(1,2) != 0 || diag(1,3) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 || diag(2,3) != 0 ||
-          diag(3,0) != 0 || diag(3,1) != 0 || diag(3,2) != 0 || diag(3,3) != 4 ) {
+      if( diag2(0,0) != 1 || diag2(0,1) != 0 || diag2(1,0) != 0 || diag2(1,1) != 2 ) {
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
+             << " Error: Swapping the second matrix failed\n"
              << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 0 0 0 0 )\n( 0 0 3 0 )\n( 0 0 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase from an empty range
-      diag.erase( 2UL, diag.begin( 2UL ), diag.begin( 2UL ), []( int ){ return true; } );
-
-      checkRows    ( diag, 4UL );
-      checkColumns ( diag, 4UL );
-      checkCapacity( diag, 4UL );
-      checkNonZeros( diag, 3UL );
-      checkNonZeros( diag, 0UL, 1UL );
-      checkNonZeros( diag, 1UL, 0UL );
-      checkNonZeros( diag, 2UL, 1UL );
-      checkNonZeros( diag, 3UL, 1UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 || diag(0,3) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 0 || diag(1,2) != 0 || diag(1,3) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 || diag(2,3) != 0 ||
-          diag(3,0) != 0 || diag(3,1) != 0 || diag(3,2) != 0 || diag(3,3) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing from an empty range failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 0 0 0 0 )\n( 0 0 3 0 )\n( 0 0 0 4 )\n";
+             << "   Result:\n" << diag2 << "\n"
+             << "   Expected result:\n( 1 0 )\n( 0 2 )\n";
          throw std::runtime_error( oss.str() );
       }
    }
@@ -11069,7 +10519,7 @@ void SparseTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function";
 
-      typedef blaze::Submatrix<DT>  SMT;
+      typedef blaze::SparseSubmatrix<DT>  SMT;
 
       DT diag( 3UL );
       diag(0,0) = 1;
@@ -11159,7 +10609,7 @@ void SparseTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function";
 
-      typedef blaze::Submatrix<ODT>  SMT;
+      typedef blaze::SparseSubmatrix<ODT>  SMT;
 
       ODT diag( 3UL );
       diag(0,0) = 1;
@@ -11262,7 +10712,7 @@ void SparseTest::testRow()
    {
       test_ = "Row-major row() function";
 
-      typedef blaze::Row<DT>  RT;
+      typedef blaze::SparseRow<DT>  RT;
 
       DT diag( 3UL );
       diag(0,0) = 1;
@@ -11350,7 +10800,7 @@ void SparseTest::testRow()
    {
       test_ = "Column-major row() function";
 
-      typedef blaze::Row<ODT>  RT;
+      typedef blaze::SparseRow<ODT>  RT;
 
       ODT diag( 3UL );
       diag(0,0) = 1;
@@ -11451,7 +10901,7 @@ void SparseTest::testColumn()
    {
       test_ = "Row-major column() function";
 
-      typedef blaze::Column<DT>  CT;
+      typedef blaze::SparseColumn<DT>  CT;
 
       DT diag( 3UL );
       diag(0,0) = 1;
@@ -11539,7 +10989,7 @@ void SparseTest::testColumn()
    {
       test_ = "Column-major column() function";
 
-      typedef blaze::Column<ODT>  CT;
+      typedef blaze::SparseColumn<ODT>  CT;
 
       ODT diag( 3UL );
       diag(0,0) = 1;

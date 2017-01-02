@@ -64,9 +64,9 @@ namespace blaze {
 // The \a inv shim represents an abstract interface for inverting a value/object of any given
 // data type. For single precision floating point values this results in \f$ \frac{1}{a} \f$.
 //
-// \note A division by zero is only checked by an user assert.
+// \note: A division by zero is only checked by an user assert.
 */
-BLAZE_ALWAYS_INLINE float inv( float a ) noexcept
+BLAZE_ALWAYS_INLINE float inv( float a )
 {
    BLAZE_USER_ASSERT( a != 0.0F, "Division by zero detected" );
    return ( 1.0F / a );
@@ -84,9 +84,9 @@ BLAZE_ALWAYS_INLINE float inv( float a ) noexcept
 // The \a inv shim represents an abstract interface for inverting a value/object of any given
 // data type. For double precision floating point values this results in \f$ \frac{1}{a} \f$.
 //
-// \note A division by zero is only checked by an user assert.
+// \note: A division by zero is only checked by an user assert.
 */
-BLAZE_ALWAYS_INLINE double inv( double a ) noexcept
+BLAZE_ALWAYS_INLINE double inv( double a )
 {
    BLAZE_USER_ASSERT( a != 0.0, "Division by zero detected" );
    return ( 1.0 / a );
@@ -104,9 +104,9 @@ BLAZE_ALWAYS_INLINE double inv( double a ) noexcept
 // The \a inv shim represents an abstract interface for inverting a value/object of any given
 // data type. For extended precision floating point values this results in \f$ \frac{1}{a} \f$.
 //
-// \note A division by zero is only checked by an user assert.
+// \note: A division by zero is only checked by an user assert.
 */
-BLAZE_ALWAYS_INLINE long double inv( long double a ) noexcept
+BLAZE_ALWAYS_INLINE long double inv( long double a )
 {
    BLAZE_USER_ASSERT( a != 0.0L, "Division by zero detected" );
    return ( 1.0L / a );
@@ -125,9 +125,9 @@ BLAZE_ALWAYS_INLINE long double inv( long double a ) noexcept
 // data type. For a single precision floating point complex number \f$ z = x + yi \f$ this
 // results in \f$ \frac{\overline{z}}{x^2+y^2} \f$.
 //
-// \note A division by zero is only checked by an user assert.
+// \note: A division by zero is only checked by an user assert.
 */
-BLAZE_ALWAYS_INLINE complex<float> inv( const complex<float>& a ) noexcept
+BLAZE_ALWAYS_INLINE complex<float> inv( const complex<float>& a )
 {
    const float abs( sq( real(a) ) + sq( imag(a) ) );
    BLAZE_USER_ASSERT( abs != 0.0F, "Division by zero detected" );
@@ -149,9 +149,9 @@ BLAZE_ALWAYS_INLINE complex<float> inv( const complex<float>& a ) noexcept
 // data type. For a double precision floating point complex number \f$ z = x + yi \f$ this
 // results in \f$ \frac{\overline{z}}{x^2+y^2} \f$.
 //
-// \note A division by zero is only checked by an user assert.
+// \note: A division by zero is only checked by an user assert.
 */
-BLAZE_ALWAYS_INLINE complex<double> inv( const complex<double>& a ) noexcept
+BLAZE_ALWAYS_INLINE complex<double> inv( const complex<double>& a )
 {
    const double abs( sq( real(a) ) + sq( imag(a) ) );
    BLAZE_USER_ASSERT( abs != 0.0, "Division by zero detected" );
@@ -173,9 +173,9 @@ BLAZE_ALWAYS_INLINE complex<double> inv( const complex<double>& a ) noexcept
 // data type. For an extended precision floating point complex number \f$ z = x + yi \f$ this
 // results in \f$ \frac{\overline{z}}{x^2+y^2} \f$.
 //
-// \note A division by zero is only checked by an user assert.
+// \note: A division by zero is only checked by an user assert.
 */
-BLAZE_ALWAYS_INLINE complex<long double> inv( const complex<long double>& a ) noexcept
+BLAZE_ALWAYS_INLINE complex<long double> inv( const complex<long double>& a )
 {
    const long double abs( sq( real(a) ) + sq( imag(a) ) );
    BLAZE_USER_ASSERT( abs != 0.0L, "Division by zero detected" );
@@ -205,9 +205,9 @@ BLAZE_ALWAYS_INLINE complex<long double> inv( const complex<long double>& a ) no
 // given data type in-place. For single precision floating point values this results in
 // \f$ \frac{1}{a} \f$.
 //
-// \note A division by zero is only checked by an user assert.
+// \note: A division by zero is only checked by an user assert.
 */
-BLAZE_ALWAYS_INLINE void invert( float& a ) noexcept
+BLAZE_ALWAYS_INLINE void invert( float& a )
 {
    a = inv( a );
 }
@@ -225,9 +225,9 @@ BLAZE_ALWAYS_INLINE void invert( float& a ) noexcept
 // given data type in-place. For double precision floating point values this results in
 // \f$ \frac{1}{a} \f$.
 //
-// \note A division by zero is only checked by an user assert.
+// \note: A division by zero is only checked by an user assert.
 */
-BLAZE_ALWAYS_INLINE void invert( double& a ) noexcept
+BLAZE_ALWAYS_INLINE void invert( double& a )
 {
    a = inv( a );
 }
@@ -245,9 +245,9 @@ BLAZE_ALWAYS_INLINE void invert( double& a ) noexcept
 // given data type in-place. For extended precision floating point values this results in
 // \f$ \frac{1}{a} \f$.
 //
-// \note A division by zero is only checked by an user assert.
+// \note: A division by zero is only checked by an user assert.
 */
-BLAZE_ALWAYS_INLINE void invert( long double& a ) noexcept
+BLAZE_ALWAYS_INLINE void invert( long double& a )
 {
    a = inv( a );
 }
@@ -265,9 +265,9 @@ BLAZE_ALWAYS_INLINE void invert( long double& a ) noexcept
 // data type in-place. For a single precision floating point complex number \f$ z = x + yi \f$
 // this results in \f$ \frac{\overline{z}}{x^2+y^2} \f$.
 //
-// \note A division by zero is only checked by an user assert.
+// \note: A division by zero is only checked by an user assert.
 */
-BLAZE_ALWAYS_INLINE void invert( complex<float>& a ) noexcept
+BLAZE_ALWAYS_INLINE void invert( complex<float>& a )
 {
    a = inv( a );
 }
@@ -285,9 +285,9 @@ BLAZE_ALWAYS_INLINE void invert( complex<float>& a ) noexcept
 // data type in-place. For a double precision floating point complex number \f$ z = x + yi \f$
 // this results in \f$ \frac{\overline{z}}{x^2+y^2} \f$.
 //
-// \note A division by zero is only checked by an user assert.
+// \note: A division by zero is only checked by an user assert.
 */
-BLAZE_ALWAYS_INLINE void invert( complex<double>& a ) noexcept
+BLAZE_ALWAYS_INLINE void invert( complex<double>& a )
 {
    a = inv( a );
 }
@@ -305,9 +305,9 @@ BLAZE_ALWAYS_INLINE void invert( complex<double>& a ) noexcept
 // data type in-place. For an extended precision floating point complex number \f$ z = x + yi \f$
 // this results in \f$ \frac{\overline{z}}{x^2+y^2} \f$.
 //
-// \note A division by zero is only checked by an user assert.
+// \note: A division by zero is only checked by an user assert.
 */
-BLAZE_ALWAYS_INLINE void invert( complex<long double>& a ) noexcept
+BLAZE_ALWAYS_INLINE void invert( complex<long double>& a )
 {
    a = inv( a );
 }

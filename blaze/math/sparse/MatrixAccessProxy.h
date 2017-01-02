@@ -40,18 +40,18 @@
 // Includes
 //*************************************************************************************************
 
-#include <utility>
-#include <blaze/math/Aliases.h>
+#include <algorithm>
 #include <blaze/math/constraints/SparseMatrix.h>
-#include <blaze/math/InitializerList.h>
 #include <blaze/math/proxy/Proxy.h>
 #include <blaze/math/shims/Clear.h>
+#include <blaze/math/shims/Conjugate.h>
 #include <blaze/math/shims/IsDefault.h>
 #include <blaze/math/shims/IsNaN.h>
 #include <blaze/math/shims/IsOne.h>
 #include <blaze/math/shims/IsReal.h>
 #include <blaze/math/shims/IsZero.h>
 #include <blaze/math/shims/Reset.h>
+#include <blaze/math/traits/ConjExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/Types.h>
@@ -97,18 +97,18 @@ namespace blaze {
 // to the sparse matrix elements while preserving the intuitive use of the function call operator.
 */
 template< typename MT >  // Type of the sparse matrix
-class MatrixAccessProxy : public Proxy< MatrixAccessProxy<MT>, ElementType_<MT> >
+class MatrixAccessProxy : public Proxy< MatrixAccessProxy<MT>, typename MT::ElementType >
 {
  private:
    //**Enumerations********************************************************************************
    //! Compile time flag indicating whether the given matrix type is a row-major matrix.
-   enum : bool { rmm = IsRowMajorMatrix<MT>::value };
+   enum { rmm = IsRowMajorMatrix<MT>::value };
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
-   typedef ElementType_<MT>  RepresentedType;  //!< Type of the represented sparse matrix element.
-   typedef RepresentedType&  RawReference;     //!< Raw reference to the represented element.
+   typedef typename MT::ElementType  RepresentedType;  //!< Type of the represented sparse matrix element.
+   typedef RepresentedType&          RawReference;     //!< Raw reference to the represented element.
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
@@ -129,14 +129,7 @@ class MatrixAccessProxy : public Proxy< MatrixAccessProxy<MT>, ElementType_<MT> 
    //**Operators***********************************************************************************
    /*!\name Operators */
    //@{
-   inline const MatrixAccessProxy& operator=( const MatrixAccessProxy& map ) const;
-
-   template< typename T >
-   inline const MatrixAccessProxy& operator=( initializer_list<T> list ) const;
-
-   template< typename T >
-   inline const MatrixAccessProxy& operator=( initializer_list< initializer_list<T> > list ) const;
-
+                          inline const MatrixAccessProxy& operator= ( const MatrixAccessProxy& map ) const;
    template< typename T > inline const MatrixAccessProxy& operator= ( const T& value ) const;
    template< typename T > inline const MatrixAccessProxy& operator+=( const T& value ) const;
    template< typename T > inline const MatrixAccessProxy& operator-=( const T& value ) const;
@@ -148,15 +141,15 @@ class MatrixAccessProxy : public Proxy< MatrixAccessProxy<MT>, ElementType_<MT> 
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-   inline RawReference get()          const noexcept;
-   inline bool         isRestricted() const noexcept;
+   inline RawReference get()          const;
+   inline bool         isRestricted() const;
    //@}
    //**********************************************************************************************
 
    //**Conversion operator*************************************************************************
    /*!\name Conversion operator */
    //@{
-   inline operator RawReference() const noexcept;
+   inline operator RawReference() const;
    //@}
    //**********************************************************************************************
 
@@ -207,7 +200,7 @@ inline MatrixAccessProxy<MT>::MatrixAccessProxy( MT& sm, size_t i, size_t j )
    , i_ ( i  )  // Row-index of the accessed sparse matrix element
    , j_ ( j  )  // Column-index of the accessed sparse matrix element
 {
-   const Iterator_<MT> element( sm_.find( i_, j_ ) );
+   const typename MT::Iterator element( sm_.find( i_, j_ ) );
    const size_t index( rmm ? i_ : j_ );
    if( element == sm_.end(index) )
       sm_.insert( i_, j_, RepresentedType() );
@@ -245,7 +238,7 @@ inline MatrixAccessProxy<MT>::MatrixAccessProxy( const MatrixAccessProxy& map )
 template< typename MT >  // Type of the sparse matrix
 inline MatrixAccessProxy<MT>::~MatrixAccessProxy()
 {
-   const Iterator_<MT> element( sm_.find( i_, j_ ) );
+   const typename MT::Iterator element( sm_.find( i_, j_ ) );
    const size_t index( rmm ? i_ : j_ );
    if( element != sm_.end( index ) && isDefault( element->value() ) )
       sm_.erase( index, element );
@@ -271,40 +264,6 @@ template< typename MT >  // Type of the sparse matrix
 inline const MatrixAccessProxy<MT>& MatrixAccessProxy<MT>::operator=( const MatrixAccessProxy& map ) const
 {
    get() = map.get();
-   return *this;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Initializer list assignment to the accessed sparse matrix element.
-//
-// \param list The list to be assigned to the sparse matrix element.
-// \return Reference to the assigned access proxy.
-*/
-template< typename VT >  // Type of the sparse matrix
-template< typename T >   // Type of the right-hand side elements
-inline const MatrixAccessProxy<VT>&
-   MatrixAccessProxy<VT>::operator=( initializer_list<T> list ) const
-{
-   get() = list;
-   return *this;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Initializer list assignment to the accessed sparse matrix element.
-//
-// \param list The list to be assigned to the sparse matrix element.
-// \return Reference to the assigned access proxy.
-*/
-template< typename VT >  // Type of the sparse matrix
-template< typename T >   // Type of the right-hand side elements
-inline const MatrixAccessProxy<VT>&
-   MatrixAccessProxy<VT>::operator=( initializer_list< initializer_list<T> > list ) const
-{
-   get() = list;
    return *this;
 }
 //*************************************************************************************************
@@ -404,9 +363,9 @@ inline const MatrixAccessProxy<MT>& MatrixAccessProxy<MT>::operator/=( const T& 
 // \return Direct/raw reference to the accessed sparse matrix element.
 */
 template< typename MT >  // Type of the sparse matrix
-inline typename MatrixAccessProxy<MT>::RawReference MatrixAccessProxy<MT>::get() const noexcept
+inline typename MatrixAccessProxy<MT>::RawReference MatrixAccessProxy<MT>::get() const
 {
-   const Iterator_<MT> element( sm_.find( i_, j_ ) );
+   const typename MT::Iterator element( sm_.find( i_, j_ ) );
    BLAZE_INTERNAL_ASSERT( element != sm_.end( rmm ? i_ : j_ ), "Missing matrix element detected" );
    return element->value();
 }
@@ -419,7 +378,7 @@ inline typename MatrixAccessProxy<MT>::RawReference MatrixAccessProxy<MT>::get()
 // \return \a true in case access to the sparse matrix element is restricted, \a false if not.
 */
 template< typename MT >  // Type of the sparse matrix
-inline bool MatrixAccessProxy<MT>::isRestricted() const noexcept
+inline bool MatrixAccessProxy<MT>::isRestricted() const
 {
    return false;
 }
@@ -440,7 +399,7 @@ inline bool MatrixAccessProxy<MT>::isRestricted() const noexcept
 // \return Direct/raw reference to the accessed sparse matrix element.
 */
 template< typename MT >  // Type of the sparse matrix
-inline MatrixAccessProxy<MT>::operator RawReference() const noexcept
+inline MatrixAccessProxy<MT>::operator RawReference() const
 {
    return get();
 }
@@ -458,6 +417,10 @@ inline MatrixAccessProxy<MT>::operator RawReference() const noexcept
 //*************************************************************************************************
 /*!\name MatrixAccessProxy global functions */
 //@{
+template< typename MT >
+inline typename ConjExprTrait< typename MatrixAccessProxy<MT>::RepresentedType >::Type
+   conj( const MatrixAccessProxy<MT>& proxy );
+
 template< typename MT >
 inline void reset( const MatrixAccessProxy<MT>& proxy );
 
@@ -480,14 +443,36 @@ template< typename MT >
 inline bool isnan( const MatrixAccessProxy<MT>& proxy );
 
 template< typename MT >
-inline void swap( const MatrixAccessProxy<MT>& a, const MatrixAccessProxy<MT>& b ) noexcept;
+inline void swap( const MatrixAccessProxy<MT>& a, const MatrixAccessProxy<MT>& b ) /* throw() */;
 
 template< typename MT, typename T >
-inline void swap( const MatrixAccessProxy<MT>& a, T& b ) noexcept;
+inline void swap( const MatrixAccessProxy<MT>& a, T& b ) /* throw() */;
 
 template< typename T, typename MT >
-inline void swap( T& a, const MatrixAccessProxy<MT>& v ) noexcept;
+inline void swap( T& a, const MatrixAccessProxy<MT>& v ) /* throw() */;
 //@}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Computing the complex conjugate of the represented element.
+// \ingroup sparse_matrix
+//
+// \param proxy The given proxy instance.
+// \return The complex conjugate of the represented element.
+//
+// This function computes the complex conjugate of the element represented by the access proxy.
+// In case the proxy represents a vector- or matrix-like data structure the function returns an
+// expression representing the complex conjugate of the vector/matrix.
+*/
+template< typename MT >
+inline typename ConjExprTrait< typename MatrixAccessProxy<MT>::RepresentedType >::Type
+   conj( const MatrixAccessProxy<MT>& proxy )
+{
+   using blaze::conj;
+
+   return conj( (~proxy).get() );
+}
 //*************************************************************************************************
 
 
@@ -643,9 +628,10 @@ inline bool isnan( const MatrixAccessProxy<MT>& proxy )
 // \param a The first access proxy to be swapped.
 // \param b The second access proxy to be swapped.
 // \return void
+// \exception no-throw guarantee.
 */
 template< typename MT >
-inline void swap( const MatrixAccessProxy<MT>& a, const MatrixAccessProxy<MT>& b ) noexcept
+inline void swap( const MatrixAccessProxy<MT>& a, const MatrixAccessProxy<MT>& b ) /* throw() */
 {
    using std::swap;
 
@@ -661,9 +647,10 @@ inline void swap( const MatrixAccessProxy<MT>& a, const MatrixAccessProxy<MT>& b
 // \param a The access proxy to be swapped.
 // \param b The other element to be swapped.
 // \return void
+// \exception no-throw guarantee.
 */
 template< typename MT, typename T >
-inline void swap( const MatrixAccessProxy<MT>& a, T& b ) noexcept
+inline void swap( const MatrixAccessProxy<MT>& a, T& b ) /* throw() */
 {
    using std::swap;
 
@@ -679,9 +666,10 @@ inline void swap( const MatrixAccessProxy<MT>& a, T& b ) noexcept
 // \param a The other element to be swapped.
 // \param b The access proxy to be swapped.
 // \return void
+// \exception no-throw guarantee.
 */
 template< typename T, typename MT >
-inline void swap( T& a, const MatrixAccessProxy<MT>& b ) noexcept
+inline void swap( T& a, const MatrixAccessProxy<MT>& b ) /* throw() */
 {
    using std::swap;
 

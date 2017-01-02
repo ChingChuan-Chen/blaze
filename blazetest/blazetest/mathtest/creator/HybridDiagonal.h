@@ -43,7 +43,6 @@
 #include <blaze/math/DiagonalMatrix.h>
 #include <blaze/math/HybridMatrix.h>
 #include <blazetest/mathtest/creator/Default.h>
-#include <blazetest/mathtest/creator/Policies.h>
 #include <blazetest/system/Types.h>
 
 
@@ -90,11 +89,7 @@ class Creator< blaze::DiagonalMatrix< blaze::HybridMatrix<T,M,N,SO> > >
    /*!\name Operators */
    //@{
    // No explicitly declared copy assignment operator.
-
    const blaze::DiagonalMatrix< blaze::HybridMatrix<T,M,N,SO> > operator()() const;
-
-   template< typename CP >
-   const blaze::DiagonalMatrix< blaze::HybridMatrix<T,M,N,SO> > operator()( const CP& policy ) const;
    //@}
    //**********************************************************************************************
 
@@ -171,29 +166,10 @@ template< typename T  // Element type of the hybrid matrix
 inline const blaze::DiagonalMatrix< blaze::HybridMatrix<T,M,N,SO> >
    Creator< blaze::DiagonalMatrix< blaze::HybridMatrix<T,M,N,SO> > >::operator()() const
 {
-   return (*this)( Default() );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Returns a randomly created diagonal hybrid matrix.
-//
-// \param policy The creation policy for the elements of fundamental data type.
-// \return The randomly generated diagonal hybrid matrix.
-*/
-template< typename T     // Element type of the hybrid matrix
-        , size_t M       // Number of rows of the hybrid matrix
-        , size_t N       // Number of columns of the hybrid matrix
-        , bool SO >      // Storage order of the hybrid matrix
-template< typename CP >  // Creation policy
-inline const blaze::DiagonalMatrix< blaze::HybridMatrix<T,M,N,SO> >
-   Creator< blaze::DiagonalMatrix< blaze::HybridMatrix<T,M,N,SO> > >::operator()( const CP& policy ) const
-{
    blaze::DiagonalMatrix< blaze::HybridMatrix<T,M,N,SO> > matrix( n_ );
 
    for( size_t i=0UL; i<n_; ++i )
-      matrix(i,i) = ec_( policy );
+      matrix(i,i) = ec_();
 
    return matrix;
 }

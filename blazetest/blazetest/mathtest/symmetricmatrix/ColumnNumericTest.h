@@ -45,10 +45,11 @@
 #include <string>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/CompressedVector.h>
-#include <blaze/math/Column.h>
+#include <blaze/math/DenseColumn.h>
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/DynamicVector.h>
 #include <blaze/math/SymmetricMatrix.h>
+#include <blaze/math/SparseColumn.h>
 #include <blaze/math/traits/ColumnExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blazetest/system/Types.h>
@@ -159,7 +160,7 @@ class ColumnNumericTest
 template< typename ST >  // Type of the symmetric matrix
 void ColumnNumericTest::testAssignment()
 {
-   typedef blaze::ColumnExprTrait_<ST>  CT;
+   typedef typename blaze::ColumnExprTrait<ST>::Type  CT;
 
 
    //=====================================================================================
@@ -274,7 +275,7 @@ void ColumnNumericTest::testAssignment()
 template< typename ST >  // Type of the symmetric matrix
 void ColumnNumericTest::testAddAssign()
 {
-   typedef blaze::ColumnExprTrait_<ST>  CT;
+   typedef typename blaze::ColumnExprTrait<ST>::Type  CT;
 
 
    //=====================================================================================
@@ -389,7 +390,7 @@ void ColumnNumericTest::testAddAssign()
 template< typename ST >  // Type of the symmetric matrix
 void ColumnNumericTest::testSubAssign()
 {
-   typedef blaze::ColumnExprTrait_<ST>  CT;
+   typedef typename blaze::ColumnExprTrait<ST>::Type  CT;
 
 
    //=====================================================================================
@@ -504,7 +505,7 @@ void ColumnNumericTest::testSubAssign()
 template< typename ST >  // Type of the symmetric matrix
 void ColumnNumericTest::testMultAssign()
 {
-   typedef blaze::ColumnExprTrait_<ST>  CT;
+   typedef typename blaze::ColumnExprTrait<ST>::Type  CT;
 
 
    //=====================================================================================
@@ -759,7 +760,7 @@ void runTest()
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Macro for the execution of the SymmetricMatrix column numeric test.
+/*!\brief Macro for the execution of the numeric SymmetricMatrix column test.
 */
 #define RUN_SYMMETRICMATRIX_COLUMNNUMERIC_TEST \
    blazetest::mathtest::symmetricmatrix::runTest()

@@ -50,13 +50,14 @@
 #include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsBuiltin.h>
 #include <blaze/util/typetraits/IsComplex.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsNumeric.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -79,14 +80,16 @@ struct TDVecScalarMultExprTraitHelper
 {
  private:
    //**********************************************************************************************
-   using ScalarType = If_< And< IsComplex< UnderlyingNumeric_<VT> >, IsBuiltin<ST> >
-                         , MultTrait_< UnderlyingBuiltin_<VT> ,ST >
-                         , MultTrait_< UnderlyingNumeric_<VT>, ST > >;
+   typedef typename UnderlyingNumeric<VT>::Type  NET;
+   typedef typename If< And< IsComplex<NET>, IsBuiltin<ST> >
+                      , typename MultTrait<typename UnderlyingBuiltin<VT>::Type,ST>::Type
+                      , typename MultTrait<NET,ST>::Type
+                      >::Type  ScalarType;
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
-   using Type = DVecScalarMultExpr<VT,ScalarType,true>;
+   typedef DVecScalarMultExpr<VT,ScalarType,true>  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -104,7 +107,7 @@ struct TDVecScalarMultExprTraitHelper<VT,ST,false>
 {
  public:
    //**********************************************************************************************
-   using Type = INVALID_TYPE;
+   typedef INVALID_TYPE  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -128,40 +131,29 @@ struct TDVecScalarMultExprTrait
  private:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   enum : bool { condition = And< IsDenseVector<VT>, IsRowVector<VT>, IsNumeric<ST> >::value };
+   enum { condition = IsDenseVector<VT>::value && IsRowVector<VT>::value &&
+                      IsNumeric<ST>::value };
+   /*! \endcond */
+   //**********************************************************************************************
+
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   typedef TDVecScalarMultExprTraitHelper<VT,ST,condition>  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<VT>::Type >::Type  Type1;
+   typedef typename RemoveReference< typename RemoveCV<ST>::Type >::Type  Type2;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<VT>, IsVolatile<VT>, IsReference<VT>
-                                , IsConst<ST>, IsVolatile<ST>, IsReference<ST> >
-                            , TDVecScalarMultExprTrait< Decay_<VT>, Decay_<ST> >
-                            , TDVecScalarMultExprTraitHelper<VT,ST,condition> >::Type;
+   typedef typename If< Or< IsConst<VT>, IsVolatile<VT>, IsReference<VT>
+                          , IsConst<ST>, IsVolatile<ST>, IsReference<ST> >
+                      , TDVecScalarMultExprTrait<Type1,Type2>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the TDVecScalarMultExprTrait class template.
-// \ingroup math_traits
-//
-// The TDVecScalarMultExprTrait_ alias declaration provides a convenient shortcut to access
-// the nested \a Type of the TDVecScalarMultExprTrait class template. For instance, given
-// the transpose dense vector type \a VT and the scalar type \a ST the following two type
-// definitions are identical:
-
-   \code
-   using Type1 = typename TDVecScalarMultExprTrait<VT,ST>::Type;
-   using Type2 = TDVecScalarMultExprTrait_<VT,ST>;
-   \endcode
-*/
-template< typename VT    // Type of the left-hand side dense vector
-        , typename ST >  // Type of the right-hand side scalar
-using TDVecScalarMultExprTrait_ = typename TDVecScalarMultExprTrait<VT,ST>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

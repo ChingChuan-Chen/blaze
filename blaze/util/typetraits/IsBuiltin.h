@@ -40,8 +40,10 @@
 // Includes
 //*************************************************************************************************
 
-#include <type_traits>
-#include <blaze/util/IntegralConstant.h>
+#include <boost/type_traits/is_fundamental.hpp>
+#include <blaze/util/FalseType.h>
+#include <blaze/util/SelectType.h>
+#include <blaze/util/TrueType.h>
 
 
 namespace blaze {
@@ -53,27 +55,52 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Auxiliary helper struct for the IsBuiltin type trait.
+// \ingroup type_traits
+*/
+template< typename T >
+struct IsBuiltinHelper
+{
+   //**********************************************************************************************
+   enum { value = boost::is_fundamental<T>::value };
+   typedef typename SelectType<value,TrueType,FalseType>::Type  Type;
+   //**********************************************************************************************
+};
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Compile time check for built-in data types.
 // \ingroup type_traits
 //
 // This type trait tests whether or not the given template parameter is a built-in/fundamental
-// data type. In case the type is a built-in type, the \a value member constant is set to \a true,
+// data type. In case the type is a built-in type, the \a value member enumeration is set to 1,
 // the nested type definition \a Type is \a TrueType, and the class derives from \a TrueType.
-// Otherwise \a value is set to \a false, \a Type is \a FalseType, and the class derives from
+// Otherwise \a value is set to 0, \a Type is \a FalseType, and the class derives from
 // \a FalseType.
 
    \code
-   blaze::IsBuiltin<void>::value         // Evaluates to 'true'
+   blaze::IsBuiltin<void>::value         // Evaluates to 1
    blaze::IsBuiltin<float const>::Type   // Results in TrueType
    blaze::IsBuiltin<short volatile>      // Is derived from TrueType
-   blaze::IsBuiltin<std::string>::value  // Evaluates to 'false'
+   blaze::IsBuiltin<std::string>::value  // Evaluates to 0
    blaze::IsBuiltin<int*>::Type          // Results in FalseType
    blaze::IsBuiltin<int&>                // Is derived from FalseType
    \endcode
 */
 template< typename T >
-struct IsBuiltin : public BoolConstant< std::is_fundamental<T>::value >
-{};
+struct IsBuiltin : public IsBuiltinHelper<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   enum { value = IsBuiltinHelper<T>::value };
+   typedef typename IsBuiltinHelper<T>::Type  Type;
+   /*! \endcond */
+   //**********************************************************************************************
+};
 //*************************************************************************************************
 
 } // namespace blaze

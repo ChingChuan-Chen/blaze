@@ -56,11 +56,11 @@ namespace blaze {
 /*!\brief Compile time check for low-level access to constant data.
 // \ingroup math_type_traits
 //
-// This type trait tests whether the given data type provides a low-level access to constant
-// data via a const 'data' member function. In case the according member function is provided,
-// the \a value member constant is set to \a true, the nested type definition \a Type is
-// \a TrueType, and the class derives from \a TrueType. Otherwise \a value is set to \a false,
-// \a Type is \a FalseType, and the class derives from \a FalseType. Examples:
+// This type trait tests whether the given data type provides a low-level access to constant data
+// via a const 'data' member function. In case the according member function is provided, the
+// \a value member enumeration is set to 1, the nested type definition \a Type is \a TrueType, and
+// the class derives from \a TrueType. Otherwise \a value is set to 0, \a Type is \a FalseType,
+// and the class derives from \a FalseType. Examples:
 
    \code
    blaze::HasConstDataAccess< StaticVector<float,3U> >::value      // Evaluates to 1
@@ -73,7 +73,15 @@ namespace blaze {
 */
 template< typename T >
 struct HasConstDataAccess : public FalseType
-{};
+{
+ public:
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   enum { value = 0 };
+   typedef FalseType  Type;
+   /*! \endcond */
+   //**********************************************************************************************
+};
 //*************************************************************************************************
 
 
@@ -83,8 +91,14 @@ struct HasConstDataAccess : public FalseType
 // \ingroup math_type_traits
 */
 template< typename T >
-struct HasConstDataAccess< const T > : public HasConstDataAccess<T>
-{};
+struct HasConstDataAccess< const T > : public HasConstDataAccess<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = HasConstDataAccess<T>::value };
+   typedef typename HasConstDataAccess<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -95,8 +109,14 @@ struct HasConstDataAccess< const T > : public HasConstDataAccess<T>
 // \ingroup math_type_traits
 */
 template< typename T >
-struct HasConstDataAccess< volatile T > : public HasConstDataAccess<T>
-{};
+struct HasConstDataAccess< volatile T > : public HasConstDataAccess<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = HasConstDataAccess<T>::value };
+   typedef typename HasConstDataAccess<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -107,8 +127,14 @@ struct HasConstDataAccess< volatile T > : public HasConstDataAccess<T>
 // \ingroup math_type_traits
 */
 template< typename T >
-struct HasConstDataAccess< const volatile T > : public HasConstDataAccess<T>
-{};
+struct HasConstDataAccess< const volatile T > : public HasConstDataAccess<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = HasConstDataAccess<T>::value };
+   typedef typename HasConstDataAccess<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 

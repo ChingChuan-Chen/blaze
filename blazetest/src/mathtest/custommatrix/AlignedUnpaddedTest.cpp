@@ -39,7 +39,6 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <memory>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/DiagonalMatrix.h>
 #include <blaze/math/LowerMatrix.h>
@@ -48,6 +47,7 @@
 #include <blaze/util/policies/ArrayDelete.h>
 #include <blaze/util/Random.h>
 #include <blaze/util/typetraits/AlignmentOf.h>
+#include <blaze/util/UniqueArray.h>
 #include <blazetest/mathtest/custommatrix/AlignedUnpaddedTest.h>
 #include <blazetest/mathtest/RandomMaximum.h>
 #include <blazetest/mathtest/RandomMinimum.h>
@@ -135,7 +135,7 @@ void AlignedUnpaddedTest::testConstructors()
 
       // Constructor a 2x16 custom matrix
       {
-         std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 32UL ) );
+         blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 32UL ) );
          MT mat( array.get(), 2UL, 16UL );
 
          checkRows    ( mat,  2UL );
@@ -145,11 +145,11 @@ void AlignedUnpaddedTest::testConstructors()
 
       // Trying to construct a custom matrix with invalid array of elements
       try {
-         MT mat( nullptr, 0UL, 0UL );
+         MT mat( NULL, 0UL, 0UL );
 
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Constructing a custom matrix with a nullptr succeeded\n";
+             << " Error: Constructing a custom matrix with a NULL pointer succeeded\n";
          throw std::runtime_error( oss.str() );
       }
       catch( std::invalid_argument& ) {}
@@ -158,7 +158,7 @@ void AlignedUnpaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 33UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 33UL ) );
             MT mat( array.get()+1UL, 2UL, 16UL );
 
             std::ostringstream oss;
@@ -175,7 +175,7 @@ void AlignedUnpaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 30UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 30UL ) );
             MT mat( array.get(), 2UL, 15UL );
 
             std::ostringstream oss;
@@ -199,7 +199,7 @@ void AlignedUnpaddedTest::testConstructors()
 
       // Constructor a 2x3 custom matrix
       {
-         std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 32UL ) );
+         blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 32UL ) );
          MT mat( array.get(), 2UL, 3UL, 16UL );
 
          checkRows    ( mat,  2UL );
@@ -209,11 +209,11 @@ void AlignedUnpaddedTest::testConstructors()
 
       // Trying to construct a custom matrix with invalid array of elements
       try {
-         MT mat( nullptr, 0UL, 0UL, 0UL );
+         MT mat( NULL, 0UL, 0UL, 0UL );
 
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Constructing a custom matrix with a nullptr succeeded\n";
+             << " Error: Constructing a custom matrix with a NULL pointer succeeded\n";
          throw std::runtime_error( oss.str() );
       }
       catch( std::invalid_argument& ) {}
@@ -222,7 +222,7 @@ void AlignedUnpaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 33UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 33UL ) );
             MT mat( array.get()+1UL, 2UL, 2UL, 16UL );
 
             std::ostringstream oss;
@@ -239,7 +239,7 @@ void AlignedUnpaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 30UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 30UL ) );
             MT mat( array.get(), 2UL, 2UL, 15UL );
 
             std::ostringstream oss;
@@ -272,11 +272,11 @@ void AlignedUnpaddedTest::testConstructors()
 
       // Trying to construct a custom matrix with invalid array of elements
       try {
-         MT mat( nullptr, 0UL, 0UL, blaze::Deallocate() );
+         MT mat( NULL, 0UL, 0UL, blaze::Deallocate() );
 
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Constructing a custom matrix with a nullptr succeeded\n";
+             << " Error: Constructing a custom matrix with a NULL pointer succeeded\n";
          throw std::runtime_error( oss.str() );
       }
       catch( std::invalid_argument& ) {}
@@ -285,7 +285,7 @@ void AlignedUnpaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 33UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 33UL ) );
             MT mat( array.get()+1UL, 2UL, 16UL, blaze::Deallocate() );
 
             std::ostringstream oss;
@@ -302,7 +302,7 @@ void AlignedUnpaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 30UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 30UL ) );
             MT mat( array.get(), 2UL, 15UL, blaze::Deallocate() );
 
             std::ostringstream oss;
@@ -335,11 +335,11 @@ void AlignedUnpaddedTest::testConstructors()
 
       // Trying to construct a custom matrix with invalid array of elements
       try {
-         MT mat( nullptr, 0UL, 0UL, 0UL, blaze::Deallocate() );
+         MT mat( NULL, 0UL, 0UL, 0UL, blaze::Deallocate() );
 
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Constructing a custom matrix with a nullptr succeeded\n";
+             << " Error: Constructing a custom matrix with a NULL pointer succeeded\n";
          throw std::runtime_error( oss.str() );
       }
       catch( std::invalid_argument& ) {}
@@ -348,7 +348,7 @@ void AlignedUnpaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 33UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 33UL ) );
             MT mat( array.get()+1UL, 2UL, 2UL, 16UL, blaze::Deallocate() );
 
             std::ostringstream oss;
@@ -365,7 +365,7 @@ void AlignedUnpaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 30UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 30UL ) );
             MT mat( array.get(), 2UL, 2UL, 15UL, blaze::Deallocate() );
 
             std::ostringstream oss;
@@ -398,7 +398,7 @@ void AlignedUnpaddedTest::testConstructors()
    {
       test_ = "Row-major CustomMatrix copy constructor (0x3)";
 
-      std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 16UL ) );
+      blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 16UL ) );
       MT mat1( array.get(), 0UL, 3UL, 16UL );
       MT mat2( mat1 );
 
@@ -410,7 +410,7 @@ void AlignedUnpaddedTest::testConstructors()
    {
       test_ = "Row-major CustomMatrix copy constructor (2x0)";
 
-      std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 10UL ) );
+      blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 10UL ) );
       MT mat1( array.get(), 2UL, 0UL, 0UL );
       MT mat2( mat1 );
 
@@ -422,7 +422,7 @@ void AlignedUnpaddedTest::testConstructors()
    {
       test_ = "Row-major CustomMatrix copy constructor (2x3)";
 
-      std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 32UL ) );
+      blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 32UL ) );
       MT mat1( array.get(), 2UL, 3UL, 16UL );
       mat1(0,0) = 1;
       mat1(0,1) = 2;
@@ -432,79 +432,6 @@ void AlignedUnpaddedTest::testConstructors()
       mat1(1,2) = 6;
 
       MT mat2( mat1 );
-
-      checkRows    ( mat2,  2UL );
-      checkColumns ( mat2,  3UL );
-      checkCapacity( mat2, 32UL );
-      checkNonZeros( mat2,  6UL );
-      checkNonZeros( mat2,  0UL, 3UL );
-      checkNonZeros( mat2,  1UL, 3UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 2 || mat2(0,2) != 3 ||
-          mat2(1,0) != 4 || mat2(1,1) != 5 || mat2(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move constructor
-   //=====================================================================================
-
-   {
-      test_ = "Row-major CustomMatrix move constructor (0x0)";
-
-      MT mat1;
-      MT mat2( std::move( mat1 ) );
-
-      checkRows    ( mat2, 0UL );
-      checkColumns ( mat2, 0UL );
-      checkNonZeros( mat2, 0UL );
-   }
-
-   {
-      test_ = "Row-major CustomMatrix move constructor (0x3)";
-
-      std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 16UL ) );
-      MT mat1( array.get(), 0UL, 3UL, 16UL );
-      MT mat2( std::move( mat1 ) );
-
-      checkRows    ( mat2, 0UL );
-      checkColumns ( mat2, 3UL );
-      checkNonZeros( mat2, 0UL );
-   }
-
-   {
-      test_ = "Row-major CustomMatrix move constructor (2x0)";
-
-      std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 10UL ) );
-      MT mat1( array.get(), 2UL, 0UL, 0UL );
-      MT mat2( std::move( mat1 ) );
-
-      checkRows    ( mat2, 2UL );
-      checkColumns ( mat2, 0UL );
-      checkNonZeros( mat2, 0UL );
-   }
-
-   {
-      test_ = "Row-major CustomMatrix move constructor (2x3)";
-
-      std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 32UL ) );
-      MT mat1( array.get(), 2UL, 3UL, 16UL );
-      mat1(0,0) = 1;
-      mat1(0,1) = 2;
-      mat1(0,2) = 3;
-      mat1(1,0) = 4;
-      mat1(1,1) = 5;
-      mat1(1,2) = 6;
-
-      MT mat2( std::move( mat1 ) );
 
       checkRows    ( mat2,  2UL );
       checkColumns ( mat2,  3UL );
@@ -550,7 +477,7 @@ void AlignedUnpaddedTest::testConstructors()
 
       // Constructor a 2x3 custom matrix
       {
-         std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 48UL ) );
+         blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 48UL ) );
          OMT mat( array.get(), 16UL, 3UL );
 
          checkRows    ( mat, 16UL );
@@ -560,11 +487,11 @@ void AlignedUnpaddedTest::testConstructors()
 
       // Trying to construct a custom matrix with invalid array of elements
       try {
-         OMT mat( nullptr, 0UL, 0UL );
+         OMT mat( NULL, 0UL, 0UL );
 
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Constructing a custom matrix with a nullptr succeeded\n";
+             << " Error: Constructing a custom matrix with a NULL pointer succeeded\n";
          throw std::runtime_error( oss.str() );
       }
       catch( std::invalid_argument& ) {}
@@ -573,7 +500,7 @@ void AlignedUnpaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 33UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 33UL ) );
             OMT mat( array.get()+1UL, 16UL, 2UL );
 
             std::ostringstream oss;
@@ -590,7 +517,7 @@ void AlignedUnpaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 30UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 30UL ) );
             OMT mat( array.get(), 15UL, 2UL );
 
             std::ostringstream oss;
@@ -614,7 +541,7 @@ void AlignedUnpaddedTest::testConstructors()
 
       // Constructor a 2x3 custom matrix
       {
-         std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 48UL ) );
+         blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 48UL ) );
          OMT mat( array.get(), 2UL, 3UL, 16UL );
 
          checkRows    ( mat,  2UL );
@@ -624,11 +551,11 @@ void AlignedUnpaddedTest::testConstructors()
 
       // Trying to construct a custom matrix with invalid array of elements
       try {
-         OMT mat( nullptr, 0UL, 0UL, 0UL );
+         OMT mat( NULL, 0UL, 0UL, 0UL );
 
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Constructing a custom matrix with a nullptr succeeded\n";
+             << " Error: Constructing a custom matrix with a NULL pointer succeeded\n";
          throw std::runtime_error( oss.str() );
       }
       catch( std::invalid_argument& ) {}
@@ -637,7 +564,7 @@ void AlignedUnpaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 33UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 33UL ) );
             OMT mat( array.get()+1UL, 2UL, 2UL, 16UL );
 
             std::ostringstream oss;
@@ -654,7 +581,7 @@ void AlignedUnpaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 30UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 30UL ) );
             OMT mat( array.get(), 2UL, 2UL, 15UL );
 
             std::ostringstream oss;
@@ -687,11 +614,11 @@ void AlignedUnpaddedTest::testConstructors()
 
       // Trying to construct a custom matrix with invalid array of elements
       try {
-         OMT mat( nullptr, 0UL, 0UL, blaze::Deallocate() );
+         OMT mat( NULL, 0UL, 0UL, blaze::Deallocate() );
 
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Constructing a custom matrix with a nullptr succeeded\n";
+             << " Error: Constructing a custom matrix with a NULL pointer succeeded\n";
          throw std::runtime_error( oss.str() );
       }
       catch( std::invalid_argument& ) {}
@@ -700,7 +627,7 @@ void AlignedUnpaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 33UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 33UL ) );
             OMT mat( array.get()+1UL, 16UL, 2UL, blaze::Deallocate() );
 
             std::ostringstream oss;
@@ -717,7 +644,7 @@ void AlignedUnpaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 30UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 30UL ) );
             OMT mat( array.get(), 15UL, 2UL, blaze::Deallocate() );
 
             std::ostringstream oss;
@@ -750,11 +677,11 @@ void AlignedUnpaddedTest::testConstructors()
 
       // Trying to construct a custom matrix with invalid array of elements
       try {
-         OMT mat( nullptr, 0UL, 0UL, 0UL, blaze::Deallocate() );
+         OMT mat( NULL, 0UL, 0UL, 0UL, blaze::Deallocate() );
 
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Constructing a custom matrix with a nullptr succeeded\n";
+             << " Error: Constructing a custom matrix with a NULL pointer succeeded\n";
          throw std::runtime_error( oss.str() );
       }
       catch( std::invalid_argument& ) {}
@@ -763,7 +690,7 @@ void AlignedUnpaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 33UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 33UL ) );
             OMT mat( array.get()+1UL, 2UL, 2UL, 16UL, blaze::Deallocate() );
 
             std::ostringstream oss;
@@ -780,7 +707,7 @@ void AlignedUnpaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 30UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 30UL ) );
             OMT mat( array.get(), 2UL, 2UL, 15UL, blaze::Deallocate() );
 
             std::ostringstream oss;
@@ -813,7 +740,7 @@ void AlignedUnpaddedTest::testConstructors()
    {
       test_ = "Column-major CustomMatrix copy constructor (0x3)";
 
-      std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 10UL ) );
+      blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 10UL ) );
       OMT mat1( array.get(), 0UL, 3UL, 0UL );
       OMT mat2( mat1 );
 
@@ -825,7 +752,7 @@ void AlignedUnpaddedTest::testConstructors()
    {
       test_ = "Column-major CustomMatrix copy constructor (2x0)";
 
-      std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 16UL ) );
+      blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 16UL ) );
       OMT mat1( array.get(), 2UL, 0UL, 16UL );
       OMT mat2( mat1 );
 
@@ -837,7 +764,7 @@ void AlignedUnpaddedTest::testConstructors()
    {
       test_ = "Column-major CustomMatrix copy constructor (2x3)";
 
-      std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 48UL ) );
+      blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 48UL ) );
       OMT mat1( array.get(), 2UL, 3UL, 16UL );
       mat1(0,0) = 1;
       mat1(0,1) = 2;
@@ -847,80 +774,6 @@ void AlignedUnpaddedTest::testConstructors()
       mat1(1,2) = 6;
 
       OMT mat2( mat1 );
-
-      checkRows    ( mat2,  2UL );
-      checkColumns ( mat2,  3UL );
-      checkCapacity( mat2, 48UL );
-      checkNonZeros( mat2,  6UL );
-      checkNonZeros( mat2,  0UL, 2UL );
-      checkNonZeros( mat2,  1UL, 2UL );
-      checkNonZeros( mat2,  2UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 2 || mat2(0,2) != 3 ||
-          mat2(1,0) != 4 || mat2(1,1) != 5 || mat2(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major move constructor
-   //=====================================================================================
-
-   {
-      test_ = "Column-major CustomMatrix move constructor (0x0)";
-
-      OMT mat1;
-      OMT mat2( std::move( mat1 ) );
-
-      checkRows    ( mat2, 0UL );
-      checkColumns ( mat2, 0UL );
-      checkNonZeros( mat2, 0UL );
-   }
-
-   {
-      test_ = "Column-major CustomMatrix move constructor (0x3)";
-
-      std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 10UL ) );
-      OMT mat1( array.get(), 0UL, 3UL, 0UL );
-      OMT mat2( std::move( mat1 ) );
-
-      checkRows    ( mat2, 0UL );
-      checkColumns ( mat2, 3UL );
-      checkNonZeros( mat2, 0UL );
-   }
-
-   {
-      test_ = "Column-major CustomMatrix move constructor (2x0)";
-
-      std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 16UL ) );
-      OMT mat1( array.get(), 2UL, 0UL, 16UL );
-      OMT mat2( std::move( mat1 ) );
-
-      checkRows    ( mat2, 2UL );
-      checkColumns ( mat2, 0UL );
-      checkNonZeros( mat2, 0UL );
-   }
-
-   {
-      test_ = "Column-major CustomMatrix move constructor (2x3)";
-
-      std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 48UL ) );
-      OMT mat1( array.get(), 2UL, 3UL, 16UL );
-      mat1(0,0) = 1;
-      mat1(0,1) = 2;
-      mat1(0,2) = 3;
-      mat1(1,0) = 4;
-      mat1(1,1) = 5;
-      mat1(1,2) = 6;
-
-      OMT mat2( std::move( mat1 ) );
 
       checkRows    ( mat2,  2UL );
       checkColumns ( mat2,  3UL );
@@ -983,61 +836,6 @@ void AlignedUnpaddedTest::testAssignment()
              << " Details:\n"
              << "   Result:\n" << mat << "\n"
              << "   Expected result:\n( 2 2 2 2 )\n( 2 2 2 2 )\n( 2 2 2 2 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major list assignment
-   //=====================================================================================
-
-   {
-      test_ = "Row-major CustomMatrix initializer list assignment (complete list)";
-
-      MT mat( blaze::allocate<int>( 32UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat = { { 1, 2, 3 }, { 4, 5, 6 } };
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 3UL );
-      checkCapacity( mat, 6UL );
-      checkNonZeros( mat, 6UL );
-      checkNonZeros( mat, 0UL, 3UL );
-      checkNonZeros( mat, 1UL, 3UL );
-
-      if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 3 ||
-          mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "Row-major StaticMatrix initializer list assignment (incomplete list)";
-
-      MT mat( blaze::allocate<int>( 32UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat = { { 1 }, { 4, 5, 6 } };
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 3UL );
-      checkCapacity( mat, 6UL );
-      checkNonZeros( mat, 4UL );
-      checkNonZeros( mat, 0UL, 1UL );
-      checkNonZeros( mat, 1UL, 3UL );
-
-      if( mat(0,0) != 1 || mat(0,1) != 0 || mat(0,2) != 0 ||
-          mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 4 5 6 )\n";
          throw std::runtime_error( oss.str() );
       }
    }
@@ -1113,84 +911,8 @@ void AlignedUnpaddedTest::testAssignment()
 
 
    //=====================================================================================
-   // Row-major move assignment
-   //=====================================================================================
-
-   {
-      test_ = "Row-major CustomMatrix move assignment";
-
-      MT mat1( blaze::allocate<int>( 32UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat1(0,0) = 1;
-      mat1(0,1) = 2;
-      mat1(0,2) = 3;
-      mat1(1,0) = 4;
-      mat1(1,1) = 5;
-      mat1(1,2) = 6;
-
-      MT mat2( blaze::allocate<int>( 32UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = std::move( mat1 );
-
-      checkRows    ( mat2,  2UL );
-      checkColumns ( mat2,  3UL );
-      checkCapacity( mat2, 32UL );
-      checkNonZeros( mat2,  6UL );
-      checkNonZeros( mat2,  0UL, 3UL );
-      checkNonZeros( mat2,  1UL, 3UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 2 || mat2(0,2) != 3 ||
-          mat2(1,0) != 4 || mat2(1,1) != 5 || mat2(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major dense matrix assignment
    //=====================================================================================
-
-   {
-      test_ = "Row-major/row-major CustomMatrix dense matrix assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::unpadded;
-      using blaze::rowMajor;
-
-      typedef blaze::CustomMatrix<short,aligned,unpadded,rowMajor>  AlignedUnpadded;
-      AlignedUnpadded mat1( blaze::allocate<short>( 32UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat1(0,0) = 1;
-      mat1(0,1) = 2;
-      mat1(0,2) = 3;
-      mat1(1,0) = 4;
-      mat1(1,1) = 5;
-      mat1(1,2) = 6;
-
-      MT mat2( blaze::allocate<int>( 32UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = mat1;
-
-      checkRows    ( mat2,  2UL );
-      checkColumns ( mat2,  3UL );
-      checkCapacity( mat2, 32UL );
-      checkNonZeros( mat2,  6UL );
-      checkNonZeros( mat2,  0UL, 3UL );
-      checkNonZeros( mat2,  1UL, 3UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 2 || mat2(0,2) != 3 ||
-          mat2(1,0) != 4 || mat2(1,1) != 5 || mat2(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
 
    {
       test_ = "Row-major/row-major CustomMatrix dense matrix assignment (aligned/padded)";
@@ -1273,7 +995,7 @@ void AlignedUnpaddedTest::testAssignment()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1(0,0) = 1;
       mat1(0,1) = 2;
@@ -1321,7 +1043,7 @@ void AlignedUnpaddedTest::testAssignment()
          const size_t spacing( blaze::nextMultiple<size_t>( columns, 16UL ) );
 
          typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-         std::unique_ptr<int[]> array( new int[rows*columns+1UL] );
+         blaze::UniqueArray<int> array( new int[rows*columns+1UL] );
          UnalignedUnpadded mat1( array.get()+1UL, rows, columns );
          randomize( mat1, min, max );
 
@@ -1337,44 +1059,6 @@ void AlignedUnpaddedTest::testAssignment()
                 << "   Expected result:\n" << mat1 << "\n";
             throw std::runtime_error( oss.str() );
          }
-      }
-   }
-
-   {
-      test_ = "Row-major/column-major CustomMatrix dense matrix assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::unpadded;
-      using blaze::columnMajor;
-
-      typedef blaze::CustomMatrix<short,aligned,unpadded,columnMajor>  AlignedUnpadded;
-      AlignedUnpadded mat1( blaze::allocate<short>( 48UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat1(0,0) = 1;
-      mat1(0,1) = 2;
-      mat1(0,2) = 3;
-      mat1(1,0) = 4;
-      mat1(1,1) = 5;
-      mat1(1,2) = 6;
-
-      MT mat2( blaze::allocate<int>( 32UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = mat1;
-
-      checkRows    ( mat2,  2UL );
-      checkColumns ( mat2,  3UL );
-      checkCapacity( mat2, 32UL );
-      checkNonZeros( mat2,  6UL );
-      checkNonZeros( mat2,  0UL, 3UL );
-      checkNonZeros( mat2,  1UL, 3UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 2 || mat2(0,2) != 3 ||
-          mat2(1,0) != 4 || mat2(1,1) != 5 || mat2(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
       }
    }
 
@@ -1460,7 +1144,7 @@ void AlignedUnpaddedTest::testAssignment()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1(0,0) = 1;
       mat1(0,1) = 2;
@@ -1508,7 +1192,7 @@ void AlignedUnpaddedTest::testAssignment()
          const size_t spacing( blaze::nextMultiple<size_t>( columns, 16UL ) );
 
          typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-         std::unique_ptr<int[]> array( new int[rows*columns+1UL] );
+         blaze::UniqueArray<int> array( new int[rows*columns+1UL] );
          UnalignedUnpadded mat1( array.get()+1UL, rows, columns );
          randomize( mat1, min, max );
 
@@ -1953,63 +1637,6 @@ void AlignedUnpaddedTest::testAssignment()
 
 
    //=====================================================================================
-   // Column-major list assignment
-   //=====================================================================================
-
-   {
-      test_ = "Column-major CustomMatrix initializer list assignment (complete list)";
-
-      OMT mat( blaze::allocate<int>( 48UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat = { { 1, 2, 3 }, { 4, 5, 6 } };
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 3UL );
-      checkCapacity( mat, 6UL );
-      checkNonZeros( mat, 6UL );
-      checkNonZeros( mat, 0UL, 2UL );
-      checkNonZeros( mat, 1UL, 2UL );
-      checkNonZeros( mat, 2UL, 2UL );
-
-      if( mat(0,0) != 1 || mat(0,1) != 2 || mat(0,2) != 3 ||
-          mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "Column-major CustomMatrix initializer list assignment (incomplete list)";
-
-      OMT mat( blaze::allocate<int>( 48UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat = { { 1 }, { 4, 5, 6 } };
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 3UL );
-      checkCapacity( mat, 6UL );
-      checkNonZeros( mat, 4UL );
-      checkNonZeros( mat, 0UL, 2UL );
-      checkNonZeros( mat, 1UL, 1UL );
-      checkNonZeros( mat, 2UL, 1UL );
-
-      if( mat(0,0) != 1 || mat(0,1) != 0 || mat(0,2) != 0 ||
-          mat(1,0) != 4 || mat(1,1) != 5 || mat(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major array assignment
    //=====================================================================================
 
@@ -2081,86 +1708,8 @@ void AlignedUnpaddedTest::testAssignment()
 
 
    //=====================================================================================
-   // Column-major move assignment
-   //=====================================================================================
-
-   {
-      test_ = "Column-major CustomMatrix move assignment";
-
-      OMT mat1( blaze::allocate<int>( 48UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat1(0,0) = 1;
-      mat1(0,1) = 2;
-      mat1(0,2) = 3;
-      mat1(1,0) = 4;
-      mat1(1,1) = 5;
-      mat1(1,2) = 6;
-
-      OMT mat2( blaze::allocate<int>( 48UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = std::move( mat1 );
-
-      checkRows    ( mat2,  2UL );
-      checkColumns ( mat2,  3UL );
-      checkCapacity( mat2, 48UL );
-      checkNonZeros( mat2,  6UL );
-      checkNonZeros( mat2,  0UL, 2UL );
-      checkNonZeros( mat2,  1UL, 2UL );
-      checkNonZeros( mat2,  2UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 2 || mat2(0,2) != 3 ||
-          mat2(1,0) != 4 || mat2(1,1) != 5 || mat2(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major dense matrix assignment
    //=====================================================================================
-
-   {
-      test_ = "Column-major/row-major CustomMatrix dense matrix assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::unpadded;
-      using blaze::rowMajor;
-
-      typedef blaze::CustomMatrix<short,aligned,unpadded,rowMajor>  AlignedUnpadded;
-      AlignedUnpadded mat1( blaze::allocate<short>( 32UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat1(0,0) = 1;
-      mat1(0,1) = 2;
-      mat1(0,2) = 3;
-      mat1(1,0) = 4;
-      mat1(1,1) = 5;
-      mat1(1,2) = 6;
-
-      OMT mat2( blaze::allocate<int>( 48UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = mat1;
-
-      checkRows    ( mat2,  2UL );
-      checkColumns ( mat2,  3UL );
-      checkCapacity( mat2, 48UL );
-      checkNonZeros( mat2,  6UL );
-      checkNonZeros( mat2,  0UL, 2UL );
-      checkNonZeros( mat2,  1UL, 2UL );
-      checkNonZeros( mat2,  2UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 2 || mat2(0,2) != 3 ||
-          mat2(1,0) != 4 || mat2(1,1) != 5 || mat2(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
 
    {
       test_ = "Column-major/row-major CustomMatrix dense matrix assignment (aligned/padded)";
@@ -2245,7 +1794,7 @@ void AlignedUnpaddedTest::testAssignment()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1(0,0) = 1;
       mat1(0,1) = 2;
@@ -2294,7 +1843,7 @@ void AlignedUnpaddedTest::testAssignment()
          const size_t spacing( blaze::nextMultiple<size_t>( rows, 16UL ) );
 
          typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-         std::unique_ptr<int[]> array( new int[rows*columns+1UL] );
+         blaze::UniqueArray<int> array( new int[rows*columns+1UL] );
          UnalignedUnpadded mat1( array.get()+1UL, rows, columns );
          randomize( mat1, min, max );
 
@@ -2310,45 +1859,6 @@ void AlignedUnpaddedTest::testAssignment()
                 << "   Expected result:\n" << mat1 << "\n";
             throw std::runtime_error( oss.str() );
          }
-      }
-   }
-
-   {
-      test_ = "Column-major/column-major CustomMatrix dense matrix assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::unpadded;
-      using blaze::columnMajor;
-
-      typedef blaze::CustomMatrix<short,aligned,unpadded,columnMajor>  AlignedUnpadded;
-      AlignedUnpadded mat1( blaze::allocate<short>( 48UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat1(0,0) = 1;
-      mat1(0,1) = 2;
-      mat1(0,2) = 3;
-      mat1(1,0) = 4;
-      mat1(1,1) = 5;
-      mat1(1,2) = 6;
-
-      OMT mat2( blaze::allocate<int>( 48UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = mat1;
-
-      checkRows    ( mat2,  2UL );
-      checkColumns ( mat2,  3UL );
-      checkCapacity( mat2, 48UL );
-      checkNonZeros( mat2,  6UL );
-      checkNonZeros( mat2,  0UL, 2UL );
-      checkNonZeros( mat2,  1UL, 2UL );
-      checkNonZeros( mat2,  2UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 2 || mat2(0,2) != 3 ||
-          mat2(1,0) != 4 || mat2(1,1) != 5 || mat2(1,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
       }
    }
 
@@ -2434,7 +1944,7 @@ void AlignedUnpaddedTest::testAssignment()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1(0,0) = 1;
       mat1(0,1) = 2;
@@ -2483,7 +1993,7 @@ void AlignedUnpaddedTest::testAssignment()
          const size_t spacing( blaze::nextMultiple<size_t>( rows, 16UL ) );
 
          typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-         std::unique_ptr<int[]> array( new int[rows*columns+1UL] );
+         blaze::UniqueArray<int> array( new int[rows*columns+1UL] );
          UnalignedUnpadded mat1( array.get()+1UL, rows, columns );
          randomize( mat1, min, max );
 
@@ -2914,48 +2424,6 @@ void AlignedUnpaddedTest::testAddAssign()
    //=====================================================================================
 
    {
-      test_ = "Row-major/row-major CustomMatrix dense matrix addition assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::unpadded;
-      using blaze::rowMajor;
-
-      typedef blaze::CustomMatrix<short,aligned,unpadded,rowMajor>  AlignedUnpadded;
-      AlignedUnpadded mat1( blaze::allocate<short>( 32UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat1 = 0;
-      mat1(0,0) =  1;
-      mat1(0,1) =  2;
-      mat1(1,0) = -3;
-      mat1(1,2) =  4;
-
-      MT mat2( blaze::allocate<int>( 32UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = 0;
-      mat2(0,1) = -2;
-      mat2(0,2) =  6;
-      mat2(1,0) =  5;
-
-      mat2 += mat1;
-
-      checkRows    ( mat2,  2UL );
-      checkColumns ( mat2,  3UL );
-      checkCapacity( mat2, 32UL );
-      checkNonZeros( mat2,  4UL );
-      checkNonZeros( mat2,  0UL, 2UL );
-      checkNonZeros( mat2,  1UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 0 || mat2(0,2) != 6 ||
-          mat2(1,0) != 2 || mat2(1,1) != 0 || mat2(1,2) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Addition assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 0 6 )\n( 2 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "Row-major/row-major CustomMatrix dense matrix addition assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -3005,50 +2473,8 @@ void AlignedUnpaddedTest::testAddAssign()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
-      mat1 = 0;
-      mat1(0,0) =  1;
-      mat1(0,1) =  2;
-      mat1(1,0) = -3;
-      mat1(1,2) =  4;
-
-      MT mat2( blaze::allocate<int>( 32UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = 0;
-      mat2(0,1) = -2;
-      mat2(0,2) =  6;
-      mat2(1,0) =  5;
-
-      mat2 += mat1;
-
-      checkRows    ( mat2,  2UL );
-      checkColumns ( mat2,  3UL );
-      checkCapacity( mat2, 32UL );
-      checkNonZeros( mat2,  4UL );
-      checkNonZeros( mat2,  0UL, 2UL );
-      checkNonZeros( mat2,  1UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 0 || mat2(0,2) != 6 ||
-          mat2(1,0) != 2 || mat2(1,1) != 0 || mat2(1,2) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Addition assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 0 6 )\n( 2 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "Row-major/column-major CustomMatrix dense matrix addition assignment (mixed)";
-
-      using blaze::aligned;
-      using blaze::unpadded;
-      using blaze::columnMajor;
-
-      typedef blaze::CustomMatrix<short,aligned,unpadded,columnMajor>  AlignedUnpadded;
-      AlignedUnpadded mat1( blaze::allocate<short>( 48UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
       mat1 = 0;
       mat1(0,0) =  1;
       mat1(0,1) =  2;
@@ -3132,7 +2558,7 @@ void AlignedUnpaddedTest::testAddAssign()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1 = 0;
       mat1(0,0) =  1;
@@ -3514,49 +2940,6 @@ void AlignedUnpaddedTest::testAddAssign()
    //=====================================================================================
 
    {
-      test_ = "Column-major/row-major CustomMatrix dense matrix addition assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::unpadded;
-      using blaze::rowMajor;
-
-      typedef blaze::CustomMatrix<short,aligned,unpadded,rowMajor>  AlignedUnpadded;
-      AlignedUnpadded mat1( blaze::allocate<short>( 32UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat1 = 0;
-      mat1(0,0) =  1;
-      mat1(0,1) =  2;
-      mat1(1,0) = -3;
-      mat1(1,2) =  4;
-
-      OMT mat2( blaze::allocate<int>( 48UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = 0;
-      mat2(0,1) = -2;
-      mat2(0,2) =  6;
-      mat2(1,0) =  5;
-
-      mat2 += mat1;
-
-      checkRows    ( mat2,  2UL );
-      checkColumns ( mat2,  3UL );
-      checkCapacity( mat2, 48UL );
-      checkNonZeros( mat2,  4UL );
-      checkNonZeros( mat2,  0UL, 2UL );
-      checkNonZeros( mat2,  1UL, 0UL );
-      checkNonZeros( mat2,  2UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 0 || mat2(0,2) != 6 ||
-          mat2(1,0) != 2 || mat2(1,1) != 0 || mat2(1,2) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Addition assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 0 6 )\n( 2 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "Column-major/row-major CustomMatrix dense matrix addition assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -3607,51 +2990,8 @@ void AlignedUnpaddedTest::testAddAssign()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
-      mat1 = 0;
-      mat1(0,0) =  1;
-      mat1(0,1) =  2;
-      mat1(1,0) = -3;
-      mat1(1,2) =  4;
-
-      OMT mat2( blaze::allocate<int>( 48UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = 0;
-      mat2(0,1) = -2;
-      mat2(0,2) =  6;
-      mat2(1,0) =  5;
-
-      mat2 += mat1;
-
-      checkRows    ( mat2,  2UL );
-      checkColumns ( mat2,  3UL );
-      checkCapacity( mat2, 48UL );
-      checkNonZeros( mat2,  4UL );
-      checkNonZeros( mat2,  0UL, 2UL );
-      checkNonZeros( mat2,  1UL, 0UL );
-      checkNonZeros( mat2,  2UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 0 || mat2(0,2) != 6 ||
-          mat2(1,0) != 2 || mat2(1,1) != 0 || mat2(1,2) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Addition assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 0 6 )\n( 2 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "Column-major/column-major CustomMatrix dense matrix addition assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::unpadded;
-      using blaze::columnMajor;
-
-      typedef blaze::CustomMatrix<short,aligned,unpadded,columnMajor>  AlignedUnpadded;
-      AlignedUnpadded mat1( blaze::allocate<short>( 48UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
       mat1 = 0;
       mat1(0,0) =  1;
       mat1(0,1) =  2;
@@ -3737,7 +3077,7 @@ void AlignedUnpaddedTest::testAddAssign()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1 = 0;
       mat1(0,0) =  1;
@@ -4135,48 +3475,6 @@ void AlignedUnpaddedTest::testSubAssign()
    //=====================================================================================
 
    {
-      test_ = "Row-major/row-major CustomMatrix dense matrix subtraction assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::unpadded;
-      using blaze::rowMajor;
-
-      typedef blaze::CustomMatrix<short,aligned,unpadded,rowMajor>  AlignedUnpadded;
-      AlignedUnpadded mat1( blaze::allocate<short>( 32UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat1 = 0;
-      mat1(0,0) = -1;
-      mat1(0,1) = -2;
-      mat1(1,0) =  3;
-      mat1(1,2) = -4;
-
-      MT mat2( blaze::allocate<int>( 32UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = 0;
-      mat2(0,1) = -2;
-      mat2(0,2) =  6;
-      mat2(1,0) =  5;
-
-      mat2 -= mat1;
-
-      checkRows    ( mat2,  2UL );
-      checkColumns ( mat2,  3UL );
-      checkCapacity( mat2, 32UL );
-      checkNonZeros( mat2,  4UL );
-      checkNonZeros( mat2,  0UL, 2UL );
-      checkNonZeros( mat2,  1UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 0 || mat2(0,2) != 6 ||
-          mat2(1,0) != 2 || mat2(1,1) != 0 || mat2(1,2) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Subtraction assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 0 6 )\n( 2 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "Row-major/row-major CustomMatrix dense matrix subtraction assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -4226,50 +3524,8 @@ void AlignedUnpaddedTest::testSubAssign()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
-      mat1 = 0;
-      mat1(0,0) = -1;
-      mat1(0,1) = -2;
-      mat1(1,0) =  3;
-      mat1(1,2) = -4;
-
-      MT mat2( blaze::allocate<int>( 32UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = 0;
-      mat2(0,1) = -2;
-      mat2(0,2) =  6;
-      mat2(1,0) =  5;
-
-      mat2 -= mat1;
-
-      checkRows    ( mat2,  2UL );
-      checkColumns ( mat2,  3UL );
-      checkCapacity( mat2, 32UL );
-      checkNonZeros( mat2,  4UL );
-      checkNonZeros( mat2,  0UL, 2UL );
-      checkNonZeros( mat2,  1UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 0 || mat2(0,2) != 6 ||
-          mat2(1,0) != 2 || mat2(1,1) != 0 || mat2(1,2) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Subtraction assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 0 6 )\n( 2 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "Row-major/column-major CustomMatrix dense matrix subtraction assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::unpadded;
-      using blaze::columnMajor;
-
-      typedef blaze::CustomMatrix<short,aligned,unpadded,columnMajor>  AlignedUnpadded;
-      AlignedUnpadded mat1( blaze::allocate<short>( 48UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
       mat1 = 0;
       mat1(0,0) = -1;
       mat1(0,1) = -2;
@@ -4353,7 +3609,7 @@ void AlignedUnpaddedTest::testSubAssign()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1 = 0;
       mat1(0,0) = -1;
@@ -4735,49 +3991,6 @@ void AlignedUnpaddedTest::testSubAssign()
    //=====================================================================================
 
    {
-      test_ = "Column-major/row-major CustomMatrix dense matrix subtraction assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::unpadded;
-      using blaze::rowMajor;
-
-      typedef blaze::CustomMatrix<short,aligned,unpadded,rowMajor>  AlignedUnpadded;
-      AlignedUnpadded mat1( blaze::allocate<short>( 32UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat1 = 0;
-      mat1(0,0) = -1;
-      mat1(0,1) = -2;
-      mat1(1,0) =  3;
-      mat1(1,2) = -4;
-
-      OMT mat2( blaze::allocate<int>( 48UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = 0;
-      mat2(0,1) = -2;
-      mat2(0,2) =  6;
-      mat2(1,0) =  5;
-
-      mat2 -= mat1;
-
-      checkRows    ( mat2,  2UL );
-      checkColumns ( mat2,  3UL );
-      checkCapacity( mat2, 48UL );
-      checkNonZeros( mat2,  4UL );
-      checkNonZeros( mat2,  0UL, 2UL );
-      checkNonZeros( mat2,  1UL, 0UL );
-      checkNonZeros( mat2,  2UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 0 || mat2(0,2) != 6 ||
-          mat2(1,0) != 2 || mat2(1,1) != 0 || mat2(1,2) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Subtraction assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 0 6 )\n( 2 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "Column-major/row-major CustomMatrix dense matrix subtraction assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -4828,51 +4041,8 @@ void AlignedUnpaddedTest::testSubAssign()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
-      mat1 = 0;
-      mat1(0,0) = -1;
-      mat1(0,1) = -2;
-      mat1(1,0) =  3;
-      mat1(1,2) = -4;
-
-      OMT mat2( blaze::allocate<int>( 48UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = 0;
-      mat2(0,1) = -2;
-      mat2(0,2) =  6;
-      mat2(1,0) =  5;
-
-      mat2 -= mat1;
-
-      checkRows    ( mat2,  2UL );
-      checkColumns ( mat2,  3UL );
-      checkCapacity( mat2, 48UL );
-      checkNonZeros( mat2,  4UL );
-      checkNonZeros( mat2,  0UL, 2UL );
-      checkNonZeros( mat2,  1UL, 0UL );
-      checkNonZeros( mat2,  2UL, 2UL );
-
-      if( mat2(0,0) != 1 || mat2(0,1) != 0 || mat2(0,2) != 6 ||
-          mat2(1,0) != 2 || mat2(1,1) != 0 || mat2(1,2) != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Subtraction assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 1 0 6 )\n( 2 0 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "Column-major/column-major CustomMatrix dense matrix subtraction assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::unpadded;
-      using blaze::columnMajor;
-
-      typedef blaze::CustomMatrix<short,aligned,unpadded,columnMajor>  AlignedUnpadded;
-      AlignedUnpadded mat1( blaze::allocate<short>( 48UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
       mat1 = 0;
       mat1(0,0) = -1;
       mat1(0,1) = -2;
@@ -4958,7 +4128,7 @@ void AlignedUnpaddedTest::testSubAssign()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[7UL] );
+      blaze::UniqueArray<int> array( new int[7UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 2UL, 3UL );
       mat1 = 0;
       mat1(0,0) = -1;
@@ -5356,52 +4526,6 @@ void AlignedUnpaddedTest::testMultAssign()
    //=====================================================================================
 
    {
-      test_ = "Row-major/row-major CustomMatrix dense matrix multiplication assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::unpadded;
-      using blaze::rowMajor;
-
-      typedef blaze::CustomMatrix<short,aligned,unpadded,rowMajor>  AlignedUnpadded;
-      AlignedUnpadded mat1( blaze::allocate<short>( 48UL ), 3UL, 3UL, 16UL, blaze::Deallocate() );
-      mat1 = 0;
-      mat1(0,1) = 2;
-      mat1(1,0) = 1;
-      mat1(1,1) = 3;
-      mat1(1,2) = 4;
-      mat1(2,2) = 5;
-
-      MT mat2( blaze::allocate<int>( 48UL ), 3UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = 0;
-      mat2(0,0) = 1;
-      mat2(0,2) = 2;
-      mat2(1,1) = 3;
-      mat2(2,0) = 4;
-      mat2(2,2) = 5;
-
-      mat2 *= mat1;
-
-      checkRows    ( mat2, 3UL );
-      checkColumns ( mat2, 3UL );
-      checkNonZeros( mat2, 7UL );
-      checkNonZeros( mat2, 0UL, 2UL );
-      checkNonZeros( mat2, 1UL, 3UL );
-      checkNonZeros( mat2, 2UL, 2UL );
-
-      if( mat2(0,0) != 0 || mat2(0,1) != 2 || mat2(0,2) != 10 ||
-          mat2(1,0) != 3 || mat2(1,1) != 9 || mat2(1,2) != 12 ||
-          mat2(2,0) != 0 || mat2(2,1) != 8 || mat2(2,2) != 25 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Multiplication assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 0 2 10 )\n( 3 9 12 )\n( 0 8 25 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "Row-major/row-major CustomMatrix dense matrix multiplication assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -5455,54 +4579,8 @@ void AlignedUnpaddedTest::testMultAssign()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[10UL] );
+      blaze::UniqueArray<int> array( new int[10UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 3UL, 3UL );
-      mat1 = 0;
-      mat1(0,1) = 2;
-      mat1(1,0) = 1;
-      mat1(1,1) = 3;
-      mat1(1,2) = 4;
-      mat1(2,2) = 5;
-
-      MT mat2( blaze::allocate<int>( 48UL ), 3UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = 0;
-      mat2(0,0) = 1;
-      mat2(0,2) = 2;
-      mat2(1,1) = 3;
-      mat2(2,0) = 4;
-      mat2(2,2) = 5;
-
-      mat2 *= mat1;
-
-      checkRows    ( mat2, 3UL );
-      checkColumns ( mat2, 3UL );
-      checkNonZeros( mat2, 7UL );
-      checkNonZeros( mat2, 0UL, 2UL );
-      checkNonZeros( mat2, 1UL, 3UL );
-      checkNonZeros( mat2, 2UL, 2UL );
-
-      if( mat2(0,0) != 0 || mat2(0,1) != 2 || mat2(0,2) != 10 ||
-          mat2(1,0) != 3 || mat2(1,1) != 9 || mat2(1,2) != 12 ||
-          mat2(2,0) != 0 || mat2(2,1) != 8 || mat2(2,2) != 25 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Multiplication assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 0 2 10 )\n( 3 9 12 )\n( 0 8 25 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "Row-major/column-major CustomMatrix dense matrix multiplication assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::unpadded;
-      using blaze::columnMajor;
-
-      typedef blaze::CustomMatrix<short,aligned,unpadded,columnMajor>  AlignedUnpadded;
-      AlignedUnpadded mat1( blaze::allocate<short>( 48UL ), 3UL, 3UL, 16UL, blaze::Deallocate() );
       mat1 = 0;
       mat1(0,1) = 2;
       mat1(1,0) = 1;
@@ -5594,7 +4672,7 @@ void AlignedUnpaddedTest::testMultAssign()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[10UL] );
+      blaze::UniqueArray<int> array( new int[10UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 3UL, 3UL );
       mat1 = 0;
       mat1(0,1) = 2;
@@ -5724,52 +4802,6 @@ void AlignedUnpaddedTest::testMultAssign()
    //=====================================================================================
 
    {
-      test_ = "Column-major/row-major CustomMatrix dense matrix multiplication assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::unpadded;
-      using blaze::rowMajor;
-
-      typedef blaze::CustomMatrix<short,aligned,unpadded,rowMajor>  AlignedUnpadded;
-      AlignedUnpadded mat1( blaze::allocate<short>( 48UL ), 3UL, 3UL, 16UL, blaze::Deallocate() );
-      mat1 = 0;
-      mat1(0,1) = 2;
-      mat1(1,0) = 1;
-      mat1(1,1) = 3;
-      mat1(1,2) = 4;
-      mat1(2,2) = 5;
-
-      OMT mat2( blaze::allocate<int>( 48UL ), 3UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = 0;
-      mat2(0,0) = 1;
-      mat2(0,2) = 2;
-      mat2(1,1) = 3;
-      mat2(2,0) = 4;
-      mat2(2,2) = 5;
-
-      mat2 *= mat1;
-
-      checkRows    ( mat2, 3UL );
-      checkColumns ( mat2, 3UL );
-      checkNonZeros( mat2, 7UL );
-      checkNonZeros( mat2, 0UL, 1UL );
-      checkNonZeros( mat2, 1UL, 3UL );
-      checkNonZeros( mat2, 2UL, 3UL );
-
-      if( mat2(0,0) != 0 || mat2(0,1) != 2 || mat2(0,2) != 10 ||
-          mat2(1,0) != 3 || mat2(1,1) != 9 || mat2(1,2) != 12 ||
-          mat2(2,0) != 0 || mat2(2,1) != 8 || mat2(2,2) != 25 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Multiplication assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 0 2 10 )\n( 3 9 12 )\n( 0 8 25 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "Column-major/row-major CustomMatrix dense matrix multiplication assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -5823,54 +4855,8 @@ void AlignedUnpaddedTest::testMultAssign()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[10UL] );
+      blaze::UniqueArray<int> array( new int[10UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 3UL, 3UL );
-      mat1 = 0;
-      mat1(0,1) = 2;
-      mat1(1,0) = 1;
-      mat1(1,1) = 3;
-      mat1(1,2) = 4;
-      mat1(2,2) = 5;
-
-      OMT mat2( blaze::allocate<int>( 48UL ), 3UL, 3UL, 16UL, blaze::Deallocate() );
-      mat2 = 0;
-      mat2(0,0) = 1;
-      mat2(0,2) = 2;
-      mat2(1,1) = 3;
-      mat2(2,0) = 4;
-      mat2(2,2) = 5;
-
-      mat2 *= mat1;
-
-      checkRows    ( mat2, 3UL );
-      checkColumns ( mat2, 3UL );
-      checkNonZeros( mat2, 7UL );
-      checkNonZeros( mat2, 0UL, 1UL );
-      checkNonZeros( mat2, 1UL, 3UL );
-      checkNonZeros( mat2, 2UL, 3UL );
-
-      if( mat2(0,0) != 0 || mat2(0,1) != 2 || mat2(0,2) != 10 ||
-          mat2(1,0) != 3 || mat2(1,1) != 9 || mat2(1,2) != 12 ||
-          mat2(2,0) != 0 || mat2(2,1) != 8 || mat2(2,2) != 25 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Multiplication assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat2 << "\n"
-             << "   Expected result:\n( 0 2 10 )\n( 3 9 12 )\n( 0 8 25 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "Column-major/column-major CustomMatrix dense matrix multiplication assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::unpadded;
-      using blaze::columnMajor;
-
-      typedef blaze::CustomMatrix<short,aligned,unpadded,columnMajor>  AlignedUnpadded;
-      AlignedUnpadded mat1( blaze::allocate<short>( 48UL ), 3UL, 3UL, 16UL, blaze::Deallocate() );
       mat1 = 0;
       mat1(0,1) = 2;
       mat1(1,0) = 1;
@@ -5962,7 +4948,7 @@ void AlignedUnpaddedTest::testMultAssign()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[10UL] );
+      blaze::UniqueArray<int> array( new int[10UL] );
       UnalignedUnpadded mat1( array.get()+1UL, 3UL, 3UL );
       mat1 = 0;
       mat1(0,1) = 2;
@@ -8403,7 +7389,7 @@ void AlignedUnpaddedTest::testReset()
       MT mat( blaze::allocate<int>( 32UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
       mat = 2;
 
-      std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 48UL ) );
+      blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 48UL ) );
       mat.reset( array.get(), 3UL, 5UL, 16UL );
 
       checkRows    ( mat,  3UL );
@@ -8543,7 +7529,7 @@ void AlignedUnpaddedTest::testReset()
       OMT mat( blaze::allocate<int>( 48UL ), 2UL, 3UL, 16UL, blaze::Deallocate() );
       mat = 2;
 
-      std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 80UL ) );
+      blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 80UL ) );
       mat.reset( array.get(), 3UL, 5UL, 16UL );
 
       checkRows    ( mat,  3UL );

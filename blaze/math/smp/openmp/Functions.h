@@ -41,9 +41,9 @@
 //*************************************************************************************************
 
 #include <omp.h>
-#include <blaze/math/Exception.h>
 #include <blaze/system/Inline.h>
 #include <blaze/system/SMP.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/StaticAssert.h>
 #include <blaze/util/Types.h>
 
@@ -88,7 +88,7 @@ BLAZE_ALWAYS_INLINE size_t getNumThreads()
 // Note that the given \a number must be in the range \f$[1..infty)\f$. In case an invalid
 // number of threads is specified, a \a std::invalid_argument exception is thrown.
 */
-BLAZE_ALWAYS_INLINE void setNumThreads( size_t number )
+BLAZE_ALWAYS_INLINE size_t setNumThreads( size_t number )
 {
    if( number == 0UL ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid number of threads" );

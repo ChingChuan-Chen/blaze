@@ -40,14 +40,11 @@
 // Includes
 //*************************************************************************************************
 
-#include <memory>
 #include <boost/cast.hpp>
-#include <blaze/math/Aliases.h>
-#include <blaze/math/constraints/BLASCompatible.h>
+#include <blaze/math/constraints/BlasCompatible.h>
 #include <blaze/math/constraints/DenseMatrix.h>
 #include <blaze/math/constraints/MutableDataAccess.h>
 #include <blaze/math/constraints/RequiresEvaluation.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/DenseMatrix.h>
 #include <blaze/math/lapack/getrf.h>
 #include <blaze/math/typetraits/IsSquare.h>
@@ -56,7 +53,9 @@
 #include <blaze/math/typetraits/IsUniTriangular.h>
 #include <blaze/math/typetraits/RemoveAdaptor.h>
 #include <blaze/util/Assert.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/Types.h>
+#include <blaze/util/UniqueArray.h>
 
 
 namespace blaze {
@@ -71,7 +70,7 @@ namespace blaze {
 /*!\name Determinant functions */
 //@{
 template< typename MT, bool SO >
-inline ElementType_<MT> det( const DenseMatrix<MT,SO>& dm );
+inline typename MT::ElementType det( const DenseMatrix<MT,SO>& dm );
 //@}
 //*************************************************************************************************
 
@@ -89,12 +88,12 @@ inline ElementType_<MT> det( const DenseMatrix<MT,SO>& dm );
 */
 template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
-inline ElementType_<MT> det2x2( const DenseMatrix<MT,SO>& dm )
+inline typename MT::ElementType det2x2( const DenseMatrix<MT,SO>& dm )
 {
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 2UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 2UL, "Invalid number of columns detected" );
 
-   CompositeType_<MT> A( ~dm );
+   typename MT::CompositeType A( ~dm );
 
    return A(0,0)*A(1,1) - A(0,1)*A(1,0);
 }
@@ -115,12 +114,12 @@ inline ElementType_<MT> det2x2( const DenseMatrix<MT,SO>& dm )
 */
 template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
-inline ElementType_<MT> det3x3( const DenseMatrix<MT,SO>& dm )
+inline typename MT::ElementType det3x3( const DenseMatrix<MT,SO>& dm )
 {
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 3UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 3UL, "Invalid number of columns detected" );
 
-   CompositeType_<MT> A( ~dm );
+   typename MT::CompositeType A( ~dm );
 
    return A(0,0) * ( A(1,1)*A(2,2) - A(1,2)*A(2,1) ) +
           A(0,1) * ( A(1,2)*A(2,0) - A(1,0)*A(2,2) ) +
@@ -143,14 +142,14 @@ inline ElementType_<MT> det3x3( const DenseMatrix<MT,SO>& dm )
 */
 template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
-inline ElementType_<MT> det4x4( const DenseMatrix<MT,SO>& dm )
+inline typename MT::ElementType det4x4( const DenseMatrix<MT,SO>& dm )
 {
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 4UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 4UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
-   CompositeType_<MT> A( ~dm );
+   typename MT::CompositeType A( ~dm );
 
    const ET tmp1( A(2,2)*A(3,3) - A(2,3)*A(3,2) );
    const ET tmp2( A(2,1)*A(3,3) - A(2,3)*A(3,1) );
@@ -181,14 +180,14 @@ inline ElementType_<MT> det4x4( const DenseMatrix<MT,SO>& dm )
 */
 template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
-inline ElementType_<MT> det5x5( const DenseMatrix<MT,SO>& dm )
+inline typename MT::ElementType det5x5( const DenseMatrix<MT,SO>& dm )
 {
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 5UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 5UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
-   CompositeType_<MT> A( ~dm );
+   typename MT::CompositeType A( ~dm );
 
    const ET tmp1 ( A(3,3)*A(4,4) - A(3,4)*A(4,3) );
    const ET tmp2 ( A(3,2)*A(4,4) - A(3,4)*A(4,2) );
@@ -235,14 +234,14 @@ inline ElementType_<MT> det5x5( const DenseMatrix<MT,SO>& dm )
 */
 template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
-inline ElementType_<MT> det6x6( const DenseMatrix<MT,SO>& dm )
+inline typename MT::ElementType det6x6( const DenseMatrix<MT,SO>& dm )
 {
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 6UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 6UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
-   CompositeType_<MT> A( ~dm );
+   typename MT::CompositeType A( ~dm );
 
    const ET tmp1 ( A(4,4)*A(5,5) - A(4,5)*A(5,4) );
    const ET tmp2 ( A(4,3)*A(5,5) - A(4,5)*A(5,3) );
@@ -321,13 +320,13 @@ inline ElementType_<MT> det6x6( const DenseMatrix<MT,SO>& dm )
 */
 template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
-ElementType_<MT> detNxN( const DenseMatrix<MT,SO>& dm )
+typename MT::ElementType detNxN( const DenseMatrix<MT,SO>& dm )
 {
    BLAZE_INTERNAL_ASSERT( isSquare( ~dm ), "Non-square symmetric matrix detected" );
 
-   typedef ResultType_<MT>     RT;
-   typedef ElementType_<MT>    ET;
-   typedef RemoveAdaptor_<RT>  URT;
+   typedef typename MT::ResultType           RT;
+   typedef typename MT::ElementType          ET;
+   typedef typename RemoveAdaptor<RT>::Type  URT;
 
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( URT );
    BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( URT );
@@ -340,7 +339,7 @@ ElementType_<MT> detNxN( const DenseMatrix<MT,SO>& dm )
    int lda ( boost::numeric_cast<int>( A.spacing() ) );
    int info( 0 );
 
-   const std::unique_ptr<int[]> ipiv( new int[n] );
+   const UniqueArray<int> ipiv( new int[n] );
 
    getrf( n, n, A.data(), lda, ipiv.get(), &info );
 
@@ -380,9 +379,9 @@ ElementType_<MT> detNxN( const DenseMatrix<MT,SO>& dm )
 */
 template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
-inline ElementType_<MT> det( const DenseMatrix<MT,SO>& dm )
+inline typename MT::ElementType det( const DenseMatrix<MT,SO>& dm )
 {
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    if( !isSquare( ~dm ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid non-square matrix provided" );

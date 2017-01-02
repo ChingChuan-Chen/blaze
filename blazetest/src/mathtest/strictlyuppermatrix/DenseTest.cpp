@@ -39,18 +39,18 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <memory>
-#include <blaze/math/Column.h>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/CompressedVector.h>
 #include <blaze/math/CustomMatrix.h>
+#include <blaze/math/DenseColumn.h>
+#include <blaze/math/DenseRow.h>
+#include <blaze/math/DenseSubmatrix.h>
 #include <blaze/math/DynamicVector.h>
 #include <blaze/math/HybridMatrix.h>
-#include <blaze/math/Row.h>
 #include <blaze/math/StaticMatrix.h>
-#include <blaze/math/Submatrix.h>
 #include <blaze/util/Complex.h>
 #include <blaze/util/policies/ArrayDelete.h>
+#include <blaze/util/UniqueArray.h>
 #include <blazetest/mathtest/strictlyuppermatrix/DenseTest.h>
 
 
@@ -388,123 +388,6 @@ void DenseTest::testConstructors()
 
 
    //=====================================================================================
-   // Row-major list initialization
-   //=====================================================================================
-
-   // Complete list initialization
-   {
-      test_ = "Row-major StrictlyUpperMatrix initializer list constructor (complete list)";
-
-      const UT upper{ { 0, 2, 3 }, { 0, 0, 5 }, { 0, 0, 0 } };
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkCapacity( upper, 9UL );
-      checkNonZeros( upper, 3UL );
-
-      if( upper(0,0) != 0 || upper(0,1) != 2 || upper(0,2) != 3 ||
-          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) != 5 ||
-          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 2 3 )\n( 0 0 5 )\n( 0 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete list initialization
-   {
-      test_ = "Row-major StrictlyUpperMatrix initializer list constructor (incomplete list)";
-
-      const UT upper{ { 0, 2, 3 }, { 0, 0, 5 }, { } };
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkCapacity( upper, 9UL );
-      checkNonZeros( upper, 3UL );
-
-      if( upper(0,0) != 0 || upper(0,1) != 2 || upper(0,2) != 3 ||
-          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) != 5 ||
-          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 2 3 )\n( 0 0 5 )\n( 0 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major array initialization
-   //=====================================================================================
-
-   // Dynamic array initialization constructor
-   {
-      test_ = "Row-major StrictlyUpperMatrix dynamic array initialization constructor";
-
-      std::unique_ptr<int[]> array( new int[9] );
-      array[0] = 0;
-      array[1] = 2;
-      array[2] = 3;
-      array[3] = 0;
-      array[4] = 0;
-      array[5] = 5;
-      array[6] = 0;
-      array[7] = 0;
-      array[8] = 0;
-      const UT upper( 3UL, array.get() );
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkCapacity( upper, 9UL );
-      checkNonZeros( upper, 3UL );
-
-      if( upper(0,0) != 0 || upper(0,1) != 2 || upper(0,2) != 3 ||
-          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) != 5 ||
-          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 2 3 )\n( 0 0 5 )\n( 0 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Static array initialization constructor
-   {
-      test_ = "Row-major StrictlyUpperMatrix static array initialization constructor";
-
-      const int array[3][3] = { { 0, 2, 3 }, { 0, 0, 5 }, { 0, 0, 0 } };
-      const UT upper( array );
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkCapacity( upper, 9UL );
-      checkNonZeros( upper, 3UL );
-
-      if( upper(0,0) != 0 || upper(0,1) != 2 || upper(0,2) != 3 ||
-          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) != 5 ||
-          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 2 3 )\n( 0 0 5 )\n( 0 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major custom matrix constructors
    //=====================================================================================
 
@@ -517,7 +400,7 @@ void DenseTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5UL] );
+      blaze::UniqueArray<int> array( new int[5UL] );
       array[1] = 0;
       array[2] = 2;
       array[3] = 0;
@@ -550,7 +433,7 @@ void DenseTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[11UL] );
+      blaze::UniqueArray<int> array( new int[11UL] );
       array[1] = 0;
       array[2] = 2;
       array[6] = 0;
@@ -583,7 +466,7 @@ void DenseTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[4UL] );
+      blaze::UniqueArray<int> array( new int[4UL] );
       array[0] = 0;
       array[1] = 2;
       array[2] = 0;
@@ -616,7 +499,7 @@ void DenseTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[10UL] );
+      blaze::UniqueArray<int> array( new int[10UL] );
       array[0] = 0;
       array[1] = 2;
       array[5] = 0;
@@ -666,54 +549,6 @@ void DenseTest::testConstructors()
       upper1(0,2) =  7;
 
       const UT upper2( upper1 );
-
-      checkRows    ( upper2, 3UL );
-      checkColumns ( upper2, 3UL );
-      checkCapacity( upper2, 9UL );
-      checkNonZeros( upper2, 2UL );
-      checkNonZeros( upper2, 0UL, 2UL );
-      checkNonZeros( upper2, 1UL, 0UL );
-      checkNonZeros( upper2, 2UL, 0UL );
-
-      if( upper2(0,0) != 0 || upper2(0,1) != -4 || upper2(0,2) != 7 ||
-          upper2(1,0) != 0 || upper2(1,1) !=  0 || upper2(1,2) != 0 ||
-          upper2(2,0) != 0 || upper2(2,1) !=  0 || upper2(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper2 << "\n"
-             << "   Expected result:\n( 0 -4  7 )\n( 0  0  0 )\n( 0  0  0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Row-major StrictlyUpperMatrix move constructor (0x0)";
-
-      UT upper1;
-      UT upper2( std::move( upper1 ) );
-
-      checkRows    ( upper2, 0UL );
-      checkColumns ( upper2, 0UL );
-      checkNonZeros( upper2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Row-major StrictlyUpperMatrix move constructor (3x3)";
-
-      UT upper1( 3UL );
-      upper1(0,1) = -4;
-      upper1(0,2) =  7;
-
-      UT upper2( std::move( upper1 ) );
 
       checkRows    ( upper2, 3UL );
       checkColumns ( upper2, 3UL );
@@ -1010,123 +845,6 @@ void DenseTest::testConstructors()
 
 
    //=====================================================================================
-   // Column-major list initialization
-   //=====================================================================================
-
-   // Complete list initialization
-   {
-      test_ = "Column-major StrictlyUpperMatrix initializer list constructor (complete list)";
-
-      const OUT upper{ { 0, 2, 3 }, { 0, 0, 5 }, { 0, 0, 0 } };
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkCapacity( upper, 9UL );
-      checkNonZeros( upper, 3UL );
-
-      if( upper(0,0) != 0 || upper(0,1) != 2 || upper(0,2) != 3 ||
-          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) != 5 ||
-          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 2 3 )\n( 0 0 5 )\n( 0 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete list initialization
-   {
-      test_ = "Column-major StrictlyUpperMatrix initializer list constructor (incomplete list)";
-
-      const OUT upper{ { 0, 2, 3 }, { 0, 0, 5 }, { } };
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkCapacity( upper, 9UL );
-      checkNonZeros( upper, 3UL );
-
-      if( upper(0,0) != 0 || upper(0,1) != 2 || upper(0,2) != 3 ||
-          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) != 5 ||
-          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 2 3 )\n( 0 0 5 )\n( 0 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major array initialization
-   //=====================================================================================
-
-   // Dynamic array initialization constructor
-   {
-      test_ = "Column-major UpperMatrix dynamic array initialization constructor";
-
-      std::unique_ptr<int[]> array( new int[9] );
-      array[0] = 0;
-      array[1] = 0;
-      array[2] = 0;
-      array[3] = 2;
-      array[4] = 0;
-      array[5] = 0;
-      array[6] = 3;
-      array[7] = 5;
-      array[8] = 0;
-      const OUT upper( 3UL, array.get() );
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkCapacity( upper, 9UL );
-      checkNonZeros( upper, 3UL );
-
-      if( upper(0,0) != 0 || upper(0,1) != 2 || upper(0,2) != 3 ||
-          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) != 5 ||
-          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 2 3 )\n( 0 0 5 )\n( 0 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Static array initialization constructor
-   {
-      test_ = "Column-major UpperMatrix static array initialization constructor";
-
-      const int array[3][3] = { { 0, 2, 3 }, { 0, 0, 5 }, { 0, 0, 0 } };
-      const OUT upper( array );
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkCapacity( upper, 9UL );
-      checkNonZeros( upper, 3UL );
-
-      if( upper(0,0) != 0 || upper(0,1) != 2 || upper(0,2) != 3 ||
-          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) != 5 ||
-          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 2 3 )\n( 0 0 5 )\n( 0 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major custom matrix constructors
    //=====================================================================================
 
@@ -1139,7 +857,7 @@ void DenseTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5UL] );
+      blaze::UniqueArray<int> array( new int[5UL] );
       array[1] = 0;
       array[2] = 0;
       array[3] = 2;
@@ -1172,7 +890,7 @@ void DenseTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[11UL] );
+      blaze::UniqueArray<int> array( new int[11UL] );
       array[1] = 0;
       array[2] = 0;
       array[6] = 2;
@@ -1205,7 +923,7 @@ void DenseTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[4UL] );
+      blaze::UniqueArray<int> array( new int[4UL] );
       array[0] = 0;
       array[1] = 0;
       array[2] = 2;
@@ -1238,7 +956,7 @@ void DenseTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[10UL] );
+      blaze::UniqueArray<int> array( new int[10UL] );
       array[0] = 0;
       array[1] = 0;
       array[5] = 2;
@@ -1309,54 +1027,6 @@ void DenseTest::testConstructors()
          throw std::runtime_error( oss.str() );
       }
    }
-
-
-   //=====================================================================================
-   // Column-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Column-major StrictlyUpperMatrix move constructor (0x0)";
-
-      OUT upper1;
-      OUT upper2( std::move( upper1 ) );
-
-      checkRows    ( upper2, 0UL );
-      checkColumns ( upper2, 0UL );
-      checkNonZeros( upper2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Column-major StrictlyUpperMatrix move constructor (3x3)";
-
-      OUT upper1( 3UL );
-      upper1(0,1) = -4;
-      upper1(0,2) =  7;
-
-      OUT upper2( std::move( upper1 ) );
-
-      checkRows    ( upper2, 3UL );
-      checkColumns ( upper2, 3UL );
-      checkCapacity( upper2, 9UL );
-      checkNonZeros( upper2, 2UL );
-      checkNonZeros( upper2, 0UL, 0UL );
-      checkNonZeros( upper2, 1UL, 1UL );
-      checkNonZeros( upper2, 2UL, 1UL );
-
-      if( upper2(0,0) != 0 || upper2(0,1) != -4 || upper2(0,2) != 7 ||
-          upper2(1,0) != 0 || upper2(1,1) !=  0 || upper2(1,2) != 0 ||
-          upper2(2,0) != 0 || upper2(2,1) !=  0 || upper2(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper2 << "\n"
-             << "   Expected result:\n( 0 -4  7 )\n( 0  0  0 )\n( 0  0  0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
 }
 //*************************************************************************************************
 
@@ -1405,101 +1075,6 @@ void DenseTest::testAssignment()
 
 
    //=====================================================================================
-   // Row-major list assignment
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Row-major StrictlyUpperMatrix initializer list assignment (complete list)";
-
-      UT upper;
-      upper = { { 0, 2, 3 }, { 0, 0, 5 }, { 0, 0, 0 } };
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkCapacity( upper, 9UL );
-      checkNonZeros( upper, 3UL );
-      checkNonZeros( upper, 0UL, 2UL );
-      checkNonZeros( upper, 1UL, 1UL );
-      checkNonZeros( upper, 2UL, 0UL );
-
-      if( upper(0,0) != 0 || upper(0,1) != 2 || upper(0,2) != 3 ||
-          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) != 5 ||
-          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 2 3 )\n( 0 0 5 )\n( 0 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Complete initializer list
-   {
-      test_ = "Row-major StrictlyUpperMatrix initializer list assignment (incomplete list)";
-
-      UT upper;
-      upper = { { 0, 2, 3 }, { 0, 0, 5 }, { } };
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkCapacity( upper, 9UL );
-      checkNonZeros( upper, 3UL );
-      checkNonZeros( upper, 0UL, 2UL );
-      checkNonZeros( upper, 1UL, 1UL );
-      checkNonZeros( upper, 2UL, 0UL );
-
-      if( upper(0,0) != 0 || upper(0,1) != 2 || upper(0,2) != 3 ||
-          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) != 5 ||
-          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 2 3 )\n( 0 0 5 )\n( 0 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major array assignment
-   //=====================================================================================
-
-   // Array assignment
-   {
-      test_ = "Row-major StrictlyUpperMatrix array assignment";
-
-      const int array[3][3] = { { 0, 2, 3 }, { 0, 0, 5 }, { 0, 0, 0 } };
-      UT upper;
-      upper = array;
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkCapacity( upper, 9UL );
-      checkNonZeros( upper, 3UL );
-      checkNonZeros( upper, 0UL, 2UL );
-      checkNonZeros( upper, 1UL, 1UL );
-      checkNonZeros( upper, 2UL, 0UL );
-
-      if( upper(0,0) != 0 || upper(0,1) != 2 || upper(0,2) != 3 ||
-          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) != 5 ||
-          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 2 3 )\n( 0 0 5 )\n( 0 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major copy assignment
    //=====================================================================================
 
@@ -1527,56 +1102,6 @@ void DenseTest::testAssignment()
 
       UT upper2;
       upper2 = upper1;
-
-      checkRows    ( upper2, 3UL );
-      checkColumns ( upper2, 3UL );
-      checkNonZeros( upper2, 2UL );
-      checkNonZeros( upper2, 0UL, 2UL );
-      checkNonZeros( upper2, 1UL, 0UL );
-      checkNonZeros( upper2, 2UL, 0UL );
-
-      if( upper2(0,0) != 0 || upper2(0,1) != -4 || upper2(0,2) != 7 ||
-          upper2(1,0) != 0 || upper2(1,1) !=  0 || upper2(1,2) != 0 ||
-          upper2(2,0) != 0 || upper2(2,1) !=  0 || upper2(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper2 << "\n"
-             << "   Expected result:\n( 0 -4  7 )\n( 0  0  0 )\n( 0  0  0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Row-major StrictlyUpperMatrix move assignment (0x0)";
-
-      UT upper1, upper2;
-
-      upper2 = std::move( upper1 );
-
-      checkRows    ( upper2, 0UL );
-      checkColumns ( upper2, 0UL );
-      checkNonZeros( upper2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Row-major StrictlyUpperMatrix move assignment (3x3)";
-
-      UT upper1( 3UL );
-      upper1(0,1) = -4;
-      upper1(0,2) =  7;
-      upper1(1,2) =  0;
-
-      UT upper2;
-      upper2 = std::move( upper1 );
 
       checkRows    ( upper2, 3UL );
       checkColumns ( upper2, 3UL );
@@ -2012,101 +1537,6 @@ void DenseTest::testAssignment()
 
 
    //=====================================================================================
-   // Column-major list assignment
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Column-major StrictlyUpperMatrix initializer list assignment (complete list)";
-
-      OUT upper;
-      upper = { { 0, 2, 3 }, { 0, 0, 5 }, { 0, 0, 0 } };
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkCapacity( upper, 9UL );
-      checkNonZeros( upper, 3UL );
-      checkNonZeros( upper, 0UL, 0UL );
-      checkNonZeros( upper, 1UL, 1UL );
-      checkNonZeros( upper, 2UL, 2UL );
-
-      if( upper(0,0) != 0 || upper(0,1) != 2 || upper(0,2) != 3 ||
-          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) != 5 ||
-          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 2 3 )\n( 0 0 5 )\n( 0 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Complete initializer list
-   {
-      test_ = "Column-major StrictlyUpperMatrix initializer list assignment (incomplete list)";
-
-      OUT upper;
-      upper = { { 0, 2, 3 }, { 0, 0, 5 }, { } };
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkCapacity( upper, 9UL );
-      checkNonZeros( upper, 3UL );
-      checkNonZeros( upper, 0UL, 0UL );
-      checkNonZeros( upper, 1UL, 1UL );
-      checkNonZeros( upper, 2UL, 2UL );
-
-      if( upper(0,0) != 0 || upper(0,1) != 2 || upper(0,2) != 3 ||
-          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) != 5 ||
-          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 2 3 )\n( 0 0 5 )\n( 0 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major array assignment
-   //=====================================================================================
-
-   // Array assignment
-   {
-      test_ = "Column-major StrictlyUpperMatrix array assignment";
-
-      const int array[3][3] = { { 0, 2, 3 }, { 0, 0, 5 }, { 0, 0, 0 } };
-      OUT upper;
-      upper = array;
-
-      checkRows    ( upper, 3UL );
-      checkColumns ( upper, 3UL );
-      checkCapacity( upper, 9UL );
-      checkNonZeros( upper, 3UL );
-      checkNonZeros( upper, 0UL, 0UL );
-      checkNonZeros( upper, 1UL, 1UL );
-      checkNonZeros( upper, 2UL, 2UL );
-
-      if( upper(0,0) != 0 || upper(0,1) != 2 || upper(0,2) != 3 ||
-          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) != 5 ||
-          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper << "\n"
-             << "   Expected result:\n( 0 2 3 )\n( 0 0 5 )\n( 0 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major copy assignment
    //=====================================================================================
 
@@ -2134,56 +1564,6 @@ void DenseTest::testAssignment()
 
       OUT upper2;
       upper2 = upper1;
-
-      checkRows    ( upper2, 3UL );
-      checkColumns ( upper2, 3UL );
-      checkNonZeros( upper2, 2UL );
-      checkNonZeros( upper2, 0UL, 0UL );
-      checkNonZeros( upper2, 1UL, 1UL );
-      checkNonZeros( upper2, 2UL, 1UL );
-
-      if( upper2(0,0) != 0 || upper2(0,1) != -4 || upper2(0,2) != 7 ||
-          upper2(1,0) != 0 || upper2(1,1) !=  0 || upper2(1,2) != 0 ||
-          upper2(2,0) != 0 || upper2(2,1) !=  0 || upper2(2,2) != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << upper2 << "\n"
-             << "   Expected result:\n( 0 -4  7 )\n( 0  0  0 )\n( 0  0  0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Column-major StrictlyUpperMatrix move assignment (0x0)";
-
-      OUT upper1, upper2;
-
-      upper2 = std::move( upper1 );
-
-      checkRows    ( upper2, 0UL );
-      checkColumns ( upper2, 0UL );
-      checkNonZeros( upper2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Column-major StrictlyUpperMatrix move assignment (3x3)";
-
-      OUT upper1( 3UL );
-      upper1(0,1) = -4;
-      upper1(0,2) =  7;
-      upper1(1,2) =  0;
-
-      OUT upper2;
-      upper2 = std::move( upper1 );
 
       checkRows    ( upper2, 3UL );
       checkColumns ( upper2, 3UL );
@@ -8310,7 +7690,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function";
 
-      typedef blaze::Submatrix<UT>  SMT;
+      typedef blaze::DenseSubmatrix<UT>  SMT;
 
       UT upper( 3UL );
       upper(0,1) = -4;
@@ -8404,7 +7784,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function (scalar assignment test 1)";
 
-      typedef blaze::Submatrix<UT>  SMT;
+      typedef blaze::DenseSubmatrix<UT>  SMT;
 
       UT upper( 4UL );
       upper(0,1) = -4;
@@ -8460,7 +7840,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function (scalar assignment test 2)";
 
-      typedef blaze::Submatrix<UT>  SMT;
+      typedef blaze::DenseSubmatrix<UT>  SMT;
 
       UT upper( 4UL );
       upper(0,1) = -4;
@@ -8514,7 +7894,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function (scalar assignment test 3)";
 
-      typedef blaze::Submatrix<UT>  SMT;
+      typedef blaze::DenseSubmatrix<UT>  SMT;
 
       UT upper( 4UL );
       upper(0,1) = -4;
@@ -8569,7 +7949,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function";
 
-      typedef blaze::Submatrix<OUT>  SMT;
+      typedef blaze::DenseSubmatrix<OUT>  SMT;
 
       OUT upper( 3UL );
       upper(0,1) = -4;
@@ -8663,7 +8043,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function (scalar assignment test 1)";
 
-      typedef blaze::Submatrix<OUT>  SMT;
+      typedef blaze::DenseSubmatrix<OUT>  SMT;
 
       OUT upper( 4UL );
       upper(0,1) = -4;
@@ -8719,7 +8099,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function (scalar assignment test 2)";
 
-      typedef blaze::Submatrix<OUT>  SMT;
+      typedef blaze::DenseSubmatrix<OUT>  SMT;
 
       OUT upper( 4UL );
       upper(0,1) = -4;
@@ -8773,7 +8153,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function (scalar assignment test 3)";
 
-      typedef blaze::Submatrix<OUT>  SMT;
+      typedef blaze::DenseSubmatrix<OUT>  SMT;
 
       OUT upper( 4UL );
       upper(0,1) = -4;
@@ -8841,7 +8221,7 @@ void DenseTest::testRow()
    {
       test_ = "Row-major row() function";
 
-      typedef blaze::Row<UT>  RT;
+      typedef blaze::DenseRow<UT>  RT;
 
       UT upper( 3UL );
       upper(0,1) = -4;
@@ -8928,7 +8308,7 @@ void DenseTest::testRow()
    {
       test_ = "Row-major row() function (scalar assignment test)";
 
-      typedef blaze::Row<UT>  RT;
+      typedef blaze::DenseRow<UT>  RT;
 
       UT upper( 3UL );
       upper(0,1) = -4;
@@ -8975,7 +8355,7 @@ void DenseTest::testRow()
    {
       test_ = "Column-major row() function";
 
-      typedef blaze::Row<OUT>  RT;
+      typedef blaze::DenseRow<OUT>  RT;
 
       OUT upper( 3UL );
       upper(0,1) = -4;
@@ -9062,7 +8442,7 @@ void DenseTest::testRow()
    {
       test_ = "Column-major row() function (scalar assignment test)";
 
-      typedef blaze::Row<OUT>  RT;
+      typedef blaze::DenseRow<OUT>  RT;
 
       OUT upper( 3UL );
       upper(0,1) = -4;
@@ -9122,7 +8502,7 @@ void DenseTest::testColumn()
    {
       test_ = "Row-major column() function";
 
-      typedef blaze::Column<UT>  CT;
+      typedef blaze::DenseColumn<UT>  CT;
 
       UT upper( 3UL );
       upper(0,1) = -4;
@@ -9209,7 +8589,7 @@ void DenseTest::testColumn()
    {
       test_ = "Row-major column() function (scalar assignment test)";
 
-      typedef blaze::Column<UT>  CT;
+      typedef blaze::DenseColumn<UT>  CT;
 
       UT upper( 3UL );
       upper(0,1) = -4;
@@ -9256,7 +8636,7 @@ void DenseTest::testColumn()
    {
       test_ = "Column-major column() function";
 
-      typedef blaze::Column<OUT>  CT;
+      typedef blaze::DenseColumn<OUT>  CT;
 
       OUT upper( 3UL );
       upper(0,1) = -4;
@@ -9343,7 +8723,7 @@ void DenseTest::testColumn()
    {
       test_ = "Column-major column() function (scalar assignment test)";
 
-      typedef blaze::Column<OUT>  CT;
+      typedef blaze::DenseColumn<OUT>  CT;
 
       OUT upper( 3UL );
       upper(0,1) = -4;

@@ -40,6 +40,7 @@
 // Includes
 //*************************************************************************************************
 
+#include <blaze/util/Byte.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/Unused.h>
 
@@ -62,7 +63,7 @@ namespace blaze {
 */
 template< unsigned int N >
 struct Array {
-   byte_t array[N];
+   byte array[N];
 };
 /*! \endcond */
 //*************************************************************************************************

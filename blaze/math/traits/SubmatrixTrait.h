@@ -43,10 +43,11 @@
 #include <blaze/util/InvalidType.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -74,11 +75,10 @@ namespace blaze {
 //
 // <ul>
 //    <li>blaze::StaticMatrix</li>
-//    <li>blaze::HybridMatrix</li>
 //    <li>blaze::DynamicMatrix</li>
-//    <li>blaze::CustomMatrix</li>
 //    <li>blaze::CompressedMatrix</li>
-//    <li>blaze::Submatrix</li>
+//    <li>blaze::DenseSubmatrix</li>
+//    <li>blaze::SparseSubmatrix</li>
 // </ul>
 //
 //
@@ -120,37 +120,24 @@ struct SubmatrixTrait
  private:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   struct Failure { using Type = INVALID_TYPE; };
+   struct Failure { typedef INVALID_TYPE  Type; };
+   /*! \endcond */
+   //**********************************************************************************************
+
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   typedef typename RemoveReference< typename RemoveCV<MT>::Type >::Type  Tmp;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<MT>, IsVolatile<MT>, IsReference<MT> >
-                            , SubmatrixTrait< Decay_<MT> >
-                            , Failure >::Type;
+   typedef typename If< Or< IsConst<MT>, IsVolatile<MT>, IsReference<MT> >
+                      , SubmatrixTrait<Tmp>, Failure >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the SubmatrixTrait type trait.
-// \ingroup math_traits
-//
-// The SubmatrixTrait_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the SubmatrixTrait class template. For instance, given the matrix type \a MT the
-// following two type definitions are identical:
-
-   \code
-   using Type1 = typename SubmatrixTrait<MT>::Type;
-   using Type2 = SubmatrixTrait_<MT>;
-   \endcode
-*/
-template< typename MT >  // Type of the matrix
-using SubmatrixTrait_ = typename SubmatrixTrait<MT>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

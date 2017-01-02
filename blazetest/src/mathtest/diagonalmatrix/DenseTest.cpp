@@ -39,18 +39,18 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <memory>
-#include <blaze/math/Column.h>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/CompressedVector.h>
 #include <blaze/math/CustomMatrix.h>
+#include <blaze/math/DenseColumn.h>
+#include <blaze/math/DenseRow.h>
+#include <blaze/math/DenseSubmatrix.h>
 #include <blaze/math/DynamicVector.h>
 #include <blaze/math/HybridMatrix.h>
-#include <blaze/math/Row.h>
 #include <blaze/math/StaticMatrix.h>
-#include <blaze/math/Submatrix.h>
 #include <blaze/util/Complex.h>
 #include <blaze/util/policies/ArrayDelete.h>
+#include <blaze/util/UniqueArray.h>
 #include <blazetest/mathtest/diagonalmatrix/DenseTest.h>
 
 
@@ -401,123 +401,6 @@ void DenseTest::testConstructors()
 
 
    //=====================================================================================
-   // Row-major list initialization
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Row-major DiagonalMatrix initializer list constructor (complete list)";
-
-      const DT diag{ { 1, 0, 0 }, { 0, 2, 0 }, { 0, 0, 3 } };
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkCapacity( diag, 9UL );
-      checkNonZeros( diag, 3UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Row-major DiagonalMatrix initializer list constructor (incomplete list)";
-
-      const DT diag{ { 1 }, { 0, 2 }, { 0, 0, 3 } };
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkCapacity( diag, 9UL );
-      checkNonZeros( diag, 3UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major array initialization
-   //=====================================================================================
-
-   // Dynamic array initialization constructor
-   {
-      test_ = "Row-major DiagonalMatrix dynamic array initialization constructor";
-
-      std::unique_ptr<int[]> array( new int[9] );
-      array[0] = 1;
-      array[1] = 0;
-      array[2] = 0;
-      array[3] = 0;
-      array[4] = 2;
-      array[5] = 0;
-      array[6] = 0;
-      array[7] = 0;
-      array[8] = 3;
-      const DT diag( 3UL, array.get() );
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkCapacity( diag, 9UL );
-      checkNonZeros( diag, 3UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Static array initialization constructor
-   {
-      test_ = "Row-major DiagonalMatrix static array initialization constructor";
-
-      const int array[3][3] = { { 1, 0, 0 }, { 0, 2, 0 }, { 0, 0, 3 } };
-      const DT diag( array );
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkCapacity( diag, 9UL );
-      checkNonZeros( diag, 3UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major custom matrix constructors
    //=====================================================================================
 
@@ -530,7 +413,7 @@ void DenseTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5UL] );
+      blaze::UniqueArray<int> array( new int[5UL] );
       array[1] = 1;
       array[2] = 0;
       array[3] = 0;
@@ -563,7 +446,7 @@ void DenseTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[11UL] );
+      blaze::UniqueArray<int> array( new int[11UL] );
       array[1] = 1;
       array[2] = 0;
       array[6] = 0;
@@ -596,7 +479,7 @@ void DenseTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[4UL] );
+      blaze::UniqueArray<int> array( new int[4UL] );
       array[0] = 1;
       array[1] = 0;
       array[2] = 0;
@@ -629,7 +512,7 @@ void DenseTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[10UL] );
+      blaze::UniqueArray<int> array( new int[10UL] );
       array[0] = 1;
       array[1] = 0;
       array[5] = 0;
@@ -680,55 +563,6 @@ void DenseTest::testConstructors()
       diag1(2,2) = 3;
 
       const DT diag2( diag1 );
-
-      checkRows    ( diag2, 3UL );
-      checkColumns ( diag2, 3UL );
-      checkCapacity( diag2, 9UL );
-      checkNonZeros( diag2, 3UL );
-      checkNonZeros( diag2, 0UL, 1UL );
-      checkNonZeros( diag2, 1UL, 1UL );
-      checkNonZeros( diag2, 2UL, 1UL );
-
-      if( diag2(0,0) != 1 || diag2(0,1) != 0 || diag2(0,2) != 0 ||
-          diag2(1,0) != 0 || diag2(1,1) != 2 || diag2(1,2) != 0 ||
-          diag2(2,0) != 0 || diag2(2,1) != 0 || diag2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag2 << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Row-major DiagonalMatrix move constructor (0x0)";
-
-      DT diag1;
-      DT diag2( std::move( diag1 ) );
-
-      checkRows    ( diag2, 0UL );
-      checkColumns ( diag2, 0UL );
-      checkNonZeros( diag2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Row-major DiagonalMatrix move constructor (3x3)";
-
-      DT diag1( 3UL );
-      diag1(0,0) = 1;
-      diag1(1,1) = 2;
-      diag1(2,2) = 3;
-
-      DT diag2( std::move( diag1 ) );
 
       checkRows    ( diag2, 3UL );
       checkColumns ( diag2, 3UL );
@@ -1038,123 +872,6 @@ void DenseTest::testConstructors()
 
 
    //=====================================================================================
-   // Column-major list initialization
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Column-major DiagonalMatrix initializer list constructor (complete list)";
-
-      const ODT diag{ { 1, 0, 0 }, { 0, 2, 0 }, { 0, 0, 3 } };
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkCapacity( diag, 9UL );
-      checkNonZeros( diag, 3UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Column-major DiagonalMatrix initializer list constructor (incomplete list)";
-
-      const ODT diag{ { 1 }, { 0, 2 }, { 0, 0, 3 } };
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkCapacity( diag, 9UL );
-      checkNonZeros( diag, 3UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major array initialization
-   //=====================================================================================
-
-   // Dynamic array initialization constructor
-   {
-      test_ = "Column-major DiagonalMatrix dynamic array initialization constructor";
-
-      std::unique_ptr<int[]> array( new int[9] );
-      array[0] = 1;
-      array[1] = 0;
-      array[2] = 0;
-      array[3] = 0;
-      array[4] = 2;
-      array[5] = 0;
-      array[6] = 0;
-      array[7] = 0;
-      array[8] = 3;
-      const ODT diag( 3UL, array.get() );
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkCapacity( diag, 9UL );
-      checkNonZeros( diag, 3UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Static array initialization constructor
-   {
-      test_ = "Column-major DiagonalMatrix static array initialization constructor";
-
-      const int array[3][3] = { { 1, 0, 0 }, { 0, 2, 0 }, { 0, 0, 3 } };
-      const ODT diag( array );
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkCapacity( diag, 9UL );
-      checkNonZeros( diag, 3UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major custom matrix constructors
    //=====================================================================================
 
@@ -1167,7 +884,7 @@ void DenseTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5UL] );
+      blaze::UniqueArray<int> array( new int[5UL] );
       array[1] = 1;
       array[2] = 0;
       array[3] = 0;
@@ -1200,7 +917,7 @@ void DenseTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[11UL] );
+      blaze::UniqueArray<int> array( new int[11UL] );
       array[1] = 1;
       array[2] = 0;
       array[6] = 0;
@@ -1233,7 +950,7 @@ void DenseTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[4UL] );
+      blaze::UniqueArray<int> array( new int[4UL] );
       array[0] = 1;
       array[1] = 0;
       array[2] = 0;
@@ -1266,7 +983,7 @@ void DenseTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[10UL] );
+      blaze::UniqueArray<int> array( new int[10UL] );
       array[0] = 1;
       array[1] = 0;
       array[5] = 0;
@@ -1338,55 +1055,6 @@ void DenseTest::testConstructors()
          throw std::runtime_error( oss.str() );
       }
    }
-
-
-   //=====================================================================================
-   // Column-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Column-major DiagonalMatrix move constructor (0x0)";
-
-      ODT diag1;
-      ODT diag2( std::move( diag1 ) );
-
-      checkRows    ( diag2, 0UL );
-      checkColumns ( diag2, 0UL );
-      checkNonZeros( diag2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Column-major DiagonalMatrix move constructor (3x3)";
-
-      ODT diag1( 3UL );
-      diag1(0,0) = 1;
-      diag1(1,1) = 2;
-      diag1(2,2) = 3;
-
-      ODT diag2( std::move( diag1 ) );
-
-      checkRows    ( diag2, 3UL );
-      checkColumns ( diag2, 3UL );
-      checkCapacity( diag2, 9UL );
-      checkNonZeros( diag2, 3UL );
-      checkNonZeros( diag2, 0UL, 1UL );
-      checkNonZeros( diag2, 1UL, 1UL );
-      checkNonZeros( diag2, 2UL, 1UL );
-
-      if( diag2(0,0) != 1 || diag2(0,1) != 0 || diag2(0,2) != 0 ||
-          diag2(1,0) != 0 || diag2(1,1) != 2 || diag2(1,2) != 0 ||
-          diag2(2,0) != 0 || diag2(2,1) != 0 || diag2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag2 << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
 }
 //*************************************************************************************************
 
@@ -1435,101 +1103,6 @@ void DenseTest::testAssignment()
 
 
    //=====================================================================================
-   // Row-major list assignment
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Row-major DiagonalMatrix initializer list assignment (complete list)";
-
-      DT diag;
-      diag = { { 1, 0, 0 }, { 0, 2, 0 }, { 0, 0, 3 } };
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkCapacity( diag, 9UL );
-      checkNonZeros( diag, 3UL );
-      checkNonZeros( diag, 0UL, 1UL );
-      checkNonZeros( diag, 1UL, 1UL );
-      checkNonZeros( diag, 2UL, 1UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Row-major DiagonalMatrix initializer list assignment (incomplete list)";
-
-      DT diag;
-      diag = { { 1 }, { 0, 2 }, { 0, 0, 3 } };
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkCapacity( diag, 9UL );
-      checkNonZeros( diag, 3UL );
-      checkNonZeros( diag, 0UL, 1UL );
-      checkNonZeros( diag, 1UL, 1UL );
-      checkNonZeros( diag, 2UL, 1UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major array assignment
-   //=====================================================================================
-
-   // Array assignment
-   {
-      test_ = "Row-major DiagonalMatrix array assignment";
-
-      const int array[3][3] = { { 1, 0, 0 }, { 0, 2, 0 }, { 0, 0, 3 } };
-      DT diag;
-      diag = array;
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkCapacity( diag, 9UL );
-      checkNonZeros( diag, 3UL );
-      checkNonZeros( diag, 0UL, 1UL );
-      checkNonZeros( diag, 1UL, 1UL );
-      checkNonZeros( diag, 2UL, 1UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major copy assignment
    //=====================================================================================
 
@@ -1557,56 +1130,6 @@ void DenseTest::testAssignment()
 
       DT diag2;
       diag2 = diag1;
-
-      checkRows    ( diag2, 3UL );
-      checkColumns ( diag2, 3UL );
-      checkNonZeros( diag2, 3UL );
-      checkNonZeros( diag2, 0UL, 1UL );
-      checkNonZeros( diag2, 1UL, 1UL );
-      checkNonZeros( diag2, 2UL, 1UL );
-
-      if( diag2(0,0) != 1 || diag2(0,1) != 0 || diag2(0,2) != 0 ||
-          diag2(1,0) != 0 || diag2(1,1) != 2 || diag2(1,2) != 0 ||
-          diag2(2,0) != 0 || diag2(2,1) != 0 || diag2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag2 << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Row-major DiagonalMatrix move assignment (0x0)";
-
-      DT diag1, diag2;
-
-      diag2 = std::move( diag1 );
-
-      checkRows    ( diag2, 0UL );
-      checkColumns ( diag2, 0UL );
-      checkNonZeros( diag2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Row-major DiagonalMatrix move assignment (3x3)";
-
-      DT diag1( 3UL );
-      diag1(0,0) = 1;
-      diag1(1,1) = 2;
-      diag1(2,2) = 3;
-
-      DT diag2;
-      diag2 = std::move( diag1 );
 
       checkRows    ( diag2, 3UL );
       checkColumns ( diag2, 3UL );
@@ -2152,101 +1675,6 @@ void DenseTest::testAssignment()
 
 
    //=====================================================================================
-   // Column-major list assignment
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Column-major DiagonalMatrix initializer list assignment (complete list)";
-
-      ODT diag;
-      diag = { { 1, 0, 0 }, { 0, 2, 0 }, { 0, 0, 3 } };
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkCapacity( diag, 9UL );
-      checkNonZeros( diag, 3UL );
-      checkNonZeros( diag, 0UL, 1UL );
-      checkNonZeros( diag, 1UL, 1UL );
-      checkNonZeros( diag, 2UL, 1UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Column-major DiagonalMatrix initializer list assignment (incomplete list)";
-
-      ODT diag;
-      diag = { { 1 }, { 0, 2 }, { 0, 0, 3 } };
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkCapacity( diag, 9UL );
-      checkNonZeros( diag, 3UL );
-      checkNonZeros( diag, 0UL, 1UL );
-      checkNonZeros( diag, 1UL, 1UL );
-      checkNonZeros( diag, 2UL, 1UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major array assignment
-   //=====================================================================================
-
-   // Array assignment
-   {
-      test_ = "Column-major DiagonalMatrix array assignment";
-
-      const int array[3][3] = { { 1, 0, 0 }, { 0, 2, 0 }, { 0, 0, 3 } };
-      ODT diag;
-      diag = array;
-
-      checkRows    ( diag, 3UL );
-      checkColumns ( diag, 3UL );
-      checkCapacity( diag, 9UL );
-      checkNonZeros( diag, 3UL );
-      checkNonZeros( diag, 0UL, 1UL );
-      checkNonZeros( diag, 1UL, 1UL );
-      checkNonZeros( diag, 2UL, 1UL );
-
-      if( diag(0,0) != 1 || diag(0,1) != 0 || diag(0,2) != 0 ||
-          diag(1,0) != 0 || diag(1,1) != 2 || diag(1,2) != 0 ||
-          diag(2,0) != 0 || diag(2,1) != 0 || diag(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major copy assignment
    //=====================================================================================
 
@@ -2274,56 +1702,6 @@ void DenseTest::testAssignment()
 
       ODT diag2;
       diag2 = diag1;
-
-      checkRows    ( diag2, 3UL );
-      checkColumns ( diag2, 3UL );
-      checkNonZeros( diag2, 3UL );
-      checkNonZeros( diag2, 0UL, 1UL );
-      checkNonZeros( diag2, 1UL, 1UL );
-      checkNonZeros( diag2, 2UL, 1UL );
-
-      if( diag2(0,0) != 1 || diag2(0,1) != 0 || diag2(0,2) != 0 ||
-          diag2(1,0) != 0 || diag2(1,1) != 2 || diag2(1,2) != 0 ||
-          diag2(2,0) != 0 || diag2(2,1) != 0 || diag2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << diag2 << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 0 2 0 )\n( 0 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Column-major DiagonalMatrix move assignment (0x0)";
-
-      ODT diag1, diag2;
-
-      diag2 = std::move( diag1 );
-
-      checkRows    ( diag2, 0UL );
-      checkColumns ( diag2, 0UL );
-      checkNonZeros( diag2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Column-major DiagonalMatrix move assignment (3x3)";
-
-      ODT diag1( 3UL );
-      diag1(0,0) = 1;
-      diag1(1,1) = 2;
-      diag1(2,2) = 3;
-
-      ODT diag2;
-      diag2 = std::move( diag1 );
 
       checkRows    ( diag2, 3UL );
       checkColumns ( diag2, 3UL );
@@ -9441,7 +8819,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function";
 
-      typedef blaze::Submatrix<DT>  SMT;
+      typedef blaze::DenseSubmatrix<DT>  SMT;
 
       DT diag( 3UL );
       diag(0,0) = 1;
@@ -9535,7 +8913,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function (scalar assignment test 1)";
 
-      typedef blaze::Submatrix<DT>  SMT;
+      typedef blaze::DenseSubmatrix<DT>  SMT;
 
       DT diag( 4UL );
       diag(0,0) = 1;
@@ -9591,7 +8969,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function (scalar assignment test 2)";
 
-      typedef blaze::Submatrix<DT>  SMT;
+      typedef blaze::DenseSubmatrix<DT>  SMT;
 
       DT diag( 4UL );
       diag(0,0) = 1;
@@ -9645,7 +9023,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function (scalar assignment test 3)";
 
-      typedef blaze::Submatrix<DT>  SMT;
+      typedef blaze::DenseSubmatrix<DT>  SMT;
 
       DT diag( 4UL );
       diag(0,0) = 1;
@@ -9699,7 +9077,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function (scalar assignment test 4)";
 
-      typedef blaze::Submatrix<DT>  SMT;
+      typedef blaze::DenseSubmatrix<DT>  SMT;
 
       DT diag( 4UL );
       diag(0,0) = 1;
@@ -9754,7 +9132,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function";
 
-      typedef blaze::Submatrix<ODT>  SMT;
+      typedef blaze::DenseSubmatrix<ODT>  SMT;
 
       ODT diag( 3UL );
       diag(0,0) = 1;
@@ -9848,7 +9226,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function (scalar assignment test 1)";
 
-      typedef blaze::Submatrix<ODT>  SMT;
+      typedef blaze::DenseSubmatrix<ODT>  SMT;
 
       ODT diag( 4UL );
       diag(0,0) = 1;
@@ -9904,7 +9282,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function (scalar assignment test 2)";
 
-      typedef blaze::Submatrix<ODT>  SMT;
+      typedef blaze::DenseSubmatrix<ODT>  SMT;
 
       ODT diag( 4UL );
       diag(0,0) = 1;
@@ -9958,7 +9336,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function (scalar assignment test 3)";
 
-      typedef blaze::Submatrix<ODT>  SMT;
+      typedef blaze::DenseSubmatrix<ODT>  SMT;
 
       ODT diag( 4UL );
       diag(0,0) = 1;
@@ -10012,7 +9390,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function (scalar assignment test 4)";
 
-      typedef blaze::Submatrix<ODT>  SMT;
+      typedef blaze::DenseSubmatrix<ODT>  SMT;
 
       ODT diag( 4UL );
       diag(0,0) = 1;
@@ -10080,7 +9458,7 @@ void DenseTest::testRow()
    {
       test_ = "Row-major row() function";
 
-      typedef blaze::Row<DT>  RT;
+      typedef blaze::DenseRow<DT>  RT;
 
       DT diag( 3UL );
       diag(0,0) = 1;
@@ -10168,7 +9546,7 @@ void DenseTest::testRow()
    {
       test_ = "Row-major row() function (scalar assignment test)";
 
-      typedef blaze::Row<DT>  RT;
+      typedef blaze::DenseRow<DT>  RT;
 
       DT diag( 3UL );
       diag(0,0) = 1;
@@ -10216,7 +9594,7 @@ void DenseTest::testRow()
    {
       test_ = "Column-major row() function";
 
-      typedef blaze::Row<ODT>  RT;
+      typedef blaze::DenseRow<ODT>  RT;
 
       ODT diag( 3UL );
       diag(0,0) = 1;
@@ -10304,7 +9682,7 @@ void DenseTest::testRow()
    {
       test_ = "Column-major row() function (scalar assignment test)";
 
-      typedef blaze::Row<ODT>  RT;
+      typedef blaze::DenseRow<ODT>  RT;
 
       ODT diag( 3UL );
       diag(0,0) = 1;
@@ -10365,7 +9743,7 @@ void DenseTest::testColumn()
    {
       test_ = "Row-major column() function";
 
-      typedef blaze::Column<DT>  CT;
+      typedef blaze::DenseColumn<DT>  CT;
 
       DT diag( 3UL );
       diag(0,0) = 1;
@@ -10453,7 +9831,7 @@ void DenseTest::testColumn()
    {
       test_ = "Row-major column() function (scalar assignment test)";
 
-      typedef blaze::Column<DT>  CT;
+      typedef blaze::DenseColumn<DT>  CT;
 
       DT diag( 3UL );
       diag(0,0) = 1;
@@ -10501,7 +9879,7 @@ void DenseTest::testColumn()
    {
       test_ = "Column-major column() function";
 
-      typedef blaze::Column<ODT>  CT;
+      typedef blaze::DenseColumn<ODT>  CT;
 
       ODT diag( 3UL );
       diag(0,0) = 1;
@@ -10589,7 +9967,7 @@ void DenseTest::testColumn()
    {
       test_ = "Column-major column() function (scalar assignment test)";
 
-      typedef blaze::Column<ODT>  CT;
+      typedef blaze::DenseColumn<ODT>  CT;
 
       ODT diag( 3UL );
       diag(0,0) = 1;

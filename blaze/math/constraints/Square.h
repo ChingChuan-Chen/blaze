@@ -41,6 +41,8 @@
 //*************************************************************************************************
 
 #include <blaze/math/typetraits/IsSquare.h>
+#include <blaze/util/constraints/ConstraintTest.h>
+#include <blaze/util/Suffix.h>
 
 
 namespace blaze {
@@ -52,13 +54,32 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup math_constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_BE_SQUARE_FAILED;
+template<> struct CONSTRAINT_MUST_BE_SQUARE_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the data type.
 // \ingroup math_constraints
 //
 // In case the given data type \a T is not a square matrix type, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_BE_SQUARE(T) \
-   static_assert( ::blaze::IsSquare<T>::value, "Non-square matrix type detected" )
+   typedef \
+      blaze::CONSTRAINT_TEST< \
+         blaze::CONSTRAINT_MUST_BE_SQUARE_FAILED< blaze::IsSquare<T>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_BE_SQUARE_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -71,13 +92,32 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup math_constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_NOT_BE_SQUARE_FAILED;
+template<> struct CONSTRAINT_MUST_NOT_BE_SQUARE_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the data type.
 // \ingroup math_constraints
 //
 // In case the given data type \a T is a square matrix type, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_NOT_BE_SQUARE(T) \
-   static_assert( !::blaze::IsSquare<T>::value, "Square matrix type detected" )
+   typedef \
+      blaze::CONSTRAINT_TEST< \
+         blaze::CONSTRAINT_MUST_NOT_BE_SQUARE_FAILED< !blaze::IsSquare<T>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_NOT_BE_SQUARE_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 } // namespace blaze

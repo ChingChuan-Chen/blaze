@@ -51,13 +51,14 @@
 #include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsBuiltin.h>
 #include <blaze/util/typetraits/IsComplex.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsNumeric.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -80,20 +81,19 @@ struct TDMatScalarDivExprTraitHelper
 {
  private:
    //**********************************************************************************************
-   using ScalarType = If_< Or< IsFloatingPoint< UnderlyingBuiltin_<MT> >
-                             , IsFloatingPoint< UnderlyingBuiltin_<ST> > >
-                         , If_< And< IsComplex< UnderlyingNumeric_<MT> >
-                                   , IsBuiltin<ST> >
-                              , DivTrait_< UnderlyingBuiltin_<MT>, ST >
-                              , DivTrait_< UnderlyingNumeric_<MT>, ST > >
-                         , ST >;
+   typedef typename UnderlyingNumeric<MT>::Type  NET;
+   typedef typename If< And< IsComplex<NET>, IsBuiltin<ST> >
+                           , typename DivTrait<typename UnderlyingBuiltin<MT>::Type,ST>::Type
+                           , typename DivTrait<NET,ST>::Type
+                           >::Type  ScalarType;
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
-   using Type = If_< IsInvertible<ScalarType>
-                   , DMatScalarMultExpr<MT,ScalarType,true>
-                   , DMatScalarDivExpr<MT,ScalarType,true> >;
+   typedef typename If< IsInvertible<ScalarType>
+                      , DMatScalarMultExpr<MT,ScalarType,true>
+                      , DMatScalarDivExpr<MT,ScalarType,true>
+                      >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -111,7 +111,7 @@ struct TDMatScalarDivExprTraitHelper<MT,ST,false>
 {
  public:
    //**********************************************************************************************
-   using Type = INVALID_TYPE;
+   typedef INVALID_TYPE  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -135,40 +135,29 @@ struct TDMatScalarDivExprTrait
  private:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   enum : bool { condition = And< IsDenseMatrix<MT>, IsColumnMajorMatrix<MT>, IsNumeric<ST> >::value };
+   enum { condition = IsDenseMatrix<MT>::value && IsColumnMajorMatrix<MT>::value &&
+                      IsNumeric<ST>::value };
+   /*! \endcond */
+   //**********************************************************************************************
+
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   typedef TDMatScalarDivExprTraitHelper<MT,ST,condition>  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<MT>::Type >::Type  Type1;
+   typedef typename RemoveReference< typename RemoveCV<ST>::Type >::Type  Type2;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<MT>, IsVolatile<MT>, IsReference<MT>
-                                , IsConst<ST>, IsVolatile<ST>, IsReference<ST> >
-                            , TDMatScalarDivExprTrait< Decay_<MT>, Decay_<ST> >
-                            , TDMatScalarDivExprTraitHelper<MT,ST,condition> >::Type;
+   typedef typename If< Or< IsConst<MT>, IsVolatile<MT>, IsReference<MT>
+                          , IsConst<ST>, IsVolatile<ST>, IsReference<ST> >
+                      , TDMatScalarDivExprTrait<Type1,Type2>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the TDMatScalarDivExprTrait class template.
-// \ingroup math_traits
-//
-// The TDMatScalarDivExprTrait_ alias declaration provides a convenient shortcut to access
-// the nested \a Type of the TDMatScalarDivExprTrait class template. For instance, given the
-// column-major dense matrix type \a MT and the scalar type \a ST the following two type
-// definitions are identical:
-
-   \code
-   using Type1 = typename TDMatScalarDivExprTrait<MT,ST>::Type;
-   using Type2 = TDMatScalarDivExprTrait_<MT,ST>;
-   \endcode
-*/
-template< typename MT    // Type of the left-hand side dense matrix
-        , typename ST >  // Type of the right-hand side scalar
-using TDMatScalarDivExprTrait_ = typename TDMatScalarDivExprTrait<MT,ST>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

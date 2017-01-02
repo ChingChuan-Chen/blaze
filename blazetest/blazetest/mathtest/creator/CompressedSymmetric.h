@@ -45,7 +45,6 @@
 #include <blaze/math/SymmetricMatrix.h>
 #include <blaze/util/Random.h>
 #include <blazetest/mathtest/creator/Default.h>
-#include <blazetest/mathtest/creator/Policies.h>
 #include <blazetest/system/Types.h>
 
 
@@ -90,11 +89,7 @@ class Creator< blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > >
    /*!\name Operators */
    //@{
    // No explicitly declared copy assignment operator.
-
    const blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > operator()() const;
-
-   template< typename CP >
-   const blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > operator()( const CP& policy ) const;
    //@}
    //**********************************************************************************************
 
@@ -146,7 +141,7 @@ inline Creator< blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > >::Creat
 template< typename T  // Element type of the compressed matrix
         , bool SO >   // Storage order of the compressed matrix
 inline Creator< blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > >::Creator( size_t n, size_t nonzeros,
-                                                                                     const Creator<T>& elementCreator )
+                                                                                    const Creator<T>& elementCreator )
    : n_( n )                // The number of rows and columns of the symmetric compressed matrix
    , nonzeros_( nonzeros )  // The total number of non-zero elements in the symmetric compressed matrix
    , ec_( elementCreator )  // Creator for the elements of the symmetric compressed matrix
@@ -175,26 +170,9 @@ template< typename T  // Element type of the compressed matrix
 inline const blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> >
    Creator< blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > >::operator()() const
 {
-   return (*this)( Default() );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Returns a randomly created symmetric compressed matrix.
-//
-// \param policy The creation policy for the elements of fundamental data type.
-// \return The randomly generated symmetric compressed matrix.
-*/
-template< typename T     // Element type of the compressed matrix
-        , bool SO >      // Storage order of the compressed matrix
-template< typename CP >  // Creation policy
-inline const blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> >
-   Creator< blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > >::operator()( const CP& policy ) const
-{
    blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > matrix( n_, nonzeros_ );
    while( matrix.nonZeros() < nonzeros_ )
-      matrix( blaze::rand<size_t>(0UL,n_-1UL), blaze::rand<size_t>(0UL,n_-1UL) ) = ec_( policy );
+      matrix( blaze::rand<size_t>(0,n_-1), blaze::rand<size_t>(0,n_-1) ) = ec_();
    return matrix;
 }
 //*************************************************************************************************

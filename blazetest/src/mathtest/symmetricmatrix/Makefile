@@ -62,8 +62,6 @@ DenseNonNumericTest: DenseNonNumericTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 DenseNumericTest: DenseNumericTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
-IncludeTest: IncludeTest.o
-	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 RowNonNumericTest: RowNonNumericTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 RowNumericTest: RowNumericTest.o

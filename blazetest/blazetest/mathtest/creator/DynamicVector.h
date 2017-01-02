@@ -42,7 +42,6 @@
 
 #include <blaze/math/DynamicVector.h>
 #include <blazetest/mathtest/creator/Default.h>
-#include <blazetest/mathtest/creator/Policies.h>
 #include <blazetest/system/Types.h>
 
 
@@ -86,11 +85,7 @@ class Creator< blaze::DynamicVector<T,TF> >
    /*!\name Operators */
    //@{
    // No explicitly declared copy assignment operator.
-
    const blaze::DynamicVector<T,TF> operator()() const;
-
-   template< typename CP >
-   const blaze::DynamicVector<T,TF> operator()( const CP& policy ) const;
    //@}
    //**********************************************************************************************
 
@@ -160,26 +155,9 @@ template< typename T  // Element type of the N-dimensional vector
         , bool TF >   // Transpose flag of the N-dimensional vector
 inline const blaze::DynamicVector<T,TF> Creator< blaze::DynamicVector<T,TF> >::operator()() const
 {
-   return (*this)( Default() );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Returns a randomly created N-dimensional vector.
-//
-// \param policy The creation policy for the elements of fundamental data type.
-// \return The randomly generated N-dimensional vector.
-*/
-template< typename T     // Element type of the N-dimensional vector
-        , bool TF >      // Transpose flag of the N-dimensional vector
-template< typename CP >  // Creation policy
-inline const blaze::DynamicVector<T,TF>
-   Creator< blaze::DynamicVector<T,TF> >::operator()( const CP& policy ) const
-{
    blaze::DynamicVector<T,TF> vector( size_ );
-   for( size_t i=0UL; i<size_; ++i )
-      vector[i] = ec_( policy );
+   for( size_t i=0; i<size_; ++i )
+      vector[i] = ec_();
    return vector;
 }
 //*************************************************************************************************

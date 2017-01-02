@@ -46,6 +46,7 @@
 #include <blaze/util/constraints/Convertible.h>
 #include <blaze/util/constraints/DerivedFrom.h>
 #include <blaze/util/Exception.h>
+#include <blaze/util/Null.h>
 #include <blaze/util/policies/PtrDelete.h>
 #include <blaze/util/policies/OptimalGrowth.h>
 #include <blaze/util/PtrIterator.h>
@@ -413,7 +414,7 @@ class PtrVector
    /*!\name Utility functions */
    //@{
           void reserve( SizeType newCapacity );
-   inline void swap( PtrVector& pv ) noexcept;
+   inline void swap( PtrVector& pv ) /* throw() */;
    //@}
    //**********************************************************************************************
 
@@ -810,7 +811,7 @@ inline typename PtrVector<T,D,G>::SizeType PtrVector<T,D,G>::size() const
    AVector::SizeType numB  = vector.size<B>();  // Calculating the total number of B objects
    \endcode
 
-// \note The total number of objects of type \a C is not cached inside the pointer vector
+// \note: The total number of objects of type \a C is not cached inside the pointer vector
 // but is calculated each time the function is called. Using the templated version of size()
 // to calculate the total number objects of type \a C is therefore more expensive than using
 // the non-template version of size() to get the total number of pointers in the vector!
@@ -880,7 +881,7 @@ inline bool PtrVector<T,D,G>::isEmpty() const
 // \param index Access index. The index has to be in the range \f$[0..size-1]\f$.
 // \return Handle to the accessed element.
 //
-// \note No runtime check is performed to insure the validity of the access index.
+// \note: No runtime check is performed to insure the validity of the access index.
 */
 template< typename T    // Type
         , typename D    // Deletion policy
@@ -898,7 +899,7 @@ inline typename PtrVector<T,D,G>::ReferenceType PtrVector<T,D,G>::operator[]( Si
 // \param index Access index. The index has to be in the range \f$[0..size-1]\f$.
 // \return Handle to the accessed element.
 //
-// \note No runtime check is performed to insure the validity of the access index.
+// \note: No runtime check is performed to insure the validity of the access index.
 */
 template< typename T    // Type
         , typename D    // Deletion policy
@@ -915,7 +916,7 @@ inline typename PtrVector<T,D,G>::ConstReferenceType PtrVector<T,D,G>::operator[
 //
 // \return Handle to the first element.
 //
-// \note No runtime check is performed if the first element exists!
+// \note: No runtime check is performed if the first element exists!
 */
 template< typename T    // Type
         , typename D    // Deletion policy
@@ -933,7 +934,7 @@ inline typename PtrVector<T,D,G>::ReferenceType PtrVector<T,D,G>::front()
 //
 // \return Handle to the first element.
 //
-// \note No runtime check is performed if the first element exists!
+// \note: No runtime check is performed if the first element exists!
 */
 template< typename T    // Type
         , typename D    // Deletion policy
@@ -951,7 +952,7 @@ inline typename PtrVector<T,D,G>::ConstReferenceType PtrVector<T,D,G>::front() c
 //
 // \return Handle to the last element.
 //
-// \note No runtime check is performed if the last element exists!
+// \note: No runtime check is performed if the last element exists!
 */
 template< typename T    // Type
         , typename D    // Deletion policy
@@ -969,7 +970,7 @@ inline typename PtrVector<T,D,G>::ReferenceType PtrVector<T,D,G>::back()
 //
 // \return Handle to the last element.
 //
-// \note No runtime check is performed if the last element exists!
+// \note: No runtime check is performed if the last element exists!
 */
 template< typename T    // Type
         , typename D    // Deletion policy
@@ -1060,7 +1061,7 @@ inline typename PtrVector<T,D,G>::ConstIterator PtrVector<T,D,G>::begin() const
    }
    \endcode
 
-// \note Using the templated versions of begin() and end() to traverse all elements of type
+// \note: Using the templated versions of begin() and end() to traverse all elements of type
 // \a C in the element range of the pointer vector is more expensive than using the non-template
 // versions to traverse the entire range of elements. Use this function only if you require a
 // type-specific member of type \a C.
@@ -1116,7 +1117,7 @@ inline typename PtrVector<T,D,G>::BLAZE_TEMPLATE CastIterator<C> PtrVector<T,D,G
    }
    \endcode
 
-// \note Using the templated versions of begin() and end() to traverse all elements of type
+// \note: Using the templated versions of begin() and end() to traverse all elements of type
 // \a C in the element range of the pointer vector is more expensive than using the non-template
 // version to traverse the entire range of elements. Use this function only if you require a
 // type-specific member of type \a C.
@@ -1199,7 +1200,7 @@ inline typename PtrVector<T,D,G>::ConstIterator PtrVector<T,D,G>::end() const
    }
    \endcode
 
-// \note Using the templated versions of begin() and end() to traverse all elements of type
+// \note: Using the templated versions of begin() and end() to traverse all elements of type
 // \a C in the element range of the pointer vector is more expensive than using the non-template
 // versions to traverse the entire range of elements. Use this function only if you require a
 // type-specific member of type \a C.
@@ -1252,7 +1253,7 @@ inline typename PtrVector<T,D,G>::BLAZE_TEMPLATE CastIterator<C> PtrVector<T,D,G
    }
    \endcode
 
-// \note Using the templated versions of begin() and end() to traverse all elements of type
+// \note: Using the templated versions of begin() and end() to traverse all elements of type
 // \a C in the element range of the pointer vector is more expensive than using the non-template
 // version to traverse the entire range of elements. Use this function only if you require a
 // type-specific member of type \a C.
@@ -1630,7 +1631,7 @@ void PtrVector<T,D,G>::reserve( SizeType newCapacity )
 template< typename T    // Type
         , typename D    // Deletion policy
         , typename G >  // Growth policy
-inline void PtrVector<T,D,G>::swap( PtrVector& pv ) noexcept
+inline void PtrVector<T,D,G>::swap( PtrVector& pv ) /* throw() */
 {
    // By using the 'std::swap' function to swap all member variables,
    // the function can give the nothrow guarantee.
@@ -1866,7 +1867,7 @@ template< typename T, typename D, typename G >
 inline bool operator!=( const PtrVector<T,D,G>& lhs, const PtrVector<T,D,G>& rhs );
 
 template< typename T, typename D, typename G >
-inline void swap( PtrVector<T,D,G>& a, PtrVector<T,D,G>& b ) noexcept;
+inline void swap( PtrVector<T,D,G>& a, PtrVector<T,D,G>& b ) /* throw() */;
 //@}
 //*************************************************************************************************
 
@@ -1916,7 +1917,7 @@ inline bool operator!=( const PtrVector<T,D,G>& lhs, const PtrVector<T,D,G>& rhs
 template< typename T    // Type
         , typename D    // Deletion policy
         , typename G >  // Growth policy
-inline void swap( PtrVector<T,D,G>& a, PtrVector<T,D,G>& b ) noexcept
+inline void swap( PtrVector<T,D,G>& a, PtrVector<T,D,G>& b ) /* throw() */
 {
    a.swap( b );
 }
@@ -1955,7 +1956,7 @@ inline void swap( PtrVector<T,D,G>& a, PtrVector<T,D,G>& b ) noexcept
       ...
    \endcode
 
-// \note Using a CastIterator is computationally more expensive than using a standard iterator
+// \note: Using a CastIterator is computationally more expensive than using a standard iterator
 // over all elements contained in the vector.
 */
 template< typename T    // Type
@@ -2055,8 +2056,8 @@ template< typename T    // Type
         , typename G >  // Growth policy
 template< typename C >  // Cast type
 inline PtrVector<T,D,G>::CastIterator<C>::CastIterator()
-   : cur_( nullptr )  // Pointer to the current memory location
-   , end_( nullptr )  // Pointer to the element one past the last element in the element range
+   : cur_(NULL)  // Pointer to the current memory location
+   , end_(NULL)  // Pointer to the element one past the last element in the element range
 {
    BLAZE_CONSTRAINT_MUST_BE_STRICTLY_DERIVED_FROM( C, T );
 }
@@ -2288,7 +2289,7 @@ inline const typename PtrVector<T,D,G>::BLAZE_TEMPLATE CastIterator<C>::Iterator
       ...
    \endcode
 
-// \note Using a ConstCastIterator is computationally more expensive than using a standard
+// \note: Using a ConstCastIterator is computationally more expensive than using a standard
 // iterator over all elements contained in the vector.
 */
 template< typename T    // Type
@@ -2391,8 +2392,8 @@ template< typename T    // Type
         , typename G >  // Growth policy
 template< typename C >  // Cast type
 inline PtrVector<T,D,G>::ConstCastIterator<C>::ConstCastIterator()
-   : cur_( nullptr )  // Pointer to the current memory location
-   , end_( nullptr )  // Pointer to the element one past the last element in the element range
+   : cur_(NULL)  // Pointer to the current memory location
+   , end_(NULL)  // Pointer to the element one past the last element in the element range
 {
    BLAZE_CONSTRAINT_MUST_BE_STRICTLY_DERIVED_FROM( C, T );
 }

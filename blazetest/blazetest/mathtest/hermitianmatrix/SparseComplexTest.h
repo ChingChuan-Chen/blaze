@@ -108,13 +108,13 @@ class SparseComplexTest
    void testSet         ();
    void testInsert      ();
    void testAppend      ();
+   void testErase       ();
    void testResize      ();
    void testReserve     ();
    void testTrim        ();
    void testTranspose   ();
    void testCTranspose  ();
    void testSwap        ();
-   void testErase       ();
    void testFind        ();
    void testLowerBound  ();
    void testUpperBound  ();
@@ -495,7 +495,7 @@ void runTest()
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Macro for the execution of the HermitianMatrix sparse complex test.
+/*!\brief Macro for the execution of the sparse complex HermitianMatrix test.
 */
 #define RUN_HERMITIANMATRIX_SPARSECOMPLEX_TEST \
    blazetest::mathtest::hermitianmatrix::runTest()

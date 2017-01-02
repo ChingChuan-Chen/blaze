@@ -45,9 +45,10 @@
 #include <string>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/CompressedVector.h>
-#include <blaze/math/Column.h>
+#include <blaze/math/DenseColumn.h>
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/DynamicVector.h>
+#include <blaze/math/SparseColumn.h>
 #include <blaze/math/StrictlyUpperMatrix.h>
 #include <blaze/math/traits/ColumnExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
@@ -159,7 +160,7 @@ class ColumnTest
 template< typename UT >  // Type of the strictly upper matrix
 void ColumnTest::testAssignment()
 {
-   typedef blaze::ColumnExprTrait_<UT>  CT;
+   typedef typename blaze::ColumnExprTrait<UT>::Type  CT;
 
 
    //=====================================================================================
@@ -383,7 +384,7 @@ void ColumnTest::testAssignment()
 template< typename UT >  // Type of the strictly upper matrix
 void ColumnTest::testAddAssign()
 {
-   typedef blaze::ColumnExprTrait_<UT>  CT;
+   typedef typename blaze::ColumnExprTrait<UT>::Type  CT;
 
 
    //=====================================================================================
@@ -607,7 +608,7 @@ void ColumnTest::testAddAssign()
 template< typename UT >  // Type of the strictly upper matrix
 void ColumnTest::testSubAssign()
 {
-   typedef blaze::ColumnExprTrait_<UT>  CT;
+   typedef typename blaze::ColumnExprTrait<UT>::Type  CT;
 
 
    //=====================================================================================
@@ -831,7 +832,7 @@ void ColumnTest::testSubAssign()
 template< typename UT >  // Type of the strictly upper matrix
 void ColumnTest::testMultAssign()
 {
-   typedef blaze::ColumnExprTrait_<UT>  CT;
+   typedef typename blaze::ColumnExprTrait<UT>::Type  CT;
 
 
    //=====================================================================================

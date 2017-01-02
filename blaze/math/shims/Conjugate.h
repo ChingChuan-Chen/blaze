@@ -40,7 +40,6 @@
 // Includes
 //*************************************************************************************************
 
-#include <utility>
 #include <blaze/system/Inline.h>
 #include <blaze/util/DisableIf.h>
 #include <blaze/util/EnableIf.h>
@@ -79,7 +78,8 @@ namespace blaze {
 //       https://en.wikipedia.org/wiki/Complex_conjugate
 */
 template< typename T >
-BLAZE_ALWAYS_INLINE constexpr EnableIf_< IsBuiltin<T>, T > conj( T a ) noexcept
+BLAZE_ALWAYS_INLINE typename EnableIf< IsBuiltin<T>, T >::Type
+   conj( T a )
 {
    return a;
 }
@@ -117,7 +117,7 @@ BLAZE_ALWAYS_INLINE constexpr EnableIf_< IsBuiltin<T>, T > conj( T a ) noexcept
 //       https://en.wikipedia.org/wiki/Complex_conjugate
 */
 template< typename T >
-BLAZE_ALWAYS_INLINE void conjugate( T& a ) noexcept( IsNumeric<T>::value )
+BLAZE_ALWAYS_INLINE void conjugate( T& a )
 {
    a = conj( a );
 }
@@ -142,7 +142,8 @@ BLAZE_ALWAYS_INLINE void conjugate( T& a ) noexcept( IsNumeric<T>::value )
 // \return void
 */
 template< typename T >
-BLAZE_ALWAYS_INLINE DisableIf_< IsNumeric<T> > cswap_backend( T& a, T& b )
+BLAZE_ALWAYS_INLINE typename DisableIf< IsNumeric<T> >::Type
+   cswap_backend( T& a, T& b )
 {
    using std::swap;
 
@@ -164,7 +165,8 @@ BLAZE_ALWAYS_INLINE DisableIf_< IsNumeric<T> > cswap_backend( T& a, T& b )
 // \return void
 */
 template< typename T >
-BLAZE_ALWAYS_INLINE EnableIf_< IsNumeric<T> > cswap_backend( T& a, T& b ) noexcept
+BLAZE_ALWAYS_INLINE typename EnableIf< IsNumeric<T> >::Type
+   cswap_backend( T& a, T& b )
 {
    const T tmp( a );
    a = conj( b );
@@ -192,7 +194,7 @@ BLAZE_ALWAYS_INLINE EnableIf_< IsNumeric<T> > cswap_backend( T& a, T& b ) noexce
    \endcode
 */
 template< typename T >
-BLAZE_ALWAYS_INLINE void cswap( T& a, T& b ) noexcept( IsNumeric<T>::value )
+BLAZE_ALWAYS_INLINE void cswap( T& a, T& b )
 {
    cswap_backend( a, b );
 }

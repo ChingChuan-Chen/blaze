@@ -47,10 +47,11 @@
 #include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -80,40 +81,22 @@ struct DMatDMatAddExprTrait
    /*! \cond BLAZE_INTERNAL */
    typedef If< And< IsDenseMatrix<MT1>, IsRowMajorMatrix<MT1>
                   , IsDenseMatrix<MT2>, IsRowMajorMatrix<MT2> >
-             , DMatDMatAddExpr<MT1,MT2,false>
-             , INVALID_TYPE >  Tmp;
+             , DMatDMatAddExpr<MT1,MT2,false>, INVALID_TYPE >  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<MT1>::Type >::Type  Type1;
+   typedef typename RemoveReference< typename RemoveCV<MT2>::Type >::Type  Type2;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   typedef typename If_< Or< IsConst<MT1>, IsVolatile<MT1>, IsReference<MT1>
-                           , IsConst<MT2>, IsVolatile<MT2>, IsReference<MT2> >
-                       , DMatDMatAddExprTrait< Decay_<MT1>, Decay_<MT2> >
-                       , Tmp >::Type  Type;
+   typedef typename If< Or< IsConst<MT1>, IsVolatile<MT1>, IsReference<MT1>
+                          , IsConst<MT2>, IsVolatile<MT2>, IsReference<MT2> >
+                      , DMatDMatAddExprTrait<Type1,Type2>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the DMatDMatAddExprTrait class template.
-// \ingroup math_traits
-//
-// The DMatDMatAddExprTrait_ alias declaration provides a convenient shortcut to access the
-// nested \a Type of the DMatDMatAddExprTrait class template. For instance, given the row-major
-// dense matrix types \a MT1 and \a MT2 the following two type definitions are identical:
-
-   \code
-   using Type1 = typename DMatDMatAddExprTrait<MT1,MT2>::Type;
-   using Type2 = DMatDMatAddExprTrait_<MT1,MT2>;
-   \endcode
-*/
-template< typename MT1    // Type of the left-hand side row-major dense matrix
-        , typename MT2 >  // Type of the right-hand side row-major dense matrix
-using DMatDMatAddExprTrait_ = typename DMatDMatAddExprTrait<MT1,MT2>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

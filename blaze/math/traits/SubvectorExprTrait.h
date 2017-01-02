@@ -43,13 +43,12 @@
 #include <blaze/math/typetraits/IsComputation.h>
 #include <blaze/math/typetraits/IsDenseVector.h>
 #include <blaze/math/typetraits/IsRowVector.h>
+#include <blaze/math/typetraits/IsSparseVector.h>
 #include <blaze/math/typetraits/IsTransExpr.h>
-#include <blaze/math/typetraits/IsVector.h>
 #include <blaze/math/views/Forward.h>
 #include <blaze/util/InvalidType.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
@@ -81,56 +80,49 @@ struct SubvectorExprTrait
  private:
    //**struct Failure******************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   struct Failure { using Type = INVALID_TYPE; };
+   struct Failure { typedef INVALID_TYPE  Type; };
    /*! \endcond */
    //**********************************************************************************************
 
-   //**struct Result*******************************************************************************
+   //**struct DenseResult**************************************************************************
    /*! \cond BLAZE_INTERNAL */
    template< typename T >
-   struct Result { using Type = Subvector< T, AF, IsRowVector<T>::value, IsDenseVector<T>::value >; };
+   struct DenseResult { typedef DenseSubvector<T,AF,IsRowVector<T>::value>  Type; };
+   /*! \endcond */
+   //**********************************************************************************************
+
+   //**struct SparseResult*************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   template< typename T >
+   struct SparseResult { typedef SparseSubvector<T,AF,IsRowVector<T>::value>  Type; };
    /*! \endcond */
    //**********************************************************************************************
 
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Tmp = RemoveReference_<VT>;
+   typedef typename RemoveReference<VT>::Type  Tmp;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsComputation<Tmp>, IsTransExpr<Tmp> >
-                            , If_< Or< IsConst<Tmp>, IsVolatile<Tmp> >
-                                 , SubvectorExprTrait< RemoveCV_<Tmp>, AF >
-                                 , Failure >
-                            , If_< IsVector<Tmp>
-                                 , Result<Tmp>
-                                 , Failure >
-                            >::Type;
+   typedef typename If< Or< IsComputation<Tmp>, IsTransExpr<Tmp> >
+                      , typename If< Or< IsConst<Tmp>, IsVolatile<Tmp> >
+                                   , SubvectorExprTrait< typename RemoveCV<Tmp>::Type, AF >
+                                   , Failure
+                                   >::Type
+                      , typename If< IsDenseVector<Tmp>
+                                   , DenseResult<Tmp>
+                                   , typename If< IsSparseVector<Tmp>
+                                                , SparseResult<Tmp>
+                                                , Failure
+                                                >::Type
+                                   >::Type
+                      >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the SubvectorExprTrait type trait.
-// \ingroup math_traits
-//
-// The SubvectorExprTrait_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the SubvectorExprTrait class template. For instance, given the vector type \a VT the
-// following two type definitions are identical:
-
-   \code
-   using Type1 = typename SubvectorExprTrait<VT,AF>::Type;
-   using Type2 = SubvectorExprTrait_<VT,AF>;
-   \endcode
-*/
-template< typename VT  // Type of the vector operand
-        , bool AF >    // Alignment Flag
-using SubvectorExprTrait_ = typename SubvectorExprTrait<VT,AF>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

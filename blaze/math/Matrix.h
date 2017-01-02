@@ -42,69 +42,10 @@
 
 #include <iomanip>
 #include <ostream>
-#include <blaze/math/Aliases.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/Matrix.h>
 
 
 namespace blaze {
-
-//=================================================================================================
-//
-//  GLOBAL FUNCTIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*!\name Matrix functions */
-//@{
-template< typename MT, bool SO >
-inline auto trace( const Matrix<MT,SO>& m );
-//@}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Computes the trace of the given square matrix.
-// \ingroup matrix
-//
-// \param m Reference to a constant matrix object.
-// \return The trace of the matrix.
-// \exception std::invalid_argument Invalid input matrix for trace computation.
-//
-// This function computes the trace of the given square matrix, i.e. sums the elements on its
-// diagonal:
-
-            \f[ trace(A) = a_{11} + a_{22} + ... + a_{nn} = \sum_{i=1}^{n} a_{ii} \f]
-
-// In case the given matrix is not a square matrix a \a std::invalid_argument exception is thrown.
-*/
-template< typename MT  // Type of the matrix
-        , bool SO >    // Storage order
-inline auto trace( const Matrix<MT,SO>& m )
-{
-   using ET = ElementType_<MT>;
-
-   if( !isSquare( ~m ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid input matrix for trace computation" );
-   }
-
-   if( (~m).rows() == 0UL ) {
-      return ET();
-   }
-
-   ET tmp( (~m)(0UL,0UL) );
-
-   for( size_t i=1UL; i<(~m).rows(); ++i ) {
-      tmp += (~m)(i,i);
-   }
-
-   return tmp;
-}
-//*************************************************************************************************
-
-
-
 
 //=================================================================================================
 //
@@ -133,7 +74,7 @@ template< typename MT  // Type of the matrix
         , bool SO >    // Storage order
 inline std::ostream& operator<<( std::ostream& os, const Matrix<MT,SO>& m )
 {
-   CompositeType_<MT> tmp( ~m );
+   typename MT::CompositeType tmp( ~m );
 
    for( size_t i=0UL; i<tmp.rows(); ++i ) {
       os << "( ";

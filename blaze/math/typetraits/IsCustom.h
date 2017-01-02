@@ -57,10 +57,10 @@ namespace blaze {
 // \ingroup math_type_traits
 //
 // This type trait tests whether the given data type is a custom data type, i.e. a custom vector
-// or a custom matrix. In case the data type a custom data type, the \a value member constant is
-// set to \a true, the nested type definition \a Type is \a TrueType, and the class derives from
-// \a TrueType. Otherwise \a value is set to \a false, \a Type is \a FalseType, and the class
-// derives from \a FalseType. Examples:
+// or a custom matrix. In case the data type a custom data type, the \a value member enumeration
+// is set to 1, the nested type definition \a Type is \a TrueType, and the class derives from
+// \a TrueType. Otherwise \a value is set to 0, \a Type is \a FalseType, and the class derives
+// from \a FalseType. Examples:
 
    \code
    using blaze::CustomVector;
@@ -82,7 +82,15 @@ namespace blaze {
 */
 template< typename T >
 struct IsCustom : public FalseType
-{};
+{
+ public:
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   enum { value = 0 };
+   typedef FalseType  Type;
+   /*! \endcond */
+   //**********************************************************************************************
+};
 //*************************************************************************************************
 
 
@@ -92,8 +100,14 @@ struct IsCustom : public FalseType
 // \ingroup math_type_traits
 */
 template< typename T >
-struct IsCustom< const T > : public IsCustom<T>
-{};
+struct IsCustom< const T > : public IsCustom<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = IsCustom<T>::value };
+   typedef typename IsCustom<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -104,8 +118,14 @@ struct IsCustom< const T > : public IsCustom<T>
 // \ingroup math_type_traits
 */
 template< typename T >
-struct IsCustom< volatile T > : public IsCustom<T>
-{};
+struct IsCustom< volatile T > : public IsCustom<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = IsCustom<T>::value };
+   typedef typename IsCustom<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -116,8 +136,14 @@ struct IsCustom< volatile T > : public IsCustom<T>
 // \ingroup math_type_traits
 */
 template< typename T >
-struct IsCustom< const volatile T > : public IsCustom<T>
-{};
+struct IsCustom< const volatile T > : public IsCustom<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = IsCustom<T>::value };
+   typedef typename IsCustom<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 

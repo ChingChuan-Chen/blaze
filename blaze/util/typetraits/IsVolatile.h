@@ -40,8 +40,10 @@
 // Includes
 //*************************************************************************************************
 
-#include <type_traits>
-#include <blaze/util/IntegralConstant.h>
+#include <boost/type_traits/is_volatile.hpp>
+#include <blaze/util/FalseType.h>
+#include <blaze/util/SelectType.h>
+#include <blaze/util/TrueType.h>
 
 
 namespace blaze {
@@ -53,27 +55,52 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Auxiliary helper struct for the IsVolatile type trait.
+// \ingroup type_traits
+*/
+template< typename T >
+struct IsVolatileHelper
+{
+   //**********************************************************************************************
+   enum { value = boost::is_volatile<T>::value };
+   typedef typename SelectType<value,TrueType,FalseType>::Type  Type;
+   //**********************************************************************************************
+};
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Compile time check for volatile data types.
 // \ingroup type_traits
 //
 // The IsVolatile type trait tests whether or not the given template parameter is a (top level)
 // volatile-qualified data type. In case the given data type is volatile, the \a value member
-// constant is set to \a true, the nested type definition \a Type is \a TrueType, and the class
-// derives from \a TrueType. Otherwise \a value is set to \a false, \a Type is \a FalseType,
-// and the class derives from \a FalseType.
+// enumeration is set to 1, the nested type definition \a Type is \a TrueType, and the class
+// derives from \a TrueType. Otherwise \a value is set to 0, \a Type is \a FalseType, and the
+// class derives from \a FalseType.
 
    \code
-   blaze::IsVolatile<volatile int>::value        // Evaluates to 'true'
+   blaze::IsVolatile<volatile int>::value        // Evaluates to 1
    blaze::IsVolatile<const volatile int>::Type   // Results in TrueType
    blaze::IsVolatile<int* volatile>              // Is derived from TrueType
-   blaze::IsVolatile<volatile int*>::value       // Evaluates to 'false' (the volatile qualifier is not at the top level)
+   blaze::IsVolatile<volatile int*>::value       // Evaluates to 0 (the volatile qualifier is not at the top level)
    blaze::IsVolatile<const int>::Type            // Results in FalseType
    blaze::IsVolatile<int>                        // Is derived from FalseType
    \endcode
 */
 template< typename T >
-struct IsVolatile : public BoolConstant< std::is_volatile<T>::value  >
-{};
+struct IsVolatile : public IsVolatileHelper<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   enum { value = IsVolatileHelper<T>::value };
+   typedef typename IsVolatileHelper<T>::Type  Type;
+   /*! \endcond */
+   //**********************************************************************************************
+};
 //*************************************************************************************************
 
 } // namespace blaze

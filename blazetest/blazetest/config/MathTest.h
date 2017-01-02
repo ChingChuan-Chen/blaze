@@ -147,30 +147,6 @@ typedef double  TypeB;
 
 
 //*************************************************************************************************
-/*!\brief Compilation switch for the conjugate transpose tests.
-//
-// This compilation switch triggers the conjugate transpose tests for all test scenarios. In case
-// the conjugate transpose tests are activated, each operation is tested in combination with a
-// conjugate transpose operation. The following example demonstrates this by means of the vector
-// addition:
-
-   \code
-   blaze::DynamicVector< complex<double>, false > a, b;
-   blaze::DynamicVector< complex<double>, true > c;
-   c = ctrans( a + b );  // Conjugate transpose vector addition
-   \endcode
-
-// The following settings are possible:
-//
-//   - 0: The conjugate transpose tests are not included in the compilation process and not executed
-//   - 1: The conjugate transpose tests are included in the compilation process, but not executed
-//   - 2: The conjugate transpose tests are included in the compilation process and executed
-*/
-#define BLAZETEST_MATHTEST_TEST_CTRANS_OPERATION 0
-//*************************************************************************************************
-
-
-//*************************************************************************************************
 /*!\brief Compilation switch for the \a abs tests.
 //
 // This compilation switch triggers the \a abs tests for all test scenarios. In case the \a abs
@@ -212,6 +188,30 @@ typedef double  TypeB;
 //   - 2: The complex conjugate tests are included in the compilation process and executed
 */
 #define BLAZETEST_MATHTEST_TEST_CONJ_OPERATION 0
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Compilation switch for the conjugate transpose tests.
+//
+// This compilation switch triggers the conjugate transpose tests for all test scenarios. In case
+// the conjugate transpose tests are activated, each operation is tested in combination with a
+// conjugate transpose operation. The following example demonstrates this by means of the vector
+// addition:
+
+   \code
+   blaze::DynamicVector< complex<double>, false > a, b;
+   blaze::DynamicVector< complex<double>, true > c;
+   c = ctrans( a + b );  // Conjugate transpose vector addition
+   \endcode
+
+// The following settings are possible:
+//
+//   - 0: The conjugate transpose tests are not included in the compilation process and not executed
+//   - 1: The conjugate transpose tests are included in the compilation process, but not executed
+//   - 2: The conjugate transpose tests are included in the compilation process and executed
+*/
+#define BLAZETEST_MATHTEST_TEST_CTRANS_OPERATION 0
 //*************************************************************************************************
 
 
@@ -325,116 +325,6 @@ typedef double  TypeB;
 //   - 2: The serial tests are included in the compilation process and executed
 */
 #define BLAZETEST_MATHTEST_TEST_SERIAL_OPERATION 0
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Compilation switch for the declsym tests.
-//
-// This compilation switch triggers the declsym tests for all test scenarios. In case the declsym
-// tests are activated, each operation is tested in combination with a declsym operation. The
-// following example demonstrates this by means of the matrix addition:
-
-   \code
-   blaze::DynamicMatrix<double> A, B, C;
-   C = declsym( A + B );  // Explicitly declaring the matrix addition as symmetric
-   \endcode
-
-// The following settings are possible:
-//
-//   - 0: The declsym tests are not included in the compilation process and not executed
-//   - 1: The declsym tests are included in the compilation process, but not executed
-//   - 2: The declsym tests are included in the compilation process and executed
-*/
-#define BLAZETEST_MATHTEST_TEST_DECLSYM_OPERATION 0
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Compilation switch for the declherm tests.
-//
-// This compilation switch triggers the declherm tests for all test scenarios. In case the
-// declherm tests are activated, each operation is tested in combination with a declherm
-// operation. The following example demonstrates this by means of the matrix addition:
-
-   \code
-   blaze::DynamicMatrix<double> A, B, C;
-   C = declherm( A + B );  // Explicitly declaring the matrix addition as Hermitian
-   \endcode
-
-// The following settings are possible:
-//
-//   - 0: The declherm tests are not included in the compilation process and not executed
-//   - 1: The declherm tests are included in the compilation process, but not executed
-//   - 2: The declherm tests are included in the compilation process and executed
-*/
-#define BLAZETEST_MATHTEST_TEST_DECLHERM_OPERATION 0
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Compilation switch for the decllow tests.
-//
-// This compilation switch triggers the decllow tests for all test scenarios. In case the
-// decllow tests are activated, each operation is tested in combination with a decllow
-// operation. The following example demonstrates this by means of the matrix addition:
-
-   \code
-   blaze::DynamicMatrix<double> A, B, C;
-   C = decllow( A + B );  // Explicitly declaring the matrix addition as lower
-   \endcode
-
-// The following settings are possible:
-//
-//   - 0: The decllow tests are not included in the compilation process and not executed
-//   - 1: The decllow tests are included in the compilation process, but not executed
-//   - 2: The decllow tests are included in the compilation process and executed
-*/
-#define BLAZETEST_MATHTEST_TEST_DECLLOW_OPERATION 0
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Compilation switch for the declupp tests.
-//
-// This compilation switch triggers the declupp tests for all test scenarios. In case the
-// declupp tests are activated, each operation is tested in combination with a declupp
-// operation. The following example demonstrates this by means of the matrix addition:
-
-   \code
-   blaze::DynamicMatrix<double> A, B, C;
-   C = declupp( A + B );  // Explicitly declaring the matrix addition as upper
-   \endcode
-
-// The following settings are possible:
-//
-//   - 0: The declupp tests are not included in the compilation process and not executed
-//   - 1: The declupp tests are included in the compilation process, but not executed
-//   - 2: The declupp tests are included in the compilation process and executed
-*/
-#define BLAZETEST_MATHTEST_TEST_DECLUPP_OPERATION 0
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Compilation switch for the decldiag tests.
-//
-// This compilation switch triggers the decldiag tests for all test scenarios. In case the
-// decldiag tests are activated, each operation is tested in combination with a decldiag
-// operation. The following example demonstrates this by means of the matrix addition:
-
-   \code
-   blaze::DynamicMatrix<double> A, B, C;
-   C = decldiag( A + B );  // Explicitly declaring the matrix addition as diagonal
-   \endcode
-
-// The following settings are possible:
-//
-//   - 0: The decldiag tests are not included in the compilation process and not executed
-//   - 1: The decldiag tests are included in the compilation process, but not executed
-//   - 2: The decldiag tests are included in the compilation process and executed
-*/
-#define BLAZETEST_MATHTEST_TEST_DECLDIAG_OPERATION 0
 //*************************************************************************************************
 
 

@@ -40,14 +40,12 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/Expression.h>
 #include <blaze/math/constraints/Hermitian.h>
 #include <blaze/math/constraints/Lower.h>
 #include <blaze/math/constraints/Matrix.h>
 #include <blaze/math/constraints/Symmetric.h>
 #include <blaze/math/constraints/Upper.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/proxy/Proxy.h>
 #include <blaze/math/shims/Clear.h>
 #include <blaze/math/shims/Conjugate.h>
@@ -58,11 +56,13 @@
 #include <blaze/math/shims/IsReal.h>
 #include <blaze/math/shims/IsZero.h>
 #include <blaze/math/shims/Reset.h>
+#include <blaze/math/traits/ConjExprTrait.h>
 #include <blaze/util/constraints/Const.h>
 #include <blaze/util/constraints/Numeric.h>
 #include <blaze/util/constraints/Pointer.h>
 #include <blaze/util/constraints/Reference.h>
 #include <blaze/util/constraints/Volatile.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/InvalidType.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/Types.h>
@@ -119,16 +119,16 @@ class HermitianProxy : public Proxy< HermitianProxy<MT> >
 
  public:
    //**Type definitions****************************************************************************
-   typedef ElementType_<MT>       RepresentedType;  //!< Type of the represented matrix element.
-   typedef Reference_<MT>         Reference;        //!< Reference to the represented element.
-   typedef ConstReference_<MT>    ConstReference;   //!< Reference-to-const to the represented element.
-   typedef HermitianProxy*        Pointer;          //!< Pointer to the represented element.
-   typedef const HermitianProxy*  ConstPointer;     //!< Pointer-to-const to the represented element.
+   typedef typename MT::ElementType     RepresentedType;  //!< Type of the represented matrix element.
+   typedef typename MT::Reference       Reference;        //!< Reference to the represented element.
+   typedef typename MT::ConstReference  ConstReference;   //!< Reference-to-const to the represented element.
+   typedef HermitianProxy*              Pointer;          //!< Pointer to the represented element.
+   typedef const HermitianProxy*        ConstPointer;     //!< Pointer-to-const to the represented element.
 
    //! Value type of the represented complex element.
-   typedef typename If_< IsComplex<RepresentedType>
-                       , ComplexType<RepresentedType>
-                       , BuiltinType<RepresentedType> >::Type  ValueType;
+   typedef typename If< IsComplex<RepresentedType>
+                      , ComplexType<RepresentedType>
+                      , BuiltinType<RepresentedType> >::Type::Type  ValueType;
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
@@ -158,8 +158,8 @@ class HermitianProxy : public Proxy< HermitianProxy<MT> >
    //**Access operators****************************************************************************
    /*!\name Access operators */
    //@{
-   inline Pointer      operator->() noexcept;
-   inline ConstPointer operator->() const noexcept;
+   inline Pointer      operator->();
+   inline ConstPointer operator->() const;
    //@}
    //**********************************************************************************************
 
@@ -170,14 +170,14 @@ class HermitianProxy : public Proxy< HermitianProxy<MT> >
    inline void clear () const;
    inline void invert() const;
 
-   inline ConstReference get() const noexcept;
+   inline ConstReference get() const;
    //@}
    //**********************************************************************************************
 
    //**Conversion operator*************************************************************************
    /*!\name Conversion operator */
    //@{
-   inline operator ConstReference() const noexcept;
+   inline operator ConstReference() const;
    //@}
    //**********************************************************************************************
 
@@ -282,7 +282,7 @@ inline HermitianProxy<MT>::HermitianProxy( const HermitianProxy& hp )
 template< typename MT >  // Type of the adapted matrix
 inline HermitianProxy<MT>& HermitianProxy<MT>::operator=( const HermitianProxy& hp )
 {
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    if( IsComplex<ET>::value && diagonal_ && !isReal( hp.value1_ ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix element" );
@@ -311,7 +311,7 @@ template< typename MT >  // Type of the adapted matrix
 template< typename T >   // Type of the right-hand side value
 inline HermitianProxy<MT>& HermitianProxy<MT>::operator=( const T& value )
 {
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    if( IsComplex<ET>::value && diagonal_ && !isReal( value ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix element" );
@@ -340,7 +340,7 @@ template< typename MT >  // Type of the adapted matrix
 template< typename T >   // Type of the right-hand side value
 inline HermitianProxy<MT>& HermitianProxy<MT>::operator+=( const T& value )
 {
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    if( IsComplex<ET>::value && diagonal_ && !isReal( value ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix element" );
@@ -369,7 +369,7 @@ template< typename MT >  // Type of the adapted matrix
 template< typename T >   // Type of the right-hand side value
 inline HermitianProxy<MT>& HermitianProxy<MT>::operator-=( const T& value )
 {
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    if( IsComplex<ET>::value && diagonal_ && !isReal( value ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix element" );
@@ -398,7 +398,7 @@ template< typename MT >  // Type of the adapted matrix
 template< typename T >   // Type of the right-hand side value
 inline HermitianProxy<MT>& HermitianProxy<MT>::operator*=( const T& value )
 {
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    if( IsComplex<ET>::value && diagonal_ && !isReal( value ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix element" );
@@ -427,7 +427,7 @@ template< typename MT >  // Type of the adapted matrix
 template< typename T >   // Type of the right-hand side value
 inline HermitianProxy<MT>& HermitianProxy<MT>::operator/=( const T& value )
 {
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    if( IsComplex<ET>::value && diagonal_ && !isReal( value ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix element" );
@@ -456,7 +456,7 @@ inline HermitianProxy<MT>& HermitianProxy<MT>::operator/=( const T& value )
 // \return Pointer to the represented matrix element.
 */
 template< typename MT >  // Type of the adapted matrix
-inline typename HermitianProxy<MT>::Pointer HermitianProxy<MT>::operator->() noexcept
+inline typename HermitianProxy<MT>::Pointer HermitianProxy<MT>::operator->()
 {
    return this;
 }
@@ -469,7 +469,7 @@ inline typename HermitianProxy<MT>::Pointer HermitianProxy<MT>::operator->() noe
 // \return Pointer to the represented matrix element.
 */
 template< typename MT >  // Type of the adapted matrix
-inline typename HermitianProxy<MT>::ConstPointer HermitianProxy<MT>::operator->() const noexcept
+inline typename HermitianProxy<MT>::ConstPointer HermitianProxy<MT>::operator->() const
 {
    return this;
 }
@@ -545,7 +545,7 @@ inline void HermitianProxy<MT>::invert() const
 // \return Direct/raw reference to the accessed matrix element.
 */
 template< typename MT >  // Type of the adapted matrix
-inline typename HermitianProxy<MT>::ConstReference HermitianProxy<MT>::get() const noexcept
+inline typename HermitianProxy<MT>::ConstReference HermitianProxy<MT>::get() const
 {
    return value1_;
 }
@@ -566,7 +566,7 @@ inline typename HermitianProxy<MT>::ConstReference HermitianProxy<MT>::get() con
 // \return Direct/raw reference to the accessed matrix element.
 */
 template< typename MT >  // Type of the adapted matrix
-inline HermitianProxy<MT>::operator ConstReference() const noexcept
+inline HermitianProxy<MT>::operator ConstReference() const
 {
    return get();
 }
@@ -668,6 +668,10 @@ inline void HermitianProxy<MT>::imag( ValueType value ) const
 /*!\name HermitianProxy global functions */
 //@{
 template< typename MT >
+inline typename ConjExprTrait< typename HermitianProxy<MT>::RepresentedType >::Type
+   conj( const HermitianProxy<MT>& proxy );
+
+template< typename MT >
 inline void reset( const HermitianProxy<MT>& proxy );
 
 template< typename MT >
@@ -691,6 +695,28 @@ inline bool isOne( const HermitianProxy<MT>& proxy );
 template< typename MT >
 inline bool isnan( const HermitianProxy<MT>& proxy );
 //@}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Computing the complex conjugate of the represented element.
+// \ingroup hermitian_matrix
+//
+// \param proxy The given proxy instance.
+// \return The complex conjugate of the represented element.
+//
+// This function computes the complex conjugate of the element represented by the access proxy.
+// In case the proxy represents a vector- or matrix-like data structure the function returns an
+// expression representing the complex conjugate of the vector/matrix.
+*/
+template< typename MT >
+inline typename ConjExprTrait< typename HermitianProxy<MT>::RepresentedType >::Type
+   conj( const HermitianProxy<MT>& proxy )
+{
+   using blaze::conj;
+
+   return conj( (~proxy).get() );
+}
 //*************************************************************************************************
 
 

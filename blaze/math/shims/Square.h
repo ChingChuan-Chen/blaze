@@ -63,8 +63,7 @@ namespace blaze {
 // data type. For values of built-in data type this results in a plain multiplication.
 */
 template< typename T >
-BLAZE_ALWAYS_INLINE constexpr MultExprTrait_<T,T> sq( const T& a )
-   noexcept( noexcept( a * a ) )
+BLAZE_ALWAYS_INLINE const typename MultExprTrait<T,T>::Type sq( const T& a )
 {
    return a * a;
 }

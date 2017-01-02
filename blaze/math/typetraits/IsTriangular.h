@@ -42,8 +42,9 @@
 
 #include <blaze/math/typetraits/IsLower.h>
 #include <blaze/math/typetraits/IsUpper.h>
-#include <blaze/util/IntegralConstant.h>
-#include <blaze/util/mpl/Or.h>
+#include <blaze/util/FalseType.h>
+#include <blaze/util/SelectType.h>
+#include <blaze/util/TrueType.h>
 
 
 namespace blaze {
@@ -55,14 +56,31 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Auxiliary helper struct for the IsTriangular type trait.
+// \ingroup math_type_traits
+*/
+template< typename T >
+struct IsTriangularHelper
+{
+   //**********************************************************************************************
+   enum { value = IsLower<T>::value || IsUpper<T>::value };
+   typedef typename SelectType<value,TrueType,FalseType>::Type  Type;
+   //**********************************************************************************************
+};
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Compile time check for triangular matrix types.
 // \ingroup math_type_traits
 //
 // This type trait tests whether or not the given template parameter is a lower or upper triangular
-// matrix type. In case the type is a triangular matrix type, the \a value member constant is set
-// to \a true, the nested type definition \a Type is \a TrueType, and the class derives from
-// \a TrueType. Otherwise \a yes is set to \a false, \a Type is \a FalseType, and the class
-// derives from \a FalseType.
+// matrix type. In case the type is a triangular matrix type, the \a value member enumeration
+// is set to 1, the nested type definition \a Type is \a TrueType, and the class derives from
+// \a TrueType. Otherwise \a yes is set to 0, \a Type is \a FalseType, and the class derives
+// from \a FalseType.
 
    \code
    using blaze::rowMajor;
@@ -84,8 +102,16 @@ namespace blaze {
    \endcode
 */
 template< typename T >
-struct IsTriangular : public BoolConstant< Or< IsLower<T>, IsUpper<T> >::value >
-{};
+struct IsTriangular : public IsTriangularHelper<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   enum { value = IsTriangularHelper<T>::value };
+   typedef typename IsTriangularHelper<T>::Type  Type;
+   /*! \endcond */
+   //**********************************************************************************************
+};
 //*************************************************************************************************
 
 } // namespace blaze

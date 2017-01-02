@@ -1,6 +1,6 @@
 //=================================================================================================
 /*!
-//  \file src/main/SVecDVecAdd.cpp
+//  \file src/blaze/SVecDVecAdd.cpp
 //  \brief Source file for the sparse vector/dense vector addition benchmark
 //
 //  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
@@ -59,6 +59,7 @@
 #include <blazemark/system/Types.h>
 #include <blazemark/util/Benchmarks.h>
 #include <blazemark/util/DynamicSparseRun.h>
+#include <blazemark/util/Indices.h>
 #include <blazemark/util/Parser.h>
 
 

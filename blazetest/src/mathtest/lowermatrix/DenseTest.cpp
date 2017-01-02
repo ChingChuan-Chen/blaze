@@ -39,18 +39,18 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <memory>
-#include <blaze/math/Column.h>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/CompressedVector.h>
 #include <blaze/math/CustomMatrix.h>
+#include <blaze/math/DenseColumn.h>
+#include <blaze/math/DenseRow.h>
+#include <blaze/math/DenseSubmatrix.h>
 #include <blaze/math/DynamicVector.h>
 #include <blaze/math/HybridMatrix.h>
-#include <blaze/math/Row.h>
 #include <blaze/math/StaticMatrix.h>
-#include <blaze/math/Submatrix.h>
 #include <blaze/util/Complex.h>
 #include <blaze/util/policies/ArrayDelete.h>
+#include <blaze/util/UniqueArray.h>
 #include <blazetest/mathtest/lowermatrix/DenseTest.h>
 
 
@@ -384,123 +384,6 @@ void DenseTest::testConstructors()
 
 
    //=====================================================================================
-   // Row-major list initialization
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Row-major LowerMatrix initializer list constructor (complete list)";
-
-      const LT lower{ { 1, 0, 0 }, { 2, 3, 0 }, { 4, 5, 6 } };
-
-      checkRows    ( lower, 3UL );
-      checkColumns ( lower, 3UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 6UL );
-
-      if( lower(0,0) != 1 || lower(0,1) != 0 || lower(0,2) != 0 ||
-          lower(1,0) != 2 || lower(1,1) != 3 || lower(1,2) != 0 ||
-          lower(2,0) != 4 || lower(2,1) != 5 || lower(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 2 3 0 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Row-major LowerMatrix initializer list constructor (incomplete list)";
-
-      const LT lower{ { 1 }, { 2, 3 }, { 4, 5, 6 } };
-
-      checkRows    ( lower, 3UL );
-      checkColumns ( lower, 3UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 6UL );
-
-      if( lower(0,0) != 1 || lower(0,1) != 0 || lower(0,2) != 0 ||
-          lower(1,0) != 2 || lower(1,1) != 3 || lower(1,2) != 0 ||
-          lower(2,0) != 4 || lower(2,1) != 5 || lower(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 2 3 0 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major array initialization
-   //=====================================================================================
-
-   // Dynamic array initialization constructor
-   {
-      test_ = "Row-major LowerMatrix dynamic array initialization constructor";
-
-      std::unique_ptr<int[]> array( new int[9] );
-      array[0] = 1;
-      array[1] = 0;
-      array[2] = 0;
-      array[3] = 2;
-      array[4] = 3;
-      array[5] = 0;
-      array[6] = 4;
-      array[7] = 5;
-      array[8] = 6;
-      const LT lower( 3UL, array.get() );
-
-      checkRows    ( lower, 3UL );
-      checkColumns ( lower, 3UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 6UL );
-
-      if( lower(0,0) != 1 || lower(0,1) != 0 || lower(0,2) != 0 ||
-          lower(1,0) != 2 || lower(1,1) != 3 || lower(1,2) != 0 ||
-          lower(2,0) != 4 || lower(2,1) != 5 || lower(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 2 3 0 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Static array initialization constructor
-   {
-      test_ = "Row-major LowerMatrix static array initialization constructor";
-
-      const int array[3][3] = { { 1, 0, 0 }, { 2, 3, 0 }, { 4, 5, 6 } };
-      const LT lower( array );
-
-      checkRows    ( lower, 3UL );
-      checkColumns ( lower, 3UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 6UL );
-
-      if( lower(0,0) != 1 || lower(0,1) != 0 || lower(0,2) != 0 ||
-          lower(1,0) != 2 || lower(1,1) != 3 || lower(1,2) != 0 ||
-          lower(2,0) != 4 || lower(2,1) != 5 || lower(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 2 3 0 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major custom matrix constructors
    //=====================================================================================
 
@@ -513,7 +396,7 @@ void DenseTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5UL] );
+      blaze::UniqueArray<int> array( new int[5UL] );
       array[1] = 1;
       array[2] = 0;
       array[3] = 2;
@@ -546,7 +429,7 @@ void DenseTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[11UL] );
+      blaze::UniqueArray<int> array( new int[11UL] );
       array[1] = 1;
       array[2] = 0;
       array[6] = 2;
@@ -579,7 +462,7 @@ void DenseTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[4UL] );
+      blaze::UniqueArray<int> array( new int[4UL] );
       array[0] = 1;
       array[1] = 0;
       array[2] = 2;
@@ -612,7 +495,7 @@ void DenseTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[10UL] );
+      blaze::UniqueArray<int> array( new int[10UL] );
       array[0] = 1;
       array[1] = 0;
       array[5] = 2;
@@ -665,57 +548,6 @@ void DenseTest::testConstructors()
       lower1(2,2) =  3;
 
       const LT lower2( lower1 );
-
-      checkRows    ( lower2, 3UL );
-      checkColumns ( lower2, 3UL );
-      checkCapacity( lower2, 9UL );
-      checkNonZeros( lower2, 5UL );
-      checkNonZeros( lower2, 0UL, 1UL );
-      checkNonZeros( lower2, 1UL, 2UL );
-      checkNonZeros( lower2, 2UL, 2UL );
-
-      if( lower2(0,0) !=  1 || lower2(0,1) != 0 || lower2(0,2) != 0 ||
-          lower2(1,0) != -4 || lower2(1,1) != 2 || lower2(1,2) != 0 ||
-          lower2(2,0) !=  7 || lower2(2,1) != 0 || lower2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower2 << "\n"
-             << "   Expected result:\n(  1 0 0 )\n( -4 2 0 )\n(  7 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Row-major LowerMatrix move constructor (0x0)";
-
-      LT lower1;
-      LT lower2( std::move( lower1 ) );
-
-      checkRows    ( lower2, 0UL );
-      checkColumns ( lower2, 0UL );
-      checkNonZeros( lower2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Row-major LowerMatrix move constructor (3x3)";
-
-      LT lower1( 3UL );
-      lower1(0,0) =  1;
-      lower1(1,0) = -4;
-      lower1(1,1) =  2;
-      lower1(2,0) =  7;
-      lower1(2,2) =  3;
-
-      LT lower2( std::move( lower1 ) );
 
       checkRows    ( lower2, 3UL );
       checkColumns ( lower2, 3UL );
@@ -1008,123 +840,6 @@ void DenseTest::testConstructors()
 
 
    //=====================================================================================
-   // Column-major list initialization
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Column-major LowerMatrix initializer list constructor (complete list)";
-
-      const OLT lower{ { 1, 0, 0 }, { 2, 3, 0 }, { 4, 5, 6 } };
-
-      checkRows    ( lower, 3UL );
-      checkColumns ( lower, 3UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 6UL );
-
-      if( lower(0,0) != 1 || lower(0,1) != 0 || lower(0,2) != 0 ||
-          lower(1,0) != 2 || lower(1,1) != 3 || lower(1,2) != 0 ||
-          lower(2,0) != 4 || lower(2,1) != 5 || lower(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 2 3 0 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Column-major LowerMatrix initializer list constructor (incomplete list)";
-
-      const OLT lower{ { 1 }, { 2, 3 }, { 4, 5, 6 } };
-
-      checkRows    ( lower, 3UL );
-      checkColumns ( lower, 3UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 6UL );
-
-      if( lower(0,0) != 1 || lower(0,1) != 0 || lower(0,2) != 0 ||
-          lower(1,0) != 2 || lower(1,1) != 3 || lower(1,2) != 0 ||
-          lower(2,0) != 4 || lower(2,1) != 5 || lower(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 2 3 0 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major array initialization
-   //=====================================================================================
-
-   // Dynamic array initialization constructor
-   {
-      test_ = "Column-major LowerMatrix dynamic array initialization constructor";
-
-      std::unique_ptr<int[]> array( new int[9] );
-      array[0] = 1;
-      array[1] = 2;
-      array[2] = 4;
-      array[3] = 0;
-      array[4] = 3;
-      array[5] = 5;
-      array[6] = 0;
-      array[7] = 0;
-      array[8] = 6;
-      const OLT lower( 3UL, array.get() );
-
-      checkRows    ( lower, 3UL );
-      checkColumns ( lower, 3UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 6UL );
-
-      if( lower(0,0) != 1 || lower(0,1) != 0 || lower(0,2) != 0 ||
-          lower(1,0) != 2 || lower(1,1) != 3 || lower(1,2) != 0 ||
-          lower(2,0) != 4 || lower(2,1) != 5 || lower(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 2 3 0 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Static array initialization constructor
-   {
-      test_ = "Column-major LowerMatrix static array initialization constructor";
-
-      const int array[3][3] = { { 1, 0, 0 }, { 2, 3, 0 }, { 4, 5, 6 } };
-      const OLT lower( array );
-
-      checkRows    ( lower, 3UL );
-      checkColumns ( lower, 3UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 6UL );
-
-      if( lower(0,0) != 1 || lower(0,1) != 0 || lower(0,2) != 0 ||
-          lower(1,0) != 2 || lower(1,1) != 3 || lower(1,2) != 0 ||
-          lower(2,0) != 4 || lower(2,1) != 5 || lower(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 2 3 0 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major custom matrix constructors
    //=====================================================================================
 
@@ -1137,7 +852,7 @@ void DenseTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5UL] );
+      blaze::UniqueArray<int> array( new int[5UL] );
       array[1] = 1;
       array[2] = 2;
       array[3] = 0;
@@ -1170,7 +885,7 @@ void DenseTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[11UL] );
+      blaze::UniqueArray<int> array( new int[11UL] );
       array[1] = 1;
       array[2] = 2;
       array[6] = 0;
@@ -1203,7 +918,7 @@ void DenseTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[4UL] );
+      blaze::UniqueArray<int> array( new int[4UL] );
       array[0] = 1;
       array[1] = 2;
       array[2] = 0;
@@ -1236,7 +951,7 @@ void DenseTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[10UL] );
+      blaze::UniqueArray<int> array( new int[10UL] );
       array[0] = 1;
       array[1] = 2;
       array[5] = 0;
@@ -1310,57 +1025,6 @@ void DenseTest::testConstructors()
          throw std::runtime_error( oss.str() );
       }
    }
-
-
-   //=====================================================================================
-   // Column-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Column-major LowerMatrix move constructor (0x0)";
-
-      OLT lower1;
-      OLT lower2( std::move( lower1 ) );
-
-      checkRows    ( lower2, 0UL );
-      checkColumns ( lower2, 0UL );
-      checkNonZeros( lower2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Column-major LowerMatrix move constructor (3x3)";
-
-      OLT lower1( 3UL );
-      lower1(0,0) =  1;
-      lower1(1,0) = -4;
-      lower1(1,1) =  2;
-      lower1(2,0) =  7;
-      lower1(2,2) =  3;
-
-      OLT lower2( std::move( lower1 ) );
-
-      checkRows    ( lower2, 3UL );
-      checkColumns ( lower2, 3UL );
-      checkCapacity( lower2, 9UL );
-      checkNonZeros( lower2, 5UL );
-      checkNonZeros( lower2, 0UL, 3UL );
-      checkNonZeros( lower2, 1UL, 1UL );
-      checkNonZeros( lower2, 2UL, 1UL );
-
-      if( lower2(0,0) !=  1 || lower2(0,1) != 0 || lower2(0,2) != 0 ||
-          lower2(1,0) != -4 || lower2(1,1) != 2 || lower2(1,2) != 0 ||
-          lower2(2,0) !=  7 || lower2(2,1) != 0 || lower2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower2 << "\n"
-             << "   Expected result:\n(  1 0 0 )\n( -4 2 0 )\n(  7 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
 }
 //*************************************************************************************************
 
@@ -1409,101 +1073,6 @@ void DenseTest::testAssignment()
 
 
    //=====================================================================================
-   // Row-major list assignment
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Row-major LowerMatrix initializer list assignment (complete list)";
-
-      LT lower;
-      lower = { { 1, 0, 0 }, { 2, 3, 0 }, { 4, 5, 6 } };
-
-      checkRows    ( lower, 3UL );
-      checkColumns ( lower, 3UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 6UL );
-      checkNonZeros( lower, 0UL, 1UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 3UL );
-
-      if( lower(0,0) != 1 || lower(0,1) != 0 || lower(0,2) != 0 ||
-          lower(1,0) != 2 || lower(1,1) != 3 || lower(1,2) != 0 ||
-          lower(2,0) != 4 || lower(2,1) != 5 || lower(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 2 3 0 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Row-major LowerMatrix initializer list assignment (incomplete list)";
-
-      LT lower;
-      lower = { { 1 }, { 2, 3 }, { 4, 5, 6 } };
-
-      checkRows    ( lower, 3UL );
-      checkColumns ( lower, 3UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 6UL );
-      checkNonZeros( lower, 0UL, 1UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 3UL );
-
-      if( lower(0,0) != 1 || lower(0,1) != 0 || lower(0,2) != 0 ||
-          lower(1,0) != 2 || lower(1,1) != 3 || lower(1,2) != 0 ||
-          lower(2,0) != 4 || lower(2,1) != 5 || lower(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 2 3 0 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major array assignment
-   //=====================================================================================
-
-   // Array assignment
-   {
-      test_ = "Row-major LowerMatrix array assignment";
-
-      const int array[3][3] = { { 1, 0, 0 }, { 2, 3, 0 }, { 4, 5, 6 } };
-      LT lower;
-      lower = array;
-
-      checkRows    ( lower, 3UL );
-      checkColumns ( lower, 3UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 6UL );
-      checkNonZeros( lower, 0UL, 1UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 3UL );
-
-      if( lower(0,0) != 1 || lower(0,1) != 0 || lower(0,2) != 0 ||
-          lower(1,0) != 2 || lower(1,1) != 3 || lower(1,2) != 0 ||
-          lower(2,0) != 4 || lower(2,1) != 5 || lower(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 2 3 0 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major copy assignment
    //=====================================================================================
 
@@ -1534,59 +1103,6 @@ void DenseTest::testAssignment()
 
       LT lower2;
       lower2 = lower1;
-
-      checkRows    ( lower2, 3UL );
-      checkColumns ( lower2, 3UL );
-      checkNonZeros( lower2, 5UL );
-      checkNonZeros( lower2, 0UL, 1UL );
-      checkNonZeros( lower2, 1UL, 2UL );
-      checkNonZeros( lower2, 2UL, 2UL );
-
-      if( lower2(0,0) !=  1 || lower2(0,1) != 0 || lower2(0,2) != 0 ||
-          lower2(1,0) != -4 || lower2(1,1) != 2 || lower2(1,2) != 0 ||
-          lower2(2,0) !=  7 || lower2(2,1) != 0 || lower2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower2 << "\n"
-             << "   Expected result:\n(  1 0 0 )\n( -4 2 0 )\n(  7 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Row-major LowerMatrix move assignment (0x0)";
-
-      LT lower1, lower2;
-
-      lower2 = std::move( lower1 );
-
-      checkRows    ( lower2, 0UL );
-      checkColumns ( lower2, 0UL );
-      checkNonZeros( lower2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Row-major LowerMatrix move assignment (3x3)";
-
-      LT lower1( 3UL );
-      lower1(0,0) =  1;
-      lower1(1,0) = -4;
-      lower1(1,1) =  2;
-      lower1(2,0) =  7;
-      lower1(2,1) =  0;
-      lower1(2,2) =  3;
-
-      LT lower2;
-      lower2 = std::move( lower1 );
 
       checkRows    ( lower2, 3UL );
       checkColumns ( lower2, 3UL );
@@ -2058,101 +1574,6 @@ void DenseTest::testAssignment()
 
 
    //=====================================================================================
-   // Column-major list assignment
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Column-major LowerMatrix initializer list assignment (complete list)";
-
-      OLT lower;
-      lower = { { 1, 0, 0 }, { 2, 3, 0 }, { 4, 5, 6 } };
-
-      checkRows    ( lower, 3UL );
-      checkColumns ( lower, 3UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 6UL );
-      checkNonZeros( lower, 0UL, 3UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 1UL );
-
-      if( lower(0,0) != 1 || lower(0,1) != 0 || lower(0,2) != 0 ||
-          lower(1,0) != 2 || lower(1,1) != 3 || lower(1,2) != 0 ||
-          lower(2,0) != 4 || lower(2,1) != 5 || lower(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 2 3 0 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Column-major LowerMatrix initializer list assignment (incomplete list)";
-
-      OLT lower;
-      lower = { { 1 }, { 2, 3 }, { 4, 5, 6 } };
-
-      checkRows    ( lower, 3UL );
-      checkColumns ( lower, 3UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 6UL );
-      checkNonZeros( lower, 0UL, 3UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 1UL );
-
-      if( lower(0,0) != 1 || lower(0,1) != 0 || lower(0,2) != 0 ||
-          lower(1,0) != 2 || lower(1,1) != 3 || lower(1,2) != 0 ||
-          lower(2,0) != 4 || lower(2,1) != 5 || lower(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 2 3 0 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major array assignment
-   //=====================================================================================
-
-   // Array assignment
-   {
-      test_ = "Column-major LowerMatrix array assignment";
-
-      const int array[3][3] = { { 1, 0, 0 }, { 2, 3, 0 }, { 4, 5, 6 } };
-      OLT lower;
-      lower = array;
-
-      checkRows    ( lower, 3UL );
-      checkColumns ( lower, 3UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 6UL );
-      checkNonZeros( lower, 0UL, 3UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 1UL );
-
-      if( lower(0,0) != 1 || lower(0,1) != 0 || lower(0,2) != 0 ||
-          lower(1,0) != 2 || lower(1,1) != 3 || lower(1,2) != 0 ||
-          lower(2,0) != 4 || lower(2,1) != 5 || lower(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 )\n( 2 3 0 )\n( 4 5 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major copy assignment
    //=====================================================================================
 
@@ -2183,59 +1604,6 @@ void DenseTest::testAssignment()
 
       OLT lower2;
       lower2 = lower1;
-
-      checkRows    ( lower2, 3UL );
-      checkColumns ( lower2, 3UL );
-      checkNonZeros( lower2, 5UL );
-      checkNonZeros( lower2, 0UL, 3UL );
-      checkNonZeros( lower2, 1UL, 1UL );
-      checkNonZeros( lower2, 2UL, 1UL );
-
-      if( lower2(0,0) !=  1 || lower2(0,1) != 0 || lower2(0,2) != 0 ||
-          lower2(1,0) != -4 || lower2(1,1) != 2 || lower2(1,2) != 0 ||
-          lower2(2,0) !=  7 || lower2(2,1) != 0 || lower2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower2 << "\n"
-             << "   Expected result:\n(  1 0 0 )\n( -4 2 0 )\n(  7 0 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Column-major LowerMatrix move assignment (0x0)";
-
-      OLT lower1, lower2;
-
-      lower2 = std::move( lower1 );
-
-      checkRows    ( lower2, 0UL );
-      checkColumns ( lower2, 0UL );
-      checkNonZeros( lower2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Column-major LowerMatrix move assignment (3x3)";
-
-      OLT lower1( 3UL );
-      lower1(0,0) =  1;
-      lower1(1,0) = -4;
-      lower1(1,1) =  2;
-      lower1(2,0) =  7;
-      lower1(2,1) =  0;
-      lower1(2,2) =  3;
-
-      OLT lower2;
-      lower2 = std::move( lower1 );
 
       checkRows    ( lower2, 3UL );
       checkColumns ( lower2, 3UL );
@@ -8641,7 +8009,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function";
 
-      typedef blaze::Submatrix<LT>  SMT;
+      typedef blaze::DenseSubmatrix<LT>  SMT;
 
       LT lower( 3UL );
       lower(0,0) =  1;
@@ -8737,7 +8105,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function (scalar assignment test 1)";
 
-      typedef blaze::Submatrix<LT>  SMT;
+      typedef blaze::DenseSubmatrix<LT>  SMT;
 
       LT lower( 4UL );
       lower(0,0) =  1;
@@ -8797,7 +8165,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function (scalar assignment test 2)";
 
-      typedef blaze::Submatrix<LT>  SMT;
+      typedef blaze::DenseSubmatrix<LT>  SMT;
 
       LT lower( 4UL );
       lower(0,0) =  1;
@@ -8855,7 +8223,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function (scalar assignment test 3)";
 
-      typedef blaze::Submatrix<LT>  SMT;
+      typedef blaze::DenseSubmatrix<LT>  SMT;
 
       LT lower( 4UL );
       lower(0,0) =  1;
@@ -8914,7 +8282,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function";
 
-      typedef blaze::Submatrix<OLT>  SMT;
+      typedef blaze::DenseSubmatrix<OLT>  SMT;
 
       OLT lower( 3UL );
       lower(0,0) =  1;
@@ -9010,7 +8378,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function (scalar assignment test 1)";
 
-      typedef blaze::Submatrix<OLT>  SMT;
+      typedef blaze::DenseSubmatrix<OLT>  SMT;
 
       OLT lower( 4UL );
       lower(0,0) =  1;
@@ -9070,7 +8438,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function (scalar assignment test 2)";
 
-      typedef blaze::Submatrix<OLT>  SMT;
+      typedef blaze::DenseSubmatrix<OLT>  SMT;
 
       OLT lower( 4UL );
       lower(0,0) =  1;
@@ -9128,7 +8496,7 @@ void DenseTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function (scalar assignment test 3)";
 
-      typedef blaze::Submatrix<OLT>  SMT;
+      typedef blaze::DenseSubmatrix<OLT>  SMT;
 
       OLT lower( 4UL );
       lower(0,0) =  1;
@@ -9200,7 +8568,7 @@ void DenseTest::testRow()
    {
       test_ = "Row-major row() function";
 
-      typedef blaze::Row<LT>  RT;
+      typedef blaze::DenseRow<LT>  RT;
 
       LT lower( 3UL );
       lower(0,0) =  1;
@@ -9290,7 +8658,7 @@ void DenseTest::testRow()
    {
       test_ = "Row-major row() function (scalar assignment test)";
 
-      typedef blaze::Row<LT>  RT;
+      typedef blaze::DenseRow<LT>  RT;
 
       LT lower( 3UL );
       lower(0,0) =  1;
@@ -9340,7 +8708,7 @@ void DenseTest::testRow()
    {
       test_ = "Column-major row() function";
 
-      typedef blaze::Row<OLT>  RT;
+      typedef blaze::DenseRow<OLT>  RT;
 
       OLT lower( 3UL );
       lower(0,0) =  1;
@@ -9430,7 +8798,7 @@ void DenseTest::testRow()
    {
       test_ = "Column-major row() function (scalar assignment test)";
 
-      typedef blaze::Row<OLT>  RT;
+      typedef blaze::DenseRow<OLT>  RT;
 
       OLT lower( 3UL );
       lower(0,0) =  1;
@@ -9493,7 +8861,7 @@ void DenseTest::testColumn()
    {
       test_ = "Row-major column() function";
 
-      typedef blaze::Column<LT>  CT;
+      typedef blaze::DenseColumn<LT>  CT;
 
       LT lower( 3UL );
       lower(0,0) =  1;
@@ -9583,7 +8951,7 @@ void DenseTest::testColumn()
    {
       test_ = "Row-major column() function (scalar assignment test)";
 
-      typedef blaze::Column<LT>  CT;
+      typedef blaze::DenseColumn<LT>  CT;
 
       LT lower( 3UL );
       lower(0,0) =  1;
@@ -9633,7 +9001,7 @@ void DenseTest::testColumn()
    {
       test_ = "Column-major column() function";
 
-      typedef blaze::Column<OLT>  CT;
+      typedef blaze::DenseColumn<OLT>  CT;
 
       OLT lower( 3UL );
       lower(0,0) =  1;
@@ -9723,7 +9091,7 @@ void DenseTest::testColumn()
    {
       test_ = "Column-major column() function (scalar assignment test)";
 
-      typedef blaze::Column<OLT>  CT;
+      typedef blaze::DenseColumn<OLT>  CT;
 
       OLT lower( 3UL );
       lower(0,0) =  1;

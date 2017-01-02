@@ -262,16 +262,16 @@ namespace blaze {
    A.erase( 0, 2 );  // Erasing the elements (0,2) and (2,0)
 
    // Construction from a Hermitian dense matrix
-   StaticMatrix<cplx,3UL,3UL> B( { { cplx(  3.0,  0.0 ), cplx(  8.0, 2.0 ), cplx( -2.0,  2.0 ) },
-                                   { cplx(  8.0,  1.0 ), cplx(  0.0, 0.0 ), cplx( -1.0, -1.0 ) },
-                                   { cplx( -2.0, -2.0 ), cplx( -1.0, 1.0 ), cplx(  4.0,  0.0 ) } } );
+   StaticMatrix<cplx,3UL,3UL> B( (  3.0,  0.0 ), (  8.0, 2.0 ), ( -2.0,  2.0 ),
+                                 (  8.0,  1.0 ), (  0.0, 0.0 ), ( -1.0, -1.0 ),
+                                 ( -2.0, -2.0 ), ( -1.0, 1.0 ), (  4.0,  0.0 ) );
 
    HermitianMatrix< DynamicMatrix<double,rowMajor> > C( B );  // OK
 
    // Assignment of a non-Hermitian dense matrix
-	StaticMatrix<cplx,3UL,3UL> D( { { cplx(  3.0, 0.0 ), cplx(  7.0, 2.0 ), cplx( 3.0, 2.0 ) },
-                                   { cplx(  8.0, 1.0 ), cplx(  0.0, 0.0 ), cplx( 6.0, 4.0 ) },
-                                   { cplx( -2.0, 2.0 ), cplx( -1.0, 1.0 ), cplx( 4.0, 0.0 ) } } );
+	StaticMatrix<cplx,3UL,3UL> D( (  3.0, 0.0 ), (  7.0, 2.0 ), ( 3.0, 2.0 ),
+                                 (  8.0, 1.0 ), (  0.0, 0.0 ), ( 6.0, 4.0 ),
+                                 ( -2.0, 2.0 ), ( -1.0, 1.0 ), ( 4.0, 0.0 ) );
 
    C = D;  // Throws an exception; Hermitian invariant would be violated!
    \endcode
@@ -458,23 +458,19 @@ namespace blaze {
    HermitianMatrix< HybridMatrix<cplx,3UL,3UL,rowMajor> > E;
    HermitianMatrix< StaticMatrix<cplx,3UL,3UL,columnMajor> > F;
 
-   E = A + B;     // Matrix addition and assignment to a row-major Hermitian matrix (includes runtime check)
-   F = C - D;     // Matrix subtraction and assignment to a column-major Hermitian matrix (only compile time check)
-   F = A * D;     // Matrix multiplication between a dense and a sparse matrix (includes runtime check)
+   E = A + B;     // Matrix addition and assignment to a row-major Hermitian matrix
+   F = C - D;     // Matrix subtraction and assignment to a column-major Hermitian matrix
+   F = A * D;     // Matrix multiplication between a dense and a sparse matrix
 
    C *= 2.0;      // In-place scaling of matrix C
-   E  = 2.0 * B;  // Scaling of matrix B (includes runtime check)
-   F  = C * 2.0;  // Scaling of matrix C (only compile time check)
+   E  = 2.0 * B;  // Scaling of matrix B
+   F  = C * 2.0;  // Scaling of matrix C
 
-   E += A - B;    // Addition assignment (includes runtime check)
-   F -= C + D;    // Subtraction assignment (only compile time check)
-   F *= A * D;    // Multiplication assignment (includes runtime check)
+   E += A - B;    // Addition assignment
+   F -= C + D;    // Subtraction assignment
+   F *= A * D;    // Multiplication assignment
    \endcode
 
-// Note that it is possible to assign any kind of matrix to a Hermitian matrix. In case the matrix
-// to be assigned is not Hermitian at compile time, a runtime check is performed.
-//
-//
 // \n \section hermitianmatrix_performance Performance Considerations
 //
 // When the Hermitian property of a matrix is known beforehands using the HermitianMatrix adaptor
@@ -564,7 +560,7 @@ namespace blaze {
    typedef HermitianMatrix< DynamicMatrix<double,columnMajor> >  DynamicHermitian;
 
    DynamicHermitian A( 10UL );  // Both Hermitian and symmetric
-   Row<DynamicHermitian> row5 = row( A, 5UL );
+   DenseRow<DynamicHermitian> row5 = row( A, 5UL );
    \endcode
 
 // Usually, a row view on a column-major matrix results in a considerable performance decrease in

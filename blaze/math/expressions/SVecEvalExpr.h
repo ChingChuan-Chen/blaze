@@ -40,10 +40,9 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
+#include <cmath>
 #include <blaze/math/constraints/SparseVector.h>
 #include <blaze/math/constraints/TransposeFlag.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/Computation.h>
 #include <blaze/math/expressions/Forward.h>
 #include <blaze/math/expressions/VecEvalExpr.h>
@@ -59,10 +58,11 @@
 #include <blaze/math/typetraits/IsSparseVector.h>
 #include <blaze/math/typetraits/Size.h>
 #include <blaze/util/Assert.h>
+#include <blaze/util/constraints/Reference.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/InvalidType.h>
 #include <blaze/util/logging/FunctionTrace.h>
-#include <blaze/util/mpl/And.h>
-#include <blaze/util/mpl/If.h>
+#include <blaze/util/SelectType.h>
 #include <blaze/util/Types.h>
 
 
@@ -89,22 +89,22 @@ class SVecEvalExpr : public SparseVector< SVecEvalExpr<VT,TF>, TF >
 {
  public:
    //**Type definitions****************************************************************************
-   typedef SVecEvalExpr<VT,TF>  This;           //!< Type of this SVecEvalExpr instance.
-   typedef ResultType_<VT>      ResultType;     //!< Result type for expression template evaluations.
-   typedef TransposeType_<VT>   TransposeType;  //!< Transpose type for expression template evaluations.
-   typedef ElementType_<VT>     ElementType;    //!< Resulting element type.
-   typedef ReturnType_<VT>      ReturnType;     //!< Return type for expression template evaluations.
+   typedef SVecEvalExpr<VT,TF>         This;           //!< Type of this SVecEvalExpr instance.
+   typedef typename VT::ResultType     ResultType;     //!< Result type for expression template evaluations.
+   typedef typename VT::TransposeType  TransposeType;  //!< Transpose type for expression template evaluations.
+   typedef typename VT::ElementType    ElementType;    //!< Resulting element type.
+   typedef typename VT::ReturnType     ReturnType;     //!< Return type for expression template evaluations.
 
    //! Data type for composite expression templates.
    typedef const ResultType  CompositeType;
 
    //! Composite data type of the sparse vector expression.
-   typedef If_< IsExpression<VT>, const VT, const VT& >  Operand;
+   typedef typename SelectType< IsExpression<VT>::value, const VT, const VT& >::Type  Operand;
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = VT::smpAssignable };
+   enum { smpAssignable = VT::smpAssignable };
    //**********************************************************************************************
 
    //**Constructor*********************************************************************************
@@ -112,7 +112,7 @@ class SVecEvalExpr : public SparseVector< SVecEvalExpr<VT,TF>, TF >
    //
    // \param sv The sparse vector operand of the evaluation expression.
    */
-   explicit inline SVecEvalExpr( const VT& sv ) noexcept
+   explicit inline SVecEvalExpr( const VT& sv )
       : sv_( sv )  // Sparse vector of the evaluation expression
    {}
    //**********************************************************************************************
@@ -149,7 +149,7 @@ class SVecEvalExpr : public SparseVector< SVecEvalExpr<VT,TF>, TF >
    //
    // \return The size of the vector.
    */
-   inline size_t size() const noexcept {
+   inline size_t size() const {
       return sv_.size();
    }
    //**********************************************************************************************
@@ -169,7 +169,7 @@ class SVecEvalExpr : public SparseVector< SVecEvalExpr<VT,TF>, TF >
    //
    // \return The sparse vector operand.
    */
-   inline Operand operand() const noexcept {
+   inline Operand operand() const {
       return sv_;
    }
    //**********************************************************************************************
@@ -181,7 +181,7 @@ class SVecEvalExpr : public SparseVector< SVecEvalExpr<VT,TF>, TF >
    // \return \a true in case the expression can alias, \a false otherwise.
    */
    template< typename T >
-   inline bool canAlias( const T* alias ) const noexcept {
+   inline bool canAlias( const T* alias ) const {
       return sv_.canAlias( alias );
    }
    //**********************************************************************************************
@@ -193,7 +193,7 @@ class SVecEvalExpr : public SparseVector< SVecEvalExpr<VT,TF>, TF >
    // \return \a true in case an alias effect is detected, \a false otherwise.
    */
    template< typename T >
-   inline bool isAliased( const T* alias ) const noexcept {
+   inline bool isAliased( const T* alias ) const {
       return sv_.isAliased( alias );
    }
    //**********************************************************************************************
@@ -203,7 +203,7 @@ class SVecEvalExpr : public SparseVector< SVecEvalExpr<VT,TF>, TF >
    //
    // \return \a true in case the expression can be used in SMP assignments, \a false if not.
    */
-   inline bool canSMPAssign() const noexcept {
+   inline bool canSMPAssign() const {
       return sv_.canSMPAssign();
    }
    //**********************************************************************************************
@@ -704,9 +704,9 @@ struct SVecEvalExprTrait< SVecEvalExpr<VT,false> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsSparseVector<VT>, IsColumnVector<VT> >
-                   , SVecEvalExpr<VT,false>
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsSparseVector<VT>::value && IsColumnVector<VT>::value
+                              , SVecEvalExpr<VT,false>
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -720,9 +720,9 @@ struct TSVecEvalExprTrait< SVecEvalExpr<VT,true> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsSparseVector<VT>, IsRowVector<VT> >
-                   , SVecEvalExpr<VT,true>
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsSparseVector<VT>::value && IsRowVector<VT>::value
+                              , SVecEvalExpr<VT,true>
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -736,7 +736,7 @@ struct SubvectorExprTrait< SVecEvalExpr<VT,TF>, AF >
 {
  public:
    //**********************************************************************************************
-   using Type = EvalExprTrait_< SubvectorExprTrait_<const VT,AF> >;
+   typedef typename EvalExprTrait< typename SubvectorExprTrait<const VT,AF>::Type >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */

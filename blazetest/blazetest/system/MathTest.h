@@ -48,7 +48,6 @@
 #include <blaze/math/DynamicVector.h>
 #include <blaze/math/StaticMatrix.h>
 #include <blaze/math/StaticVector.h>
-#include <blaze/math/typetraits/IsBLASCompatible.h>
 #include <blaze/math/typetraits/UnderlyingNumeric.h>
 #include <blaze/util/constraints/Valid.h>
 #include <blaze/util/StaticAssert.h>
@@ -108,7 +107,7 @@ using blaze::StaticVector;
 // This type represents the underlying numeric element type of the specified TypeA. It is used
 // for vector and matrix type that only support numeric data types.
 */
-typedef blaze::UnderlyingNumeric_<TypeA>  NumericA;
+typedef blaze::UnderlyingNumeric<TypeA>::Type  NumericA;
 //*************************************************************************************************
 
 
@@ -118,7 +117,7 @@ typedef blaze::UnderlyingNumeric_<TypeA>  NumericA;
 // This type represents the underlying numeric element type of the specified TypeB. It is used
 // for vector and matrix type that only support numeric data types.
 */
-typedef blaze::UnderlyingNumeric_<TypeB>  NumericB;
+typedef blaze::UnderlyingNumeric<TypeB>::Type  NumericB;
 //*************************************************************************************************
 
 
@@ -136,8 +135,8 @@ namespace {
 
 BLAZE_STATIC_ASSERT( blaze::IsNumeric<TypeA>::value || blaze::IsVector<TypeA>::value || blaze::IsMatrix<TypeA>::value );
 BLAZE_STATIC_ASSERT( blaze::IsNumeric<TypeB>::value || blaze::IsVector<TypeB>::value || blaze::IsMatrix<TypeB>::value );
-BLAZE_STATIC_ASSERT( !BLAZETEST_MATHTEST_TEST_INV_OPERATION || blaze::IsBLASCompatible<TypeA>::value );
-BLAZE_STATIC_ASSERT( !BLAZETEST_MATHTEST_TEST_INV_OPERATION || blaze::IsBLASCompatible<TypeB>::value );
+BLAZE_STATIC_ASSERT( !BLAZETEST_MATHTEST_TEST_INV_OPERATION || blaze::IsBlasCompatible<TypeA>::value );
+BLAZE_STATIC_ASSERT( !BLAZETEST_MATHTEST_TEST_INV_OPERATION || blaze::IsBlasCompatible<TypeB>::value );
 BLAZE_STATIC_ASSERT( blaze::IsNumeric<NumericA>::value );
 BLAZE_STATIC_ASSERT( blaze::IsNumeric<NumericB>::value );
 BLAZE_STATIC_ASSERT( !( BLAZETEST_MATHTEST_TEST_BASIC_OPERATION < 0 ) );
@@ -148,12 +147,12 @@ BLAZE_STATIC_ASSERT( !( BLAZETEST_MATHTEST_TEST_SCALED_OPERATION < 0 ) );
 BLAZE_STATIC_ASSERT( !( BLAZETEST_MATHTEST_TEST_SCALED_OPERATION > 2 ) );
 BLAZE_STATIC_ASSERT( !( BLAZETEST_MATHTEST_TEST_TRANS_OPERATION < 0 ) );
 BLAZE_STATIC_ASSERT( !( BLAZETEST_MATHTEST_TEST_TRANS_OPERATION > 2 ) );
-BLAZE_STATIC_ASSERT( !( BLAZETEST_MATHTEST_TEST_CTRANS_OPERATION < 0 ) );
-BLAZE_STATIC_ASSERT( !( BLAZETEST_MATHTEST_TEST_CTRANS_OPERATION > 2 ) );
 BLAZE_STATIC_ASSERT( !( BLAZETEST_MATHTEST_TEST_ABS_OPERATION < 0 ) );
 BLAZE_STATIC_ASSERT( !( BLAZETEST_MATHTEST_TEST_ABS_OPERATION > 2 ) );
 BLAZE_STATIC_ASSERT( !( BLAZETEST_MATHTEST_TEST_CONJ_OPERATION < 0 ) );
 BLAZE_STATIC_ASSERT( !( BLAZETEST_MATHTEST_TEST_CONJ_OPERATION > 2 ) );
+BLAZE_STATIC_ASSERT( !( BLAZETEST_MATHTEST_TEST_CTRANS_OPERATION < 0 ) );
+BLAZE_STATIC_ASSERT( !( BLAZETEST_MATHTEST_TEST_CTRANS_OPERATION > 2 ) );
 BLAZE_STATIC_ASSERT( !( BLAZETEST_MATHTEST_TEST_REAL_OPERATION < 0 ) );
 BLAZE_STATIC_ASSERT( !( BLAZETEST_MATHTEST_TEST_REAL_OPERATION > 2 ) );
 BLAZE_STATIC_ASSERT( !( BLAZETEST_MATHTEST_TEST_IMAG_OPERATION < 0 ) );

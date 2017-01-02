@@ -42,6 +42,8 @@
 
 #include <blaze/math/typetraits/IsMatrix.h>
 #include <blaze/math/typetraits/StorageOrder.h>
+#include <blaze/util/constraints/ConstraintTest.h>
+#include <blaze/util/Suffix.h>
 
 
 namespace blaze {
@@ -53,6 +55,22 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup math_constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER_FAILED;
+template<> struct CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the data type.
 // \ingroup math_constraints
 //
@@ -61,8 +79,12 @@ namespace blaze {
 // compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER(T,SO) \
-   static_assert( ::blaze::IsMatrix<T>::value && \
-                  ::blaze::StorageOrder<T>::value == SO, "Invalid storage order detected" )
+   typedef \
+      blaze::CONSTRAINT_TEST< \
+         blaze::CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER_FAILED< \
+            blaze::IsMatrix<T>::value && \
+            blaze::StorageOrder<T>::value == SO >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -75,6 +97,22 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup math_constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MATRICES_MUST_HAVE_SAME_STORAGE_ORDER_FAILED;
+template<> struct CONSTRAINT_MATRICES_MUST_HAVE_SAME_STORAGE_ORDER_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the data type.
 // \ingroup math_constraints
 //
@@ -82,9 +120,13 @@ namespace blaze {
 // the storage order of both matrix types doesn't match, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MATRICES_MUST_HAVE_SAME_STORAGE_ORDER(T1,T2) \
-   static_assert( ::blaze::IsMatrix<T1>::value && \
-                  ::blaze::IsMatrix<T2>::value && \
-                  ::blaze::StorageOrder<T1>::value == ::blaze::StorageOrder<T2>::value, "Invalid storage order failed" )
+   typedef \
+      blaze::CONSTRAINT_TEST< \
+         blaze::CONSTRAINT_MATRICES_MUST_HAVE_SAME_STORAGE_ORDER_FAILED< \
+            blaze::IsMatrix<T1>::value && \
+            blaze::IsMatrix<T2>::value && \
+            blaze::StorageOrder<T1>::value == blaze::StorageOrder<T2>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MATRICES_MUST_HAVE_SAME_STORAGE_ORDER_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -97,6 +139,22 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup math_constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MATRICES_MUST_HAVE_DIFFERENT_STORAGE_ORDER_FAILED;
+template<> struct CONSTRAINT_MATRICES_MUST_HAVE_DIFFERENT_STORAGE_ORDER_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the data type.
 // \ingroup math_constraints
 //
@@ -104,9 +162,13 @@ namespace blaze {
 // the storage order of both matrix types does match, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MATRICES_MUST_HAVE_DIFFERENT_STORAGE_ORDER(T1,T2) \
-   static_assert( ::blaze::IsMatrix<T1>::value && \
-                  ::blaze::IsMatrix<T2>::value && \
-                  ::blaze::StorageOrder<T1>::value != ::blaze::StorageOrder<T2>::value, "Invalid storage order detected" )
+   typedef \
+      blaze::CONSTRAINT_TEST< \
+         blaze::CONSTRAINT_MATRICES_MUST_HAVE_DIFFERENT_STORAGE_ORDER_FAILED< \
+            blaze::IsMatrix<T1>::value && \
+            blaze::IsMatrix<T2>::value && \
+            blaze::StorageOrder<T1>::value != blaze::StorageOrder<T2>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MATRICES_MUST_HAVE_DIFFERENT_STORAGE_ORDER_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 } // namespace blaze

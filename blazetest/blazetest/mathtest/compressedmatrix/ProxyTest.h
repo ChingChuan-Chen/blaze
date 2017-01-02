@@ -105,6 +105,7 @@ class ProxyTest
    void testSet();
    void testInsert();
    void testAppend();
+   void testErase();
    void testResize();
    void testExtend();
    void testReserve();
@@ -113,7 +114,6 @@ class ProxyTest
    void testCTranspose();
    void testInvert();
    void testSwap();
-   void testErase();
    void testFind();
    void testLowerBound();
    void testUpperBound();

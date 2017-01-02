@@ -41,8 +41,7 @@
 //*************************************************************************************************
 
 #include <blaze/math/expressions/Forward.h>
-#include <blaze/math/functors/Forward.h>
-#include <blaze/math/traits/SMatForEachExprTrait.h>
+#include <blaze/math/traits/SMatConjExprTrait.h>
 #include <blaze/math/traits/SMatTransExprTrait.h>
 #include <blaze/math/typetraits/IsSparseMatrix.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
@@ -50,10 +49,11 @@
 #include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -79,45 +79,28 @@ struct SMatCTransExprTrait
  private:
    //**struct Failure******************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   struct Failure { using Type = INVALID_TYPE; };
+   struct Failure { typedef INVALID_TYPE  Type; };
    /*! \endcond */
    //**********************************************************************************************
 
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Tmp = If_< And< IsSparseMatrix<MT>, IsRowMajorMatrix<MT> >
-                  , SMatTransExprTrait< SMatForEachExprTrait_<MT,Conj> >
-                  , Failure >;
+   typedef typename If< And< IsSparseMatrix<MT>, IsRowMajorMatrix<MT> >
+                      , SMatTransExprTrait< typename SMatConjExprTrait<MT>::Type >
+                      , Failure >::Type  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<MT>::Type >::Type  Type1;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<MT>, IsVolatile<MT>, IsReference<MT> >
-                            , SMatCTransExprTrait< Decay_<MT> >
-                            , Tmp >::Type;
+   typedef typename If< Or< IsConst<MT>, IsVolatile<MT>, IsReference<MT> >
+                      , SMatCTransExprTrait<Type1>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the SMatCTransExprTrait class template.
-// \ingroup math_traits
-//
-// The SMatCTransExprTrait_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the SMatCTransExprTrait class template. For instance, given the row-major sparse
-// matrix type \a MT the following two type definitions are identical:
-
-   \code
-   using Type1 = typename SMatCTransExprTrait<MT>::Type;
-   using Type2 = SMatCTransExprTrait_<MT>;
-   \endcode
-*/
-template< typename MT >  // Type of the sparse matrix
-using SMatCTransExprTrait_ = typename SMatCTransExprTrait<MT>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

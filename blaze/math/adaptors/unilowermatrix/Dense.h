@@ -40,12 +40,9 @@
 // Includes
 //*************************************************************************************************
 
-#include <iterator>
-#include <utility>
 #include <blaze/math/adaptors/Forward.h>
 #include <blaze/math/adaptors/unilowermatrix/BaseTemplate.h>
 #include <blaze/math/adaptors/unilowermatrix/UniLowerProxy.h>
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/DenseMatrix.h>
 #include <blaze/math/constraints/Expression.h>
 #include <blaze/math/constraints/Hermitian.h>
@@ -56,11 +53,11 @@
 #include <blaze/math/constraints/Symmetric.h>
 #include <blaze/math/constraints/Upper.h>
 #include <blaze/math/dense/DenseMatrix.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/DenseMatrix.h>
-#include <blaze/math/InitializerList.h>
+#include <blaze/math/Intrinsics.h>
 #include <blaze/math/shims/Clear.h>
 #include <blaze/math/shims/IsDefault.h>
+#include <blaze/math/shims/Move.h>
 #include <blaze/math/typetraits/Columns.h>
 #include <blaze/math/typetraits/IsComputation.h>
 #include <blaze/math/typetraits/IsResizable.h>
@@ -71,6 +68,7 @@
 #include <blaze/math/typetraits/IsUniTriangular.h>
 #include <blaze/math/typetraits/IsUpper.h>
 #include <blaze/math/typetraits/Rows.h>
+#include <blaze/math/views/DenseSubmatrix.h>
 #include <blaze/math/views/Submatrix.h>
 #include <blaze/system/Inline.h>
 #include <blaze/util/Assert.h>
@@ -82,6 +80,7 @@
 #include <blaze/util/constraints/Volatile.h>
 #include <blaze/util/DisableIf.h>
 #include <blaze/util/EnableIf.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/FalseType.h>
 #include <blaze/util/StaticAssert.h>
 #include <blaze/util/TrueType.h>
@@ -112,27 +111,27 @@ class UniLowerMatrix<MT,SO,true>
 {
  private:
    //**Type definitions****************************************************************************
-   typedef OppositeType_<MT>   OT;  //!< Opposite type of the dense matrix.
-   typedef TransposeType_<MT>  TT;  //!< Transpose type of the dense matrix.
-   typedef ElementType_<MT>    ET;  //!< Element type of the dense matrix.
+   typedef typename MT::OppositeType   OT;  //!< Opposite type of the dense matrix.
+   typedef typename MT::TransposeType  TT;  //!< Transpose type of the dense matrix.
+   typedef typename MT::ElementType    ET;  //!< Element type of the dense matrix.
+   typedef IntrinsicTrait<ET>          IT;  //!< Intrinsic trait for the matrix element type.
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
    typedef UniLowerMatrix<MT,SO,true>   This;            //!< Type of this UniLowerMatrix instance.
-   typedef DenseMatrix<This,SO>         BaseType;        //!< Base type of this UniLowerMatrix instance.
    typedef This                         ResultType;      //!< Result type for expression template evaluations.
    typedef UniLowerMatrix<OT,!SO,true>  OppositeType;    //!< Result type with opposite storage order for expression template evaluations.
    typedef UniUpperMatrix<TT,!SO,true>  TransposeType;   //!< Transpose type for expression template evaluations.
    typedef ET                           ElementType;     //!< Type of the matrix elements.
-   typedef SIMDType_<MT>                SIMDType;        //!< SIMD type of the matrix elements.
-   typedef ReturnType_<MT>              ReturnType;      //!< Return type for expression template evaluations.
+   typedef typename MT::IntrinsicType   IntrinsicType;   //!< Intrinsic type of the matrix elements.
+   typedef typename MT::ReturnType      ReturnType;      //!< Return type for expression template evaluations.
    typedef const This&                  CompositeType;   //!< Data type for composite expression templates.
    typedef UniLowerProxy<MT>            Reference;       //!< Reference to a non-constant matrix value.
-   typedef ConstReference_<MT>          ConstReference;  //!< Reference to a constant matrix value.
-   typedef Pointer_<MT>                 Pointer;         //!< Pointer to a non-constant matrix value.
-   typedef ConstPointer_<MT>            ConstPointer;    //!< Pointer to a constant matrix value.
-   typedef ConstIterator_<MT>           ConstIterator;   //!< Iterator over constant elements.
+   typedef typename MT::ConstReference  ConstReference;  //!< Reference to a constant matrix value.
+   typedef typename MT::Pointer         Pointer;         //!< Pointer to a non-constant matrix value.
+   typedef typename MT::ConstPointer    ConstPointer;    //!< Pointer to a constant matrix value.
+   typedef typename MT::ConstIterator   ConstIterator;   //!< Iterator over constant elements.
    //**********************************************************************************************
 
    //**Rebind struct definition********************************************************************
@@ -153,7 +152,7 @@ class UniLowerMatrix<MT,SO,true>
     public:
       //**Type definitions*************************************************************************
       typedef std::random_access_iterator_tag  IteratorCategory;  //!< The iterator category.
-      typedef ElementType_<MT>                 ValueType;         //!< Type of the underlying elements.
+      typedef typename MT::ElementType         ValueType;         //!< Type of the underlying elements.
       typedef UniLowerProxy<MT>                PointerType;       //!< Pointer return type.
       typedef UniLowerProxy<MT>                ReferenceType;     //!< Reference return type.
       typedef ptrdiff_t                        DifferenceType;    //!< Difference between two iterators.
@@ -169,10 +168,10 @@ class UniLowerMatrix<MT,SO,true>
       //**Constructor******************************************************************************
       /*!\brief Default constructor of the Iterator class.
       */
-      inline Iterator() noexcept
-         : matrix_( nullptr )  // Reference to the adapted dense matrix
-         , row_   ( 0UL )      // The current row index of the iterator
-         , column_( 0UL )      // The current column index of the iterator
+      inline Iterator()
+         : matrix_( NULL )  // Reference to the adapted dense matrix
+         , row_   ( 0UL  )  // The current row index of the iterator
+         , column_( 0UL  )  // The current column index of the iterator
       {}
       //*******************************************************************************************
 
@@ -183,7 +182,7 @@ class UniLowerMatrix<MT,SO,true>
       // \param row Initial row index of the iterator.
       // \param column Initial column index of the iterator.
       */
-      inline Iterator( MT& matrix, size_t row, size_t column ) noexcept
+      inline Iterator( MT& matrix, size_t row, size_t column )
          : matrix_( &matrix )  // Reference to the adapted dense matrix
          , row_   ( row     )  // The current row-index of the iterator
          , column_( column  )  // The current column-index of the iterator
@@ -196,7 +195,7 @@ class UniLowerMatrix<MT,SO,true>
       // \param inc The increment of the iterator.
       // \return The incremented iterator.
       */
-      inline Iterator& operator+=( size_t inc ) noexcept {
+      inline Iterator& operator+=( size_t inc ) {
          ( SO )?( row_ += inc ):( column_ += inc );
          return *this;
       }
@@ -208,7 +207,7 @@ class UniLowerMatrix<MT,SO,true>
       // \param dec The decrement of the iterator.
       // \return The decremented iterator.
       */
-      inline Iterator& operator-=( size_t dec ) noexcept {
+      inline Iterator& operator-=( size_t dec ) {
          ( SO )?( row_ -= dec ):( column_ -= dec );
          return *this;
       }
@@ -219,7 +218,7 @@ class UniLowerMatrix<MT,SO,true>
       //
       // \return Reference to the incremented iterator.
       */
-      inline Iterator& operator++() noexcept {
+      inline Iterator& operator++() {
          ( SO )?( ++row_ ):( ++column_ );
          return *this;
       }
@@ -230,7 +229,7 @@ class UniLowerMatrix<MT,SO,true>
       //
       // \return The previous position of the iterator.
       */
-      inline const Iterator operator++( int ) noexcept {
+      inline const Iterator operator++( int ) {
          const Iterator tmp( *this );
          ++(*this);
          return tmp;
@@ -242,7 +241,7 @@ class UniLowerMatrix<MT,SO,true>
       //
       // \return Reference to the decremented iterator.
       */
-      inline Iterator& operator--() noexcept {
+      inline Iterator& operator--() {
          ( SO )?( --row_ ):( --column_ );
          return *this;
       }
@@ -253,7 +252,7 @@ class UniLowerMatrix<MT,SO,true>
       //
       // \return The previous position of the iterator.
       */
-      inline const Iterator operator--( int ) noexcept {
+      inline const Iterator operator--( int ) {
          const Iterator tmp( *this );
          --(*this);
          return tmp;
@@ -280,51 +279,6 @@ class UniLowerMatrix<MT,SO,true>
       }
       //*******************************************************************************************
 
-      //**Load function****************************************************************************
-      /*!\brief Load of a SIMD element at the current iterator position.
-      //
-      // \return The loaded SIMD element.
-      //
-      // This function performs a load of the current SIMD element at the current iterator
-      // position. This function must \b NOT be called explicitly! It is used internally for
-      // the performance optimized evaluation of expression templates. Calling this function
-      // explicitly might result in erroneous results and/or in compilation errors.
-      */
-      inline SIMDType load() const {
-         return (*matrix_).load(row_,column_);
-      }
-      //*******************************************************************************************
-
-      //**Loada function***************************************************************************
-      /*!\brief Aligned load of a SIMD element at the current iterator position.
-      //
-      // \return The loaded SIMD element.
-      //
-      // This function performs an aligned load of the current SIMD element at the current
-      // iterator position. This function must \b NOT be called explicitly! It is used internally
-      // for the performance optimized evaluation of expression templates. Calling this function
-      // explicitly might result in erroneous results and/or in compilation errors.
-      */
-      inline SIMDType loada() const {
-         return (*matrix_).loada(row_,column_);
-      }
-      //*******************************************************************************************
-
-      //**Loadu function***************************************************************************
-      /*!\brief Unaligned load of a SIMD element at the current iterator position.
-      //
-      // \return The loaded SIMD element.
-      //
-      // This function performs an unaligned load of the current SIMD element at the current
-      // iterator position. This function must \b NOT be called explicitly! It is used internally
-      // for the performance optimized evaluation of expression templates. Calling this function
-      // explicitly might result in erroneous results and/or in compilation errors.
-      */
-      inline SIMDType loadu() const {
-         return (*matrix_).loadu(row_,column_);
-      }
-      //*******************************************************************************************
-
       //**Conversion operator**********************************************************************
       /*!\brief Conversion to an iterator over constant elements.
       //
@@ -345,7 +299,7 @@ class UniLowerMatrix<MT,SO,true>
       // \param rhs The right-hand side iterator.
       // \return \a true if the iterators refer to the same element, \a false if not.
       */
-      friend inline bool operator==( const Iterator& lhs, const Iterator& rhs ) noexcept {
+      friend inline bool operator==( const Iterator& lhs, const Iterator& rhs ) {
          return ( SO )?( lhs.row_ == rhs.row_ ):( lhs.column_ == rhs.column_ );
       }
       //*******************************************************************************************
@@ -357,7 +311,7 @@ class UniLowerMatrix<MT,SO,true>
       // \param rhs The right-hand side iterator.
       // \return \a true if the iterators refer to the same element, \a false if not.
       */
-      friend inline bool operator==( const Iterator& lhs, const ConstIterator& rhs ) noexcept {
+      friend inline bool operator==( const Iterator& lhs, const ConstIterator& rhs ) {
          return ( ConstIterator( lhs ) == rhs );
       }
       //*******************************************************************************************
@@ -369,7 +323,7 @@ class UniLowerMatrix<MT,SO,true>
       // \param rhs The right-hand side iterator.
       // \return \a true if the iterators refer to the same element, \a false if not.
       */
-      friend inline bool operator==( const ConstIterator& lhs, const Iterator& rhs ) noexcept {
+      friend inline bool operator==( const ConstIterator& lhs, const Iterator& rhs ) {
          return ( lhs == ConstIterator( rhs ) );
       }
       //*******************************************************************************************
@@ -381,7 +335,7 @@ class UniLowerMatrix<MT,SO,true>
       // \param rhs The right-hand side iterator.
       // \return \a true if the iterators don't refer to the same element, \a false if they do.
       */
-      friend inline bool operator!=( const Iterator& lhs, const Iterator& rhs ) noexcept {
+      friend inline bool operator!=( const Iterator& lhs, const Iterator& rhs ) {
          return ( SO )?( lhs.row_ != rhs.row_ ):( lhs.column_ != rhs.column_ );
       }
       //*******************************************************************************************
@@ -417,7 +371,7 @@ class UniLowerMatrix<MT,SO,true>
       // \param rhs The right-hand side iterator.
       // \return \a true if the left-hand side iterator is smaller, \a false if not.
       */
-      friend inline bool operator<( const Iterator& lhs, const Iterator& rhs ) noexcept {
+      friend inline bool operator<( const Iterator& lhs, const Iterator& rhs ) {
          return ( SO )?( lhs.row_ < rhs.row_ ):( lhs.column_ < rhs.column_ );
       }
       //*******************************************************************************************
@@ -453,7 +407,7 @@ class UniLowerMatrix<MT,SO,true>
       // \param rhs The right-hand side iterator.
       // \return \a true if the left-hand side iterator is greater, \a false if not.
       */
-      friend inline bool operator>( const Iterator& lhs, const Iterator& rhs ) noexcept {
+      friend inline bool operator>( const Iterator& lhs, const Iterator& rhs ) {
          return ( SO )?( lhs.row_ > rhs.row_ ):( lhs.column_ > rhs.column_ );
       }
       //*******************************************************************************************
@@ -489,7 +443,7 @@ class UniLowerMatrix<MT,SO,true>
       // \param rhs The right-hand side iterator.
       // \return \a true if the left-hand side iterator is smaller or equal, \a false if not.
       */
-      friend inline bool operator<=( const Iterator& lhs, const Iterator& rhs ) noexcept {
+      friend inline bool operator<=( const Iterator& lhs, const Iterator& rhs ) {
          return ( SO )?( lhs.row_ <= rhs.row_ ):( lhs.column_ <= rhs.column_ );
       }
       //*******************************************************************************************
@@ -525,7 +479,7 @@ class UniLowerMatrix<MT,SO,true>
       // \param rhs The right-hand side iterator.
       // \return \a true if the left-hand side iterator is greater or equal, \a false if not.
       */
-      friend inline bool operator>=( const Iterator& lhs, const Iterator& rhs ) noexcept {
+      friend inline bool operator>=( const Iterator& lhs, const Iterator& rhs ) {
          return ( SO )?( lhs.row_ >= rhs.row_ ):( lhs.column_ >= rhs.column_ );
       }
       //*******************************************************************************************
@@ -560,7 +514,7 @@ class UniLowerMatrix<MT,SO,true>
       // \param rhs The right-hand side iterator.
       // \return The number of elements between the two iterators.
       */
-      inline DifferenceType operator-( const Iterator& rhs ) const noexcept {
+      inline DifferenceType operator-( const Iterator& rhs ) const {
          return ( SO )?( row_ - rhs.row_ ):( column_ - rhs.column_ );
       }
       //*******************************************************************************************
@@ -572,7 +526,7 @@ class UniLowerMatrix<MT,SO,true>
       // \param inc The number of elements the iterator is incremented.
       // \return The incremented iterator.
       */
-      friend inline const Iterator operator+( const Iterator& it, size_t inc ) noexcept {
+      friend inline const Iterator operator+( const Iterator& it, size_t inc ) {
          if( SO )
             return Iterator( *it.matrix_, it.row_ + inc, it.column_ );
          else
@@ -587,7 +541,7 @@ class UniLowerMatrix<MT,SO,true>
       // \param it The iterator to be incremented.
       // \return The incremented iterator.
       */
-      friend inline const Iterator operator+( size_t inc, const Iterator& it ) noexcept {
+      friend inline const Iterator operator+( size_t inc, const Iterator& it ) {
          if( SO )
             return Iterator( *it.matrix_, it.row_ + inc, it.column_ );
          else
@@ -602,7 +556,7 @@ class UniLowerMatrix<MT,SO,true>
       // \param dec The number of elements the iterator is decremented.
       // \return The decremented iterator.
       */
-      friend inline const Iterator operator-( const Iterator& it, size_t dec ) noexcept {
+      friend inline const Iterator operator-( const Iterator& it, size_t dec ) {
          if( SO )
             return Iterator( *it.matrix_, it.row_ - dec, it.column_ );
          else
@@ -621,10 +575,10 @@ class UniLowerMatrix<MT,SO,true>
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template evaluation strategy.
-   enum : bool { simdEnabled = MT::simdEnabled };
+   enum { vectorizable = MT::vectorizable };
 
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = MT::smpAssignable };
+   enum { smpAssignable = MT::smpAssignable };
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
@@ -633,14 +587,6 @@ class UniLowerMatrix<MT,SO,true>
                            explicit inline UniLowerMatrix();
    template< typename A1 > explicit inline UniLowerMatrix( const A1& a1 );
                            explicit inline UniLowerMatrix( size_t n, const ElementType& init );
-
-   explicit inline UniLowerMatrix( initializer_list< initializer_list<ElementType> > list );
-
-   template< typename Other >
-   explicit inline UniLowerMatrix( size_t n, const Other* array );
-
-   template< typename Other, size_t N >
-   explicit inline UniLowerMatrix( const Other (&array)[N][N] );
 
    explicit inline UniLowerMatrix( ElementType* ptr, size_t n );
    explicit inline UniLowerMatrix( ElementType* ptr, size_t n, size_t nn );
@@ -652,7 +598,6 @@ class UniLowerMatrix<MT,SO,true>
    explicit inline UniLowerMatrix( ElementType* ptr, size_t n, size_t nn, Deleter d );
 
    inline UniLowerMatrix( const UniLowerMatrix& m );
-   inline UniLowerMatrix( UniLowerMatrix&& m ) noexcept;
    //@}
    //**********************************************************************************************
 
@@ -667,8 +612,8 @@ class UniLowerMatrix<MT,SO,true>
    inline ConstReference operator()( size_t i, size_t j ) const;
    inline Reference      at( size_t i, size_t j );
    inline ConstReference at( size_t i, size_t j ) const;
-   inline ConstPointer   data  () const noexcept;
-   inline ConstPointer   data  ( size_t i ) const noexcept;
+   inline ConstPointer   data  () const;
+   inline ConstPointer   data  ( size_t i ) const;
    inline Iterator       begin ( size_t i );
    inline ConstIterator  begin ( size_t i ) const;
    inline ConstIterator  cbegin( size_t i ) const;
@@ -682,31 +627,31 @@ class UniLowerMatrix<MT,SO,true>
    /*!\name Assignment operators */
    //@{
    inline UniLowerMatrix& operator=( const ElementType& rhs );
-   inline UniLowerMatrix& operator=( initializer_list< initializer_list<ElementType> > list );
-
-   template< typename Other, size_t N >
-   inline UniLowerMatrix& operator=( const Other (&array)[N][N] );
-
    inline UniLowerMatrix& operator=( const UniLowerMatrix& rhs );
-   inline UniLowerMatrix& operator=( UniLowerMatrix&& rhs ) noexcept;
 
    template< typename MT2, bool SO2 >
-   inline DisableIf_< IsComputation<MT2>, UniLowerMatrix& > operator=( const Matrix<MT2,SO2>& rhs );
+   inline typename DisableIf< IsComputation<MT2>, UniLowerMatrix& >::Type
+      operator=( const Matrix<MT2,SO2>& rhs );
 
    template< typename MT2, bool SO2 >
-   inline EnableIf_< IsComputation<MT2>, UniLowerMatrix& > operator=( const Matrix<MT2,SO2>& rhs );
+   inline typename EnableIf< IsComputation<MT2>, UniLowerMatrix& >::Type
+      operator=( const Matrix<MT2,SO2>& rhs );
 
    template< typename MT2, bool SO2 >
-   inline DisableIf_< IsComputation<MT2>, UniLowerMatrix& > operator+=( const Matrix<MT2,SO2>& rhs );
+   inline typename DisableIf< IsComputation<MT2>, UniLowerMatrix& >::Type
+      operator+=( const Matrix<MT2,SO2>& rhs );
 
    template< typename MT2, bool SO2 >
-   inline EnableIf_< IsComputation<MT2>, UniLowerMatrix& > operator+=( const Matrix<MT2,SO2>& rhs );
+   inline typename EnableIf< IsComputation<MT2>, UniLowerMatrix& >::Type
+      operator+=( const Matrix<MT2,SO2>& rhs );
 
    template< typename MT2, bool SO2 >
-   inline DisableIf_< IsComputation<MT2>, UniLowerMatrix& > operator-=( const Matrix<MT2,SO2>& rhs );
+   inline typename DisableIf< IsComputation<MT2>, UniLowerMatrix& >::Type
+      operator-=( const Matrix<MT2,SO2>& rhs );
 
    template< typename MT2, bool SO2 >
-   inline EnableIf_< IsComputation<MT2>, UniLowerMatrix& > operator-=( const Matrix<MT2,SO2>& rhs );
+   inline typename EnableIf< IsComputation<MT2>, UniLowerMatrix& >::Type
+      operator-=( const Matrix<MT2,SO2>& rhs );
 
    template< typename MT2, bool SO2 >
    inline UniLowerMatrix& operator*=( const Matrix<MT2,SO2>& rhs );
@@ -716,11 +661,11 @@ class UniLowerMatrix<MT,SO,true>
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-   inline size_t rows() const noexcept;
-   inline size_t columns() const noexcept;
-   inline size_t spacing() const noexcept;
-   inline size_t capacity() const noexcept;
-   inline size_t capacity( size_t i ) const noexcept;
+   inline size_t rows() const;
+   inline size_t columns() const;
+   inline size_t spacing() const;
+   inline size_t capacity() const;
+   inline size_t capacity( size_t i ) const;
    inline size_t nonZeros() const;
    inline size_t nonZeros( size_t i ) const;
    inline void   reset();
@@ -729,32 +674,32 @@ class UniLowerMatrix<MT,SO,true>
           void   resize ( size_t n, bool preserve=true );
    inline void   extend ( size_t n, bool preserve=true );
    inline void   reserve( size_t elements );
-   inline void   swap( UniLowerMatrix& m ) noexcept;
+   inline void   swap( UniLowerMatrix& m ) /* throw() */;
 
-   static inline constexpr size_t maxNonZeros() noexcept;
-   static inline constexpr size_t maxNonZeros( size_t n ) noexcept;
+   static inline size_t maxNonZeros();
+   static inline size_t maxNonZeros( size_t n );
    //@}
    //**********************************************************************************************
 
    //**Debugging functions*************************************************************************
    /*!\name Debugging functions */
    //@{
-   inline bool isIntact() const noexcept;
+   inline bool isIntact() const;
    //@}
    //**********************************************************************************************
 
    //**Expression template evaluation functions****************************************************
    /*!\name Expression template evaluation functions */
    //@{
-   template< typename Other > inline bool canAlias ( const Other* alias ) const noexcept;
-   template< typename Other > inline bool isAliased( const Other* alias ) const noexcept;
+   template< typename Other > inline bool canAlias ( const Other* alias ) const;
+   template< typename Other > inline bool isAliased( const Other* alias ) const;
 
-   inline bool isAligned   () const noexcept;
-   inline bool canSMPAssign() const noexcept;
+   inline bool isAligned   () const;
+   inline bool canSMPAssign() const;
 
-   BLAZE_ALWAYS_INLINE SIMDType load ( size_t i, size_t j ) const noexcept;
-   BLAZE_ALWAYS_INLINE SIMDType loada( size_t i, size_t j ) const noexcept;
-   BLAZE_ALWAYS_INLINE SIMDType loadu( size_t i, size_t j ) const noexcept;
+   BLAZE_ALWAYS_INLINE IntrinsicType load ( size_t i, size_t j ) const;
+   BLAZE_ALWAYS_INLINE IntrinsicType loada( size_t i, size_t j ) const;
+   BLAZE_ALWAYS_INLINE IntrinsicType loadu( size_t i, size_t j ) const;
    //@}
    //**********************************************************************************************
 
@@ -899,126 +844,6 @@ inline UniLowerMatrix<MT,SO,true>::UniLowerMatrix( size_t n, const ElementType& 
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief List initialization of all matrix elements.
-//
-// \param list The initializer list.
-// \exception std::invalid_argument Invalid setup of unilower matrix.
-//
-// This constructor provides the option to explicitly initialize the elements of the unilower
-// matrix by means of an initializer list:
-
-   \code
-   using blaze::rowMajor;
-
-   blaze::UniLowerMatrix< blaze::StaticMatrix<int,3,3,rowMajor> > A{ { 1, 0, 0 },
-                                                                     { 2, 1 },
-                                                                     { 4, 5, 1 } };
-   \endcode
-
-// The matrix is sized according to the size of the initializer list and all matrix elements are
-// initialized with the values from the given list. Missing values are initialized with default
-// values. In case the given list does not represent a diagonal matrix, a \a std::invalid_argument
-// exception is thrown.
-*/
-template< typename MT  // Type of the adapted dense matrix
-        , bool SO >    // Storage order of the adapted dense matrix
-inline UniLowerMatrix<MT,SO,true>::UniLowerMatrix( initializer_list< initializer_list<ElementType> > list )
-   : matrix_( list )  // The adapted dense matrix
-{
-   if( !isUniLower( matrix_ ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid setup of unilower matrix" );
-   }
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Array initialization of all unilower matrix elements.
-//
-// \param n The number of rows and columns of the matrix.
-// \param array Dynamic array for the initialization.
-// \exception std::invalid_argument Invalid setup of unilower matrix.
-//
-// This constructor offers the option to directly initialize the elements of the unilower matrix
-// with a dynamic array:
-
-   \code
-   using blaze::rowMajor;
-
-   int* array = new int[16];
-   // ... Initialization of the dynamic array
-   blaze::UniLowerMatrix< blaze::DynamicMatrix<int,rowMajor> > v( 4UL, array );
-   delete[] array;
-   \endcode
-
-// The matrix is sized accoring to the given size of the array and initialized with the values
-// from the given array. Note that it is expected that the given \a array has at least \a n by
-// \a n elements. Providing an array with less elements results in undefined behavior! Also, in
-// case the given array does not represent a lower unitriangular matrix, a \a std::invalid_argument
-// exception is thrown.
-*/
-template< typename MT       // Type of the adapted dense matrix
-        , bool SO >         // Storage order of the adapted dense matrix
-template< typename Other >  // Data type of the initialization array
-inline UniLowerMatrix<MT,SO,true>::UniLowerMatrix( size_t n, const Other* array )
-   : matrix_( n, n, array )  // The adapted dense matrix
-{
-   if( !isUniLower( matrix_ ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid setup of unilower matrix" );
-   }
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Array initialization of all unilower matrix elements.
-//
-// \param array \f$ N \times N \f$ dimensional array for the initialization.
-// \exception std::invalid_argument Invalid setup of unilower matrix.
-//
-// This constructor offers the option to directly initialize the elements of the unilower matrix
-// with a static array:
-
-   \code
-   using blaze::rowMajor;
-
-   const int init[3][3] = { { 1, 0, 0 },
-                            { 2, 1 },
-                            { 4, 5, 1 } };
-   blaze::UniLowerMatrix< blaze::StaticMatrix<int,3,3,rowMajor> > A( init );
-   \endcode
-
-// The matrix is initialized with the values from the given array. Missing values are initialized
-// with default values. In case the given array does not represent a lower unitriangular matrix,
-// a \a std::invalid_argument exception is thrown.
-*/
-template< typename MT     // Type of the adapted dense matrix
-        , bool SO >       // Storage order of the adapted dense matrix
-template< typename Other  // Data type of the initialization array
-        , size_t N >      // Number of rows and columns of the initialization array
-inline UniLowerMatrix<MT,SO,true>::UniLowerMatrix( const Other (&array)[N][N] )
-   : matrix_( array )  // The adapted dense matrix
-{
-   if( !isUniLower( matrix_ ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid setup of unilower matrix" );
-   }
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
 /*!\brief Constructor for a unilower custom matrix of size \f$ n \times n \f$.
 //
 // \param ptr The array of elements to be used by the matrix.
@@ -1028,7 +853,7 @@ inline UniLowerMatrix<MT,SO,true>::UniLowerMatrix( const Other (&array)[N][N] )
 // This constructor creates an unpadded unilower custom matrix of size \f$ n \times n \f$. The
 // construction fails if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...);
 //  - ... the values in the given array do not represent a lower unitriangular matrix.
@@ -1065,7 +890,7 @@ inline UniLowerMatrix<MT,SO,true>::UniLowerMatrix( ElementType* ptr, size_t n )
 // This constructor creates a unilower custom matrix of size \f$ n \times n \f$. The construction
 // fails if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...);
 //  - ... the specified spacing \a nn is insufficient for the given data type \a Type and the
@@ -1103,7 +928,7 @@ inline UniLowerMatrix<MT,SO,true>::UniLowerMatrix( ElementType* ptr, size_t n, s
 // This constructor creates an unpadded unilower custom matrix of size \f$ n \times n \f$. The
 // construction fails if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...);
 //  - ... the values in the given array do not represent a lower unitriangular matrix.
@@ -1141,7 +966,7 @@ inline UniLowerMatrix<MT,SO,true>::UniLowerMatrix( ElementType* ptr, size_t n, D
 // This constructor creates a unilower custom matrix of size \f$ n \times n \f$. The construction
 // fails if ...
 //
-//  - ... the passed pointer is \c nullptr;
+//  - ... the passed pointer is NULL;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
 //    aligned according to the available instruction set (SSE, AVX, ...);
 //  - ... the specified spacing \a nn is insufficient for the given data type \a Type and the
@@ -1176,24 +1001,6 @@ template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
 inline UniLowerMatrix<MT,SO,true>::UniLowerMatrix( const UniLowerMatrix& m )
    : matrix_( m.matrix_ )  // The adapted dense matrix
-{
-   BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square unilower matrix detected" );
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief The move constructor for UniLowerMatrix.
-//
-// \param m The unilower matrix to be moved into this instance.
-*/
-template< typename MT  // Type of the adapted dense matrix
-        , bool SO >    // Storage order of the adapted dense matrix
-inline UniLowerMatrix<MT,SO,true>::UniLowerMatrix( UniLowerMatrix&& m ) noexcept
-   : matrix_( std::move( m.matrix_ ) )  // The adapted dense matrix
 {
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square unilower matrix detected" );
    BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
@@ -1354,7 +1161,7 @@ inline typename UniLowerMatrix<MT,SO,true>::ConstReference
 template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
 inline typename UniLowerMatrix<MT,SO,true>::ConstPointer
-   UniLowerMatrix<MT,SO,true>::data() const noexcept
+   UniLowerMatrix<MT,SO,true>::data() const
 {
    return matrix_.data();
 }
@@ -1374,7 +1181,7 @@ inline typename UniLowerMatrix<MT,SO,true>::ConstPointer
 template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
 inline typename UniLowerMatrix<MT,SO,true>::ConstPointer
-   UniLowerMatrix<MT,SO,true>::data( size_t i ) const noexcept
+   UniLowerMatrix<MT,SO,true>::data( size_t i ) const
 {
    return matrix_.data(i);
 }
@@ -1565,100 +1372,6 @@ inline UniLowerMatrix<MT,SO,true>&
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief List assignment to all matrix elements.
-//
-// \param list The initializer list.
-// \exception std::invalid_argument Invalid assignment to unilower matrix.
-//
-// This assignment operator offers the option to directly assign to all elements of the unilower
-// matrix by means of an initializer list:
-
-   \code
-   using blaze::rowMajor;
-
-   blaze::UniLowerMatrix< blaze::StaticMatrix<int,3UL,3UL,rowMajor> > A;
-   A = { { 1, 0, 0 },
-         { 2, 1 },
-         { 4, 5, 1 } };
-   \endcode
-
-// The matrix elements are assigned the values from the given initializer list. Missing values
-// are initialized as default (as e.g. the value 6 in the example). Note that in case the size
-// of the top-level initializer list exceeds the number of rows or the size of any nested list
-// exceeds the number of columns, a \a std::invalid_argument exception is thrown.
-*/
-template< typename MT  // Type of the adapted dense matrix
-        , bool SO >    // Storage order of the adapted dense matrix
-inline UniLowerMatrix<MT,SO,true>&
-   UniLowerMatrix<MT,SO,true>::operator=( initializer_list< initializer_list<ElementType> > list )
-{
-   MT tmp( list );
-
-   if( !isUniLower( tmp ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to unilower matrix" );
-   }
-
-   matrix_ = std::move( tmp );
-
-   BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square unilower matrix detected" );
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
-
-   return *this;
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Array assignment to all unilower matrix elements.
-//
-// \param array \f$ N \times N \f$ dimensional array for the assignment.
-// \return Reference to the assigned matrix.
-// \exception std::invalid_argument Invalid assignment to unilower matrix.
-//
-// This assignment operator offers the option to directly set all elements of the unilower matrix:
-
-   \code
-   using blaze::rowMajor;
-
-   const int init[3][3] = { { 1, 0, 0 },
-                            { 2, 1 },
-                            { 4, 5, 1 } };
-   blaze::UniLowerMatrix< blaze::StaticMatrix<int,3UL,3UL,rowMajor> > A;
-   A = init;
-   \endcode
-
-// The matrix is assigned the values from the given array. Missing values are initialized with
-// default values. In case the given array does not represent a lower unitriangular matrix, a
-// \a std::invalid_argument exception is thrown.
-*/
-template< typename MT     // Type of the adapted dense matrix
-        , bool SO >       // Storage order of the adapted dense matrix
-template< typename Other  // Data type of the initialization array
-        , size_t N >      // Number of rows and columns of the initialization array
-inline UniLowerMatrix<MT,SO,true>&
-   UniLowerMatrix<MT,SO,true>::operator=( const Other (&array)[N][N] )
-{
-   MT tmp( array );
-
-   if( !isUniLower( tmp ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to unilower matrix" );
-   }
-
-   matrix_ = std::move( tmp );
-
-   BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square unilower matrix detected" );
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
-
-   return *this;
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
 /*!\brief Copy assignment operator for UniLowerMatrix.
 //
 // \param rhs Matrix to be copied.
@@ -1673,29 +1386,6 @@ inline UniLowerMatrix<MT,SO,true>&
    UniLowerMatrix<MT,SO,true>::operator=( const UniLowerMatrix& rhs )
 {
    matrix_ = rhs.matrix_;
-
-   BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square unilower matrix detected" );
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
-
-   return *this;
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Move assignment operator for UniLowerMatrix.
-//
-// \param rhs The matrix to be moved into this instance.
-// \return Reference to the assigned matrix.
-*/
-template< typename MT  // Type of the adapted dense matrix
-        , bool SO >    // Storage order of the adapted dense matrix
-inline UniLowerMatrix<MT,SO,true>&
-   UniLowerMatrix<MT,SO,true>::operator=( UniLowerMatrix&& rhs ) noexcept
-{
-   matrix_ = std::move( rhs.matrix_ );
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square unilower matrix detected" );
    BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
@@ -1723,7 +1413,7 @@ template< typename MT   // Type of the adapted dense matrix
         , bool SO >     // Storage order of the adapted dense matrix
 template< typename MT2  // Type of the right-hand side matrix
         , bool SO2 >    // Storage order of the right-hand side matrix
-inline DisableIf_< IsComputation<MT2>, UniLowerMatrix<MT,SO,true>& >
+inline typename DisableIf< IsComputation<MT2>, UniLowerMatrix<MT,SO,true>& >::Type
    UniLowerMatrix<MT,SO,true>::operator=( const Matrix<MT2,SO2>& rhs )
 {
    if( IsStrictlyTriangular<MT2>::value || ( !IsUniLower<MT2>::value && !isUniLower( ~rhs ) ) ) {
@@ -1758,7 +1448,7 @@ template< typename MT   // Type of the adapted dense matrix
         , bool SO >     // Storage order of the adapted dense matrix
 template< typename MT2  // Type of the right-hand side matrix
         , bool SO2 >    // Storage order of the right-hand side matrix
-inline EnableIf_< IsComputation<MT2>, UniLowerMatrix<MT,SO,true>& >
+inline typename EnableIf< IsComputation<MT2>, UniLowerMatrix<MT,SO,true>& >::Type
    UniLowerMatrix<MT,SO,true>::operator=( const Matrix<MT2,SO2>& rhs )
 {
    if( IsStrictlyTriangular<MT2>::value || ( !IsSquare<MT2>::value && !isSquare( ~rhs ) ) ) {
@@ -1775,7 +1465,7 @@ inline EnableIf_< IsComputation<MT2>, UniLowerMatrix<MT,SO,true>& >
          BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to unilower matrix" );
       }
 
-      matrix_ = std::move( tmp );
+      move( matrix_, tmp );
    }
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square unilower matrix detected" );
@@ -1804,7 +1494,7 @@ template< typename MT   // Type of the adapted dense matrix
         , bool SO >     // Storage order of the adapted dense matrix
 template< typename MT2  // Type of the right-hand side matrix
         , bool SO2 >    // Storage order of the right-hand side matrix
-inline DisableIf_< IsComputation<MT2>, UniLowerMatrix<MT,SO,true>& >
+inline typename DisableIf< IsComputation<MT2>, UniLowerMatrix<MT,SO,true>& >::Type
    UniLowerMatrix<MT,SO,true>::operator+=( const Matrix<MT2,SO2>& rhs )
 {
    if( IsUpper<MT2>::value || IsUniTriangular<MT2>::value ||
@@ -1840,7 +1530,7 @@ template< typename MT   // Type of the adapted dense matrix
         , bool SO >     // Storage order of the adapted dense matrix
 template< typename MT2  // Type of the right-hand side matrix
         , bool SO2 >    // Storage order of the right-hand side matrix
-inline EnableIf_< IsComputation<MT2>, UniLowerMatrix<MT,SO,true>& >
+inline typename EnableIf< IsComputation<MT2>, UniLowerMatrix<MT,SO,true>& >::Type
    UniLowerMatrix<MT,SO,true>::operator+=( const Matrix<MT2,SO2>& rhs )
 {
    if( IsUpper<MT2>::value || IsUniTriangular<MT2>::value ||
@@ -1852,7 +1542,7 @@ inline EnableIf_< IsComputation<MT2>, UniLowerMatrix<MT,SO,true>& >
       matrix_ += ~rhs;
    }
    else {
-      const ResultType_<MT2> tmp( ~rhs );
+      typename MT2::ResultType tmp( ~rhs );
 
       if( !isStrictlyLower( tmp ) ) {
          BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to unilower matrix" );
@@ -1887,7 +1577,7 @@ template< typename MT   // Type of the adapted dense matrix
         , bool SO >     // Storage order of the adapted dense matrix
 template< typename MT2  // Type of the right-hand side matrix
         , bool SO2 >    // Storage order of the right-hand side matrix
-inline DisableIf_< IsComputation<MT2>, UniLowerMatrix<MT,SO,true>& >
+inline typename DisableIf< IsComputation<MT2>, UniLowerMatrix<MT,SO,true>& >::Type
    UniLowerMatrix<MT,SO,true>::operator-=( const Matrix<MT2,SO2>& rhs )
 {
    if( IsUpper<MT2>::value || IsUniTriangular<MT2>::value ||
@@ -1923,7 +1613,7 @@ template< typename MT   // Type of the adapted dense matrix
         , bool SO >     // Storage order of the adapted dense matrix
 template< typename MT2  // Type of the right-hand side matrix
         , bool SO2 >    // Storage order of the right-hand side matrix
-inline EnableIf_< IsComputation<MT2>, UniLowerMatrix<MT,SO,true>& >
+inline typename EnableIf< IsComputation<MT2>, UniLowerMatrix<MT,SO,true>& >::Type
    UniLowerMatrix<MT,SO,true>::operator-=( const Matrix<MT2,SO2>& rhs )
 {
    if( IsUpper<MT2>::value || IsUniTriangular<MT2>::value ||
@@ -1935,7 +1625,7 @@ inline EnableIf_< IsComputation<MT2>, UniLowerMatrix<MT,SO,true>& >
       matrix_ -= ~rhs;
    }
    else {
-      const ResultType_<MT2> tmp( ~rhs );
+      typename MT2::ResultType tmp( ~rhs );
 
       if( !isStrictlyLower( tmp ) ) {
          BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to unilower matrix" );
@@ -1982,7 +1672,7 @@ inline UniLowerMatrix<MT,SO,true>&
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to unilower matrix" );
    }
 
-   matrix_ = std::move( tmp );
+   move( matrix_, tmp );
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square unilower matrix detected" );
    BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
@@ -2009,7 +1699,7 @@ inline UniLowerMatrix<MT,SO,true>&
 */
 template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
-inline size_t UniLowerMatrix<MT,SO,true>::rows() const noexcept
+inline size_t UniLowerMatrix<MT,SO,true>::rows() const
 {
    return matrix_.rows();
 }
@@ -2025,7 +1715,7 @@ inline size_t UniLowerMatrix<MT,SO,true>::rows() const noexcept
 */
 template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
-inline size_t UniLowerMatrix<MT,SO,true>::columns() const noexcept
+inline size_t UniLowerMatrix<MT,SO,true>::columns() const
 {
    return matrix_.columns();
 }
@@ -2046,7 +1736,7 @@ inline size_t UniLowerMatrix<MT,SO,true>::columns() const noexcept
 */
 template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
-inline size_t UniLowerMatrix<MT,SO,true>::spacing() const noexcept
+inline size_t UniLowerMatrix<MT,SO,true>::spacing() const
 {
    return matrix_.spacing();
 }
@@ -2062,7 +1752,7 @@ inline size_t UniLowerMatrix<MT,SO,true>::spacing() const noexcept
 */
 template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
-inline size_t UniLowerMatrix<MT,SO,true>::capacity() const noexcept
+inline size_t UniLowerMatrix<MT,SO,true>::capacity() const
 {
    return matrix_.capacity();
 }
@@ -2084,7 +1774,7 @@ inline size_t UniLowerMatrix<MT,SO,true>::capacity() const noexcept
 */
 template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
-inline size_t UniLowerMatrix<MT,SO,true>::capacity( size_t i ) const noexcept
+inline size_t UniLowerMatrix<MT,SO,true>::capacity( size_t i ) const
 {
    return matrix_.capacity(i);
 }
@@ -2333,10 +2023,11 @@ inline void UniLowerMatrix<MT,SO,true>::reserve( size_t elements )
 //
 // \param m The matrix to be swapped.
 // \return void
+// \exception no-throw guarantee.
 */
 template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
-inline void UniLowerMatrix<MT,SO,true>::swap( UniLowerMatrix& m ) noexcept
+inline void UniLowerMatrix<MT,SO,true>::swap( UniLowerMatrix& m ) /* throw() */
 {
    using std::swap;
 
@@ -2360,7 +2051,7 @@ inline void UniLowerMatrix<MT,SO,true>::swap( UniLowerMatrix& m ) noexcept
 */
 template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
-inline constexpr size_t UniLowerMatrix<MT,SO,true>::maxNonZeros() noexcept
+inline size_t UniLowerMatrix<MT,SO,true>::maxNonZeros()
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_RESIZABLE( MT );
 
@@ -2382,7 +2073,7 @@ inline constexpr size_t UniLowerMatrix<MT,SO,true>::maxNonZeros() noexcept
 */
 template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
-inline constexpr size_t UniLowerMatrix<MT,SO,true>::maxNonZeros( size_t n ) noexcept
+inline size_t UniLowerMatrix<MT,SO,true>::maxNonZeros( size_t n )
 {
    return ( ( n + 1UL ) * n ) / 2UL;
 }
@@ -2410,7 +2101,7 @@ inline constexpr size_t UniLowerMatrix<MT,SO,true>::maxNonZeros( size_t n ) noex
 */
 template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
-inline bool UniLowerMatrix<MT,SO,true>::isIntact() const noexcept
+inline bool UniLowerMatrix<MT,SO,true>::isIntact() const
 {
    using blaze::isIntact;
 
@@ -2442,7 +2133,7 @@ inline bool UniLowerMatrix<MT,SO,true>::isIntact() const noexcept
 template< typename MT       // Type of the adapted dense matrix
         , bool SO >         // Storage order of the adapted dense matrix
 template< typename Other >  // Data type of the foreign expression
-inline bool UniLowerMatrix<MT,SO,true>::canAlias( const Other* alias ) const noexcept
+inline bool UniLowerMatrix<MT,SO,true>::canAlias( const Other* alias ) const
 {
    return matrix_.canAlias( alias );
 }
@@ -2464,7 +2155,7 @@ inline bool UniLowerMatrix<MT,SO,true>::canAlias( const Other* alias ) const noe
 template< typename MT       // Type of the adapted dense matrix
         , bool SO >         // Storage order of the adapted dense matrix
 template< typename Other >  // Data type of the foreign expression
-inline bool UniLowerMatrix<MT,SO,true>::isAliased( const Other* alias ) const noexcept
+inline bool UniLowerMatrix<MT,SO,true>::isAliased( const Other* alias ) const
 {
    return matrix_.isAliased( alias );
 }
@@ -2484,7 +2175,7 @@ inline bool UniLowerMatrix<MT,SO,true>::isAliased( const Other* alias ) const no
 */
 template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
-inline bool UniLowerMatrix<MT,SO,true>::isAligned() const noexcept
+inline bool UniLowerMatrix<MT,SO,true>::isAligned() const
 {
    return matrix_.isAligned();
 }
@@ -2505,7 +2196,7 @@ inline bool UniLowerMatrix<MT,SO,true>::isAligned() const noexcept
 */
 template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
-inline bool UniLowerMatrix<MT,SO,true>::canSMPAssign() const noexcept
+inline bool UniLowerMatrix<MT,SO,true>::canSMPAssign() const
 {
    return matrix_.canSMPAssign();
 }
@@ -2515,24 +2206,24 @@ inline bool UniLowerMatrix<MT,SO,true>::canSMPAssign() const noexcept
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Load of a SIMD element of the matrix.
+/*!\brief Load of an intrinsic element of the matrix.
 //
 // \param i Access index for the row. The index has to be in the range [0..M-1].
 // \param j Access index for the column. The index has to be in the range [0..N-1].
-// \return The loaded SIMD element.
+// \return The loaded intrinsic element.
 //
-// This function performs a load of a specific SIMD element of the unilower matrix. The row
-// index must be smaller than the number of rows and the column index must be smaller than
+// This function performs a load of a specific intrinsic element of the unilower matrix. The
+// row index must be smaller than the number of rows and the column index must be smaller than
 // the number of columns. Additionally, the column index (in case of a row-major matrix) or
-// the row index (in case of a column-major matrix) must be a multiple of the number of
-// values inside the SIMD element. This function must \b NOT be called explicitly! It is
-// used internally for the performance optimized evaluation of expression templates. Calling
-// this function explicitly might result in erroneous results and/or in compilation errors.
+// the row index (in case of a column-major matrix) must be a multiple of the number of values
+// inside the intrinsic element. This function must \b NOT be called explicitly! It is used
+// internally for the performance optimized evaluation of expression templates. Calling this
+// function explicitly might result in erroneous results and/or in compilation errors.
 */
 template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
-BLAZE_ALWAYS_INLINE typename UniLowerMatrix<MT,SO,true>::SIMDType
-   UniLowerMatrix<MT,SO,true>::load( size_t i, size_t j ) const noexcept
+BLAZE_ALWAYS_INLINE typename UniLowerMatrix<MT,SO,true>::IntrinsicType
+   UniLowerMatrix<MT,SO,true>::load( size_t i, size_t j ) const
 {
    return matrix_.load( i, j );
 }
@@ -2542,24 +2233,24 @@ BLAZE_ALWAYS_INLINE typename UniLowerMatrix<MT,SO,true>::SIMDType
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Aligned load of a SIMD element of the matrix.
+/*!\brief Aligned load of an intrinsic element of the matrix.
 //
 // \param i Access index for the row. The index has to be in the range [0..M-1].
 // \param j Access index for the column. The index has to be in the range [0..N-1].
-// \return The loaded SIMD element.
+// \return The loaded intrinsic element.
 //
-// This function performs an aligned load of a specific SIMD element of the unilower matrix.
+// This function performs an aligned load of a specific intrinsic element of the unilower matrix.
 // The row index must be smaller than the number of rows and the column index must be smaller
 // than the number of columns. Additionally, the column index (in case of a row-major matrix)
 // or the row index (in case of a column-major matrix) must be a multiple of the number of
-// values inside the SIMD element. This function must \b NOT be called explicitly! It is used
-// internally for the performance optimized evaluation of expression templates. Calling this
-// function explicitly might result in erroneous results and/or in compilation errors.
+// values inside the intrinsic element. This function must \b NOT be called explicitly! It is
+// used internally for the performance optimized evaluation of expression templates. Calling
+// this function explicitly might result in erroneous results and/or in compilation errors.
 */
 template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
-BLAZE_ALWAYS_INLINE typename UniLowerMatrix<MT,SO,true>::SIMDType
-   UniLowerMatrix<MT,SO,true>::loada( size_t i, size_t j ) const noexcept
+BLAZE_ALWAYS_INLINE typename UniLowerMatrix<MT,SO,true>::IntrinsicType
+   UniLowerMatrix<MT,SO,true>::loada( size_t i, size_t j ) const
 {
    return matrix_.loada( i, j );
 }
@@ -2569,24 +2260,24 @@ BLAZE_ALWAYS_INLINE typename UniLowerMatrix<MT,SO,true>::SIMDType
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Unaligned load of a SIMD element of the matrix.
+/*!\brief Unaligned load of an intrinsic element of the matrix.
 //
 // \param i Access index for the row. The index has to be in the range [0..M-1].
 // \param j Access index for the column. The index has to be in the range [0..N-1].
-// \return The loaded SIMD element.
+// \return The loaded intrinsic element.
 //
-// This function performs an unaligned load of a specific SIMD element of the unilower matrix.
-// The row index must be smaller than the number of rows and the column index must be smaller
-// than the number of columns. Additionally, the column index (in case of a row-major matrix)
-// or the row index (in case of a column-major matrix) must be a multiple of the number of
-// values inside the SIMD element. This function must \b NOT be called explicitly! It is used
-// internally for the performance optimized evaluation of expression templates. Calling this
-// function explicitly might result in erroneous results and/or in compilation errors.
+// This function performs an unaligned load of a specific intrinsic element of the unilower
+// matrix. The row index must be smaller than the number of rows and the column index must be
+// smaller than the number of columns. Additionally, the column index (in case of a row-major
+// matrix) or the row index (in case of a column-major matrix) must be a multiple of the number
+// of values inside the intrinsic element. This function must \b NOT be called explicitly! It
+// is used internally for the performance optimized evaluation of expression templates. Calling
+// this function explicitly might result in erroneous results and/or in compilation errors.
 */
 template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
-BLAZE_ALWAYS_INLINE typename UniLowerMatrix<MT,SO,true>::SIMDType
-   UniLowerMatrix<MT,SO,true>::loadu( size_t i, size_t j ) const noexcept
+BLAZE_ALWAYS_INLINE typename UniLowerMatrix<MT,SO,true>::IntrinsicType
+   UniLowerMatrix<MT,SO,true>::loadu( size_t i, size_t j ) const
 {
    return matrix_.loadu( i, j );
 }

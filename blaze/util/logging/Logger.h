@@ -41,7 +41,7 @@
 //*************************************************************************************************
 
 #include <fstream>
-#include <mutex>
+#include <boost/thread/mutex.hpp>
 #include <blaze/util/singleton/Singleton.h>
 #include <blaze/util/SystemClock.h>
 
@@ -110,7 +110,7 @@ class Logger : private Singleton<Logger,SystemClock>
    //**Member variables****************************************************************************
    /*!\name Member variables */
    //@{
-   std::mutex    mutex_;  //!< Synchronization mutex for thread-parallel logging.
+   boost::mutex  mutex_;  //!< Synchronization mutex for thread-parallel logging.
    std::ofstream log_;    //!< The log file.
    //@}
    //**********************************************************************************************
@@ -146,7 +146,7 @@ class Logger : private Singleton<Logger,SystemClock>
 template< typename Type >  // Type of the log message
 void Logger::log( const Type& message )
 {
-   std::lock_guard<std::mutex> lock( mutex_ );
+   boost::mutex::scoped_lock lock( mutex_ );
    if( !log_.is_open() )
       openLogFile();
    log_ << message;

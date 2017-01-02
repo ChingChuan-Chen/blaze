@@ -40,10 +40,13 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/shims/IsZero.h>
+#include <blaze/math/shims/IsDefault.h>
 #include <blaze/system/Inline.h>
 #include <blaze/util/Complex.h>
+#include <blaze/util/DisableIf.h>
+#include <blaze/util/EnableIf.h>
 #include <blaze/util/typetraits/IsBuiltin.h>
+#include <blaze/util/typetraits/IsNumeric.h>
 #include <blaze/util/Unused.h>
 
 
@@ -54,6 +57,63 @@ namespace blaze {
 //  ISREAL SHIM
 //
 //=================================================================================================
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Backend implementation of the \a isReal function for built-in data types.
+// \ingroup math_shims
+//
+// \param v The value to be tested.
+// \return \a true.
+*/
+template< typename Type >
+BLAZE_ALWAYS_INLINE typename EnableIf< IsBuiltin<Type>, bool >::Type
+   isReal_backend( const Type& v )
+{
+   UNUSED_PARAMETER( v );
+
+   return true;
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Backend implementation of the \a isReal function for complex data types.
+// \ingroup math_shims
+//
+// \param v The complex number to be tested.
+// \return \a true in case the imaginary part is equal to 0, \a false if not.
+*/
+template< typename Type >
+BLAZE_ALWAYS_INLINE bool isReal_backend( const complex<Type>& v )
+{
+   return isDefault( v.imag() );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Backend implementation of the \a isReal function for non-numeric data types.
+// \ingroup math_shims
+//
+// \param v The value/object to be tested.
+// \return \a false.
+*/
+template< typename Type >
+BLAZE_ALWAYS_INLINE typename DisableIf< IsNumeric<Type>, bool >::Type
+   isReal_backend( const Type& v )
+{
+   UNUSED_PARAMETER( v );
+
+   return false;
+}
+/*! \endcond */
+//*************************************************************************************************
+
 
 //*************************************************************************************************
 /*!\brief Returns whether the given value/object represents a real number.
@@ -79,29 +139,10 @@ namespace blaze {
    \endcode
 */
 template< typename Type >
-BLAZE_ALWAYS_INLINE bool isReal( const Type& v ) noexcept
+BLAZE_ALWAYS_INLINE bool isReal( const Type& v )
 {
-   UNUSED_PARAMETER( v );
-
-   return IsBuiltin<Type>::value;
+   return isReal_backend( v );
 }
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Overload of the \a isReal function for complex data types.
-// \ingroup math_shims
-//
-// \param v The complex number to be tested.
-// \return \a true in case the imaginary part is equal to 0, \a false if not.
-*/
-template< typename Type >
-BLAZE_ALWAYS_INLINE bool isReal( const complex<Type>& v ) noexcept( IsBuiltin<Type>::value )
-{
-   return IsBuiltin<Type>::value && isZero( v.imag() );
-}
-/*! \endcond */
 //*************************************************************************************************
 
 } // namespace blaze

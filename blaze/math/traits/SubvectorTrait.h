@@ -43,10 +43,11 @@
 #include <blaze/util/InvalidType.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -76,11 +77,13 @@ namespace blaze {
 //    <li>blaze::StaticVector</li>
 //    <li>blaze::HybridVector</li>
 //    <li>blaze::DynamicVector</li>
-//    <li>blaze::CustomVector</li>
 //    <li>blaze::CompressedVector</li>
-//    <li>blaze::Subvector</li>
-//    <li>blaze::Row</li>
-//    <li>blaze::Column</li>
+//    <li>blaze::DenseSubvector</li>
+//    <li>blaze::DenseRow</li>
+//    <li>blaze::DenseColumn</li>
+//    <li>blaze::SparseSubvector</li>
+//    <li>blaze::SparseRow</li>
+//    <li>blaze::SparseColumn</li>
 // </ul>
 //
 //
@@ -122,37 +125,24 @@ struct SubvectorTrait
  private:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   struct Failure { using Type = INVALID_TYPE; };
+   struct Failure { typedef INVALID_TYPE  Type; };
+   /*! \endcond */
+   //**********************************************************************************************
+
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   typedef typename RemoveReference< typename RemoveCV<VT>::Type >::Type  Tmp;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<VT>, IsVolatile<VT>, IsReference<VT> >
-                            , SubvectorTrait< Decay_<VT> >
-                            , Failure >::Type;
+   typedef typename If< Or< IsConst<VT>, IsVolatile<VT>, IsReference<VT> >
+                      , SubvectorTrait<Tmp>, Failure >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the SubvectorTrait type trait.
-// \ingroup math_traits
-//
-// The SubvectorTrait_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the SubvectorTrait class template. For instance, given the vector type \a VT the
-// following two type definitions are identical:
-
-   \code
-   using Type1 = typename SubvectorTrait<VT>::Type;
-   using Type2 = SubvectorTrait_<VT>;
-   \endcode
-*/
-template< typename VT >  // Type of the vector
-using SubvectorTrait_ = typename SubvectorTrait<VT>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

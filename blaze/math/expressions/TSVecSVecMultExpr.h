@@ -40,14 +40,12 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/ColumnVector.h>
 #include <blaze/math/constraints/RowVector.h>
 #include <blaze/math/constraints/SparseVector.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/SparseVector.h>
 #include <blaze/math/traits/MultTrait.h>
-#include <blaze/math/typetraits/IsOpposedView.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/logging/FunctionTrace.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/typetraits/RemoveReference.h>
@@ -91,20 +89,20 @@ namespace blaze {
 */
 template< typename T1    // Type of the left-hand side sparse vector
         , typename T2 >  // Type of the right-hand side sparse vector
-inline const MultTrait_< ElementType_<T1>, ElementType_<T2> >
+inline const typename MultTrait<typename T1::ElementType,typename T2::ElementType>::Type
    operator*( const SparseVector<T1,true>& lhs, const SparseVector<T2,false>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
 
-   typedef CompositeType_<T1>     Lhs;            // Composite type of the left-hand side sparse vector expression
-   typedef CompositeType_<T2>     Rhs;            // Composite type of the right-hand side sparse vector expression
-   typedef RemoveReference_<Lhs>  X1;             // Auxiliary type for the left-hand side composite type
-   typedef RemoveReference_<Rhs>  X2;             // Auxiliary type for the right-hand side composite type
-   typedef ElementType_<X1>       E1;             // Element type of the left-hand side sparse vector expression
-   typedef ElementType_<X2>       E2;             // Element type of the right-hand side sparse vector expression
-   typedef MultTrait_<E1,E2>      MultType;       // Multiplication result type
-   typedef ConstIterator_<X1>     LeftIterator;   // Iterator type of the left-hand sparse vector expression
-   typedef ConstIterator_<X2>     RightIterator;  // Iterator type of the right-hand sparse vector expression
+   typedef typename T1::CompositeType           Lhs;            // Composite type of the left-hand side sparse vector expression
+   typedef typename T2::CompositeType           Rhs;            // Composite type of the right-hand side sparse vector expression
+   typedef typename RemoveReference<Lhs>::Type  X1;             // Auxiliary type for the left-hand side composite type
+   typedef typename RemoveReference<Rhs>::Type  X2;             // Auxiliary type for the right-hand side composite type
+   typedef typename X1::ElementType             E1;             // Element type of the left-hand side sparse vector expression
+   typedef typename X2::ElementType             E2;             // Element type of the right-hand side sparse vector expression
+   typedef typename MultTrait<E1,E2>::Type      MultType;       // Multiplication result type
+   typedef typename X1::ConstIterator           LeftIterator;   // Iterator type of the left-hand sparse vector expression
+   typedef typename X2::ConstIterator           RightIterator;  // Iterator type of the right-hand sparse vector expression
 
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_VECTOR_TYPE( T1 );
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_VECTOR_TYPE( T2 );
@@ -115,94 +113,30 @@ inline const MultTrait_< ElementType_<T1>, ElementType_<T2> >
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   Lhs left ( ~lhs );  // Evaluation of the left-hand side sparse vector operand
-   Rhs right( ~rhs );  // Evaluation of the right-hand side sparse vector operand
+   if( (~lhs).nonZeros() == 0UL || (~rhs).nonZeros() == 0UL ) return MultType();
 
-   BLAZE_INTERNAL_ASSERT( left.size()  == (~lhs).size(), "Invalid vector size" );
-   BLAZE_INTERNAL_ASSERT( right.size() == (~rhs).size(), "Invalid vector size" );
+   Lhs left ( ~lhs );
+   Rhs right( ~rhs );
+   const LeftIterator  lend( left.end()  );
+   const RightIterator rend( right.end() );
+   LeftIterator  l( left.begin()  );
+   RightIterator r( right.begin() );
+   MultType sp = MultType();
 
-   MultType sp{};
-
-   if( IsOpposedView<T1>::value && IsOpposedView<T2>::value )
-   {
-      if( left.size() == 0UL ) return sp;
-
-      sp = left[0UL] * right[0UL];
-      for( size_t i=1UL; i<left.size(); ++i ) {
-         sp += left[i] * right[i];
+   for( ; l!=lend && r!=rend; ++l ) {
+      while( r->index() < l->index() && ++r != rend ) {}
+      if( r!=rend && l->index() == r->index() ) {
+         sp = l->value() * r->value();
+         ++r;
+         break;
       }
    }
-   else if( IsOpposedView<T1>::value )
-   {
-      const RightIterator rend( right.end() );
-      RightIterator r( right.begin() );
 
-      if( r == rend ) return sp;
-
-      sp = left[r->index()] * r->value();
-      ++r;
-      for( ; r!=rend; ++r ) {
-         sp += left[r->index()] * r->value();
-      }
-   }
-   else if( IsOpposedView<T2>::value )
-   {
-      const LeftIterator lend( left.end()  );
-      LeftIterator l( left.begin()  );
-
-      if( l == lend ) return sp;
-
-      sp = l->value() * right[l->index()];
-      ++l;
-      for( ; l!=lend; ++l ) {
-         sp += l->value() * right[l->index()];
-      }
-   }
-   else
-   {
-      const LeftIterator  lend( left.end()  );
-      const RightIterator rend( right.end() );
-      LeftIterator  l( left.begin()  );
-      RightIterator r( right.begin() );
-
-      if( l == lend || r == rend ) return sp;
-
-      while( true ) {
-         if( l->index() < r->index() ) {
-            ++l;
-            if( l == lend ) break;
-         }
-         else if( r->index() < l->index() ) {
-            ++r;
-            if( r == rend ) break;
-         }
-         else {
-            sp = l->value() * r->value();
-            ++l;
-            ++r;
-            break;
-         }
-      }
-
-      if( l != lend && r != rend )
-      {
-         while( true ) {
-            if( l->index() < r->index() ) {
-               ++l;
-               if( l == lend ) break;
-            }
-            else if( r->index() < l->index() ) {
-               ++r;
-               if( r == rend ) break;
-            }
-            else {
-               sp += l->value() * r->value();
-               ++l;
-               if( l == lend ) break;
-               ++r;
-               if( r == rend ) break;
-            }
-         }
+   for( ; l!=lend && r!=rend; ++l ) {
+      while( r->index() < l->index() && ++r != rend ) {}
+      if( r!=rend && l->index() == r->index() ) {
+         sp += l->value() * r->value();
+         ++r;
       }
    }
 

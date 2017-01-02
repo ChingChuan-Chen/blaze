@@ -1,7 +1,7 @@
 //=================================================================================================
 /*!
-//  \file blaze/util/AlignedAllocator.h
-//  \brief Header file for the AlignedAllocator implementation
+//  \file blaze/util/AlignedStorage.h
+//  \brief Header file for the AlignedStorage implementation
 //
 //  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
 //
@@ -41,6 +41,7 @@
 //*************************************************************************************************
 
 #include <blaze/util/Memory.h>
+#include <blaze/util/Null.h>
 #include <blaze/util/typetraits/AlignmentOf.h>
 #include <blaze/util/Unused.h>
 
@@ -111,16 +112,16 @@ class AlignedAllocator
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-   inline constexpr size_t max_size() const noexcept;
-   inline Pointer          address( Reference x ) const noexcept;
-   inline ConstPointer     address( ConstReference x ) const noexcept;
+   inline size_t       max_size() const;
+   inline Pointer      address( Reference x ) const;
+   inline ConstPointer address( ConstReference x ) const;
    //@}
    //**********************************************************************************************
 
    //**Allocation functions************************************************************************
    /*!\name Allocation functions */
    //@{
-   inline Pointer allocate  ( size_t numObjects, const void* localityHint = nullptr );
+   inline Pointer allocate  ( size_t numObjects, const void* localityHint = NULL );
    inline void    deallocate( Pointer ptr, size_t numObjects );
    //@}
    //**********************************************************************************************
@@ -129,7 +130,7 @@ class AlignedAllocator
    /*!\name Construction functions */
    //@{
    inline void construct( Pointer ptr, const Type& value );
-   inline void destroy  ( Pointer ptr ) noexcept;
+   inline void destroy  ( Pointer ptr );
    //@}
    //**********************************************************************************************
 };
@@ -181,7 +182,7 @@ inline AlignedAllocator<Type>::AlignedAllocator( const AlignedAllocator<Type2>& 
 // \return The maximum number of elements that can be allocated together.
 */
 template< typename Type >
-inline constexpr size_t AlignedAllocator<Type>::max_size() const noexcept
+inline size_t AlignedAllocator<Type>::max_size() const
 {
    return size_t(-1) / sizeof( Type );
 }
@@ -195,7 +196,7 @@ inline constexpr size_t AlignedAllocator<Type>::max_size() const noexcept
 */
 template< typename Type >
 inline typename AlignedAllocator<Type>::Pointer
-   AlignedAllocator<Type>::address( Reference x ) const noexcept
+   AlignedAllocator<Type>::address( Reference x ) const
 {
    return &x;
 }
@@ -209,7 +210,7 @@ inline typename AlignedAllocator<Type>::Pointer
 */
 template< typename Type >
 inline typename AlignedAllocator<Type>::ConstPointer
-   AlignedAllocator<Type>::address( ConstReference x ) const noexcept
+   AlignedAllocator<Type>::address( ConstReference x ) const
 {
    return &x;
 }
@@ -271,7 +272,7 @@ inline void AlignedAllocator<Type>::deallocate( Pointer ptr, size_t numObjects )
 {
    UNUSED_PARAMETER( numObjects );
 
-   if( ptr == nullptr )
+   if( ptr == NULL )
       return;
 
    const size_t alignment( AlignmentOf<Type>::value );
@@ -322,7 +323,7 @@ inline void AlignedAllocator<Type>::construct( Pointer ptr, ConstReference value
 // destructor.
 */
 template< typename Type >
-inline void AlignedAllocator<Type>::destroy( Pointer ptr ) noexcept
+inline void AlignedAllocator<Type>::destroy( Pointer ptr )
 {
    ptr->~Type();
 }
@@ -338,13 +339,13 @@ inline void AlignedAllocator<Type>::destroy( Pointer ptr ) noexcept
 //=================================================================================================
 
 //*************************************************************************************************
-/*!\name AlignedAllocator operators */
+/*!\name UniquePtr operators */
 //@{
 template< typename T1, typename T2 >
-inline bool operator==( const AlignedAllocator<T1>& lhs, const AlignedAllocator<T2>& rhs ) noexcept;
+inline bool operator==( const AlignedAllocator<T1>& lhs, const AlignedAllocator<T2>& rhs );
 
 template< typename T1, typename T2 >
-inline bool operator!=( const AlignedAllocator<T1>& lhs, const AlignedAllocator<T2>& rhs ) noexcept;
+inline bool operator!=( const AlignedAllocator<T1>& lhs, const AlignedAllocator<T2>& rhs );
 //@}
 //*************************************************************************************************
 
@@ -358,7 +359,7 @@ inline bool operator!=( const AlignedAllocator<T1>& lhs, const AlignedAllocator<
 */
 template< typename T1    // Type of the left-hand side aligned allocator
         , typename T2 >  // Type of the right-hand side aligned allocator
-inline bool operator==( const AlignedAllocator<T1>& lhs, const AlignedAllocator<T2>& rhs ) noexcept
+inline bool operator==( const AlignedAllocator<T1>& lhs, const AlignedAllocator<T2>& rhs )
 {
    UNUSED_PARAMETER( lhs, rhs );
    return true;
@@ -375,7 +376,7 @@ inline bool operator==( const AlignedAllocator<T1>& lhs, const AlignedAllocator<
 */
 template< typename T1    // Type of the left-hand side aligned allocator
         , typename T2 >  // Type of the right-hand side aligned allocator
-inline bool operator!=( const AlignedAllocator<T1>& lhs, const AlignedAllocator<T2>& rhs ) noexcept
+inline bool operator!=( const AlignedAllocator<T1>& lhs, const AlignedAllocator<T2>& rhs )
 {
    UNUSED_PARAMETER( lhs, rhs );
    return false;

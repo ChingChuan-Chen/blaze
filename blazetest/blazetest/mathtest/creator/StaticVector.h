@@ -42,7 +42,6 @@
 
 #include <blaze/math/StaticVector.h>
 #include <blazetest/mathtest/creator/Default.h>
-#include <blazetest/mathtest/creator/Policies.h>
 #include <blazetest/system/Types.h>
 
 
@@ -85,11 +84,7 @@ class Creator< blaze::StaticVector<T,N,TF> >
    /*!\name Operators */
    //@{
    // No explicitly declared copy assignment operator.
-
-   const Type operator()() const;
-
-   template< typename CP >
-   const Type operator()( const CP& policy ) const;
+   const blaze::StaticVector<T,N,TF> operator()() const;
    //@}
    //**********************************************************************************************
 
@@ -144,27 +139,9 @@ template< typename T  // Element type of the static vector
         , bool TF >   // Transpose flag of the static vector
 inline const blaze::StaticVector<T,N,TF> Creator< blaze::StaticVector<T,N,TF> >::operator()() const
 {
-   return (*this)( Default() );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Returns a randomly created static vector.
-//
-// \param policy The creation policy for the elements of fundamental data type.
-// \return The randomly generated static vector.
-*/
-template< typename T     // Element type of the static vector
-        , size_t N       // Number of elements of the static vector
-        , bool TF >      // Transpose flag of the static vector
-template< typename CP >  // Creation policy
-inline const blaze::StaticVector<T,N,TF>
-   Creator< blaze::StaticVector<T,N,TF> >::operator()( const CP& policy ) const
-{
    blaze::StaticVector<T,N,TF> vector;
-   for( size_t i=0UL; i<N; ++i )
-      vector[i] = ec_( policy );
+   for( size_t i=0; i<N; ++i )
+      vector[i] = ec_();
    return vector;
 }
 //*************************************************************************************************

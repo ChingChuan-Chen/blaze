@@ -44,12 +44,12 @@
 #include <blaze/math/dense/DynamicMatrix.h>
 #include <blaze/math/DenseMatrix.h>
 #include <blaze/math/DynamicVector.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/shims/Conjugate.h>
 #include <blaze/math/shims/Real.h>
 #include <blaze/math/typetraits/UnderlyingBuiltin.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/constraints/Numeric.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/Random.h>
 
 
@@ -250,7 +250,7 @@ void makeHermitian( CustomMatrix<Type,AF,PF,SO>& matrix )
 
    BLAZE_CONSTRAINT_MUST_BE_NUMERIC_TYPE( Type );
 
-   typedef UnderlyingBuiltin_<Type>  BT;
+   typedef typename UnderlyingBuiltin<Type>::Type  BT;
 
    if( !isSquare( ~matrix ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid non-square matrix provided" );
@@ -293,7 +293,7 @@ void makeHermitian( CustomMatrix<Type,AF,PF,SO>& matrix, const Arg& min, const A
 
    BLAZE_CONSTRAINT_MUST_BE_NUMERIC_TYPE( Type );
 
-   typedef UnderlyingBuiltin_<Type>  BT;
+   typedef typename UnderlyingBuiltin<Type>::Type  BT;
 
    if( !isSquare( ~matrix ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid non-square matrix provided" );

@@ -44,9 +44,10 @@
 #include <stdexcept>
 #include <string>
 #include <blaze/math/CompressedMatrix.h>
+#include <blaze/math/DenseSubmatrix.h>
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/HermitianMatrix.h>
-#include <blaze/math/Submatrix.h>
+#include <blaze/math/SparseSubmatrix.h>
 #include <blaze/math/traits/SubmatrixExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blazetest/system/Types.h>
@@ -156,7 +157,7 @@ class SubmatrixRealTest
 template< typename HT >  // Type of the Hermitian matrix
 void SubmatrixRealTest::testAssignment()
 {
-   typedef blaze::SubmatrixExprTrait_<HT,blaze::unaligned>  SMT;
+   typedef typename blaze::SubmatrixExprTrait<HT,blaze::unaligned>::Type  SMT;
 
 
    //=====================================================================================
@@ -1733,7 +1734,7 @@ void SubmatrixRealTest::testAssignment()
 template< typename HT >  // Type of the Hermitian matrix
 void SubmatrixRealTest::testAddAssign()
 {
-   typedef blaze::SubmatrixExprTrait_<HT,blaze::unaligned>  SMT;
+   typedef typename blaze::SubmatrixExprTrait<HT,blaze::unaligned>::Type  SMT;
 
 
    //=====================================================================================
@@ -3310,7 +3311,7 @@ void SubmatrixRealTest::testAddAssign()
 template< typename HT >  // Type of the Hermitian matrix
 void SubmatrixRealTest::testSubAssign()
 {
-   typedef blaze::SubmatrixExprTrait_<HT,blaze::unaligned>  SMT;
+   typedef typename blaze::SubmatrixExprTrait<HT,blaze::unaligned>::Type  SMT;
 
 
    //=====================================================================================
@@ -5038,7 +5039,7 @@ void runTest()
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Macro for the execution of the HermitianMatrix submatrix real test.
+/*!\brief Macro for the execution of the real HermitianMatrix submatrix test.
 */
 #define RUN_HERMITIANMATRIX_SUBMATRIXREAL_TEST \
    blazetest::mathtest::hermitianmatrix::runTest()

@@ -42,19 +42,20 @@
 
 #include <blaze/util/AlignedAllocator.h>
 #include <blaze/util/AlignedArray.h>
+#include <blaze/util/AlignedStorage.h>
 #include <blaze/util/AlignmentCheck.h>
 #include <blaze/util/Algorithm.h>
 #include <blaze/util/Assert.h>
+#include <blaze/util/Byte.h>
 #include <blaze/util/ColorMacros.h>
 #include <blaze/util/Complex.h>
 #include <blaze/util/Constraints.h>
+#include <blaze/util/Convert.h>
 #include <blaze/util/DimensionOf.h>
 #include <blaze/util/DisableIf.h>
 #include <blaze/util/EmptyType.h>
 #include <blaze/util/EnableIf.h>
 #include <blaze/util/Exception.h>
-#include <blaze/util/Indices.h>
-#include <blaze/util/IntegralConstant.h>
 #include <blaze/util/InputString.h>
 #include <blaze/util/InvalidType.h>
 #include <blaze/util/Limits.h>
@@ -64,14 +65,17 @@
 #include <blaze/util/MPL.h>
 #include <blaze/util/NonCopyable.h>
 #include <blaze/util/NonCreatable.h>
+#include <blaze/util/Null.h>
 #include <blaze/util/NullType.h>
 #include <blaze/util/PointerCast.h>
 #include <blaze/util/Policies.h>
 #include <blaze/util/PtrIterator.h>
 #include <blaze/util/PtrVector.h>
 #include <blaze/util/Random.h>
+#include <blaze/util/SelectType.h>
 #include <blaze/util/Serialization.h>
 #include <blaze/util/Singleton.h>
+#include <blaze/util/SizeTrait.h>
 #include <blaze/util/StaticAssert.h>
 #include <blaze/util/Suffix.h>
 #include <blaze/util/SystemClock.h>
@@ -83,6 +87,8 @@
 #include <blaze/util/TypeList.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/TypeTraits.h>
+#include <blaze/util/UniqueArray.h>
+#include <blaze/util/UniquePtr.h>
 #include <blaze/util/UnsignedValue.h>
 #include <blaze/util/ValueTraits.h>
 

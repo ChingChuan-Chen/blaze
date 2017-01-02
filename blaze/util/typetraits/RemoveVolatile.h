@@ -40,7 +40,7 @@
 // Includes
 //*************************************************************************************************
 
-#include <type_traits>
+#include <boost/type_traits/remove_volatile.hpp>
 
 
 namespace blaze {
@@ -62,9 +62,9 @@ namespace blaze {
    blaze::RemoveVolatile<short>::Type                   // Results in 'short'
    blaze::RemoveVolatile<volatile double>::Type         // Results in 'double'
    blaze::RemoveVolatile<const volatile int>::Type      // Results in 'const int'
-   blaze::RemoveVolatile<int volatile*>::Type           // Results in 'int volatile*'
-   blaze::RemoveVolatile<int volatile* volatile>::Type  // Results in 'int volatile*'
-   blaze::RemoveVolatile<int volatile&>::Type           // Results in 'int volatile&'
+   blaze::RemoveVolatile<int volatile*>::Type           // Results in 'const int*'
+   blaze::RemoveVolatile<int volatile* volatile>::Type  // Results in 'const int*'
+   blaze::RemoveVolatile<int volatile&>::Type           // Results in 'const int&'
    \endcode
 */
 template< typename T >
@@ -73,28 +73,10 @@ struct RemoveVolatile
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   typedef typename std::remove_volatile<T>::type  Type;
+   typedef typename boost::remove_volatile<T>::type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the RemoveVolatile type trait.
-// \ingroup type_traits
-//
-// The RemoveVolatile_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the RemoveVolatile class template. For instance, given the type \a T the following
-// two type definitions are identical:
-
-   \code
-   using Type1 = typename RemoveVolatile<T>::Type;
-   using Type2 = RemoveVolatile_<T>;
-   \endcode
-*/
-template< typename T >
-using RemoveVolatile_ = typename RemoveVolatile<T>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

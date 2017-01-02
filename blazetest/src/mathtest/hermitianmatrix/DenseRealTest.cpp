@@ -39,16 +39,16 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <memory>
-#include <blaze/math/Column.h>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/CustomMatrix.h>
+#include <blaze/math/DenseColumn.h>
+#include <blaze/math/DenseRow.h>
+#include <blaze/math/DenseSubmatrix.h>
 #include <blaze/math/HybridMatrix.h>
-#include <blaze/math/Row.h>
 #include <blaze/math/StaticMatrix.h>
 #include <blaze/math/StaticVector.h>
-#include <blaze/math/Submatrix.h>
 #include <blaze/util/policies/ArrayDelete.h>
+#include <blaze/util/UniqueArray.h>
 #include <blazetest/mathtest/hermitianmatrix/DenseRealTest.h>
 
 
@@ -183,123 +183,6 @@ void DenseRealTest::testConstructors()
 
 
    //=====================================================================================
-   // Row-major list initialization
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Row-major HermitianMatrix initializer list constructor (complete list)";
-
-      const HT herm{ { 1, 2, 3 }, { 2, 4, 0 }, { 3, 0, 6 } };
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-
-      if( herm(0,0) != 1 || herm(0,1) != 2 || herm(0,2) != 3 ||
-          herm(1,0) != 2 || herm(1,1) != 4 || herm(1,2) != 0 ||
-          herm(2,0) != 3 || herm(2,1) != 0 || herm(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Row-major HermitianMatrix initializer list constructor (incomplete list)";
-
-      const HT herm{ { 1, 2, 3 }, { 2, 4 }, { 3, 0, 6 } };
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-
-      if( herm(0,0) != 1 || herm(0,1) != 2 || herm(0,2) != 3 ||
-          herm(1,0) != 2 || herm(1,1) != 4 || herm(1,2) != 0 ||
-          herm(2,0) != 3 || herm(2,1) != 0 || herm(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major array initialization
-   //=====================================================================================
-
-   // Dynamic array initialization constructor
-   {
-      test_ = "Row-major HermitianMatrix dynamic array initialization constructor";
-
-      std::unique_ptr<int[]> array( new int[9] );
-      array[0] = 1;
-      array[1] = 2;
-      array[2] = 3;
-      array[3] = 2;
-      array[4] = 4;
-      array[5] = 0;
-      array[6] = 3;
-      array[7] = 0;
-      array[8] = 6;
-      const HT herm( 3UL, array.get() );
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-
-      if( herm(0,0) != 1 || herm(0,1) != 2 || herm(0,2) != 3 ||
-          herm(1,0) != 2 || herm(1,1) != 4 || herm(1,2) != 0 ||
-          herm(2,0) != 3 || herm(2,1) != 0 || herm(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Static array initialization constructor
-   {
-      test_ = "Row-major HermitianMatrix static array initialization constructor";
-
-      const int array[3][3] = { { 1, 2, 3 }, { 2, 4, 0 }, { 3, 0, 6 } };
-      const HT herm( array );
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-
-      if( herm(0,0) != 1 || herm(0,1) != 2 || herm(0,2) != 3 ||
-          herm(1,0) != 2 || herm(1,1) != 4 || herm(1,2) != 0 ||
-          herm(2,0) != 3 || herm(2,1) != 0 || herm(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major custom matrix constructors
    //=====================================================================================
 
@@ -312,7 +195,7 @@ void DenseRealTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5UL] );
+      blaze::UniqueArray<int> array( new int[5UL] );
       array[1] = 1;
       array[2] = 2;
       array[3] = 2;
@@ -345,7 +228,7 @@ void DenseRealTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[11UL] );
+      blaze::UniqueArray<int> array( new int[11UL] );
       array[1] = 1;
       array[2] = 2;
       array[6] = 2;
@@ -378,7 +261,7 @@ void DenseRealTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[4UL] );
+      blaze::UniqueArray<int> array( new int[4UL] );
       array[0] = 1;
       array[1] = 2;
       array[2] = 2;
@@ -411,7 +294,7 @@ void DenseRealTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[10UL] );
+      blaze::UniqueArray<int> array( new int[10UL] );
       array[0] = 1;
       array[1] = 2;
       array[5] = 2;
@@ -485,54 +368,6 @@ void DenseRealTest::testConstructors()
 
 
    //=====================================================================================
-   // Row-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Row-major HermitianMatrix move constructor (0x0)";
-
-      HT herm1;
-      HT herm2( std::move( herm1 ) );
-
-      checkRows    ( herm2, 0UL );
-      checkColumns ( herm2, 0UL );
-      checkNonZeros( herm2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Row-major HermitianMatrix move constructor (3x3)";
-
-      HT herm1( 3UL );
-      herm1(0,0) =  1;
-      herm1(0,1) = -4;
-      herm1(0,2) =  7;
-      herm1(1,1) =  2;
-      herm1(2,2) =  3;
-
-      HT herm2( std::move( herm1 ) );
-
-      checkRows    ( herm2, 3UL );
-      checkColumns ( herm2, 3UL );
-      checkCapacity( herm2, 9UL );
-      checkNonZeros( herm2, 7UL );
-
-      if( herm2(0,0) !=  1 || herm2(0,1) != -4 || herm2(0,2) != 7 ||
-          herm2(1,0) != -4 || herm2(1,1) !=  2 || herm2(1,2) != 0 ||
-          herm2(2,0) !=  7 || herm2(2,1) !=  0 || herm2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm2 << "\n"
-             << "   Expected result:\n(  1 -4  7 )\n( -4  2  0 )\n(  7  0  3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major conversion constructor
    //=====================================================================================
 
@@ -552,9 +387,9 @@ void DenseRealTest::testConstructors()
    {
       test_ = "Row-major HermitianMatrix conversion constructor (symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat( { {  1, -4, 7 },
-                                                                    { -4,  2, 0 },
-                                                                    {  7,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat(  1, -4, 7,
+                                                                  -4,  2, 0,
+                                                                   7,  0, 3 );
 
       const HT herm( mat );
 
@@ -580,9 +415,9 @@ void DenseRealTest::testConstructors()
    {
       test_ = "Row-major HermitianMatrix conversion constructor (non-symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat( { {  1, -4, 7 },
-                                                                    { -4,  2, 0 },
-                                                                    { -5,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat(  1, -4, 7,
+                                                                  -4,  2, 0,
+                                                                  -5,  0, 3 );
 
       try {
          const HT herm( mat );
@@ -695,123 +530,6 @@ void DenseRealTest::testConstructors()
 
 
    //=====================================================================================
-   // Column-major list initialization
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Column-major HermitianMatrix initializer list constructor (complete list)";
-
-      const OHT herm{ { 1, 2, 3 }, { 2, 4, 0 }, { 3, 0, 6 } };
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-
-      if( herm(0,0) != 1 || herm(0,1) != 2 || herm(0,2) != 3 ||
-          herm(1,0) != 2 || herm(1,1) != 4 || herm(1,2) != 0 ||
-          herm(2,0) != 3 || herm(2,1) != 0 || herm(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Column-major HermitianMatrix initializer list constructor (incomplete list)";
-
-      const OHT herm{ { 1, 2, 3 }, { 2, 4 }, { 3, 0, 6 } };
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-
-      if( herm(0,0) != 1 || herm(0,1) != 2 || herm(0,2) != 3 ||
-          herm(1,0) != 2 || herm(1,1) != 4 || herm(1,2) != 0 ||
-          herm(2,0) != 3 || herm(2,1) != 0 || herm(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major array initialization
-   //=====================================================================================
-
-   // Dynamic array initialization constructor
-   {
-      test_ = "Column-major HermitianMatrix dynamic array initialization constructor";
-
-      std::unique_ptr<int[]> array( new int[9] );
-      array[0] = 1;
-      array[1] = 2;
-      array[2] = 3;
-      array[3] = 2;
-      array[4] = 4;
-      array[5] = 0;
-      array[6] = 3;
-      array[7] = 0;
-      array[8] = 6;
-      const OHT herm( 3UL, array.get() );
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-
-      if( herm(0,0) != 1 || herm(0,1) != 2 || herm(0,2) != 3 ||
-          herm(1,0) != 2 || herm(1,1) != 4 || herm(1,2) != 0 ||
-          herm(2,0) != 3 || herm(2,1) != 0 || herm(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Static array initialization constructor
-   {
-      test_ = "Column-major HermitianMatrix static array initialization constructor";
-
-      const int array[3][3] = { { 1, 2, 3 }, { 2, 4, 0 }, { 3, 0, 6 } };
-      const OHT herm( array );
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-
-      if( herm(0,0) != 1 || herm(0,1) != 2 || herm(0,2) != 3 ||
-          herm(1,0) != 2 || herm(1,1) != 4 || herm(1,2) != 0 ||
-          herm(2,0) != 3 || herm(2,1) != 0 || herm(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major custom matrix constructors
    //=====================================================================================
 
@@ -824,7 +542,7 @@ void DenseRealTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5UL] );
+      blaze::UniqueArray<int> array( new int[5UL] );
       array[1] = 1;
       array[2] = 2;
       array[3] = 2;
@@ -857,7 +575,7 @@ void DenseRealTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[11UL] );
+      blaze::UniqueArray<int> array( new int[11UL] );
       array[1] = 1;
       array[2] = 2;
       array[6] = 2;
@@ -890,7 +608,7 @@ void DenseRealTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[4UL] );
+      blaze::UniqueArray<int> array( new int[4UL] );
       array[0] = 1;
       array[1] = 2;
       array[2] = 2;
@@ -923,7 +641,7 @@ void DenseRealTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<int,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[10UL] );
+      blaze::UniqueArray<int> array( new int[10UL] );
       array[0] = 1;
       array[1] = 2;
       array[5] = 2;
@@ -997,54 +715,6 @@ void DenseRealTest::testConstructors()
 
 
    //=====================================================================================
-   // Column-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Column-major HermitianMatrix move constructor (0x0)";
-
-      OHT herm1;
-      OHT herm2( std::move( herm1 ) );
-
-      checkRows    ( herm2, 0UL );
-      checkColumns ( herm2, 0UL );
-      checkNonZeros( herm2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Column-major HermitianMatrix move constructor (3x3)";
-
-      OHT herm1( 3UL );
-      herm1(0,0) =  1;
-      herm1(0,1) = -4;
-      herm1(0,2) =  7;
-      herm1(1,1) =  2;
-      herm1(2,2) =  3;
-
-      OHT herm2( std::move( herm1 ) );
-
-      checkRows    ( herm2, 3UL );
-      checkColumns ( herm2, 3UL );
-      checkCapacity( herm2, 9UL );
-      checkNonZeros( herm2, 7UL );
-
-      if( herm2(0,0) !=  1 || herm2(0,1) != -4 || herm2(0,2) != 7 ||
-          herm2(1,0) != -4 || herm2(1,1) !=  2 || herm2(1,2) != 0 ||
-          herm2(2,0) !=  7 || herm2(2,1) !=  0 || herm2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm2 << "\n"
-             << "   Expected result:\n(  1 -4  7 )\n( -4  2  0 )\n(  7  0  3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major conversion constructor
    //=====================================================================================
 
@@ -1064,9 +734,9 @@ void DenseRealTest::testConstructors()
    {
       test_ = "Column-major HermitianMatrix conversion constructor (symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat( { {  1, -4, 7 },
-                                                                       { -4,  2, 0 },
-                                                                       {  7,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat(  1, -4, 7,
+                                                                     -4,  2, 0,
+                                                                      7,  0, 3 );
 
       const OHT herm( mat );
 
@@ -1092,9 +762,9 @@ void DenseRealTest::testConstructors()
    {
       test_ = "Column-major HermitianMatrix conversion constructor (non-symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat( { {  1, -4, 7 },
-                                                                       { -4,  2, 0 },
-                                                                       { -5,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat(  1, -4, 7,
+                                                                     -4,  2, 0,
+                                                                     -5,  0, 3 );
 
       try {
          const OHT herm( mat );
@@ -1155,101 +825,6 @@ void DenseRealTest::testConstructors()
 void DenseRealTest::testAssignment()
 {
    //=====================================================================================
-   // Row-major list assignment
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Row-major HermitianMatrix initializer list assignment (complete list)";
-
-      HT herm;
-      herm = { { 1, 2, 3 }, { 2, 4, 0 }, { 3, 0, 6 } };
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 2UL );
-
-      if( herm(0,0) != 1 || herm(0,1) != 2 || herm(0,2) != 3 ||
-          herm(1,0) != 2 || herm(1,1) != 4 || herm(1,2) != 0 ||
-          herm(2,0) != 3 || herm(2,1) != 0 || herm(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Row-major HermitianMatrix initializer list assignment (incomplete list)";
-
-      HT herm;
-      herm = { { 1, 2, 3 }, { 2, 4 }, { 3, 0, 6 } };
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 2UL );
-
-      if( herm(0,0) != 1 || herm(0,1) != 2 || herm(0,2) != 3 ||
-          herm(1,0) != 2 || herm(1,1) != 4 || herm(1,2) != 0 ||
-          herm(2,0) != 3 || herm(2,1) != 0 || herm(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major array assignment
-   //=====================================================================================
-
-   // Array assignment
-   {
-      test_ = "Row-major HermitianMatrix array assignment";
-
-      const int array[3][3] = { { 1, 2, 3 }, { 2, 4, 0 }, { 3, 0, 6 } };
-      HT herm;
-      herm = array;
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 2UL );
-
-      if( herm(0,0) != 1 || herm(0,1) != 2 || herm(0,2) != 3 ||
-          herm(1,0) != 2 || herm(1,1) != 4 || herm(1,2) != 0 ||
-          herm(2,0) != 3 || herm(2,1) != 0 || herm(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major copy assignment
    //=====================================================================================
 
@@ -1299,55 +874,6 @@ void DenseRealTest::testAssignment()
 
 
    //=====================================================================================
-   // Row-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Row-major HermitianMatrix move assignment (0x0)";
-
-      HT herm1, herm2;
-
-      herm2 = std::move( herm1 );
-
-      checkRows    ( herm2, 0UL );
-      checkColumns ( herm2, 0UL );
-      checkNonZeros( herm2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Row-major HermitianMatrix move assignment (3x3)";
-
-      HT herm1( 3UL );
-      herm1(0,0) =  1;
-      herm1(0,1) = -4;
-      herm1(0,2) =  7;
-      herm1(1,1) =  2;
-      herm1(2,2) =  3;
-
-      HT herm2;
-      herm2 = std::move( herm1 );
-
-      checkRows    ( herm2, 3UL );
-      checkColumns ( herm2, 3UL );
-      checkNonZeros( herm2, 7UL );
-
-      if( herm2(0,0) !=  1 || herm2(0,1) != -4 || herm2(0,2) != 7 ||
-          herm2(1,0) != -4 || herm2(1,1) !=  2 || herm2(1,2) != 0 ||
-          herm2(2,0) !=  7 || herm2(2,1) !=  0 || herm2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm2 << "\n"
-             << "   Expected result:\n(  1 -4  7 )\n( -4  2  0 )\n(  7  0  3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major dense matrix assignment
    //=====================================================================================
 
@@ -1369,9 +895,9 @@ void DenseRealTest::testAssignment()
    {
       test_ = "Row-major/row-major HermitianMatrix dense matrix assignment (symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat( { {  1, -4, 7 },
-                                                                    { -4,  2, 0 },
-                                                                    {  7,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat(  1, -4, 7,
+                                                                  -4,  2, 0,
+                                                                   7,  0, 3 );
 
       HT herm;
       herm = mat;
@@ -1397,9 +923,9 @@ void DenseRealTest::testAssignment()
    {
       test_ = "Row-major/column-major HermitianMatrix dense matrix assignment (symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat( { {  1, -4, 7 },
-                                                                       { -4,  2, 0 },
-                                                                       {  7,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat(  1, -4, 7,
+                                                                     -4,  2, 0,
+                                                                      7,  0, 3 );
 
       HT herm;
       herm = mat;
@@ -1425,9 +951,9 @@ void DenseRealTest::testAssignment()
    {
       test_ = "Row-major/row-major HermitianMatrix dense matrix assignment (non-symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat( { {  1, -4, 7 },
-                                                                    { -4,  2, 0 },
-                                                                    { -5,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat(  1, -4, 7,
+                                                                  -4,  2, 0,
+                                                                  -5,  0, 3 );
 
       try {
          HT herm;
@@ -1447,9 +973,9 @@ void DenseRealTest::testAssignment()
    {
       test_ = "Row-major/column-major HermitianMatrix dense matrix assignment (non-symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat( { {  1, -4, 7 },
-                                                                       { -4,  2, 0 },
-                                                                       { -5,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat(  1, -4, 7,
+                                                                     -4,  2, 0,
+                                                                     -5,  0, 3 );
 
       try {
          HT herm;
@@ -1732,101 +1258,6 @@ void DenseRealTest::testAssignment()
 
 
    //=====================================================================================
-   // Column-major list assignment
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Column-major HermitianMatrix initializer list assignment (complete list)";
-
-      OHT herm;
-      herm = { { 1, 2, 3 }, { 2, 4, 0 }, { 3, 0, 6 } };
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 2UL );
-
-      if( herm(0,0) != 1 || herm(0,1) != 2 || herm(0,2) != 3 ||
-          herm(1,0) != 2 || herm(1,1) != 4 || herm(1,2) != 0 ||
-          herm(2,0) != 3 || herm(2,1) != 0 || herm(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Column-major HermitianMatrix initializer list assignment (incomplete list)";
-
-      OHT herm;
-      herm = { { 1, 2, 3 }, { 2, 4 }, { 3, 0, 6 } };
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 2UL );
-
-      if( herm(0,0) != 1 || herm(0,1) != 2 || herm(0,2) != 3 ||
-          herm(1,0) != 2 || herm(1,1) != 4 || herm(1,2) != 0 ||
-          herm(2,0) != 3 || herm(2,1) != 0 || herm(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major array assignment
-   //=====================================================================================
-
-   // Array assignment
-   {
-      test_ = "Column-major HermitianMatrix array assignment";
-
-      const int array[3][3] = { { 1, 2, 3 }, { 2, 4, 0 }, { 3, 0, 6 } };
-      OHT herm;
-      herm = array;
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 2UL );
-
-      if( herm(0,0) != 1 || herm(0,1) != 2 || herm(0,2) != 3 ||
-          herm(1,0) != 2 || herm(1,1) != 4 || herm(1,2) != 0 ||
-          herm(2,0) != 3 || herm(2,1) != 0 || herm(2,2) != 6 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( 1 2 3 )\n( 2 4 0 )\n( 3 0 6 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major copy assignment
    //=====================================================================================
 
@@ -1876,55 +1307,6 @@ void DenseRealTest::testAssignment()
 
 
    //=====================================================================================
-   // Column-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Column-major HermitianMatrix move assignment (0x0)";
-
-      OHT herm1, herm2;
-
-      herm2 = std::move( herm1 );
-
-      checkRows    ( herm2, 0UL );
-      checkColumns ( herm2, 0UL );
-      checkNonZeros( herm2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Column-major HermitianMatrix move assignment (3x3)";
-
-      OHT herm1( 3UL );
-      herm1(0,0) =  1;
-      herm1(0,1) = -4;
-      herm1(0,2) =  7;
-      herm1(1,1) =  2;
-      herm1(2,2) =  3;
-
-      OHT herm2;
-      herm2 = std::move( herm1 );
-
-      checkRows    ( herm2, 3UL );
-      checkColumns ( herm2, 3UL );
-      checkNonZeros( herm2, 7UL );
-
-      if( herm2(0,0) !=  1 || herm2(0,1) != -4 || herm2(0,2) != 7 ||
-          herm2(1,0) != -4 || herm2(1,1) !=  2 || herm2(1,2) != 0 ||
-          herm2(2,0) !=  7 || herm2(2,1) !=  0 || herm2(2,2) != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm2 << "\n"
-             << "   Expected result:\n(  1 -4  7 )\n( -4  2  0 )\n(  7  0  3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major dense matrix assignment
    //=====================================================================================
 
@@ -1946,9 +1328,9 @@ void DenseRealTest::testAssignment()
    {
       test_ = "Column-major/row-major HermitianMatrix dense matrix assignment (symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat( { {  1, -4, 7 },
-                                                                    { -4,  2, 0 },
-                                                                    {  7,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat(  1, -4, 7,
+                                                                  -4,  2, 0,
+                                                                   7,  0, 3 );
 
       OHT herm;
       herm = mat;
@@ -1974,9 +1356,9 @@ void DenseRealTest::testAssignment()
    {
       test_ = "Column-major/column-major HermitianMatrix dense matrix assignment (symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat( { {  1, -4, 7 },
-                                                                       { -4,  2, 0 },
-                                                                       {  7,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat(  1, -4, 7,
+                                                                     -4,  2, 0,
+                                                                      7,  0, 3 );
 
       OHT herm;
       herm = mat;
@@ -2002,9 +1384,9 @@ void DenseRealTest::testAssignment()
    {
       test_ = "Column-major/row-major HermitianMatrix dense matrix assignment (non-symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat( { {  1, -4, 7 },
-                                                                    { -4,  2, 0 },
-                                                                    { -5,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor> mat(  1, -4, 7,
+                                                                  -4,  2, 0,
+                                                                  -5,  0, 3 );
 
       try {
          OHT herm;
@@ -2024,9 +1406,9 @@ void DenseRealTest::testAssignment()
    {
       test_ = "Column-major/column-major HermitianMatrix dense matrix assignment (non-symmetric)";
 
-      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat( { {  1, -4, 7 },
-                                                                       { -4,  2, 0 },
-                                                                       { -5,  0, 3 } } );
+      const blaze::StaticMatrix<int,3UL,3UL,blaze::columnMajor> mat(  1, -4, 7,
+                                                                     -4,  2, 0,
+                                                                     -5,  0, 3 );
 
       try {
          OHT herm;
@@ -8125,7 +7507,7 @@ void DenseRealTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function";
 
-      typedef blaze::Submatrix<HT>  SMT;
+      typedef blaze::DenseSubmatrix<HT>  SMT;
 
       HT herm( 3UL );
       herm(0,0) =  1;
@@ -8217,7 +7599,7 @@ void DenseRealTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function";
 
-      typedef blaze::Submatrix<OHT>  SMT;
+      typedef blaze::DenseSubmatrix<OHT>  SMT;
 
       OHT herm( 3UL );
       herm(0,0) =  1;
@@ -8322,7 +7704,7 @@ void DenseRealTest::testRow()
    {
       test_ = "Row-major row() function";
 
-      typedef blaze::Row<HT>  RT;
+      typedef blaze::DenseRow<HT>  RT;
 
       HT herm( 3UL );
       herm(0,0) =  1;
@@ -8412,7 +7794,7 @@ void DenseRealTest::testRow()
    {
       test_ = "Column-major row() function";
 
-      typedef blaze::Row<OHT>  RT;
+      typedef blaze::DenseRow<OHT>  RT;
 
       OHT herm( 3UL );
       herm(0,0) =  1;
@@ -8515,7 +7897,7 @@ void DenseRealTest::testColumn()
    {
       test_ = "Row-major column() function";
 
-      typedef blaze::Column<HT>  CT;
+      typedef blaze::DenseColumn<HT>  CT;
 
       HT herm( 3UL );
       herm(0,0) =  1;
@@ -8605,7 +7987,7 @@ void DenseRealTest::testColumn()
    {
       test_ = "Column-major column() function";
 
-      typedef blaze::Column<OHT>  CT;
+      typedef blaze::DenseColumn<OHT>  CT;
 
       OHT herm( 3UL );
       herm(0,0) =  1;

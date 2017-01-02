@@ -42,15 +42,13 @@
 
 #include <blaze/math/typetraits/IsColumnMajorMatrix.h>
 #include <blaze/math/typetraits/IsComputation.h>
-#include <blaze/math/typetraits/IsDeclExpr.h>
 #include <blaze/math/typetraits/IsDenseMatrix.h>
-#include <blaze/math/typetraits/IsMatrix.h>
+#include <blaze/math/typetraits/IsSparseMatrix.h>
 #include <blaze/math/typetraits/IsTransExpr.h>
 #include <blaze/math/views/Forward.h>
 #include <blaze/util/InvalidType.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
@@ -82,56 +80,49 @@ struct SubmatrixExprTrait
  private:
    //**struct Failure******************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   struct Failure { using Type = INVALID_TYPE; };
+   struct Failure { typedef INVALID_TYPE  Type; };
    /*! \endcond */
    //**********************************************************************************************
 
-   //**struct Result*******************************************************************************
+   //**struct DenseResult**************************************************************************
    /*! \cond BLAZE_INTERNAL */
    template< typename T >
-   struct Result { using Type = Submatrix< T, AF, IsColumnMajorMatrix<T>::value, IsDenseMatrix<T>::value >; };
+   struct DenseResult { typedef DenseSubmatrix<T,AF,IsColumnMajorMatrix<T>::value>  Type; };
+   /*! \endcond */
+   //**********************************************************************************************
+
+   //**struct SparseResult*************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   template< typename T >
+   struct SparseResult { typedef SparseSubmatrix<T,AF,IsColumnMajorMatrix<T>::value>  Type; };
    /*! \endcond */
    //**********************************************************************************************
 
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Tmp = RemoveReference_<MT>;
+   typedef typename RemoveReference<MT>::Type  Tmp;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsComputation<Tmp>, IsTransExpr<Tmp>, IsDeclExpr<Tmp> >
-                            , If_< Or< IsConst<Tmp>, IsVolatile<Tmp> >
-                                 , SubmatrixExprTrait< RemoveCV_<Tmp>, AF >
-                                 , Failure >
-                            , If_< IsMatrix<Tmp>
-                                 , Result<Tmp>
-                                 , Failure >
-                            >::Type;
+   typedef typename If< Or< IsComputation<Tmp>, IsTransExpr<Tmp> >
+                      , typename If< Or< IsConst<Tmp>, IsVolatile<Tmp> >
+                                   , SubmatrixExprTrait< typename RemoveCV<Tmp>::Type, AF >
+                                   , Failure
+                                   >::Type
+                      , typename If< IsDenseMatrix<Tmp>
+                                   , DenseResult<Tmp>
+                                   , typename If< IsSparseMatrix<Tmp>
+                                                , SparseResult<Tmp>
+                                                , Failure
+                                                >::Type
+                                   >::Type
+                      >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the SubmatrixExprTrait type trait.
-// \ingroup math_traits
-//
-// The SubmatrixExprTrait_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the SubmatrixExprTrait class template. For instance, given the matrix type \a MT
-// and the alignment flag \a AF the following two type definitions are identical:
-
-   \code
-   using Type1 = typename SubmatrixExprTrait<MT,AF>::Type;
-   using Type2 = SubmatrixExprTrait_<MT,AF>;
-   \endcode
-*/
-template< typename MT  // Type of the matrix operand
-        , bool AF >    // Alignment flag
-using SubmatrixExprTrait_ = typename SubmatrixExprTrait<MT,AF>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

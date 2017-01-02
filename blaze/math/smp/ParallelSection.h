@@ -40,7 +40,7 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Exception.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/Suffix.h>
 
 

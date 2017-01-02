@@ -104,33 +104,16 @@ struct UnderlyingBuiltin
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   typedef typename If_< IsBuiltin<T>
-                       , Builtin<T>
-                       , If_< IsComplex<T>
-                            , Complex<T>
-                            , Other<T> >
-                       >::Type  Type;
+   typedef typename If< IsBuiltin<T>
+                      , Builtin<T>
+                      , typename If< IsComplex<T>
+                                   , Complex<T>
+                                   , Other<T>
+                                   >::Type
+                      >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the UnderlyingBuiltin type trait.
-// \ingroup type_traits
-//
-// The UnderlyingBuiltin_ alias declaration provides a convenient shortcut to access the
-// nested \a Type of the UnderlyingBuiltin class template. For instance, given the type \a T
-// the following two type definitions are identical:
-
-   \code
-   using Type1 = typename UnderlyingBuiltin<T>::Type;
-   using Type2 = UnderlyingBuiltin_<T>;
-   \endcode
-*/
-template< typename T >
-using UnderlyingBuiltin_ = typename UnderlyingBuiltin<T>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

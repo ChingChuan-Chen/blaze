@@ -42,7 +42,9 @@
 
 #include <ctime>
 #include <limits>
-#include <random>
+#include <boost/random/uniform_int.hpp>
+#include <boost/random/uniform_real.hpp>
+#include <boost/random/uniform_smallint.hpp>
 #include <blaze/system/Random.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/Complex.h>
@@ -54,7 +56,18 @@ namespace blaze {
 
 //=================================================================================================
 //
-//  DOXYGEN DOCUMENTATION
+//  ::blaze NAMESPACE FORWARD DECLARATIONS
+//
+//=================================================================================================
+
+template< typename > class Rand;
+
+
+
+
+//=================================================================================================
+//
+//  CLASS DEFINITION
 //
 //=================================================================================================
 
@@ -107,62 +120,20 @@ namespace blaze {
    complex<float> c3 = rand< complex<float> >( 2.0F, 3.0F, 1.0F, 5.0F );
    \endcode
 
-// \note In order to reproduce certain series of random numbers, the seed of the random number
+// \note: In order to reproduce certain series of random numbers, the seed of the random number
 // generator has to be set explicitly via the setSeed() function. Otherwise a random seed is used
 // for the random number generation.
 */
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  ::blaze NAMESPACE FORWARD DECLARATIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*!\name Random number functions */
-//@{
-template< typename T >
-inline T rand();
-
-template< typename T, typename... Args >
-inline T rand( Args&&... args );
-
-template< typename T >
-inline void randomize( T& value );
-
-template< typename T, typename... Args >
-inline void randomize( T& value, Args&&... args );
-
-inline uint32_t defaultSeed();
-inline uint32_t getSeed();
-inline void     setSeed( uint32_t seed );
-//@}
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  CLASS DEFINITION
-//
-//=================================================================================================
-
-//*************************************************************************************************
 /*!\brief Random number generator.
 // \ingroup random
 //
 // The Random class encapsulates the initialization of the given random number generator with
 // a pseudo-random seed obtained by the std::time() function. Currently, the mersenne-twister
-// mt19937 as provided by the C++ standard library is used per default. For more information
-// see the for instance the following documentation of the random number functionality of the
-// C++11 standard library:
+// mt19937 as provided by the boost library is used per default. For more information see the
+// class description of the boost library:
 //
-//   http://en.cppreference.com/w/cpp/numeric/random
+//   http://www.boost.org/doc/libs/1_35_0/libs/random/random-generators.html#mersenne_twister\n
+//   http://www.boost.org/doc/libs/1_35_0/boost/random/mersenne_twister.hpp
 */
 template< typename Type >  // Type of the random number generator
 class Random : private NonCreatable
@@ -195,8 +166,8 @@ class Random : private NonCreatable
 //
 //=================================================================================================
 
-template< typename Type > uint32_t Random<Type>::seed_( defaultSeed() );
-template< typename Type > Type     Random<Type>::rng_ ( defaultSeed() );
+template< typename Type > uint32_t Random<Type>::seed_( static_cast<uint32_t>( std::time(0) ) );
+template< typename Type > Type     Random<Type>::rng_ ( seed_ );
 
 
 
@@ -248,7 +219,7 @@ class Rand
 template< typename T >  // Type of the random number
 inline T Rand<T>::generate() const
 {
-   std::uniform_int_distribution<T> dist( 0, std::numeric_limits<T>::max() );
+   boost::uniform_int<T> dist( 0, std::numeric_limits<T>::max() );
    return dist( Random<RNG>::rng_ );
 }
 //*************************************************************************************************
@@ -270,7 +241,7 @@ template< typename T >  // Type of the random number
 inline T Rand<T>::generate( T min, T max ) const
 {
    BLAZE_INTERNAL_ASSERT( min <= max, "Invalid min/max value pair" );
-   std::uniform_int_distribution<T> dist( min, max );
+   boost::uniform_smallint<T> dist( min, max );
    return dist( Random<RNG>::rng_ );
 }
 //*************************************************************************************************
@@ -364,7 +335,7 @@ class Rand<float>
 */
 inline float Rand<float>::generate() const
 {
-   std::uniform_real_distribution<float> dist( 0.0, 1.0 );
+   boost::uniform_real<float> dist( 0.0, 1.0 );
    return dist( Random<RNG>::rng_ );
 }
 /*! \endcond */
@@ -387,7 +358,7 @@ inline float Rand<float>::generate() const
 inline float Rand<float>::generate( float min, float max ) const
 {
    BLAZE_INTERNAL_ASSERT( min <= max, "Invalid min/max values" );
-   std::uniform_real_distribution<float> dist( min, max );
+   boost::uniform_real<float> dist( min, max );
    return dist( Random<RNG>::rng_ );
 }
 /*! \endcond */
@@ -483,7 +454,7 @@ class Rand<double>
 */
 inline double Rand<double>::generate() const
 {
-   std::uniform_real_distribution<double> dist( 0.0, 1.0 );
+   boost::uniform_real<double> dist( 0.0, 1.0 );
    return dist( Random<RNG>::rng_ );
 }
 /*! \endcond */
@@ -506,7 +477,7 @@ inline double Rand<double>::generate() const
 inline double Rand<double>::generate( double min, double max ) const
 {
    BLAZE_INTERNAL_ASSERT( min <= max, "Invalid min/max values" );
-   std::uniform_real_distribution<double> dist( min, max );
+   boost::uniform_real<double> dist( min, max );
    return dist( Random<RNG>::rng_ );
 }
 /*! \endcond */
@@ -602,7 +573,7 @@ class Rand<long double>
 */
 inline long double Rand<long double>::generate() const
 {
-   std::uniform_real_distribution<long double> dist( 0.0, 1.0 );
+   boost::uniform_real<long double> dist( 0.0, 1.0 );
    return dist( Random<RNG>::rng_ );
 }
 /*! \endcond */
@@ -625,7 +596,7 @@ inline long double Rand<long double>::generate() const
 inline long double Rand<long double>::generate( long double min, long double max ) const
 {
    BLAZE_INTERNAL_ASSERT( min <= max, "Invalid min/max values" );
-   std::uniform_real_distribution<long double> dist( min, max );
+   boost::uniform_real<long double> dist( min, max );
    return dist( Random<RNG>::rng_ );
 }
 /*! \endcond */
@@ -866,6 +837,51 @@ inline void Rand< complex<T> >::randomize( complex<T>& value, const T& realmin, 
 //=================================================================================================
 
 //*************************************************************************************************
+/*!\name Random number functions */
+//@{
+template< typename T >
+inline T rand();
+
+template< typename T, typename A1 >
+inline T rand( const A1& a1 );
+
+template< typename T, typename A1, typename A2 >
+inline T rand( const A1& a1, const A2& a2 );
+
+template< typename T, typename A1, typename A2, typename A3 >
+inline T rand( const A1& a1, const A2& a2, const A3& a3 );
+
+template< typename T, typename A1, typename A2, typename A3, typename A4 >
+inline T rand( const A1& a1, const A2& a2, const A3& a3, const A4& a4 );
+
+template< typename T, typename A1, typename A2, typename A3, typename A4, typename A5 >
+inline T rand( const A1& a1, const A2& a2, const A3& a3, const A4& a4, const A5& a5 );
+
+template< typename T >
+inline void randomize( T& value );
+
+template< typename T, typename A1 >
+inline void randomize( T& value, const A1& a1 );
+
+template< typename T, typename A1, typename A2 >
+inline void randomize( T& value, const A1& a1, const A2& a2 );
+
+template< typename T, typename A1, typename A2, typename A3 >
+inline void randomize( T& value, const A1& a1, const A2& a2, const A3& a3 );
+
+template< typename T, typename A1, typename A2, typename A3, typename A4 >
+inline void randomize( T& value, const A1& a1, const A2& a2, const A3& a3, const A4& a4 );
+
+template< typename T, typename A1, typename A2, typename A3, typename A4, typename A5 >
+inline void randomize( T& value, const A1& a1, const A2& a2, const A3& a3, const A4& a4, const A5& a5 );
+
+inline uint32_t getSeed();
+inline void     setSeed( uint32_t seed );
+//@}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Random number function.
 // \ingroup random
 //
@@ -892,17 +908,116 @@ inline T rand()
 /*!\brief Random number function.
 // \ingroup random
 //
-// \param args The arguments for the random number generation.
+// \param a1 First argument for the random number generation.
 // \return The generated random number.
 //
-// This rand() function creates a random number based on the given arguments \a args.
+// This rand() function creates a random number based on the given argument \a a1.
 */
-template< typename T          // Type of the random number
-        , typename... Args >  // Types of the optional arguments
-inline T rand( Args&&... args )
+template< typename T     // Type of the random number
+        , typename A1 >  // Type of the first argument
+inline T rand( const A1& a1 )
 {
    Rand<T> tmp;
-   return tmp.generate( std::forward<Args>( args )... );
+   return tmp.generate( a1 );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Random number function.
+// \ingroup random
+//
+// \param a1 First argument for the random number generation.
+// \param a2 Second argument for the random number generation.
+// \return The generated random number.
+//
+// This rand() function creates a random number based on the given arguments \a a1 and \a a2.
+*/
+template< typename T     // Type of the random number
+        , typename A1    // Type of the first argument
+        , typename A2 >  // Type of the second argument
+inline T rand( const A1& a1, const A2& a2 )
+{
+   Rand<T> tmp;
+   return tmp.generate( a1, a2 );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Random number function.
+// \ingroup random
+//
+// \param a1 First argument for the random number generation.
+// \param a2 Second argument for the random number generation.
+// \param a3 Third argument for the random number generation.
+// \return The generated random number.
+//
+// This rand() function creates a random number based on the given arguments \a a1, \a a2, and
+// \a a3.
+*/
+template< typename T     // Type of the random number
+        , typename A1    // Type of the first argument
+        , typename A2    // Type of the second argument
+        , typename A3 >  // Type of the third argument
+inline T rand( const A1& a1, const A2& a2, const A3& a3 )
+{
+   Rand<T> tmp;
+   return tmp.generate( a1, a2, a3 );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Random number function.
+// \ingroup random
+//
+// \param a1 First argument for the random number generation.
+// \param a2 Second argument for the random number generation.
+// \param a3 Third argument for the random number generation.
+// \param a4 Fourth argument for the random number generation.
+// \return The generated random number.
+//
+// This rand() function creates a random number based on the given arguments \a a1, \a a2, \a a3,
+// and \a a4.
+*/
+template< typename T     // Type of the random number
+        , typename A1    // Type of the first argument
+        , typename A2    // Type of the second argument
+        , typename A3    // Type of the third argument
+        , typename A4 >  // Type of the fourth argument
+inline T rand( const A1& a1, const A2& a2, const A3& a3, const A4& a4 )
+{
+   Rand<T> tmp;
+   return tmp.generate( a1, a2, a3, a4 );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Random number function.
+// \ingroup random
+//
+// \param a1 First argument for the random number generation.
+// \param a2 Second argument for the random number generation.
+// \param a3 Third argument for the random number generation.
+// \param a4 Fourth argument for the random number generation.
+// \param a5 Fifth argument for the random number generation.
+// \return The generated random number.
+//
+// This rand() function creates a random number based on the given arguments \a a1, \a a2, \a a3,
+// \a a4, and \a a5.
+*/
+template< typename T     // Type of the random number
+        , typename A1    // Type of the first argument
+        , typename A2    // Type of the second argument
+        , typename A3    // Type of the third argument
+        , typename A4    // Type of the fourth argument
+        , typename A5 >  // Type of the fifth argument
+inline T rand( const A1& a1, const A2& a2, const A3& a3, const A4& a4, const A5& a5 )
+{
+   Rand<T> tmp;
+   return tmp.generate( a1, a2, a3, a4, a5 );
 }
 //*************************************************************************************************
 
@@ -936,31 +1051,121 @@ inline void randomize( T& value )
 // \ingroup random
 //
 // \param value The value to be randomized.
-// \param args The arguments for the random number generation.
+// \param a1 First argument for the random number generation.
 // \return void
 //
-// This randomize() function randomizes the given variable based on the given arguments \a args.
+// This randomize() function randomizes the given variable based on the given argument \a a1.
 */
-template< typename T          // Type of the random number
-        , typename... Args >  // Types of the optional arguments
-inline void randomize( T& value, Args&&... args )
+template< typename T     // Type of the random number
+        , typename A1 >  // Type of the first argument
+inline void randomize( T& value, const A1& a1 )
 {
    Rand<T> tmp;
-   tmp.randomize( value, std::forward<Args>( args )... );
+   tmp.randomize( value, a1 );
 }
 //*************************************************************************************************
 
 
 //*************************************************************************************************
-/*!\brief Returns the default random seed.
+/*!\brief Randomization of a given variable.
 // \ingroup random
 //
-// \return The default random seed.
+// \param value The value to be randomized.
+// \param a1 First argument for the random number generation.
+// \param a2 Second argument for the random number generation.
+// \return void
+//
+// This randomize() function randomizes the given variable based on the given argument \a a1
+// and \a a2
 */
-inline uint32_t defaultSeed()
+template< typename T     // Type of the random number
+        , typename A1    // Type of the first argument
+        , typename A2 >  // Type of the second argument
+inline void randomize( T& value, const A1& a1, const A2& a2 )
 {
-   static const uint32_t seed = static_cast<uint32_t>( std::time(0) );
-   return seed;
+   Rand<T> tmp;
+   tmp.randomize( value, a1, a2 );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Randomization of a given variable.
+// \ingroup random
+//
+// \param value The value to be randomized.
+// \param a1 First argument for the random number generation.
+// \param a2 Second argument for the random number generation.
+// \param a3 Third argument for the random number generation.
+// \return void
+//
+// This randomize() function randomizes the given variable based on the given argument \a a1,
+// \a a2, and \a a3.
+*/
+template< typename T     // Type of the random number
+        , typename A1    // Type of the first argument
+        , typename A2    // Type of the second argument
+        , typename A3 >  // Type of the third argument
+inline void randomize( T& value, const A1& a1, const A2& a2, const A3& a3 )
+{
+   Rand<T> tmp;
+   tmp.randomize( value, a1, a2, a3 );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Randomization of a given variable.
+// \ingroup random
+//
+// \param value The value to be randomized.
+// \param a1 First argument for the random number generation.
+// \param a2 Second argument for the random number generation.
+// \param a3 Third argument for the random number generation.
+// \param a4 Fourth argument for the random number generation.
+// \return void
+//
+// This randomize() function randomizes the given variable based on the given argument \a a1,
+// \a a2, \a a3, and \a a4.
+*/
+template< typename T     // Type of the random number
+        , typename A1    // Type of the first argument
+        , typename A2    // Type of the second argument
+        , typename A3    // Type of the third argument
+        , typename A4 >  // Type of the fourth argument
+inline void randomize( T& value, const A1& a1, const A2& a2, const A3& a3, const A4& a4 )
+{
+   Rand<T> tmp;
+   tmp.randomize( value, a1, a2, a3, a4 );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Randomization of a given variable.
+// \ingroup random
+//
+// \param value The value to be randomized.
+// \param a1 First argument for the random number generation.
+// \param a2 Second argument for the random number generation.
+// \param a3 Third argument for the random number generation.
+// \param a4 Fourth argument for the random number generation.
+// \param a5 Fifth argument for the random number generation.
+// \return void
+//
+// This randomize() function randomizes the given variable based on the given argument \a a1,
+// \a a2, \a a3, \a a4, and \a a5.
+*/
+template< typename T     // Type of the random number
+        , typename A1    // Type of the first argument
+        , typename A2    // Type of the second argument
+        , typename A3    // Type of the third argument
+        , typename A4    // Type of the fourth argument
+        , typename A5 >  // Type of the fifth argument
+inline void randomize( T& value, const A1& a1, const A2& a2, const A3& a3, const A4& a4, const A5& a5 )
+{
+   Rand<T> tmp;
+   tmp.randomize( value, a1, a2, a3, a4, a5 );
 }
 //*************************************************************************************************
 

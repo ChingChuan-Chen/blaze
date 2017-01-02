@@ -39,11 +39,11 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <blaze/math/Column.h>
-#include <blaze/math/Row.h>
+#include <blaze/math/SparseColumn.h>
+#include <blaze/math/SparseRow.h>
+#include <blaze/math/SparseSubmatrix.h>
 #include <blaze/math/StaticMatrix.h>
 #include <blaze/math/StaticVector.h>
-#include <blaze/math/Submatrix.h>
 #include <blaze/util/Complex.h>
 #include <blazetest/mathtest/hermitianmatrix/SparseComplexTest.h>
 
@@ -81,13 +81,13 @@ SparseComplexTest::SparseComplexTest()
    testSet();
    testInsert();
    testAppend();
+   testErase();
    testResize();
    testReserve();
    testTrim();
    testTranspose();
    testCTranspose();
    testSwap();
-   testErase();
    testFind();
    testLowerBound();
    testUpperBound();
@@ -178,56 +178,6 @@ void SparseComplexTest::testConstructors()
       herm1(2,2) = cplx( 3, 0);
 
       const HT herm2( herm1 );
-
-      checkRows    ( herm2, 3UL );
-      checkColumns ( herm2, 3UL );
-      checkCapacity( herm2, 7UL );
-      checkNonZeros( herm2, 7UL );
-
-      if( herm2(0,0) != cplx( 1, 0) || herm2(0,1) != cplx(-4,-1) || herm2(0,2) != cplx(7,3) ||
-          herm2(1,0) != cplx(-4, 1) || herm2(1,1) != cplx( 2, 0) || herm2(1,2) != cplx(0,0) ||
-          herm2(2,0) != cplx( 7,-3) || herm2(2,1) != cplx( 0, 0) || herm2(2,2) != cplx(3,0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm2 << "\n"
-             << "   Expected result:\n( ( 1, 0) (-4,-1) (7,3) )\n"
-                                     "( (-4, 1) ( 2, 0) (0,0) )\n"
-                                     "( ( 7,-3) ( 0, 0) (3,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Row-major HermitianMatrix move constructor (0x0)";
-
-      HT herm1;
-      HT herm2( std::move( herm1 ) );
-
-      checkRows    ( herm2, 0UL );
-      checkColumns ( herm2, 0UL );
-      checkNonZeros( herm2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Row-major HermitianMatrix move constructor (3x3)";
-
-      HT herm1( 3UL );
-      herm1(0,0) = cplx( 1, 0);
-      herm1(0,1) = cplx(-4,-1);
-      herm1(0,2) = cplx( 7, 3);
-      herm1(1,1) = cplx( 2, 0);
-      herm1(2,2) = cplx( 3, 0);
-
-      HT herm2( std::move( herm1 ) );
 
       checkRows    ( herm2, 3UL );
       checkColumns ( herm2, 3UL );
@@ -476,56 +426,6 @@ void SparseComplexTest::testConstructors()
 
 
    //=====================================================================================
-   // Column-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Column-major HermitianMatrix move constructor (0x0)";
-
-      OHT herm1;
-      OHT herm2( std::move( herm1 ) );
-
-      checkRows    ( herm2, 0UL );
-      checkColumns ( herm2, 0UL );
-      checkNonZeros( herm2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Column-major HermitianMatrix move constructor (3x3)";
-
-      OHT herm1( 3UL );
-      herm1(0,0) = cplx( 1, 0);
-      herm1(0,1) = cplx(-4,-1);
-      herm1(0,2) = cplx( 7, 3);
-      herm1(1,1) = cplx( 2, 0);
-      herm1(2,2) = cplx( 3, 0);
-
-      OHT herm2( std::move( herm1 ) );
-
-      checkRows    ( herm2, 3UL );
-      checkColumns ( herm2, 3UL );
-      checkCapacity( herm2, 7UL );
-      checkNonZeros( herm2, 7UL );
-
-      if( herm2(0,0) != cplx( 1, 0) || herm2(0,1) != cplx(-4,-1) || herm2(0,2) != cplx(7,3) ||
-          herm2(1,0) != cplx(-4, 1) || herm2(1,1) != cplx( 2, 0) || herm2(1,2) != cplx(0,0) ||
-          herm2(2,0) != cplx( 7,-3) || herm2(2,1) != cplx( 0, 0) || herm2(2,2) != cplx(3,0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm2 << "\n"
-             << "   Expected result:\n( ( 1, 0) (-4,-1) (7,3) )\n"
-                                     "( (-4, 1) ( 2, 0) (0,0) )\n"
-                                     "( ( 7,-3) ( 0, 0) (3,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major conversion constructor
    //=====================================================================================
 
@@ -711,57 +611,6 @@ void SparseComplexTest::testAssignment()
 
       HT herm2;
       herm2 = herm1;
-
-      checkRows    ( herm2, 3UL );
-      checkColumns ( herm2, 3UL );
-      checkNonZeros( herm2, 7UL );
-
-      if( herm2(0,0) != cplx( 1, 0) || herm2(0,1) != cplx(-4,-1) || herm2(0,2) != cplx(7,3) ||
-          herm2(1,0) != cplx(-4, 1) || herm2(1,1) != cplx( 2, 0) || herm2(1,2) != cplx(0,0) ||
-          herm2(2,0) != cplx( 7,-3) || herm2(2,1) != cplx( 0, 0) || herm2(2,2) != cplx(3,0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm2 << "\n"
-             << "   Expected result:\n( ( 1, 0) (-4,-1) (7,3) )\n"
-                                     "( (-4, 1) ( 2, 0) (0,0) )\n"
-                                     "( ( 7,-3) ( 0, 0) (3,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Row-major HermitianMatrix move assignment (0x0)";
-
-      HT herm1, herm2;
-
-      herm2 = std::move( herm1 );
-
-      checkRows    ( herm2, 0UL );
-      checkColumns ( herm2, 0UL );
-      checkNonZeros( herm2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Row-major HermitianMatrix move assignment (3x3)";
-
-      HT herm1( 3UL );
-      herm1(0,0) = cplx( 1, 0);
-      herm1(0,1) = cplx(-4,-1);
-      herm1(0,2) = cplx( 7, 3);
-      herm1(1,1) = cplx( 2, 0);
-      herm1(2,2) = cplx( 3, 0);
-
-      HT herm2;
-      herm2 = std::move( herm1 );
 
       checkRows    ( herm2, 3UL );
       checkColumns ( herm2, 3UL );
@@ -1353,57 +1202,6 @@ void SparseComplexTest::testAssignment()
 
       OHT herm2;
       herm2 = herm1;
-
-      checkRows    ( herm2, 3UL );
-      checkColumns ( herm2, 3UL );
-      checkNonZeros( herm2, 7UL );
-
-      if( herm2(0,0) != cplx( 1, 0) || herm2(0,1) != cplx(-4,-1) || herm2(0,2) != cplx(7,3) ||
-          herm2(1,0) != cplx(-4, 1) || herm2(1,1) != cplx( 2, 0) || herm2(1,2) != cplx(0,0) ||
-          herm2(2,0) != cplx( 7,-3) || herm2(2,1) != cplx( 0, 0) || herm2(2,2) != cplx(3,0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm2 << "\n"
-             << "   Expected result:\n( ( 1, 0) (-4,-1) (7,3) )\n"
-                                     "( (-4, 1) ( 2, 0) (0,0) )\n"
-                                     "( ( 7,-3) ( 0, 0) (3,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Column-major HermitianMatrix move assignment (0x0)";
-
-      OHT herm1, herm2;
-
-      herm2 = std::move( herm1 );
-
-      checkRows    ( herm2, 0UL );
-      checkColumns ( herm2, 0UL );
-      checkNonZeros( herm2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Column-major HermitianMatrix move assignment (3x3)";
-
-      OHT herm1( 3UL );
-      herm1(0,0) = cplx( 1, 0);
-      herm1(0,1) = cplx(-4,-1);
-      herm1(0,2) = cplx( 7, 3);
-      herm1(1,1) = cplx( 2, 0);
-      herm1(2,2) = cplx( 3, 0);
-
-      OHT herm2;
-      herm2 = std::move( herm1 );
 
       checkRows    ( herm2, 3UL );
       checkColumns ( herm2, 3UL );
@@ -8903,6 +8701,1163 @@ void SparseComplexTest::testAppend()
 
 
 //*************************************************************************************************
+/*!\brief Test of the \c erase() member function of the HermitianMatrix specialization.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c erase() member function of the HermitianMatrix
+// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void SparseComplexTest::testErase()
+{
+   //=====================================================================================
+   // Row-major index-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Row-major HermitianMatrix::erase( size_t, size_t )";
+
+      // Initialization check
+      HT herm( 4UL );
+      herm(0,0) = cplx(1,0);
+      herm(0,2) = cplx(2,2);
+      herm(0,3) = cplx(3,3);
+      herm(1,1) = cplx(4,0);
+      herm(1,2) = cplx(5,5);
+      herm(2,2) = cplx(6,0);
+      herm(2,3) = cplx(7,7);
+
+      checkRows    ( herm,  4UL );
+      checkColumns ( herm,  4UL );
+      checkCapacity( herm, 11UL );
+      checkNonZeros( herm, 11UL );
+      checkNonZeros( herm, 0UL, 3UL );
+      checkNonZeros( herm, 1UL, 2UL );
+      checkNonZeros( herm, 2UL, 4UL );
+      checkNonZeros( herm, 3UL, 2UL );
+
+      if( herm(0,0) != cplx(1, 0) || herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3,3) ||
+          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
+          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
+          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << herm << "\n"
+             << "   Expected result:\n( (1, 0) (0, 0) (2, 2) (3,3) )\n"
+                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
+                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
+                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (0,0)
+      herm.erase( 0UL, 0UL );
+
+      checkRows    ( herm,  4UL );
+      checkColumns ( herm,  4UL );
+      checkCapacity( herm, 11UL );
+      checkNonZeros( herm, 10UL );
+      checkNonZeros( herm, 0UL, 2UL );
+      checkNonZeros( herm, 1UL, 2UL );
+      checkNonZeros( herm, 2UL, 4UL );
+      checkNonZeros( herm, 3UL, 2UL );
+
+      if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
+          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
+          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
+          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a non-zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << herm << "\n"
+             << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
+                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
+                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
+                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (1,2)
+      herm.erase( 1UL, 2UL );
+
+      checkRows    ( herm,  4UL );
+      checkColumns ( herm,  4UL );
+      checkCapacity( herm, 11UL );
+      checkNonZeros( herm,  8UL );
+      checkNonZeros( herm, 0UL, 2UL );
+      checkNonZeros( herm, 1UL, 1UL );
+      checkNonZeros( herm, 2UL, 3UL );
+      checkNonZeros( herm, 3UL, 2UL );
+
+      if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
+          herm(1,1) != cplx(4, 0) ||
+          herm(2,0) != cplx(2,-2) || herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
+          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a non-zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << herm << "\n"
+             << "   Expected result:\n( (0, 0) (0,0) (2, 2) (3,3) )\n"
+                                     "( (0, 0) (4,0) (0, 0) (0,0) )\n"
+                                     "( (2,-2) (0,0) (6, 0) (7,7) )\n"
+                                     "( (3,-3) (0,0) (7,-7) (0,0) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (0,2)
+      herm.erase( 0UL, 2UL );
+
+      checkRows    ( herm,  4UL );
+      checkColumns ( herm,  4UL );
+      checkCapacity( herm, 11UL );
+      checkNonZeros( herm,  6UL );
+      checkNonZeros( herm, 0UL, 1UL );
+      checkNonZeros( herm, 1UL, 1UL );
+      checkNonZeros( herm, 2UL, 2UL );
+      checkNonZeros( herm, 3UL, 2UL );
+
+      if( herm(0,3) != cplx(3, 3) ||
+          herm(1,1) != cplx(4, 0) ||
+          herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
+          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a non-zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << herm << "\n"
+             << "   Expected result:\n( (0, 0) (0,0) (0, 0) (3,3) )\n"
+                                     "( (0, 0) (4,0) (0, 0) (0,0) )\n"
+                                     "( (0, 0) (0,0) (6, 0) (7,7) )\n"
+                                     "( (3,-3) (0,0) (7,-7) (0,0) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Trying to erase a zero element
+      herm.erase( 0UL, 1UL );
+
+      checkRows    ( herm,  4UL );
+      checkColumns ( herm,  4UL );
+      checkCapacity( herm, 11UL );
+      checkNonZeros( herm,  6UL );
+      checkNonZeros( herm, 0UL, 1UL );
+      checkNonZeros( herm, 1UL, 1UL );
+      checkNonZeros( herm, 2UL, 2UL );
+      checkNonZeros( herm, 3UL, 2UL );
+
+      if( herm(0,3) != cplx(3, 3) ||
+          herm(1,1) != cplx(4, 0) ||
+          herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
+          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << herm << "\n"
+             << "   Expected result:\n( (0, 0) (0,0) (0, 0) (3,3) )\n"
+                                     "( (0, 0) (4,0) (0, 0) (0,0) )\n"
+                                     "( (0, 0) (0,0) (6, 0) (7,7) )\n"
+                                     "( (3,-3) (0,0) (7,-7) (0,0) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Row-major iterator-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Row-major HermitianMatrix::erase( size_t, Iterator )";
+
+      typedef HT::Iterator  Iterator;
+
+      // Initialization check
+      HT herm( 4UL );
+      herm(0,0) = cplx(1,0);
+      herm(0,2) = cplx(2,2);
+      herm(0,3) = cplx(3,3);
+      herm(1,1) = cplx(4,0);
+      herm(1,2) = cplx(5,5);
+      herm(2,2) = cplx(6,0);
+      herm(2,3) = cplx(7,7);
+
+      checkRows    ( herm,  4UL );
+      checkColumns ( herm,  4UL );
+      checkCapacity( herm, 11UL );
+      checkNonZeros( herm, 11UL );
+      checkNonZeros( herm, 0UL, 3UL );
+      checkNonZeros( herm, 1UL, 2UL );
+      checkNonZeros( herm, 2UL, 4UL );
+      checkNonZeros( herm, 3UL, 2UL );
+
+      if( herm(0,0) != cplx(1, 0) || herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3,3) ||
+          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
+          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
+          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << herm << "\n"
+             << "   Expected result:\n( (1, 0) (0, 0) (2, 2) (3,3) )\n"
+                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
+                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
+                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (0,0)
+      {
+         Iterator pos = herm.erase( 0UL, herm.find( 0UL, 0UL ) );
+
+         checkRows    ( herm,  4UL );
+         checkColumns ( herm,  4UL );
+         checkCapacity( herm, 11UL );
+         checkNonZeros( herm, 10UL );
+         checkNonZeros( herm, 0UL, 2UL );
+         checkNonZeros( herm, 1UL, 2UL );
+         checkNonZeros( herm, 2UL, 4UL );
+         checkNonZeros( herm, 3UL, 2UL );
+
+         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
+             herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
+             herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
+             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a non-zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
+                                        "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
+                                        "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
+                                        "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != cplx(2,2) || pos->index() != 2 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: (2,2)\n"
+                << "   Expected index: 2\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element at (1,2)
+      {
+         Iterator pos = herm.erase( 1UL, herm.find( 1UL, 2UL ) );
+
+         checkRows    ( herm,  4UL );
+         checkColumns ( herm,  4UL );
+         checkCapacity( herm, 11UL );
+         checkNonZeros( herm,  8UL );
+         checkNonZeros( herm, 0UL, 2UL );
+         checkNonZeros( herm, 1UL, 1UL );
+         checkNonZeros( herm, 2UL, 3UL );
+         checkNonZeros( herm, 3UL, 2UL );
+
+         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
+             herm(1,1) != cplx(4, 0) ||
+             herm(2,0) != cplx(2,-2) || herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
+             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a non-zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (0, 0) (0,0) (2, 2) (3,3) )\n"
+                                        "( (0, 0) (4,0) (0, 0) (0,0) )\n"
+                                        "( (2,-2) (0,0) (6, 0) (7,7) )\n"
+                                        "( (3,-3) (0,0) (7,-7) (0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != herm.end( 1UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element at (0,2)
+      {
+         Iterator pos = herm.erase( 0UL, herm.find( 0UL, 2UL ) );
+
+         checkRows    ( herm,  4UL );
+         checkColumns ( herm,  4UL );
+         checkCapacity( herm, 11UL );
+         checkNonZeros( herm,  6UL );
+         checkNonZeros( herm, 0UL, 1UL );
+         checkNonZeros( herm, 1UL, 1UL );
+         checkNonZeros( herm, 2UL, 2UL );
+         checkNonZeros( herm, 3UL, 2UL );
+
+         if( herm(0,3) != cplx(3, 3) ||
+             herm(1,1) != cplx(4, 0) ||
+             herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
+             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a non-zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (0, 0) (0,0) (0, 0) (3,3) )\n"
+                                        "( (0, 0) (4,0) (0, 0) (0,0) )\n"
+                                        "( (0, 0) (0,0) (6, 0) (7,7) )\n"
+                                        "( (3,-3) (0,0) (7,-7) (0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != cplx(3,3) || pos->index() != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: (3,3)\n"
+                << "   Expected index: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Trying to erase a zero element
+      {
+         Iterator pos = herm.erase( 0UL, herm.find( 0UL, 1UL ) );
+
+         checkRows    ( herm,  4UL );
+         checkColumns ( herm,  4UL );
+         checkCapacity( herm, 11UL );
+         checkNonZeros( herm,  6UL );
+         checkNonZeros( herm, 0UL, 1UL );
+         checkNonZeros( herm, 1UL, 1UL );
+         checkNonZeros( herm, 2UL, 2UL );
+         checkNonZeros( herm, 3UL, 2UL );
+
+         if( herm(0,3) != cplx(3, 3) ||
+             herm(1,1) != cplx(4, 0) ||
+             herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
+             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (0, 0) (0,0) (0, 0) (3,3) )\n"
+                                        "( (0, 0) (4,0) (0, 0) (0,0) )\n"
+                                        "( (0, 0) (0,0) (6, 0) (7,7) )\n"
+                                        "( (3,-3) (0,0) (7,-7) (0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != herm.end( 0UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+
+   //=====================================================================================
+   // Row-major iterator-range-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Row-major HermitianMatrix::erase( size_t, Iterator, Iterator )";
+
+      typedef HT::Iterator  Iterator;
+
+      // Initialization check
+      HT herm( 4UL );
+      herm(0,0) = cplx(1,0);
+      herm(0,2) = cplx(2,2);
+      herm(0,3) = cplx(3,3);
+      herm(1,1) = cplx(4,0);
+      herm(1,2) = cplx(5,5);
+      herm(2,2) = cplx(6,0);
+      herm(2,3) = cplx(7,7);
+
+      checkRows    ( herm,  4UL );
+      checkColumns ( herm,  4UL );
+      checkCapacity( herm, 11UL );
+      checkNonZeros( herm, 11UL );
+      checkNonZeros( herm, 0UL, 3UL );
+      checkNonZeros( herm, 1UL, 2UL );
+      checkNonZeros( herm, 2UL, 4UL );
+      checkNonZeros( herm, 3UL, 2UL );
+
+      if( herm(0,0) != cplx(1, 0) || herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3,3) ||
+          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
+          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
+          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << herm << "\n"
+             << "   Expected result:\n( (1, 0) (0, 0) (2, 2) (3,3) )\n"
+                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
+                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
+                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element from (0,0) to (0,2)
+      {
+         Iterator pos = herm.erase( 0UL, herm.find( 0UL, 0UL ), herm.find( 0UL, 2UL ) );
+
+         checkRows    ( herm,  4UL );
+         checkColumns ( herm,  4UL );
+         checkCapacity( herm, 11UL );
+         checkNonZeros( herm, 10UL );
+         checkNonZeros( herm, 0UL, 2UL );
+         checkNonZeros( herm, 1UL, 2UL );
+         checkNonZeros( herm, 2UL, 4UL );
+         checkNonZeros( herm, 3UL, 2UL );
+
+         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
+             herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
+             herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
+             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a single-element range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
+                                        "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
+                                        "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
+                                        "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != cplx(2,2) || pos->index() != 2 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: (2,2)\n"
+                << "   Expected index: 2\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element from (2,1) to (2,3)
+      {
+         Iterator pos = herm.erase( 2UL, herm.find( 2UL, 1UL ), herm.find( 2UL, 3UL ) );
+
+         checkRows    ( herm,  4UL );
+         checkColumns ( herm,  4UL );
+         checkCapacity( herm, 11UL );
+         checkNonZeros( herm,  7UL );
+         checkNonZeros( herm, 0UL, 2UL );
+         checkNonZeros( herm, 1UL, 1UL );
+         checkNonZeros( herm, 2UL, 2UL );
+         checkNonZeros( herm, 3UL, 2UL );
+
+         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
+             herm(1,1) != cplx(4, 0) ||
+             herm(2,0) != cplx(2,-2) || herm(2,3) != cplx(7, 7) ||
+             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a single-element range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (0, 0) (0,0) (2, 2) (3,3) )\n"
+                                        "( (0, 0) (4,0) (0, 0) (0,0) )\n"
+                                        "( (2,-2) (0,0) (0, 0) (7,7) )\n"
+                                        "( (3,-3) (0,0) (7,-7) (0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != cplx(7,7) || pos->index() != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: (7,7)\n"
+                << "   Expected index: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element from (3,2) to the row end
+      {
+         Iterator pos = herm.erase( 3UL, herm.find( 3UL, 2UL ), herm.end( 3UL ) );
+
+         checkRows    ( herm,  4UL );
+         checkColumns ( herm,  4UL );
+         checkCapacity( herm, 11UL );
+         checkNonZeros( herm,  5UL );
+         checkNonZeros( herm, 0UL, 2UL );
+         checkNonZeros( herm, 1UL, 1UL );
+         checkNonZeros( herm, 2UL, 1UL );
+         checkNonZeros( herm, 3UL, 1UL );
+
+         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
+             herm(1,1) != cplx(4, 0) ||
+             herm(2,0) != cplx(2,-2) ||
+             herm(3,0) != cplx(3,-3) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a single-element range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (0, 0) (0,0) (2,2) (3,3) )\n"
+                                        "( (0, 0) (4,0) (0,0) (0,0) )\n"
+                                        "( (2,-2) (0,0) (0,0) (0,0) )\n"
+                                        "( (3,-3) (0,0) (0,0) (0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != herm.end( 3UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Trying to erase an empty range
+      {
+         Iterator pos = herm.erase( 2UL, herm.find( 2UL, 0UL ), herm.find( 2UL, 0UL ) );
+
+         checkRows    ( herm,  4UL );
+         checkColumns ( herm,  4UL );
+         checkCapacity( herm, 11UL );
+         checkNonZeros( herm,  5UL );
+         checkNonZeros( herm, 0UL, 2UL );
+         checkNonZeros( herm, 1UL, 1UL );
+         checkNonZeros( herm, 2UL, 1UL );
+         checkNonZeros( herm, 3UL, 1UL );
+
+         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
+             herm(1,1) != cplx(4, 0) ||
+             herm(2,0) != cplx(2,-2) ||
+             herm(3,0) != cplx(3,-3) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing an empty range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (0, 0) (0,0) (2,2) (3,3) )\n"
+                                        "( (0, 0) (4,0) (0,0) (0,0) )\n"
+                                        "( (2,-2) (0,0) (0,0) (0,0) )\n"
+                                        "( (3,-3) (0,0) (0,0) (0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != herm.find( 2UL, 0UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major index-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Column-major HermitianMatrix::erase( size_t, size_t )";
+
+      // Initialization check
+      OHT herm( 4UL );
+      herm(0,0) = cplx(1,0);
+      herm(0,2) = cplx(2,2);
+      herm(0,3) = cplx(3,3);
+      herm(1,1) = cplx(4,0);
+      herm(1,2) = cplx(5,5);
+      herm(2,2) = cplx(6,0);
+      herm(2,3) = cplx(7,7);
+
+      checkRows    ( herm,  4UL );
+      checkColumns ( herm,  4UL );
+      checkCapacity( herm, 11UL );
+      checkNonZeros( herm, 11UL );
+      checkNonZeros( herm, 0UL, 3UL );
+      checkNonZeros( herm, 1UL, 2UL );
+      checkNonZeros( herm, 2UL, 4UL );
+      checkNonZeros( herm, 3UL, 2UL );
+
+      if( herm(0,0) != cplx(1, 0) || herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3,3) ||
+          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
+          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
+          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << herm << "\n"
+             << "   Expected result:\n( (1, 0) (0, 0) (2, 2) (3,3) )\n"
+                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
+                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
+                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (0,0)
+      herm.erase( 0UL, 0UL );
+
+      checkRows    ( herm,  4UL );
+      checkColumns ( herm,  4UL );
+      checkCapacity( herm, 11UL );
+      checkNonZeros( herm, 10UL );
+      checkNonZeros( herm, 0UL, 2UL );
+      checkNonZeros( herm, 1UL, 2UL );
+      checkNonZeros( herm, 2UL, 4UL );
+      checkNonZeros( herm, 3UL, 2UL );
+
+      if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
+          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
+          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
+          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a non-zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << herm << "\n"
+             << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
+                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
+                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
+                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (2,1)
+      herm.erase( 2UL, 1UL );
+
+      checkRows    ( herm,  4UL );
+      checkColumns ( herm,  4UL );
+      checkCapacity( herm, 11UL );
+      checkNonZeros( herm,  8UL );
+      checkNonZeros( herm, 0UL, 2UL );
+      checkNonZeros( herm, 1UL, 1UL );
+      checkNonZeros( herm, 2UL, 3UL );
+      checkNonZeros( herm, 3UL, 2UL );
+
+      if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
+          herm(1,1) != cplx(4, 0) ||
+          herm(2,0) != cplx(2,-2) || herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
+          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a non-zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << herm << "\n"
+             << "   Expected result:\n( (0, 0) (0,0) (2, 2) (3,3) )\n"
+                                     "( (0, 0) (4,0) (0, 0) (0,0) )\n"
+                                     "( (2,-2) (0,0) (6, 0) (7,7) )\n"
+                                     "( (3,-3) (0,0) (7,-7) (0,0) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (2,0)
+      herm.erase( 2UL, 0UL );
+
+      checkRows    ( herm,  4UL );
+      checkColumns ( herm,  4UL );
+      checkCapacity( herm, 11UL );
+      checkNonZeros( herm,  6UL );
+      checkNonZeros( herm, 0UL, 1UL );
+      checkNonZeros( herm, 1UL, 1UL );
+      checkNonZeros( herm, 2UL, 2UL );
+      checkNonZeros( herm, 3UL, 2UL );
+
+      if( herm(0,3) != cplx(3, 3) ||
+          herm(1,1) != cplx(4, 0) ||
+          herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
+          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a non-zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << herm << "\n"
+             << "   Expected result:\n( (0, 0) (0,0) (0, 0) (3,3) )\n"
+                                     "( (0, 0) (4,0) (0, 0) (0,0) )\n"
+                                     "( (0, 0) (0,0) (6, 0) (7,7) )\n"
+                                     "( (3,-3) (0,0) (7,-7) (0,0) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Trying to erase a zero element
+      herm.erase( 1UL, 0UL );
+
+      checkRows    ( herm,  4UL );
+      checkColumns ( herm,  4UL );
+      checkCapacity( herm, 11UL );
+      checkNonZeros( herm,  6UL );
+      checkNonZeros( herm, 0UL, 1UL );
+      checkNonZeros( herm, 1UL, 1UL );
+      checkNonZeros( herm, 2UL, 2UL );
+      checkNonZeros( herm, 3UL, 2UL );
+
+      if( herm(0,3) != cplx(3, 3) ||
+          herm(1,1) != cplx(4, 0) ||
+          herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
+          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << herm << "\n"
+             << "   Expected result:\n( (0, 0) (0,0) (0, 0) (3,3) )\n"
+                                     "( (0, 0) (4,0) (0, 0) (0,0) )\n"
+                                     "( (0, 0) (0,0) (6, 0) (7,7) )\n"
+                                     "( (3,-3) (0,0) (7,-7) (0,0) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major iterator-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Column-major HermitianMatrix::erase( size_t, Iterator )";
+
+      typedef OHT::Iterator  Iterator;
+
+      // Initialization check
+      OHT herm( 4UL );
+      herm(0,0) = cplx(1,0);
+      herm(0,2) = cplx(2,2);
+      herm(0,3) = cplx(3,3);
+      herm(1,1) = cplx(4,0);
+      herm(1,2) = cplx(5,5);
+      herm(2,2) = cplx(6,0);
+      herm(2,3) = cplx(7,7);
+
+      checkRows    ( herm,  4UL );
+      checkColumns ( herm,  4UL );
+      checkCapacity( herm, 11UL );
+      checkNonZeros( herm, 11UL );
+      checkNonZeros( herm, 0UL, 3UL );
+      checkNonZeros( herm, 1UL, 2UL );
+      checkNonZeros( herm, 2UL, 4UL );
+      checkNonZeros( herm, 3UL, 2UL );
+
+      if( herm(0,0) != cplx(1, 0) || herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3,3) ||
+          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
+          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
+          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << herm << "\n"
+             << "   Expected result:\n( (1, 0) (0, 0) (2, 2) (3,3) )\n"
+                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
+                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
+                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (0,0)
+      {
+         Iterator pos = herm.erase( 0UL, herm.find( 0UL, 0UL ) );
+
+         checkRows    ( herm,  4UL );
+         checkColumns ( herm,  4UL );
+         checkCapacity( herm, 11UL );
+         checkNonZeros( herm, 10UL );
+         checkNonZeros( herm, 0UL, 2UL );
+         checkNonZeros( herm, 1UL, 2UL );
+         checkNonZeros( herm, 2UL, 4UL );
+         checkNonZeros( herm, 3UL, 2UL );
+
+         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
+             herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
+             herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
+             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a non-zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
+                                        "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
+                                        "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
+                                        "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != cplx(2,-2) || pos->index() != 2 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: (2,-2)\n"
+                << "   Expected index: 2\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element at (2,1)
+      {
+         Iterator pos = herm.erase( 1UL, herm.find( 2UL, 1UL ) );
+
+         checkRows    ( herm,  4UL );
+         checkColumns ( herm,  4UL );
+         checkCapacity( herm, 11UL );
+         checkNonZeros( herm,  8UL );
+         checkNonZeros( herm, 0UL, 2UL );
+         checkNonZeros( herm, 1UL, 1UL );
+         checkNonZeros( herm, 2UL, 3UL );
+         checkNonZeros( herm, 3UL, 2UL );
+
+         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
+             herm(1,1) != cplx(4, 0) ||
+             herm(2,0) != cplx(2,-2) || herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
+             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a non-zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (0, 0) (0,0) (2, 2) (3,3) )\n"
+                                        "( (0, 0) (4,0) (0, 0) (0,0) )\n"
+                                        "( (2,-2) (0,0) (6, 0) (7,7) )\n"
+                                        "( (3,-3) (0,0) (7,-7) (0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != herm.end( 1UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element at (2,0)
+      {
+         Iterator pos = herm.erase( 0UL, herm.find( 2UL, 0UL ) );
+
+         checkRows    ( herm,  4UL );
+         checkColumns ( herm,  4UL );
+         checkCapacity( herm, 11UL );
+         checkNonZeros( herm,  6UL );
+         checkNonZeros( herm, 0UL, 1UL );
+         checkNonZeros( herm, 1UL, 1UL );
+         checkNonZeros( herm, 2UL, 2UL );
+         checkNonZeros( herm, 3UL, 2UL );
+
+         if( herm(0,3) != cplx(3, 3) ||
+             herm(1,1) != cplx(4, 0) ||
+             herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
+             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a non-zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (0, 0) (0,0) (0, 0) (3,3) )\n"
+                                        "( (0, 0) (4,0) (0, 0) (0,0) )\n"
+                                        "( (0, 0) (0,0) (6, 0) (7,7) )\n"
+                                        "( (3,-3) (0,0) (7,-7) (0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != cplx(3,-3) || pos->index() != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: (3,-3)\n"
+                << "   Expected index: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Trying to erase a zero element
+      {
+         Iterator pos = herm.erase( 0UL, herm.find( 1UL, 0UL ) );
+
+         checkRows    ( herm,  4UL );
+         checkColumns ( herm,  4UL );
+         checkCapacity( herm, 11UL );
+         checkNonZeros( herm,  6UL );
+         checkNonZeros( herm, 0UL, 1UL );
+         checkNonZeros( herm, 1UL, 1UL );
+         checkNonZeros( herm, 2UL, 2UL );
+         checkNonZeros( herm, 3UL, 2UL );
+
+         if( herm(0,3) != cplx(3, 3) ||
+             herm(1,1) != cplx(4, 0) ||
+             herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
+             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (0, 0) (0,0) (0, 0) (3,3) )\n"
+                                        "( (0, 0) (4,0) (0, 0) (0,0) )\n"
+                                        "( (0, 0) (0,0) (6, 0) (7,7) )\n"
+                                        "( (3,-3) (0,0) (7,-7) (0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != herm.end( 0UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major iterator-range-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Column-major HermitianMatrix::erase( size_t, Iterator, Iterator )";
+
+      typedef OHT::Iterator  Iterator;
+
+      // Initialization check
+      OHT herm( 4UL );
+      herm(0,0) = cplx(1,0);
+      herm(0,2) = cplx(2,2);
+      herm(0,3) = cplx(3,3);
+      herm(1,1) = cplx(4,0);
+      herm(1,2) = cplx(5,5);
+      herm(2,2) = cplx(6,0);
+      herm(2,3) = cplx(7,7);
+
+      checkRows    ( herm,  4UL );
+      checkColumns ( herm,  4UL );
+      checkCapacity( herm, 11UL );
+      checkNonZeros( herm, 11UL );
+      checkNonZeros( herm, 0UL, 3UL );
+      checkNonZeros( herm, 1UL, 2UL );
+      checkNonZeros( herm, 2UL, 4UL );
+      checkNonZeros( herm, 3UL, 2UL );
+
+      if( herm(0,0) != cplx(1, 0) || herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3,3) ||
+          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
+          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
+          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << herm << "\n"
+             << "   Expected result:\n( (1, 0) (0, 0) (2, 2) (3,3) )\n"
+                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
+                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
+                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element from (0,0) to (2,0)
+      {
+         Iterator pos = herm.erase( 0UL, herm.find( 0UL, 0UL ), herm.find( 2UL, 0UL ) );
+
+         checkRows    ( herm,  4UL );
+         checkColumns ( herm,  4UL );
+         checkCapacity( herm, 11UL );
+         checkNonZeros( herm, 10UL );
+         checkNonZeros( herm, 0UL, 2UL );
+         checkNonZeros( herm, 1UL, 2UL );
+         checkNonZeros( herm, 2UL, 4UL );
+         checkNonZeros( herm, 3UL, 2UL );
+
+         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
+             herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
+             herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
+             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a single-element range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
+                                        "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
+                                        "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
+                                        "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != cplx(2,-2) || pos->index() != 2 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: (2,-2)\n"
+                << "   Expected index: 2\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element from (1,2) to (3,2)
+      {
+         Iterator pos = herm.erase( 2UL, herm.find( 1UL, 2UL ), herm.find( 3UL, 2UL ) );
+
+         checkRows    ( herm,  4UL );
+         checkColumns ( herm,  4UL );
+         checkCapacity( herm, 11UL );
+         checkNonZeros( herm,  7UL );
+         checkNonZeros( herm, 0UL, 2UL );
+         checkNonZeros( herm, 1UL, 1UL );
+         checkNonZeros( herm, 2UL, 2UL );
+         checkNonZeros( herm, 3UL, 2UL );
+
+         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
+             herm(1,1) != cplx(4, 0) ||
+             herm(2,0) != cplx(2,-2) || herm(2,3) != cplx(7, 7) ||
+             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a single-element range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (0, 0) (0,0) (2, 2) (3,3) )\n"
+                                        "( (0, 0) (4,0) (0, 0) (0,0) )\n"
+                                        "( (2,-2) (0,0) (0, 0) (7,7) )\n"
+                                        "( (3,-3) (0,0) (7,-7) (0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != cplx(7,-7) || pos->index() != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: (7,-7)\n"
+                << "   Expected index: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element from (2,3) to the column end
+      {
+         Iterator pos = herm.erase( 3UL, herm.find( 2UL, 3UL ), herm.end( 3UL ) );
+
+         checkRows    ( herm,  4UL );
+         checkColumns ( herm,  4UL );
+         checkCapacity( herm, 11UL );
+         checkNonZeros( herm,  5UL );
+         checkNonZeros( herm, 0UL, 2UL );
+         checkNonZeros( herm, 1UL, 1UL );
+         checkNonZeros( herm, 2UL, 1UL );
+         checkNonZeros( herm, 3UL, 1UL );
+
+         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
+             herm(1,1) != cplx(4, 0) ||
+             herm(2,0) != cplx(2,-2) ||
+             herm(3,0) != cplx(3,-3) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a single-element range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (0, 0) (0,0) (2,2) (3,3) )\n"
+                                        "( (0, 0) (4,0) (0,0) (0,0) )\n"
+                                        "( (2,-2) (0,0) (0,0) (0,0) )\n"
+                                        "( (3,-3) (0,0) (0,0) (0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != herm.end( 3UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Trying to erase an empty range
+      {
+         Iterator pos = herm.erase( 2UL, herm.find( 0UL, 2UL ), herm.find( 0UL, 2UL ) );
+
+         checkRows    ( herm,  4UL );
+         checkColumns ( herm,  4UL );
+         checkCapacity( herm, 11UL );
+         checkNonZeros( herm,  5UL );
+         checkNonZeros( herm, 0UL, 2UL );
+         checkNonZeros( herm, 1UL, 1UL );
+         checkNonZeros( herm, 2UL, 1UL );
+         checkNonZeros( herm, 3UL, 1UL );
+
+         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
+             herm(1,1) != cplx(4, 0) ||
+             herm(2,0) != cplx(2,-2) ||
+             herm(3,0) != cplx(3,-3) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing an empty range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (0, 0) (0,0) (2,2) (3,3) )\n"
+                                        "( (0, 0) (4,0) (0,0) (0,0) )\n"
+                                        "( (2,-2) (0,0) (0,0) (0,0) )\n"
+                                        "( (3,-3) (0,0) (0,0) (0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != herm.find( 0UL, 2UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Test of the \c resize() member function of the HermitianMatrix specialization.
 //
 // \return void
@@ -9871,1569 +10826,6 @@ void SparseComplexTest::testSwap()
              << "   Result:\n" << herm2 << "\n"
              << "   Expected result:\n( (1, 0) (2,1) )\n"
                                      "( (2,-1) (3,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Test of the \c erase() member function of the HermitianMatrix specialization.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c erase() member function of the HermitianMatrix
-// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void SparseComplexTest::testErase()
-{
-   //=====================================================================================
-   // Row-major index-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Row-major HermitianMatrix::erase( size_t, size_t )";
-
-      // Initialization check
-      HT herm( 4UL );
-      herm(0,0) = cplx(1,0);
-      herm(0,2) = cplx(2,2);
-      herm(0,3) = cplx(3,3);
-      herm(1,1) = cplx(4,0);
-      herm(1,2) = cplx(5,5);
-      herm(2,2) = cplx(6,0);
-      herm(2,3) = cplx(7,7);
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm, 11UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 4UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3,3) ||
-          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
-                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (0,0)
-      herm.erase( 0UL, 0UL );
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm, 10UL );
-      checkNonZeros( herm, 0UL, 2UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 4UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a non-zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
-                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (1,2)
-      herm.erase( 1UL, 2UL );
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm,  8UL );
-      checkNonZeros( herm, 0UL, 2UL );
-      checkNonZeros( herm, 1UL, 1UL );
-      checkNonZeros( herm, 2UL, 3UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-          herm(1,1) != cplx(4, 0) ||
-          herm(2,0) != cplx(2,-2) || herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a non-zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (0, 0) (0,0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4,0) (0, 0) (0,0) )\n"
-                                     "( (2,-2) (0,0) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0,0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (0,2)
-      herm.erase( 0UL, 2UL );
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm,  6UL );
-      checkNonZeros( herm, 0UL, 1UL );
-      checkNonZeros( herm, 1UL, 1UL );
-      checkNonZeros( herm, 2UL, 2UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,3) != cplx(3, 3) ||
-          herm(1,1) != cplx(4, 0) ||
-          herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a non-zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (0, 0) (0,0) (0, 0) (3,3) )\n"
-                                     "( (0, 0) (4,0) (0, 0) (0,0) )\n"
-                                     "( (0, 0) (0,0) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0,0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase a zero element
-      herm.erase( 0UL, 1UL );
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm,  6UL );
-      checkNonZeros( herm, 0UL, 1UL );
-      checkNonZeros( herm, 1UL, 1UL );
-      checkNonZeros( herm, 2UL, 2UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,3) != cplx(3, 3) ||
-          herm(1,1) != cplx(4, 0) ||
-          herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (0, 0) (0,0) (0, 0) (3,3) )\n"
-                                     "( (0, 0) (4,0) (0, 0) (0,0) )\n"
-                                     "( (0, 0) (0,0) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0,0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major iterator-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Row-major HermitianMatrix::erase( size_t, Iterator )";
-
-      typedef HT::Iterator  Iterator;
-
-      // Initialization check
-      HT herm( 4UL );
-      herm(0,0) = cplx(1,0);
-      herm(0,2) = cplx(2,2);
-      herm(0,3) = cplx(3,3);
-      herm(1,1) = cplx(4,0);
-      herm(1,2) = cplx(5,5);
-      herm(2,2) = cplx(6,0);
-      herm(2,3) = cplx(7,7);
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm, 11UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 4UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3,3) ||
-          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
-                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (0,0)
-      {
-         Iterator pos = herm.erase( 0UL, herm.find( 0UL, 0UL ) );
-
-         checkRows    ( herm,  4UL );
-         checkColumns ( herm,  4UL );
-         checkCapacity( herm, 11UL );
-         checkNonZeros( herm, 10UL );
-         checkNonZeros( herm, 0UL, 2UL );
-         checkNonZeros( herm, 1UL, 2UL );
-         checkNonZeros( herm, 2UL, 4UL );
-         checkNonZeros( herm, 3UL, 2UL );
-
-         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-             herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-             herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
-             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a non-zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << herm << "\n"
-                << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
-                                        "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
-                                        "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
-                                        "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != cplx(2,2) || pos->index() != 2 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: (2,2)\n"
-                << "   Expected index: 2\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element at (1,2)
-      {
-         Iterator pos = herm.erase( 1UL, herm.find( 1UL, 2UL ) );
-
-         checkRows    ( herm,  4UL );
-         checkColumns ( herm,  4UL );
-         checkCapacity( herm, 11UL );
-         checkNonZeros( herm,  8UL );
-         checkNonZeros( herm, 0UL, 2UL );
-         checkNonZeros( herm, 1UL, 1UL );
-         checkNonZeros( herm, 2UL, 3UL );
-         checkNonZeros( herm, 3UL, 2UL );
-
-         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-             herm(1,1) != cplx(4, 0) ||
-             herm(2,0) != cplx(2,-2) || herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
-             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a non-zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << herm << "\n"
-                << "   Expected result:\n( (0, 0) (0,0) (2, 2) (3,3) )\n"
-                                        "( (0, 0) (4,0) (0, 0) (0,0) )\n"
-                                        "( (2,-2) (0,0) (6, 0) (7,7) )\n"
-                                        "( (3,-3) (0,0) (7,-7) (0,0) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != herm.end( 1UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element at (0,2)
-      {
-         Iterator pos = herm.erase( 0UL, herm.find( 0UL, 2UL ) );
-
-         checkRows    ( herm,  4UL );
-         checkColumns ( herm,  4UL );
-         checkCapacity( herm, 11UL );
-         checkNonZeros( herm,  6UL );
-         checkNonZeros( herm, 0UL, 1UL );
-         checkNonZeros( herm, 1UL, 1UL );
-         checkNonZeros( herm, 2UL, 2UL );
-         checkNonZeros( herm, 3UL, 2UL );
-
-         if( herm(0,3) != cplx(3, 3) ||
-             herm(1,1) != cplx(4, 0) ||
-             herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
-             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a non-zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << herm << "\n"
-                << "   Expected result:\n( (0, 0) (0,0) (0, 0) (3,3) )\n"
-                                        "( (0, 0) (4,0) (0, 0) (0,0) )\n"
-                                        "( (0, 0) (0,0) (6, 0) (7,7) )\n"
-                                        "( (3,-3) (0,0) (7,-7) (0,0) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != cplx(3,3) || pos->index() != 3 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: (3,3)\n"
-                << "   Expected index: 3\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Trying to erase a zero element
-      {
-         Iterator pos = herm.erase( 0UL, herm.find( 0UL, 1UL ) );
-
-         checkRows    ( herm,  4UL );
-         checkColumns ( herm,  4UL );
-         checkCapacity( herm, 11UL );
-         checkNonZeros( herm,  6UL );
-         checkNonZeros( herm, 0UL, 1UL );
-         checkNonZeros( herm, 1UL, 1UL );
-         checkNonZeros( herm, 2UL, 2UL );
-         checkNonZeros( herm, 3UL, 2UL );
-
-         if( herm(0,3) != cplx(3, 3) ||
-             herm(1,1) != cplx(4, 0) ||
-             herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
-             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << herm << "\n"
-                << "   Expected result:\n( (0, 0) (0,0) (0, 0) (3,3) )\n"
-                                        "( (0, 0) (4,0) (0, 0) (0,0) )\n"
-                                        "( (0, 0) (0,0) (6, 0) (7,7) )\n"
-                                        "( (3,-3) (0,0) (7,-7) (0,0) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != herm.end( 0UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major iterator-range-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Row-major HermitianMatrix::erase( size_t, Iterator, Iterator )";
-
-      typedef HT::Iterator  Iterator;
-
-      // Initialization check
-      HT herm( 4UL );
-      herm(0,0) = cplx(1,0);
-      herm(0,2) = cplx(2,2);
-      herm(0,3) = cplx(3,3);
-      herm(1,1) = cplx(4,0);
-      herm(1,2) = cplx(5,5);
-      herm(2,2) = cplx(6,0);
-      herm(2,3) = cplx(7,7);
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm, 11UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 4UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3,3) ||
-          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
-                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element from (0,0) to (0,2)
-      {
-         Iterator pos = herm.erase( 0UL, herm.find( 0UL, 0UL ), herm.find( 0UL, 2UL ) );
-
-         checkRows    ( herm,  4UL );
-         checkColumns ( herm,  4UL );
-         checkCapacity( herm, 11UL );
-         checkNonZeros( herm, 10UL );
-         checkNonZeros( herm, 0UL, 2UL );
-         checkNonZeros( herm, 1UL, 2UL );
-         checkNonZeros( herm, 2UL, 4UL );
-         checkNonZeros( herm, 3UL, 2UL );
-
-         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-             herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-             herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
-             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a single-element range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << herm << "\n"
-                << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
-                                        "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
-                                        "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
-                                        "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != cplx(2,2) || pos->index() != 2 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: (2,2)\n"
-                << "   Expected index: 2\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element from (2,1) to (2,3)
-      {
-         Iterator pos = herm.erase( 2UL, herm.find( 2UL, 1UL ), herm.find( 2UL, 3UL ) );
-
-         checkRows    ( herm,  4UL );
-         checkColumns ( herm,  4UL );
-         checkCapacity( herm, 11UL );
-         checkNonZeros( herm,  7UL );
-         checkNonZeros( herm, 0UL, 2UL );
-         checkNonZeros( herm, 1UL, 1UL );
-         checkNonZeros( herm, 2UL, 2UL );
-         checkNonZeros( herm, 3UL, 2UL );
-
-         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-             herm(1,1) != cplx(4, 0) ||
-             herm(2,0) != cplx(2,-2) || herm(2,3) != cplx(7, 7) ||
-             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a single-element range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << herm << "\n"
-                << "   Expected result:\n( (0, 0) (0,0) (2, 2) (3,3) )\n"
-                                        "( (0, 0) (4,0) (0, 0) (0,0) )\n"
-                                        "( (2,-2) (0,0) (0, 0) (7,7) )\n"
-                                        "( (3,-3) (0,0) (7,-7) (0,0) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != cplx(7,7) || pos->index() != 3 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: (7,7)\n"
-                << "   Expected index: 3\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element from (3,2) to the row end
-      {
-         Iterator pos = herm.erase( 3UL, herm.find( 3UL, 2UL ), herm.end( 3UL ) );
-
-         checkRows    ( herm,  4UL );
-         checkColumns ( herm,  4UL );
-         checkCapacity( herm, 11UL );
-         checkNonZeros( herm,  5UL );
-         checkNonZeros( herm, 0UL, 2UL );
-         checkNonZeros( herm, 1UL, 1UL );
-         checkNonZeros( herm, 2UL, 1UL );
-         checkNonZeros( herm, 3UL, 1UL );
-
-         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-             herm(1,1) != cplx(4, 0) ||
-             herm(2,0) != cplx(2,-2) ||
-             herm(3,0) != cplx(3,-3) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a single-element range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << herm << "\n"
-                << "   Expected result:\n( (0, 0) (0,0) (2,2) (3,3) )\n"
-                                        "( (0, 0) (4,0) (0,0) (0,0) )\n"
-                                        "( (2,-2) (0,0) (0,0) (0,0) )\n"
-                                        "( (3,-3) (0,0) (0,0) (0,0) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != herm.end( 3UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Trying to erase an empty range
-      {
-         Iterator pos = herm.erase( 2UL, herm.find( 2UL, 0UL ), herm.find( 2UL, 0UL ) );
-
-         checkRows    ( herm,  4UL );
-         checkColumns ( herm,  4UL );
-         checkCapacity( herm, 11UL );
-         checkNonZeros( herm,  5UL );
-         checkNonZeros( herm, 0UL, 2UL );
-         checkNonZeros( herm, 1UL, 1UL );
-         checkNonZeros( herm, 2UL, 1UL );
-         checkNonZeros( herm, 3UL, 1UL );
-
-         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-             herm(1,1) != cplx(4, 0) ||
-             herm(2,0) != cplx(2,-2) ||
-             herm(3,0) != cplx(3,-3) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing an empty range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << herm << "\n"
-                << "   Expected result:\n( (0, 0) (0,0) (2,2) (3,3) )\n"
-                                        "( (0, 0) (4,0) (0,0) (0,0) )\n"
-                                        "( (2,-2) (0,0) (0,0) (0,0) )\n"
-                                        "( (3,-3) (0,0) (0,0) (0,0) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != herm.find( 2UL, 0UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major erase function with predicate
-   //=====================================================================================
-
-   {
-      test_ = "Row-major HermitianMatrix::erase( Predicate )";
-
-      // Initialization check
-      HT herm( 4UL );
-      herm(0,0) = cplx(1,0);
-      herm(0,2) = cplx(2,2);
-      herm(0,3) = cplx(3,3);
-      herm(1,1) = cplx(4,0);
-      herm(1,2) = cplx(5,5);
-      herm(2,2) = cplx(6,0);
-      herm(2,3) = cplx(7,7);
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm, 11UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 4UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3,3) ||
-          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
-                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing a selection of elements
-      herm.erase( []( const cplx& value ) {
-                     return value == cplx(1,0) || value == cplx(5,5) || value == cplx(6,0);
-                  } );
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm,  7UL );
-      checkNonZeros( herm, 0UL, 2UL );
-      checkNonZeros( herm, 1UL, 1UL );
-      checkNonZeros( herm, 2UL, 2UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-          herm(1,1) != cplx(4, 0) ||
-          herm(2,0) != cplx(2,-2) || herm(2,3) != cplx(7, 7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (0, 0) (0,0) )\n"
-                                     "( (2,-2) (0, 0) (0, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase all elements with value (1,0)
-      herm.erase( []( const cplx& value ){ return value == cplx(1,0); } );
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm,  7UL );
-      checkNonZeros( herm, 0UL, 2UL );
-      checkNonZeros( herm, 1UL, 1UL );
-      checkNonZeros( herm, 2UL, 2UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-          herm(1,1) != cplx(4, 0) ||
-          herm(2,0) != cplx(2,-2) || herm(2,3) != cplx(7, 7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing all elements with value (1,0) failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (0, 0) (0,0) )\n"
-                                     "( (2,-2) (0, 0) (0, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major iterator-range-based erase function with predicate
-   //=====================================================================================
-
-   {
-      test_ = "Row-major HermitianMatrix::erase( size_t, Iterator, Iterator, Predicate )";
-
-      // Initialization check
-      HT herm( 4UL );
-      herm(0,0) = cplx(1,0);
-      herm(0,2) = cplx(2,2);
-      herm(0,3) = cplx(3,3);
-      herm(1,1) = cplx(4,0);
-      herm(1,2) = cplx(5,5);
-      herm(2,2) = cplx(6,0);
-      herm(2,3) = cplx(7,7);
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm, 11UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 4UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3,3) ||
-          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
-                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing a selection of elements
-      herm.erase( 2UL, herm.begin( 2UL ), herm.find( 2UL, 3UL ),
-                  []( const cplx& value ){ return value == cplx(2,-2) || value == cplx(6,0); } );
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm,  8UL );
-      checkNonZeros( herm, 0UL, 2UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 2UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,3) != cplx(3, 3) ||
-          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-          herm(2,1) != cplx(5,-5) || herm(2,3) != cplx(7, 7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (0, 0) (0,0) )\n"
-                                     "( (2,-2) (0, 0) (0, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase from an empty range
-      herm.erase( 1UL, herm.begin( 1UL ), herm.begin( 1UL ), []( const cplx& ){ return true; } );
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm,  8UL );
-      checkNonZeros( herm, 0UL, 2UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 2UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,3) != cplx(3, 3) ||
-          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-          herm(2,1) != cplx(5,-5) || herm(2,3) != cplx(7, 7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing from an empty range failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (0, 0) (0,0) )\n"
-                                     "( (2,-2) (0, 0) (0, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major index-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Column-major HermitianMatrix::erase( size_t, size_t )";
-
-      // Initialization check
-      OHT herm( 4UL );
-      herm(0,0) = cplx(1,0);
-      herm(0,2) = cplx(2,2);
-      herm(0,3) = cplx(3,3);
-      herm(1,1) = cplx(4,0);
-      herm(1,2) = cplx(5,5);
-      herm(2,2) = cplx(6,0);
-      herm(2,3) = cplx(7,7);
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm, 11UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 4UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3,3) ||
-          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
-                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (0,0)
-      herm.erase( 0UL, 0UL );
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm, 10UL );
-      checkNonZeros( herm, 0UL, 2UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 4UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a non-zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
-                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (2,1)
-      herm.erase( 2UL, 1UL );
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm,  8UL );
-      checkNonZeros( herm, 0UL, 2UL );
-      checkNonZeros( herm, 1UL, 1UL );
-      checkNonZeros( herm, 2UL, 3UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-          herm(1,1) != cplx(4, 0) ||
-          herm(2,0) != cplx(2,-2) || herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a non-zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (0, 0) (0,0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4,0) (0, 0) (0,0) )\n"
-                                     "( (2,-2) (0,0) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0,0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (2,0)
-      herm.erase( 2UL, 0UL );
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm,  6UL );
-      checkNonZeros( herm, 0UL, 1UL );
-      checkNonZeros( herm, 1UL, 1UL );
-      checkNonZeros( herm, 2UL, 2UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,3) != cplx(3, 3) ||
-          herm(1,1) != cplx(4, 0) ||
-          herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a non-zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (0, 0) (0,0) (0, 0) (3,3) )\n"
-                                     "( (0, 0) (4,0) (0, 0) (0,0) )\n"
-                                     "( (0, 0) (0,0) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0,0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase a zero element
-      herm.erase( 1UL, 0UL );
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm,  6UL );
-      checkNonZeros( herm, 0UL, 1UL );
-      checkNonZeros( herm, 1UL, 1UL );
-      checkNonZeros( herm, 2UL, 2UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,3) != cplx(3, 3) ||
-          herm(1,1) != cplx(4, 0) ||
-          herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (0, 0) (0,0) (0, 0) (3,3) )\n"
-                                     "( (0, 0) (4,0) (0, 0) (0,0) )\n"
-                                     "( (0, 0) (0,0) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0,0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major iterator-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Column-major HermitianMatrix::erase( size_t, Iterator )";
-
-      typedef OHT::Iterator  Iterator;
-
-      // Initialization check
-      OHT herm( 4UL );
-      herm(0,0) = cplx(1,0);
-      herm(0,2) = cplx(2,2);
-      herm(0,3) = cplx(3,3);
-      herm(1,1) = cplx(4,0);
-      herm(1,2) = cplx(5,5);
-      herm(2,2) = cplx(6,0);
-      herm(2,3) = cplx(7,7);
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm, 11UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 4UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3,3) ||
-          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
-                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (0,0)
-      {
-         Iterator pos = herm.erase( 0UL, herm.find( 0UL, 0UL ) );
-
-         checkRows    ( herm,  4UL );
-         checkColumns ( herm,  4UL );
-         checkCapacity( herm, 11UL );
-         checkNonZeros( herm, 10UL );
-         checkNonZeros( herm, 0UL, 2UL );
-         checkNonZeros( herm, 1UL, 2UL );
-         checkNonZeros( herm, 2UL, 4UL );
-         checkNonZeros( herm, 3UL, 2UL );
-
-         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-             herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-             herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
-             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a non-zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << herm << "\n"
-                << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
-                                        "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
-                                        "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
-                                        "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != cplx(2,-2) || pos->index() != 2 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: (2,-2)\n"
-                << "   Expected index: 2\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element at (2,1)
-      {
-         Iterator pos = herm.erase( 1UL, herm.find( 2UL, 1UL ) );
-
-         checkRows    ( herm,  4UL );
-         checkColumns ( herm,  4UL );
-         checkCapacity( herm, 11UL );
-         checkNonZeros( herm,  8UL );
-         checkNonZeros( herm, 0UL, 2UL );
-         checkNonZeros( herm, 1UL, 1UL );
-         checkNonZeros( herm, 2UL, 3UL );
-         checkNonZeros( herm, 3UL, 2UL );
-
-         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-             herm(1,1) != cplx(4, 0) ||
-             herm(2,0) != cplx(2,-2) || herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
-             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a non-zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << herm << "\n"
-                << "   Expected result:\n( (0, 0) (0,0) (2, 2) (3,3) )\n"
-                                        "( (0, 0) (4,0) (0, 0) (0,0) )\n"
-                                        "( (2,-2) (0,0) (6, 0) (7,7) )\n"
-                                        "( (3,-3) (0,0) (7,-7) (0,0) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != herm.end( 1UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element at (2,0)
-      {
-         Iterator pos = herm.erase( 0UL, herm.find( 2UL, 0UL ) );
-
-         checkRows    ( herm,  4UL );
-         checkColumns ( herm,  4UL );
-         checkCapacity( herm, 11UL );
-         checkNonZeros( herm,  6UL );
-         checkNonZeros( herm, 0UL, 1UL );
-         checkNonZeros( herm, 1UL, 1UL );
-         checkNonZeros( herm, 2UL, 2UL );
-         checkNonZeros( herm, 3UL, 2UL );
-
-         if( herm(0,3) != cplx(3, 3) ||
-             herm(1,1) != cplx(4, 0) ||
-             herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
-             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a non-zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << herm << "\n"
-                << "   Expected result:\n( (0, 0) (0,0) (0, 0) (3,3) )\n"
-                                        "( (0, 0) (4,0) (0, 0) (0,0) )\n"
-                                        "( (0, 0) (0,0) (6, 0) (7,7) )\n"
-                                        "( (3,-3) (0,0) (7,-7) (0,0) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != cplx(3,-3) || pos->index() != 3 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: (3,-3)\n"
-                << "   Expected index: 3\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Trying to erase a zero element
-      {
-         Iterator pos = herm.erase( 0UL, herm.find( 1UL, 0UL ) );
-
-         checkRows    ( herm,  4UL );
-         checkColumns ( herm,  4UL );
-         checkCapacity( herm, 11UL );
-         checkNonZeros( herm,  6UL );
-         checkNonZeros( herm, 0UL, 1UL );
-         checkNonZeros( herm, 1UL, 1UL );
-         checkNonZeros( herm, 2UL, 2UL );
-         checkNonZeros( herm, 3UL, 2UL );
-
-         if( herm(0,3) != cplx(3, 3) ||
-             herm(1,1) != cplx(4, 0) ||
-             herm(2,2) != cplx(6, 0) || herm(2,3) != cplx(7,7) ||
-             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << herm << "\n"
-                << "   Expected result:\n( (0, 0) (0,0) (0, 0) (3,3) )\n"
-                                        "( (0, 0) (4,0) (0, 0) (0,0) )\n"
-                                        "( (0, 0) (0,0) (6, 0) (7,7) )\n"
-                                        "( (3,-3) (0,0) (7,-7) (0,0) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != herm.end( 0UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major iterator-range-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Column-major HermitianMatrix::erase( size_t, Iterator, Iterator )";
-
-      typedef OHT::Iterator  Iterator;
-
-      // Initialization check
-      OHT herm( 4UL );
-      herm(0,0) = cplx(1,0);
-      herm(0,2) = cplx(2,2);
-      herm(0,3) = cplx(3,3);
-      herm(1,1) = cplx(4,0);
-      herm(1,2) = cplx(5,5);
-      herm(2,2) = cplx(6,0);
-      herm(2,3) = cplx(7,7);
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm, 11UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 4UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3,3) ||
-          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
-                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element from (0,0) to (2,0)
-      {
-         Iterator pos = herm.erase( 0UL, herm.find( 0UL, 0UL ), herm.find( 2UL, 0UL ) );
-
-         checkRows    ( herm,  4UL );
-         checkColumns ( herm,  4UL );
-         checkCapacity( herm, 11UL );
-         checkNonZeros( herm, 10UL );
-         checkNonZeros( herm, 0UL, 2UL );
-         checkNonZeros( herm, 1UL, 2UL );
-         checkNonZeros( herm, 2UL, 4UL );
-         checkNonZeros( herm, 3UL, 2UL );
-
-         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-             herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-             herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
-             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a single-element range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << herm << "\n"
-                << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
-                                        "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
-                                        "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
-                                        "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != cplx(2,-2) || pos->index() != 2 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: (2,-2)\n"
-                << "   Expected index: 2\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element from (1,2) to (3,2)
-      {
-         Iterator pos = herm.erase( 2UL, herm.find( 1UL, 2UL ), herm.find( 3UL, 2UL ) );
-
-         checkRows    ( herm,  4UL );
-         checkColumns ( herm,  4UL );
-         checkCapacity( herm, 11UL );
-         checkNonZeros( herm,  7UL );
-         checkNonZeros( herm, 0UL, 2UL );
-         checkNonZeros( herm, 1UL, 1UL );
-         checkNonZeros( herm, 2UL, 2UL );
-         checkNonZeros( herm, 3UL, 2UL );
-
-         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-             herm(1,1) != cplx(4, 0) ||
-             herm(2,0) != cplx(2,-2) || herm(2,3) != cplx(7, 7) ||
-             herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a single-element range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << herm << "\n"
-                << "   Expected result:\n( (0, 0) (0,0) (2, 2) (3,3) )\n"
-                                        "( (0, 0) (4,0) (0, 0) (0,0) )\n"
-                                        "( (2,-2) (0,0) (0, 0) (7,7) )\n"
-                                        "( (3,-3) (0,0) (7,-7) (0,0) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != cplx(7,-7) || pos->index() != 3 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: (7,-7)\n"
-                << "   Expected index: 3\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element from (2,3) to the column end
-      {
-         Iterator pos = herm.erase( 3UL, herm.find( 2UL, 3UL ), herm.end( 3UL ) );
-
-         checkRows    ( herm,  4UL );
-         checkColumns ( herm,  4UL );
-         checkCapacity( herm, 11UL );
-         checkNonZeros( herm,  5UL );
-         checkNonZeros( herm, 0UL, 2UL );
-         checkNonZeros( herm, 1UL, 1UL );
-         checkNonZeros( herm, 2UL, 1UL );
-         checkNonZeros( herm, 3UL, 1UL );
-
-         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-             herm(1,1) != cplx(4, 0) ||
-             herm(2,0) != cplx(2,-2) ||
-             herm(3,0) != cplx(3,-3) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a single-element range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << herm << "\n"
-                << "   Expected result:\n( (0, 0) (0,0) (2,2) (3,3) )\n"
-                                        "( (0, 0) (4,0) (0,0) (0,0) )\n"
-                                        "( (2,-2) (0,0) (0,0) (0,0) )\n"
-                                        "( (3,-3) (0,0) (0,0) (0,0) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != herm.end( 3UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Trying to erase an empty range
-      {
-         Iterator pos = herm.erase( 2UL, herm.find( 0UL, 2UL ), herm.find( 0UL, 2UL ) );
-
-         checkRows    ( herm,  4UL );
-         checkColumns ( herm,  4UL );
-         checkCapacity( herm, 11UL );
-         checkNonZeros( herm,  5UL );
-         checkNonZeros( herm, 0UL, 2UL );
-         checkNonZeros( herm, 1UL, 1UL );
-         checkNonZeros( herm, 2UL, 1UL );
-         checkNonZeros( herm, 3UL, 1UL );
-
-         if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-             herm(1,1) != cplx(4, 0) ||
-             herm(2,0) != cplx(2,-2) ||
-             herm(3,0) != cplx(3,-3) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing an empty range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << herm << "\n"
-                << "   Expected result:\n( (0, 0) (0,0) (2,2) (3,3) )\n"
-                                        "( (0, 0) (4,0) (0,0) (0,0) )\n"
-                                        "( (2,-2) (0,0) (0,0) (0,0) )\n"
-                                        "( (3,-3) (0,0) (0,0) (0,0) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != herm.find( 0UL, 2UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major erase function with predicate
-   //=====================================================================================
-
-   {
-      test_ = "Column-major HermitianMatrix::erase( Predicate )";
-
-      // Initialization check
-      OHT herm( 4UL );
-      herm(0,0) = cplx(1,0);
-      herm(0,2) = cplx(2,2);
-      herm(0,3) = cplx(3,3);
-      herm(1,1) = cplx(4,0);
-      herm(1,2) = cplx(5,5);
-      herm(2,2) = cplx(6,0);
-      herm(2,3) = cplx(7,7);
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm, 11UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 4UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3,3) ||
-          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
-                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing a selection of elements
-      herm.erase( []( const cplx& value ) {
-                     return value == cplx(1,0) || value == cplx(5,5) || value == cplx(6,0);
-                  } );
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm,  7UL );
-      checkNonZeros( herm, 0UL, 2UL );
-      checkNonZeros( herm, 1UL, 1UL );
-      checkNonZeros( herm, 2UL, 2UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-          herm(1,1) != cplx(4, 0) ||
-          herm(2,0) != cplx(2,-2) || herm(2,3) != cplx(7, 7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (0, 0) (0,0) )\n"
-                                     "( (2,-2) (0, 0) (0, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase all elements with value (1,0)
-      herm.erase( []( const cplx& value ){ return value == cplx(1,0); } );
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm,  7UL );
-      checkNonZeros( herm, 0UL, 2UL );
-      checkNonZeros( herm, 1UL, 1UL );
-      checkNonZeros( herm, 2UL, 2UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3, 3) ||
-          herm(1,1) != cplx(4, 0) ||
-          herm(2,0) != cplx(2,-2) || herm(2,3) != cplx(7, 7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing all elements with value (1,0) failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (0, 0) (0,0) )\n"
-                                     "( (2,-2) (0, 0) (0, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major iterator-range-based erase function with predicate
-   //=====================================================================================
-
-   {
-      test_ = "Column-major HermitianMatrix::erase( size_t, Iterator, Iterator, Predicate )";
-
-      // Initialization check
-      OHT herm( 4UL );
-      herm(0,0) = cplx(1,0);
-      herm(0,2) = cplx(2,2);
-      herm(0,3) = cplx(3,3);
-      herm(1,1) = cplx(4,0);
-      herm(1,2) = cplx(5,5);
-      herm(2,2) = cplx(6,0);
-      herm(2,3) = cplx(7,7);
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm, 11UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 4UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,2) != cplx(2, 2) || herm(0,3) != cplx(3,3) ||
-          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-          herm(2,0) != cplx(2,-2) || herm(2,1) != cplx(5,-5) || herm(2,2) != cplx(6,0) || herm(2,3) != cplx(7,7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (5, 5) (0,0) )\n"
-                                     "( (2,-2) (5,-5) (6, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing a selection of elements
-      herm.erase( 2UL, herm.begin( 2UL ), herm.find( 3UL, 2UL ),
-                  []( const cplx& value ){ return value == cplx(2,2) || value == cplx(6,0); } );
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm,  8UL );
-      checkNonZeros( herm, 0UL, 2UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 2UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,3) != cplx(3, 3) ||
-          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-          herm(2,1) != cplx(5,-5) || herm(2,3) != cplx(7, 7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (0, 0) (0,0) )\n"
-                                     "( (2,-2) (0, 0) (0, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase from an empty range
-      herm.erase( 1UL, herm.begin( 1UL ), herm.begin( 1UL ), []( const cplx& ){ return true; } );
-
-      checkRows    ( herm,  4UL );
-      checkColumns ( herm,  4UL );
-      checkCapacity( herm, 11UL );
-      checkNonZeros( herm,  8UL );
-      checkNonZeros( herm, 0UL, 2UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 2UL );
-      checkNonZeros( herm, 3UL, 2UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,3) != cplx(3, 3) ||
-          herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(5, 5) ||
-          herm(2,1) != cplx(5,-5) || herm(2,3) != cplx(7, 7) ||
-          herm(3,0) != cplx(3,-3) || herm(3,2) != cplx(7,-7) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing from an empty range failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (0, 0) (0, 0) (2, 2) (3,3) )\n"
-                                     "( (0, 0) (4, 0) (0, 0) (0,0) )\n"
-                                     "( (2,-2) (0, 0) (0, 0) (7,7) )\n"
-                                     "( (3,-3) (0, 0) (7,-7) (0,0) )\n";
          throw std::runtime_error( oss.str() );
       }
    }
@@ -12485,7 +11877,7 @@ void SparseComplexTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function";
 
-      typedef blaze::Submatrix<HT>  SMT;
+      typedef blaze::SparseSubmatrix<HT>  SMT;
 
       HT herm( 3UL );
       herm(0,0) = cplx( 1, 0);
@@ -12583,7 +11975,7 @@ void SparseComplexTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function";
 
-      typedef blaze::Submatrix<OHT>  SMT;
+      typedef blaze::SparseSubmatrix<OHT>  SMT;
 
       OHT herm( 3UL );
       herm(0,0) = cplx( 1, 0);
@@ -12694,7 +12086,7 @@ void SparseComplexTest::testRow()
    {
       test_ = "Row-major row() function";
 
-      typedef blaze::Row<HT>  RT;
+      typedef blaze::SparseRow<HT>  RT;
 
       HT herm( 3UL );
       herm(0,0) = cplx( 1, 0);
@@ -12788,7 +12180,7 @@ void SparseComplexTest::testRow()
    {
       test_ = "Column-major row() function";
 
-      typedef blaze::Row<OHT>  RT;
+      typedef blaze::SparseRow<OHT>  RT;
 
       OHT herm( 3UL );
       herm(0,0) = cplx( 1, 0);
@@ -12895,7 +12287,7 @@ void SparseComplexTest::testColumn()
    {
       test_ = "Row-major column() function";
 
-      typedef blaze::Column<HT>  CT;
+      typedef blaze::SparseColumn<HT>  CT;
 
       HT herm( 3UL );
       herm(0,0) = cplx( 1, 0);
@@ -12989,7 +12381,7 @@ void SparseComplexTest::testColumn()
    {
       test_ = "Column-major column() function";
 
-      typedef blaze::Column<OHT>  CT;
+      typedef blaze::SparseColumn<OHT>  CT;
 
       OHT herm( 3UL );
       herm(0,0) = cplx( 1, 0);

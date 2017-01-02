@@ -41,8 +41,7 @@
 //*************************************************************************************************
 
 #include <blaze/math/expressions/Forward.h>
-#include <blaze/math/functors/Forward.h>
-#include <blaze/math/traits/TDMatForEachExprTrait.h>
+#include <blaze/math/traits/TDMatConjExprTrait.h>
 #include <blaze/math/traits/TDMatTransExprTrait.h>
 #include <blaze/math/typetraits/IsColumnMajorMatrix.h>
 #include <blaze/math/typetraits/IsDenseMatrix.h>
@@ -50,10 +49,11 @@
 #include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -79,45 +79,28 @@ struct TDMatCTransExprTrait
  private:
    //**struct Failure******************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   struct Failure { using Type = INVALID_TYPE; };
+   struct Failure { typedef INVALID_TYPE  Type; };
    /*! \endcond */
    //**********************************************************************************************
 
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Tmp = If_< And< IsDenseMatrix<MT>, IsColumnMajorMatrix<MT> >
-                  , TDMatTransExprTrait< TDMatForEachExprTrait_<MT,Conj> >
-                  , Failure >;
+   typedef typename If< And< IsDenseMatrix<MT>, IsColumnMajorMatrix<MT> >
+                      , TDMatTransExprTrait< typename TDMatConjExprTrait<MT>::Type >
+                      , Failure >::Type  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<MT>::Type >::Type  Type1;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<MT>, IsVolatile<MT>, IsReference<MT> >
-                            , TDMatCTransExprTrait< Decay_<MT> >
-                            , Tmp >::Type;
+   typedef typename If< Or< IsConst<MT>, IsVolatile<MT>, IsReference<MT> >
+                      , TDMatCTransExprTrait<Type1>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the TDMatCTransExprTrait class template.
-// \ingroup math_traits
-//
-// The TDMatCTransExprTrait_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the TDMatCTransExprTrait class template. For instance, given the column-major dense
-// matrix type \a MT the following two type definitions are identical:
-
-   \code
-   using Type1 = typename TDMatCTransExprTrait<MT>::Type;
-   using Type2 = TDMatCTransExprTrait_<MT>;
-   \endcode
-*/
-template< typename MT >  // Type of the dense matrix
-using TDMatCTransExprTrait_ = typename TDMatCTransExprTrait<MT>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

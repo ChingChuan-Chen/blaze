@@ -41,17 +41,15 @@
 //*************************************************************************************************
 
 #include <iterator>
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/DenseVector.h>
 #include <blaze/math/constraints/TransposeFlag.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/Computation.h>
 #include <blaze/math/expressions/DenseVector.h>
 #include <blaze/math/expressions/DVecTransposer.h>
 #include <blaze/math/expressions/Forward.h>
 #include <blaze/math/expressions/SVecTransposer.h>
 #include <blaze/math/expressions/VecTransExpr.h>
-#include <blaze/math/SIMD.h>
+#include <blaze/math/Intrinsics.h>
 #include <blaze/math/traits/DVecTransExprTrait.h>
 #include <blaze/math/traits/SubvectorExprTrait.h>
 #include <blaze/math/traits/TDVecTransExprTrait.h>
@@ -69,12 +67,12 @@
 #include <blaze/util/Assert.h>
 #include <blaze/util/EmptyType.h>
 #include <blaze/util/EnableIf.h>
-#include <blaze/util/IntegralConstant.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/InvalidType.h>
 #include <blaze/util/logging/FunctionTrace.h>
-#include <blaze/util/mpl/And.h>
-#include <blaze/util/mpl/If.h>
+#include <blaze/util/SelectType.h>
 #include <blaze/util/Types.h>
+#include <blaze/util/valuetraits/IsTrue.h>
 
 
 namespace blaze {
@@ -96,11 +94,11 @@ template< typename VT  // Type of the dense vector
         , bool TF >    // Transpose flag
 class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
                     , private VecTransExpr
-                    , private If< IsComputation<VT>, Computation, EmptyType >::Type
+                    , private SelectType< IsComputation<VT>::value, Computation, EmptyType >::Type
 {
  private:
    //**Type definitions****************************************************************************
-   typedef CompositeType_<VT>  CT;  //!< Composite type of the dense vector expression.
+   typedef typename VT::CompositeType  CT;  //!< Composite type of the dense vector expression.
    //**********************************************************************************************
 
    //**Serial evaluation strategy******************************************************************
@@ -111,13 +109,13 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
        be set to 1 and the transposition expression will be evaluated via the \a assign function
        family. Otherwise \a useAssign will be set to 0 and the expression will be evaluated via
        the subscript operator. */
-   enum : bool { useAssign = RequiresEvaluation<VT>::value };
+   enum { useAssign = RequiresEvaluation<VT>::value };
 
    /*! \cond BLAZE_INTERNAL */
    //! Helper structure for the explicit application of the SFINAE principle.
    template< typename VT2 >
    struct UseAssign {
-      enum : bool { value = useAssign };
+      enum { value = useAssign };
    };
    /*! \endcond */
    //**********************************************************************************************
@@ -131,24 +129,27 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
        strategy is selected. Otherwise \a value is set to 0 and the default strategy is chosen. */
    template< typename VT2 >
    struct UseSMPAssign {
-      enum : bool { value = VT2::smpAssignable && useAssign };
+      enum { value = VT2::smpAssignable && useAssign };
    };
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
-   typedef DVecTransExpr<VT,TF>     This;           //!< Type of this DVecTransExpr instance.
-   typedef TransposeType_<VT>       ResultType;     //!< Result type for expression template evaluations.
-   typedef ResultType_<VT>          TransposeType;  //!< Transpose type for expression template evaluations.
-   typedef ElementType_<VT>         ElementType;    //!< Resulting element type.
-   typedef ReturnType_<VT>          ReturnType;     //!< Return type for expression template evaluations.
+   typedef DVecTransExpr<VT,TF>        This;           //!< Type of this DVecTransExpr instance.
+   typedef typename VT::TransposeType  ResultType;     //!< Result type for expression template evaluations.
+   typedef typename VT::ResultType     TransposeType;  //!< Transpose type for expression template evaluations.
+   typedef typename VT::ElementType    ElementType;    //!< Resulting element type.
+   typedef typename VT::ReturnType     ReturnType;     //!< Return type for expression template evaluations.
+
+   //! Resulting intrinsic element type.
+   typedef typename IntrinsicTrait<ElementType>::Type  IntrinsicType;
 
    //! Data type for composite expression templates.
-   typedef IfTrue_< useAssign, const ResultType, const DVecTransExpr& >  CompositeType;
+   typedef typename SelectType< useAssign, const ResultType, const DVecTransExpr& >::Type  CompositeType;
 
    //! Composite data type of the dense vector expression.
-   typedef If_< IsExpression<VT>, const VT, const VT& >  Operand;
+   typedef typename SelectType< IsExpression<VT>::value, const VT, const VT& >::Type  Operand;
    //**********************************************************************************************
 
    //**ConstIterator class definition**************************************************************
@@ -172,7 +173,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
       typedef DifferenceType    difference_type;    //!< Difference between two iterators.
 
       //! ConstIterator type of the dense vector expression.
-      typedef ConstIterator_<VT>  IteratorType;
+      typedef typename VT::ConstIterator  IteratorType;
       //*******************************************************************************************
 
       //**Constructor******************************************************************************
@@ -262,11 +263,11 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
       //*******************************************************************************************
 
       //**Load function****************************************************************************
-      /*!\brief Access to the SIMD elements of the vector.
+      /*!\brief Access to the intrinsic elements of the vector.
       //
-      // \return The resulting SIMD element.
+      // \return The resulting intrinsic value.
       */
-      inline auto load() const noexcept {
+      inline IntrinsicType load() const {
          return iterator_.load();
       }
       //*******************************************************************************************
@@ -393,15 +394,10 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template evaluation strategy.
-   enum : bool { simdEnabled = VT::simdEnabled };
+   enum { vectorizable = VT::vectorizable };
 
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = VT::smpAssignable };
-   //**********************************************************************************************
-
-   //**SIMD properties*****************************************************************************
-   //! The number of elements packed within a single SIMD element.
-   enum : size_t { SIMDSIZE = SIMDTrait<ElementType>::size };
+   enum { smpAssignable = VT::smpAssignable };
    //**********************************************************************************************
 
    //**Constructor*********************************************************************************
@@ -409,7 +405,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    //
    // \param dv The dense vector operand of the transposition expression.
    */
-   explicit inline DVecTransExpr( const VT& dv ) noexcept
+   explicit inline DVecTransExpr( const VT& dv )
       : dv_( dv )  // Dense vector of the transposition expression
    {}
    //**********************************************************************************************
@@ -442,14 +438,15 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    //**********************************************************************************************
 
    //**Load function*******************************************************************************
-   /*!\brief Access to the SIMD elements of the vector.
+   /*!\brief Access to the intrinsic elements of the vector.
    //
    // \param index Access index. The index has to be in the range \f$[0..N-1]\f$.
    // \return Reference to the accessed values.
    */
-   BLAZE_ALWAYS_INLINE auto load( size_t index ) const noexcept {
+   BLAZE_ALWAYS_INLINE IntrinsicType load( size_t index ) const {
+      typedef IntrinsicTrait<ElementType>  IT;
       BLAZE_INTERNAL_ASSERT( index < dv_.size()      , "Invalid vector access index" );
-      BLAZE_INTERNAL_ASSERT( index % SIMDSIZE == 0UL , "Invalid vector access index" );
+      BLAZE_INTERNAL_ASSERT( index % IT::size == 0UL , "Invalid vector access index" );
       return dv_.load( index );
    }
    //**********************************************************************************************
@@ -459,7 +456,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    //
    // \return Pointer to the internal element storage.
    */
-   inline const ElementType* data() const noexcept {
+   inline const ElementType* data() const {
       return dv_.data();
    }
    //**********************************************************************************************
@@ -489,7 +486,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    //
    // \return The size of the vector.
    */
-   inline size_t size() const noexcept {
+   inline size_t size() const {
       return dv_.size();
    }
    //**********************************************************************************************
@@ -499,7 +496,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    //
    // \return The dense vector operand.
    */
-   inline Operand operand() const noexcept {
+   inline Operand operand() const {
       return dv_;
    }
    //**********************************************************************************************
@@ -511,7 +508,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    // \return \a true in case the expression can alias, \a false otherwise.
    */
    template< typename T >
-   inline bool canAlias( const T* alias ) const noexcept {
+   inline bool canAlias( const T* alias ) const {
       return dv_.canAlias( alias );
    }
    //**********************************************************************************************
@@ -523,7 +520,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    // \return \a true in case an alias effect is detected, \a false otherwise.
    */
    template< typename T >
-   inline bool isAliased( const T* alias ) const noexcept {
+   inline bool isAliased( const T* alias ) const {
       return dv_.isAliased( alias );
    }
    //**********************************************************************************************
@@ -533,7 +530,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    //
    // \return \a true in case the operands are aligned, \a false if not.
    */
-   inline bool isAligned() const noexcept {
+   inline bool isAligned() const {
       return dv_.isAligned();
    }
    //**********************************************************************************************
@@ -543,7 +540,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    //
    // \return \a true in case the expression can be used in SMP assignments, \a false if not.
    */
-   inline bool canSMPAssign() const noexcept {
+   inline bool canSMPAssign() const {
       return dv_.canSMPAssign();
    }
    //**********************************************************************************************
@@ -568,7 +565,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    // the operand requires an intermediate evaluation.
    */
    template< typename VT2 >  // Type of the target dense vector
-   friend inline EnableIf_< UseAssign<VT2> >
+   friend inline typename EnableIf< UseAssign<VT2> >::Type
       assign( DenseVector<VT2,TF>& lhs, const DVecTransExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -596,7 +593,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    // the operand requires an intermediate evaluation.
    */
    template< typename VT2 >  // Type of the target sparse vector
-   friend inline EnableIf_< UseAssign<VT2> >
+   friend inline typename EnableIf< UseAssign<VT2> >::Type
       assign( SparseVector<VT2,TF>& lhs, const DVecTransExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -624,7 +621,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    // the operand requires an intermediate evaluation.
    */
    template< typename VT2 >  // Type of the target dense vector
-   friend inline EnableIf_< UseAssign<VT2> >
+   friend inline typename EnableIf< UseAssign<VT2> >::Type
       addAssign( DenseVector<VT2,TF>& lhs, const DVecTransExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -656,7 +653,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    // operand requires an intermediate evaluation.
    */
    template< typename VT2 >  // Type of the target dense vector
-   friend inline EnableIf_< UseAssign<VT2> >
+   friend inline typename EnableIf< UseAssign<VT2> >::Type
       subAssign( DenseVector<VT2,TF>& lhs, const DVecTransExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -688,7 +685,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    // requires an intermediate evaluation.
    */
    template< typename VT2 >  // Type of the target dense vector
-   friend inline EnableIf_< UseAssign<VT2> >
+   friend inline typename EnableIf< UseAssign<VT2> >::Type
       multAssign( DenseVector<VT2,TF>& lhs, const DVecTransExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -703,38 +700,6 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
 
    //**Multiplication assignment to sparse vectors*************************************************
    // No special implementation for the multiplication assignment to sparse vectors.
-   //**********************************************************************************************
-
-   //**Division assignment to dense vectors********************************************************
-   /*! \cond BLAZE_INTERNAL */
-   /*!\brief Division assignment of a dense vector transposition expression to a dense vector.
-   // \ingroup dense_vector
-   //
-   // \param lhs The target left-hand side dense vector.
-   // \param rhs The right-hand side transposition expression divisor.
-   // \return void
-   //
-   // This function implements the performance optimized division assignment of a dense vector
-   // transposition expression to a dense vector. Due to the explicit application of the SFINAE
-   // principle, this function can only be selected by the compiler in case the operand requires
-   // an intermediate evaluation.
-   */
-   template< typename VT2 >  // Type of the target dense vector
-   friend inline EnableIf_< UseAssign<VT2> >
-      divAssign( DenseVector<VT2,TF>& lhs, const DVecTransExpr& rhs )
-   {
-      BLAZE_FUNCTION_TRACE;
-
-      BLAZE_INTERNAL_ASSERT( (~lhs).size() == rhs.size(), "Invalid vector sizes" );
-
-      DVecTransposer<VT2,!TF> tmp( ~lhs );
-      divAssign( tmp, rhs.dv_ );
-   }
-   /*! \endcond */
-   //**********************************************************************************************
-
-   //**Division assignment to sparse vectors*******************************************************
-   // No special implementation for the division assignment to sparse vectors.
    //**********************************************************************************************
 
    //**SMP assignment to dense vectors*************************************************************
@@ -752,7 +717,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    // expression specific parallel evaluation strategy is selected.
    */
    template< typename VT2 >  // Type of the target dense vector
-   friend inline EnableIf_< UseSMPAssign<VT2> >
+   friend inline typename EnableIf< UseSMPAssign<VT2> >::Type
       smpAssign( DenseVector<VT2,TF>& lhs, const DVecTransExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -780,7 +745,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    // expression specific parallel evaluation strategy is selected.
    */
    template< typename VT2 >  // Type of the target sparse vector
-   friend inline EnableIf_< UseSMPAssign<VT2> >
+   friend inline typename EnableIf< UseSMPAssign<VT2> >::Type
       smpAssign( SparseVector<VT2,TF>& lhs, const DVecTransExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -808,7 +773,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    // expression specific parallel evaluation strategy is selected.
    */
    template< typename VT2 >  // Type of the target dense vector
-   friend inline EnableIf_< UseSMPAssign<VT2> >
+   friend inline typename EnableIf< UseSMPAssign<VT2> >::Type
       smpAddAssign( DenseVector<VT2,TF>& lhs, const DVecTransExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -840,7 +805,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    // specific parallel evaluation strategy is selected.
    */
    template< typename VT2 >  // Type of the target dense vector
-   friend inline EnableIf_< UseSMPAssign<VT2> >
+   friend inline typename EnableIf< UseSMPAssign<VT2> >::Type
       smpSubAssign( DenseVector<VT2,TF>& lhs, const DVecTransExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -872,7 +837,7 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
    // specific parallel evaluation strategy is selected.
    */
    template< typename VT2 >  // Type of the target dense vector
-   friend inline EnableIf_< UseSMPAssign<VT2> >
+   friend inline typename EnableIf< UseSMPAssign<VT2> >::Type
       smpMultAssign( DenseVector<VT2,TF>& lhs, const DVecTransExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -887,38 +852,6 @@ class DVecTransExpr : public DenseVector< DVecTransExpr<VT,TF>, TF >
 
    //**SMP multiplication assignment to sparse vectors*********************************************
    // No special implementation for the SMP multiplication assignment to sparse vectors.
-   //**********************************************************************************************
-
-   //**SMP division assignment to dense vectors****************************************************
-   /*! \cond BLAZE_INTERNAL */
-   /*!\brief SMP division assignment of a dense vector transposition expression to a dense vector.
-   // \ingroup dense_vector
-   //
-   // \param lhs The target left-hand side dense vector.
-   // \param rhs The right-hand side transposition expression divisor.
-   // \return void
-   //
-   // This function implements the performance optimized SMP division assignment of a dense
-   // vector transposition expression to a dense vector. Due to the explicit application of
-   // the SFINAE principle, this function can only be selected by the compiler in case the
-   // expression specific parallel evaluation strategy is selected.
-   */
-   template< typename VT2 >  // Type of the target dense vector
-   friend inline EnableIf_< UseSMPAssign<VT2> >
-      smpDivAssign( DenseVector<VT2,TF>& lhs, const DVecTransExpr& rhs )
-   {
-      BLAZE_FUNCTION_TRACE;
-
-      BLAZE_INTERNAL_ASSERT( (~lhs).size() == rhs.size(), "Invalid vector sizes" );
-
-      DVecTransposer<VT2,!TF> tmp( ~lhs );
-      smpDivAssign( tmp, rhs.dv_ );
-   }
-   /*! \endcond */
-   //**********************************************************************************************
-
-   //**SMP division assignment to sparse vectors***************************************************
-   // No special implementation for the SMP division assignment to sparse vectors.
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************
@@ -1037,8 +970,7 @@ struct Size< DVecTransExpr<VT,TF> > : public Size<VT>
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename VT, bool TF >
-struct IsAligned< DVecTransExpr<VT,TF> >
-   : public BoolConstant< IsAligned<VT>::value >
+struct IsAligned< DVecTransExpr<VT,TF> > : public IsTrue< IsAligned<VT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1055,8 +987,7 @@ struct IsAligned< DVecTransExpr<VT,TF> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename VT, bool TF >
-struct IsPadded< DVecTransExpr<VT,TF> >
-   : public BoolConstant< IsPadded<VT>::value >
+struct IsPadded< DVecTransExpr<VT,TF> > : public IsTrue< IsPadded<VT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1077,9 +1008,9 @@ struct DVecTransExprTrait< DVecTransExpr<VT,false> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseVector<VT>, IsRowVector<VT> >
-                   , Operand_< DVecTransExpr<VT,false> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseVector<VT>::value && IsRowVector<VT>::value
+                              , typename DVecTransExpr<VT,false>::Operand
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -1093,9 +1024,9 @@ struct TDVecTransExprTrait< DVecTransExpr<VT,true> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseVector<VT>, IsColumnVector<VT> >
-                   , Operand_< DVecTransExpr<VT,true> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseVector<VT>::value && IsColumnVector<VT>::value
+                              , typename DVecTransExpr<VT,true>::Operand
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -1109,7 +1040,7 @@ struct SubvectorExprTrait< DVecTransExpr<VT,TF>, AF >
 {
  public:
    //**********************************************************************************************
-   using Type = TransExprTrait_< SubvectorExprTrait_<const VT,AF> >;
+   typedef typename TransExprTrait< typename SubvectorExprTrait<const VT,AF>::Type >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */

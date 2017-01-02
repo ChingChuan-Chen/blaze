@@ -51,13 +51,14 @@
 #include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsBuiltin.h>
 #include <blaze/util/typetraits/IsComplex.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsNumeric.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -80,20 +81,19 @@ struct TSVecScalarDivExprTraitHelper
 {
  private:
    //**********************************************************************************************
-   using ScalarType = If_< Or< IsFloatingPoint< UnderlyingBuiltin_<VT> >
-                             , IsFloatingPoint< UnderlyingBuiltin_<ST> > >
-                         , If_< And< IsComplex< UnderlyingNumeric_<VT> >
-                                   , IsBuiltin<ST> >
-                              , DivTrait_< UnderlyingBuiltin_<VT>, ST >
-                              , DivTrait_< UnderlyingNumeric_<VT>, ST > >
-                         , ST >;
+   typedef typename UnderlyingNumeric<VT>::Type  NET;
+   typedef typename If< And< IsComplex<NET>, IsBuiltin<ST> >
+                      , typename DivTrait<typename UnderlyingBuiltin<VT>::Type,ST>::Type
+                      , typename DivTrait<NET,ST>::Type
+                      >::Type  ScalarType;
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
-   using Type = If_< IsInvertible<ScalarType>
-                   , SVecScalarMultExpr<VT,ScalarType,true>
-                   , SVecScalarDivExpr<VT,ScalarType,true> >;
+   typedef typename If< IsInvertible<ScalarType>
+                      , SVecScalarMultExpr<VT,ScalarType,true>
+                      , SVecScalarDivExpr<VT,ScalarType,true>
+                      >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -111,7 +111,7 @@ struct TSVecScalarDivExprTraitHelper<VT,ST,false>
 {
  public:
    //**********************************************************************************************
-   using Type = INVALID_TYPE;
+   typedef INVALID_TYPE  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -135,40 +135,29 @@ struct TSVecScalarDivExprTrait
  private:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   enum : bool { condition = And< IsSparseVector<VT>, IsRowVector<VT>, IsNumeric<ST> >::value };
+   enum { condition = IsSparseVector<VT>::value && IsRowVector<VT>::value &&
+                      IsNumeric<ST>::value };
+   /*! \endcond */
+   //**********************************************************************************************
+
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   typedef TSVecScalarDivExprTraitHelper<VT,ST,condition>  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<VT>::Type >::Type  Type1;
+   typedef typename RemoveReference< typename RemoveCV<ST>::Type >::Type  Type2;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<VT>, IsVolatile<VT>, IsReference<VT>
-                                , IsConst<ST>, IsVolatile<ST>, IsReference<ST> >
-                            , TSVecScalarDivExprTrait< Decay_<VT>, Decay_<ST> >
-                            , TSVecScalarDivExprTraitHelper<VT,ST,condition> >::Type;
+   typedef typename If< Or< IsConst<VT>, IsVolatile<VT>, IsReference<VT>
+                          , IsConst<ST>, IsVolatile<ST>, IsReference<ST> >
+                      , TSVecScalarDivExprTrait<Type1,Type2>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the TSVecScalarDivExprTrait class template.
-// \ingroup math_traits
-//
-// The TSVecScalarDivExprTrait_ alias declaration provides a convenient shortcut to access
-// the nested \a Type of the TSVecScalarDivExprTrait class template. For instance, given
-// the transpose sparse vector type \a VT and the scalar type \a ST the following two type
-// definitions are identical:
-
-   \code
-   using Type1 = typename TSVecScalarDivExprTrait<VT,ST>::Type;
-   using Type2 = TSVecScalarDivExprTrait_<VT,ST>;
-   \endcode
-*/
-template< typename VT    // Type of the left-hand side sparse vector
-        , typename ST >  // Type of the right-hand side scalar
-using TSVecScalarDivExprTrait_ = typename TSVecScalarDivExprTrait<VT,ST>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

@@ -47,10 +47,11 @@
 #include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -76,39 +77,21 @@ struct DMatTransExprTrait
  private:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Tmp = If< And< IsDenseMatrix<MT>, IsRowMajorMatrix<MT> >
-                 , DMatTransExpr<MT,true>
-                 , INVALID_TYPE >;
+   typedef If< And< IsDenseMatrix<MT>, IsRowMajorMatrix<MT> >
+             , DMatTransExpr<MT,true>, INVALID_TYPE >  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<MT>::Type >::Type  Type1;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<MT>, IsVolatile<MT>, IsReference<MT> >
-                            , DMatTransExprTrait< Decay_<MT> >
-                            , Tmp >::Type;
+   typedef typename If< Or< IsConst<MT>, IsVolatile<MT>, IsReference<MT> >
+                      , DMatTransExprTrait<Type1>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the DMatTransExprTrait class template.
-// \ingroup math_traits
-//
-// The DMatTransExprTrait_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the DMatTransExprTrait class template. For instance, given the row-major dense
-// matrix type \a MT the following two type definitions are identical:
-
-   \code
-   using Type1 = typename DMatTransExprTrait<MT>::Type;
-   using Type2 = DMatTransExprTrait_<MT>;
-   \endcode
-*/
-template< typename MT >  // Type of the dense matrix
-using DMatTransExprTrait_ = typename DMatTransExprTrait<MT>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

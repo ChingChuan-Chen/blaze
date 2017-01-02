@@ -42,13 +42,15 @@
 
 #include <blaze/math/dense/DenseVector.h>
 #include <blaze/math/expressions/DenseVector.h>
+#include <blaze/math/expressions/DVecAbsExpr.h>
+#include <blaze/math/expressions/DVecConjExpr.h>
 #include <blaze/math/expressions/DVecDVecAddExpr.h>
-#include <blaze/math/expressions/DVecDVecDivExpr.h>
 #include <blaze/math/expressions/DVecDVecCrossExpr.h>
 #include <blaze/math/expressions/DVecDVecMultExpr.h>
 #include <blaze/math/expressions/DVecDVecSubExpr.h>
 #include <blaze/math/expressions/DVecEvalExpr.h>
-#include <blaze/math/expressions/DVecForEachExpr.h>
+#include <blaze/math/expressions/DVecImagExpr.h>
+#include <blaze/math/expressions/DVecRealExpr.h>
 #include <blaze/math/expressions/DVecScalarDivExpr.h>
 #include <blaze/math/expressions/DVecScalarMultExpr.h>
 #include <blaze/math/expressions/DVecSerialExpr.h>
@@ -64,6 +66,5 @@
 #include <blaze/math/smp/DenseVector.h>
 #include <blaze/math/smp/SparseVector.h>
 #include <blaze/math/Vector.h>
-#include <blaze/math/views/Subvector.h>
 
 #endif

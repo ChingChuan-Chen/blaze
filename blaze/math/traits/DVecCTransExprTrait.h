@@ -41,8 +41,7 @@
 //*************************************************************************************************
 
 #include <blaze/math/expressions/Forward.h>
-#include <blaze/math/functors/Forward.h>
-#include <blaze/math/traits/DVecForEachExprTrait.h>
+#include <blaze/math/traits/DVecConjExprTrait.h>
 #include <blaze/math/traits/DVecTransExprTrait.h>
 #include <blaze/math/typetraits/IsColumnVector.h>
 #include <blaze/math/typetraits/IsDenseVector.h>
@@ -50,10 +49,11 @@
 #include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -85,39 +85,22 @@ struct DVecCTransExprTrait
 
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Tmp = If_< And< IsDenseVector<VT>, IsColumnVector<VT> >
-                  , DVecTransExprTrait< DVecForEachExprTrait_<VT,Conj> >
-                  , Failure >;
+   typedef typename If< And< IsDenseVector<VT>, IsColumnVector<VT> >
+                      , DVecTransExprTrait< typename DVecConjExprTrait<VT>::Type >
+                      , Failure >::Type  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<VT>::Type >::Type  Type1;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<VT>, IsVolatile<VT>, IsReference<VT> >
-                            , DVecCTransExprTrait< Decay_<VT> >
-                            , Tmp >::Type;
+   typedef typename If< Or< IsConst<VT>, IsVolatile<VT>, IsReference<VT> >
+                      , DVecCTransExprTrait<Type1>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the DVecCTransExprTrait class template.
-// \ingroup math_traits
-//
-// The DVecCTransExprTrait_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the DVecCTransExprTrait class template. For instance, given the non-transpose dense
-// vector type \a VT the following two type definitions are identical:
-
-   \code
-   using Type1 = typename DVecCTransExprTrait<VT>::Type;
-   using Type2 = DVecCTransExprTrait_<VT>;
-   \endcode
-*/
-template< typename VT >  // Type of the dense vector
-using DVecCTransExprTrait_ = typename DVecCTransExprTrait<VT>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

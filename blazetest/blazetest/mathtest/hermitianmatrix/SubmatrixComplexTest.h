@@ -44,9 +44,10 @@
 #include <stdexcept>
 #include <string>
 #include <blaze/math/CompressedMatrix.h>
+#include <blaze/math/DenseSubmatrix.h>
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/HermitianMatrix.h>
-#include <blaze/math/Submatrix.h>
+#include <blaze/math/SparseSubmatrix.h>
 #include <blaze/math/traits/SubmatrixExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blazetest/system/Types.h>
@@ -159,7 +160,7 @@ class SubmatrixComplexTest
 template< typename HT >  // Type of the Hermitian matrix
 void SubmatrixComplexTest::testAssignment()
 {
-   typedef blaze::SubmatrixExprTrait_<HT,blaze::unaligned>  SMT;
+   typedef typename blaze::SubmatrixExprTrait<HT,blaze::unaligned>::Type  SMT;
 
 
    //=====================================================================================
@@ -2862,7 +2863,7 @@ void SubmatrixComplexTest::testAssignment()
 template< typename HT >  // Type of the Hermitian matrix
 void SubmatrixComplexTest::testAddAssign()
 {
-   typedef blaze::SubmatrixExprTrait_<HT,blaze::unaligned>  SMT;
+   typedef typename blaze::SubmatrixExprTrait<HT,blaze::unaligned>::Type  SMT;
 
 
    //=====================================================================================
@@ -5565,7 +5566,7 @@ void SubmatrixComplexTest::testAddAssign()
 template< typename HT >  // Type of the Hermitian matrix
 void SubmatrixComplexTest::testSubAssign()
 {
-   typedef blaze::SubmatrixExprTrait_<HT,blaze::unaligned>  SMT;
+   typedef typename blaze::SubmatrixExprTrait<HT,blaze::unaligned>::Type  SMT;
 
 
    //=====================================================================================
@@ -8419,7 +8420,7 @@ void runTest()
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Macro for the execution of the HermitianMatrix submatrix complex test.
+/*!\brief Macro for the execution of the complex HermitianMatrix submatrix test.
 */
 #define RUN_HERMITIANMATRIX_SUBMATRIXCOMPLEX_TEST \
    blazetest::mathtest::hermitianmatrix::runTest()

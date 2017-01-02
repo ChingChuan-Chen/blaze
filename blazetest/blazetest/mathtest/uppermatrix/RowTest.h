@@ -45,9 +45,10 @@
 #include <string>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/CompressedVector.h>
+#include <blaze/math/DenseRow.h>
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/DynamicVector.h>
-#include <blaze/math/Row.h>
+#include <blaze/math/SparseRow.h>
 #include <blaze/math/traits/RowExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blaze/math/UpperMatrix.h>
@@ -159,7 +160,7 @@ class RowTest
 template< typename UT >  // Type of the upper matrix
 void RowTest::testAssignment()
 {
-   typedef blaze::RowExprTrait_<UT>  RT;
+   typedef typename blaze::RowExprTrait<UT>::Type  RT;
 
 
    //=====================================================================================
@@ -331,7 +332,7 @@ void RowTest::testAssignment()
 template< typename UT >  // Type of the upper matrix
 void RowTest::testAddAssign()
 {
-   typedef blaze::RowExprTrait_<UT>  RT;
+   typedef typename blaze::RowExprTrait<UT>::Type  RT;
 
 
    //=====================================================================================
@@ -503,7 +504,7 @@ void RowTest::testAddAssign()
 template< typename UT >  // Type of the upper matrix
 void RowTest::testSubAssign()
 {
-   typedef blaze::RowExprTrait_<UT>  RT;
+   typedef typename blaze::RowExprTrait<UT>::Type  RT;
 
 
    //=====================================================================================
@@ -675,7 +676,7 @@ void RowTest::testSubAssign()
 template< typename UT >  // Type of the upper matrix
 void RowTest::testMultAssign()
 {
-   typedef blaze::RowExprTrait_<UT>  RT;
+   typedef typename blaze::RowExprTrait<UT>::Type  RT;
 
 
    //=====================================================================================

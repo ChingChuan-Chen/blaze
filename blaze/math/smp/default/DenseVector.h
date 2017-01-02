@@ -62,24 +62,20 @@ namespace blaze {
 /*!\name Dense vector SMP functions */
 //@{
 template< typename VT1, bool TF1, typename VT2, bool TF2 >
-inline EnableIf_< IsDenseVector<VT1> >
+inline typename EnableIf< IsDenseVector<VT1> >::Type
    smpAssign( Vector<VT1,TF1>& lhs, const Vector<VT2,TF2>& rhs );
 
 template< typename VT1, bool TF1, typename VT2, bool TF2 >
-inline EnableIf_< IsDenseVector<VT1> >
+inline typename EnableIf< IsDenseVector<VT1> >::Type
    smpAddAssign( Vector<VT1,TF1>& lhs, const Vector<VT2,TF2>& rhs );
 
 template< typename VT1, bool TF1, typename VT2, bool TF2 >
-inline EnableIf_< IsDenseVector<VT1> >
+inline typename EnableIf< IsDenseVector<VT1> >::Type
    smpSubAssign( Vector<VT1,TF1>& lhs, const Vector<VT2,TF2>& rhs );
 
 template< typename VT1, bool TF1, typename VT2, bool TF2 >
-inline EnableIf_< IsDenseVector<VT1> >
+inline typename EnableIf< IsDenseVector<VT1> >::Type
    smpMultAssign( Vector<VT1,TF1>& lhs, const Vector<VT2,TF2>& rhs );
-
-template< typename VT1, bool TF1, typename VT2, bool TF2 >
-inline EnableIf_< IsDenseVector<VT1> >
-   smpDivAssign( Vector<VT1,TF1>& lhs, const Vector<VT2,TF2>& rhs );
 //@}
 //*************************************************************************************************
 
@@ -102,7 +98,7 @@ template< typename VT1  // Type of the left-hand side dense vector
         , bool TF1      // Transpose flag of the left-hand side dense vector
         , typename VT2  // Type of the right-hand side vector
         , bool TF2 >    // Transpose flag of the right-hand side vector
-inline EnableIf_< IsDenseVector<VT1> >
+inline typename EnableIf< IsDenseVector<VT1> >::Type
    smpAssign( Vector<VT1,TF1>& lhs, const Vector<VT2,TF2>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -131,7 +127,7 @@ template< typename VT1  // Type of the left-hand side dense vector
         , bool TF1      // Transpose flag of the left-hand side dense vector
         , typename VT2  // Type of the right-hand side vector
         , bool TF2 >    // Transpose flag of the right-hand side vector
-inline EnableIf_< IsDenseVector<VT1> >
+inline typename EnableIf< IsDenseVector<VT1> >::Type
    smpAddAssign( Vector<VT1,TF1>& lhs, const Vector<VT2,TF2>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -160,7 +156,7 @@ template< typename VT1  // Type of the left-hand side dense vector
         , bool TF1      // Transpose flag of the left-hand side dense vector
         , typename VT2  // Type of the right-hand side vector
         , bool TF2 >    // Transpose flag of the right-hand side vector
-inline EnableIf_< IsDenseVector<VT1> >
+inline typename EnableIf< IsDenseVector<VT1> >::Type
    smpSubAssign( Vector<VT1,TF1>& lhs, const Vector<VT2,TF2>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
@@ -189,42 +185,13 @@ template< typename VT1  // Type of the left-hand side dense vector
         , bool TF1      // Transpose flag of the left-hand side dense vector
         , typename VT2  // Type of the right-hand side vector
         , bool TF2 >    // Transpose flag of the right-hand side vector
-inline EnableIf_< IsDenseVector<VT1> >
+inline typename EnableIf< IsDenseVector<VT1> >::Type
    smpMultAssign( Vector<VT1,TF1>& lhs, const Vector<VT2,TF2>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
 
    BLAZE_INTERNAL_ASSERT( (~lhs).size() == (~rhs).size(), "Invalid vector sizes" );
    multAssign( ~lhs, ~rhs );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Default implementation of the SMP division assignment of a vector to a dense vector.
-// \ingroup smp
-//
-// \param lhs The target left-hand side dense vector.
-// \param rhs The right-hand side vector divisor.
-// \return void
-//
-// This function implements the default SMP division assignment of a vector to a dense vector.\n
-// This function must \b NOT be called explicitly! It is used internally for the performance
-// optimized evaluation of expression templates. Calling this function explicitly might result
-// in erroneous results and/or in compilation errors. Instead of using this function use the
-// assignment operator.
-*/
-template< typename VT1  // Type of the left-hand side dense vector
-        , bool TF1      // Transpose flag of the left-hand side dense vector
-        , typename VT2  // Type of the right-hand side vector
-        , bool TF2 >    // Transpose flag of the right-hand side vector
-inline EnableIf_< IsDenseVector<VT1> >
-   smpDivAssign( Vector<VT1,TF1>& lhs, const Vector<VT2,TF2>& rhs )
-{
-   BLAZE_FUNCTION_TRACE;
-
-   BLAZE_INTERNAL_ASSERT( (~lhs).size() == (~rhs).size(), "Invalid vector sizes" );
-   divAssign( ~lhs, ~rhs );
 }
 //*************************************************************************************************
 

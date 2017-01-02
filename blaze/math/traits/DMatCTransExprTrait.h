@@ -41,8 +41,7 @@
 //*************************************************************************************************
 
 #include <blaze/math/expressions/Forward.h>
-#include <blaze/math/functors/Forward.h>
-#include <blaze/math/traits/DMatForEachExprTrait.h>
+#include <blaze/math/traits/DMatConjExprTrait.h>
 #include <blaze/math/traits/DMatTransExprTrait.h>
 #include <blaze/math/typetraits/IsDenseMatrix.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
@@ -50,10 +49,11 @@
 #include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -85,39 +85,22 @@ struct DMatCTransExprTrait
 
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   typedef If_< And< IsDenseMatrix<MT>, IsRowMajorMatrix<MT> >
-              , DMatTransExprTrait< DMatForEachExprTrait_<MT,Conj> >
-              , Failure >  Tmp;
+   typedef typename If< And< IsDenseMatrix<MT>, IsRowMajorMatrix<MT> >
+                      , DMatTransExprTrait< typename DMatConjExprTrait<MT>::Type >
+                      , Failure >::Type  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<MT>::Type >::Type  Type1;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   typedef typename If_< Or< IsConst<MT>, IsVolatile<MT>, IsReference<MT> >
-                       , DMatCTransExprTrait< Decay_<MT> >
-                       , Tmp >::Type  Type;
+   typedef typename If< Or< IsConst<MT>, IsVolatile<MT>, IsReference<MT> >
+                      , DMatCTransExprTrait<Type1>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the DMatCTransExprTrait class template.
-// \ingroup math_traits
-//
-// The DMatCTransExprTrait_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the DMatCTransExprTrait class template. For instance, given the row-major dense
-// matrix type \a MT the following two type definitions are identical:
-
-   \code
-   using Type1 = typename DMatCTransExprTrait<MT>::Type;
-   using Type2 = DMatCTransExprTrait_<MT>;
-   \endcode
-*/
-template< typename MT >  // Type of the dense matrix
-using DMatCTransExprTrait_ = typename DMatCTransExprTrait<MT>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

@@ -41,18 +41,17 @@
 //*************************************************************************************************
 
 #include <cmath>
-#include <blaze/math/Aliases.h>
 #include <blaze/math/adaptors/SymmetricMatrix.h>
 #include <blaze/math/constraints/DenseMatrix.h>
 #include <blaze/math/constraints/Resizable.h>
 #include <blaze/math/constraints/SparseMatrix.h>
 #include <blaze/math/DenseMatrix.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/shims/Real.h>
 #include <blaze/math/SparseMatrix.h>
 #include <blaze/math/typetraits/IsDenseMatrix.h>
 #include <blaze/math/typetraits/UnderlyingBuiltin.h>
 #include <blaze/util/Assert.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/FalseType.h>
 #include <blaze/util/Random.h>
 #include <blaze/util/TrueType.h>
@@ -335,7 +334,7 @@ inline void Rand< SymmetricMatrix<MT,SO,DF,NF> >::randomize( SymmetricMatrix<MT,
 {
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    const size_t n( matrix.rows() );
 
@@ -364,13 +363,20 @@ inline void Rand< SymmetricMatrix<MT,SO,DF,NF> >::randomize( SymmetricMatrix<MT,
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
+   typedef typename MT::ElementType  ET;
+
    const size_t n( matrix.rows() );
 
    if( n == 0UL ) return;
 
    const size_t nonzeros( rand<size_t>( 1UL, std::ceil( 0.5*n*n ) ) );
 
-   randomize( matrix, nonzeros );
+   matrix.reset();
+   matrix.reserve( nonzeros );
+
+   while( matrix.nonZeros() < nonzeros ) {
+      matrix( rand<size_t>( 0UL, n-1UL ), rand<size_t>( 0UL, n-1UL ) ) = rand<ET>();
+   }
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -393,7 +399,7 @@ inline void Rand< SymmetricMatrix<MT,SO,DF,NF> >::randomize( SymmetricMatrix<MT,
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    const size_t n( matrix.rows() );
 
@@ -404,7 +410,7 @@ inline void Rand< SymmetricMatrix<MT,SO,DF,NF> >::randomize( SymmetricMatrix<MT,
    if( n == 0UL ) return;
 
    matrix.reset();
-   matrix.reserve( nonzeros+1UL );
+   matrix.reserve( nonzeros );
 
    while( matrix.nonZeros() < nonzeros ) {
       matrix( rand<size_t>( 0UL, n-1UL ), rand<size_t>( 0UL, n-1UL ) ) = rand<ET>();
@@ -456,7 +462,7 @@ inline void Rand< SymmetricMatrix<MT,SO,DF,NF> >::randomize( SymmetricMatrix<MT,
 {
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    const size_t n( matrix.rows() );
 
@@ -489,13 +495,20 @@ inline void Rand< SymmetricMatrix<MT,SO,DF,NF> >::randomize( SymmetricMatrix<MT,
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
+   typedef typename MT::ElementType  ET;
+
    const size_t n( matrix.rows() );
 
    if( n == 0UL ) return;
 
    const size_t nonzeros( rand<size_t>( 1UL, std::ceil( 0.5*n*n ) ) );
 
-   randomize( matrix, nonzeros, min, max );
+   matrix.reset();
+   matrix.reserve( nonzeros );
+
+   while( matrix.nonZeros() < nonzeros ) {
+      matrix( rand<size_t>( 0UL, n-1UL ), rand<size_t>( 0UL, n-1UL ) ) = rand<ET>( min, max );
+   }
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -522,7 +535,7 @@ inline void Rand< SymmetricMatrix<MT,SO,DF,NF> >::randomize( SymmetricMatrix<MT,
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   typedef typename MT::ElementType  ET;
 
    const size_t n( matrix.rows() );
 
@@ -533,7 +546,7 @@ inline void Rand< SymmetricMatrix<MT,SO,DF,NF> >::randomize( SymmetricMatrix<MT,
    if( n == 0UL ) return;
 
    matrix.reset();
-   matrix.reserve( nonzeros+1UL );
+   matrix.reserve( nonzeros );
 
    while( matrix.nonZeros() < nonzeros ) {
       matrix( rand<size_t>( 0UL, n-1UL ), rand<size_t>( 0UL, n-1UL ) ) = rand<ET>( min, max );
@@ -606,7 +619,7 @@ template< typename MT  // Type of the adapted matrix
         , bool NF >    // Numeric flag
 void makeHermitian( SymmetricMatrix<MT,SO,true,NF>& matrix )
 {
-   typedef UnderlyingBuiltin_< ElementType_<MT> >  BT;
+   typedef typename UnderlyingBuiltin<typename MT::ElementType>::Type  BT;
 
    const size_t n( matrix.rows() );
 
@@ -637,7 +650,7 @@ template< typename MT     // Type of the adapted matrix
         , typename Arg >  // Min/max argument type
 void makeHermitian( SymmetricMatrix<MT,SO,true,NF>& matrix, const Arg& min, const Arg& max )
 {
-   typedef UnderlyingBuiltin_< ElementType_<MT> >  BT;
+   typedef typename UnderlyingBuiltin<typename MT::ElementType>::Type  BT;
 
    const size_t n( matrix.rows() );
 
@@ -665,7 +678,7 @@ template< typename MT  // Type of the adapted matrix
         , bool NF >    // Numeric flag
 void makePositiveDefinite( SymmetricMatrix<MT,SO,true,NF>& matrix )
 {
-   typedef UnderlyingBuiltin_< ElementType_<MT> >  BT;
+   typedef typename UnderlyingBuiltin<typename MT::ElementType>::Type  BT;
 
    const size_t n( matrix.rows() );
 

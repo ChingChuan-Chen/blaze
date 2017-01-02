@@ -81,68 +81,10 @@ class OperationTest
    //**Test functions******************************************************************************
    /*!\name Test functions */
    //@{
-   void testAddConst();
-   void testAddCV();
-   void testAddPointer();
-   void testAddReference();
-   void testAddVolatile();
-   void testAll();
-   void testAny();
-   void testCommonType();
-   void testDecay();
-   void testExtent();
-   void testGetMember();
    void testHasMember();
-   void testHasSize();
-   void testHaveSameSize();
-   void testIsArithmetic();
-   void testIsArray();
-   void testIsBaseOf();
-   void testIsBoolean();
-   void testIsBuiltin();
-   void testIsCharacter();
-   void testIsClass();
-   void testIsComplex();
-   void testIsComplexDouble();
-   void testIsComplexFloat();
-   void testIsConst();
-   void testIsConvertible();
-   void testIsDouble();
-   void testIsEmpty();
-   void testIsEnum();
-   void testIsFloat();
-   void testIsFloatingPoint();
-   void testIsInteger();
-   void testIsIntegral();
-   void testIsLong();
-   void testIsLongDouble();
-   void testIsLValueReference();
-   void testIsNumeric();
-   void testIsObject();
-   void testIsPod();
-   void testIsPointer();
-   void testIsReference();
-   void testIsRValueReference();
-   void testIsSame();
-   void testIsStrictlySame();
-   void testIsShort();
-   void testIsSigned();
-   void testIsUnion();
-   void testIsUnsigned();
-   void testIsValid();
-   void testIsVectorizable();
-   void testIsVoid();
-   void testIsVolatile();
+   void testGetMember();
    void testMakeSigned();
    void testMakeUnsigned();
-   void testRank();
-   void testRemoveAllExtents();
-   void testRemoveConst();
-   void testRemoveCV();
-   void testRemoveExtent();
-   void testRemovePointer();
-   void testRemoveReference();
-   void testRemoveVolatile();
    //@}
    //**********************************************************************************************
 

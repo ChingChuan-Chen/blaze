@@ -40,6 +40,8 @@
 // Includes
 //*************************************************************************************************
 
+#include <blaze/util/constraints/ConstraintTest.h>
+#include <blaze/util/Suffix.h>
 #include <blaze/util/typetraits/HaveSameSize.h>
 
 
@@ -52,13 +54,32 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_HAVE_SAME_SIZE_FAILED;
+template<> struct CONSTRAINT_MUST_HAVE_SAME_SIZE_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the size of two data types.
 // \ingroup constraints
 //
 // In case the types \a T1 and \a T2 don't have the same size, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_HAVE_SAME_SIZE(T1,T2) \
-   static_assert( ::blaze::HaveSameSize<T1,T2>::value, "Non-matching sizes detected" )
+   typedef \
+      ::blaze::CONSTRAINT_TEST< \
+         ::blaze::CONSTRAINT_MUST_HAVE_SAME_SIZE_FAILED< ::blaze::HaveSameSize<T1,T2>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_HAVE_SAME_SIZE_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -71,13 +92,32 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_NOT_HAVE_SAME_SIZE_FAILED;
+template<> struct CONSTRAINT_MUST_NOT_HAVE_SAME_SIZE_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the size of two data types.
 // \ingroup constraints
 //
 // In case the types \a T1 and \a T2 have the same size, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_NOT_HAVE_SAME_SIZE(T1,T2) \
-   static_assert( !::blaze::HaveSameSize<T1,T2>::value, "Matching sizes detected" )
+   typedef \
+      ::blaze::CONSTRAINT_TEST< \
+         ::blaze::CONSTRAINT_MUST_NOT_HAVE_SAME_SIZE_FAILED< !::blaze::HaveSameSize<T1,T2>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_NOT_HAVE_SAME_SIZE_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 } // namespace blaze

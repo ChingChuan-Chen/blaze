@@ -40,17 +40,16 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/Computation.h>
 #include <blaze/math/constraints/SparseVector.h>
 #include <blaze/math/constraints/TransposeFlag.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/SparseVector.h>
 #include <blaze/math/Functions.h>
 #include <blaze/math/shims/IsDefault.h>
 #include <blaze/math/traits/SubvectorTrait.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/EnableIf.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/typetraits/IsNumeric.h>
 
@@ -75,16 +74,16 @@ class SVecTransposer : public SparseVector< SVecTransposer<VT,TF>, TF >
 {
  public:
    //**Type definitions****************************************************************************
-   typedef SVecTransposer<VT,TF>  This;            //!< Type of this SVecTransposer instance.
-   typedef TransposeType_<VT>     ResultType;      //!< Result type for expression template evaluations.
-   typedef ResultType_<VT>        TransposeType;   //!< Transpose type for expression template evaluations.
-   typedef ElementType_<VT>       ElementType;     //!< Resulting element type.
-   typedef ReturnType_<VT>        ReturnType;      //!< Return type for expression template evaluations.
-   typedef const This&            CompositeType;   //!< Data type for composite expression templates.
-   typedef Reference_<VT>         Reference;       //!< Reference to a non-constant matrix value.
-   typedef ConstReference_<VT>    ConstReference;  //!< Reference to a constant matrix value.
-   typedef Iterator_<VT>          Iterator;        //!< Iterator over non-constant elements.
-   typedef ConstIterator_<VT>     ConstIterator;   //!< Iterator over constant elements.
+   typedef SVecTransposer<VT,TF>        This;            //!< Type of this SVecTransposer instance.
+   typedef typename VT::TransposeType   ResultType;      //!< Result type for expression template evaluations.
+   typedef typename VT::ResultType      TransposeType;   //!< Transpose type for expression template evaluations.
+   typedef typename VT::ElementType     ElementType;     //!< Resulting element type.
+   typedef typename VT::ReturnType      ReturnType;      //!< Return type for expression template evaluations.
+   typedef const This&                  CompositeType;   //!< Data type for composite expression templates.
+   typedef typename VT::Reference       Reference;       //!< Reference to a non-constant matrix value.
+   typedef typename VT::ConstReference  ConstReference;  //!< Reference to a constant matrix value.
+   typedef typename VT::Iterator        Iterator;        //!< Iterator over non-constant elements.
+   typedef typename VT::ConstIterator   ConstIterator;   //!< Iterator over constant elements.
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
@@ -92,7 +91,7 @@ class SVecTransposer : public SparseVector< SVecTransposer<VT,TF>, TF >
    /*! The \a smpAssignable compilation flag indicates whether the vector can be used in SMP
        (shared memory parallel) assignments (both on the left-hand and right-hand side of the
        assignment). */
-   enum : bool { smpAssignable = VT::smpAssignable };
+   enum { smpAssignable = VT::smpAssignable };
    //**********************************************************************************************
 
    //**Constructor*********************************************************************************
@@ -100,7 +99,7 @@ class SVecTransposer : public SparseVector< SVecTransposer<VT,TF>, TF >
    //
    // \param sv The sparse vector operand.
    */
-   explicit inline SVecTransposer( VT& sv ) noexcept
+   explicit inline SVecTransposer( VT& sv )
       : sv_( sv )  // The sparse vector operand
    {}
    //**********************************************************************************************
@@ -200,7 +199,7 @@ class SVecTransposer : public SparseVector< SVecTransposer<VT,TF>, TF >
    // \return Reference to this SVecTransposer.
    */
    template< typename Other >  // Data type of the right-hand side scalar
-   inline EnableIf_< IsNumeric<Other>, SVecTransposer >& operator*=( Other rhs )
+   inline typename EnableIf< IsNumeric<Other>, SVecTransposer >::Type& operator*=( Other rhs )
    {
       (~sv_) *= rhs;
       return *this;
@@ -214,10 +213,10 @@ class SVecTransposer : public SparseVector< SVecTransposer<VT,TF>, TF >
    // \param rhs The right-hand side scalar value for the division.
    // \return Reference to this SVecTransposer.
    //
-   // \note A division by zero is only checked by an user assert.
+   // \note: A division by zero is only checked by an user assert.
    */
    template< typename Other >  // Data type of the right-hand side scalar
-   inline EnableIf_< IsNumeric<Other>, SVecTransposer >& operator/=( Other rhs )
+   inline typename EnableIf< IsNumeric<Other>, SVecTransposer >::Type& operator/=( Other rhs )
    {
       BLAZE_USER_ASSERT( rhs != Other(0), "Division by zero detected" );
 
@@ -231,7 +230,7 @@ class SVecTransposer : public SparseVector< SVecTransposer<VT,TF>, TF >
    //
    // \return The size of the vector.
    */
-   inline size_t size() const noexcept {
+   inline size_t size() const {
       return sv_.size();
    }
    //**********************************************************************************************
@@ -317,7 +316,7 @@ class SVecTransposer : public SparseVector< SVecTransposer<VT,TF>, TF >
    // value is a default value (for instance 0 in case of an integral element type) the value is
    // not appended. Per default the values are not tested.
    //
-   // \note Although append() does not allocate new memory, it still invalidates all iterators
+   // \note: Although append() does not allocate new memory, it still invalidates all iterators
    // returned by the end() functions!
    */
    inline void append( size_t index, const ElementType& value, bool check=false ) {
@@ -332,7 +331,7 @@ class SVecTransposer : public SparseVector< SVecTransposer<VT,TF>, TF >
    // \return \a true in case the alias corresponds to this vector, \a false if not.
    */
    template< typename Other >  // Data type of the foreign expression
-   inline bool canAlias( const Other* alias ) const noexcept
+   inline bool canAlias( const Other* alias ) const
    {
       return sv_.canAlias( alias );
    }
@@ -345,7 +344,7 @@ class SVecTransposer : public SparseVector< SVecTransposer<VT,TF>, TF >
    // \return \a true in case the alias corresponds to this vector, \a false if not.
    */
    template< typename Other >  // Data type of the foreign expression
-   inline bool isAliased( const Other* alias ) const noexcept
+   inline bool isAliased( const Other* alias ) const
    {
       return sv_.isAliased( alias );
    }
@@ -356,7 +355,7 @@ class SVecTransposer : public SparseVector< SVecTransposer<VT,TF>, TF >
    //
    // \return \a true in case the vector can be used in SMP assignments, \a false if not.
    */
-   inline bool canSMPAssign() const noexcept
+   inline bool canSMPAssign() const
    {
       return sv_.canSMPAssign();
    }
@@ -416,7 +415,7 @@ class SVecTransposer : public SparseVector< SVecTransposer<VT,TF>, TF >
       //
       // results in much less requirements on the ConstIterator type provided from the right-hand
       // sparse vector type
-      for( ConstIterator_<VT2> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
+      for( typename VT2::ConstIterator element=(~rhs).begin(); element!=(~rhs).end(); ++element )
          sv_.append( element->index(), element->value() );
    }
    //**********************************************************************************************
@@ -430,7 +429,7 @@ class SVecTransposer : public SparseVector< SVecTransposer<VT,TF>, TF >
    // This function calculates a new vector capacity based on the current capacity of the sparse
    // vector. Note that the new capacity is restricted to the interval \f$[7..size]\f$.
    */
-   inline size_t extendCapacity() const noexcept
+   inline size_t extendCapacity() const
    {
       using blaze::max;
       using blaze::min;
@@ -499,7 +498,7 @@ inline void reset( SVecTransposer<VT,TF>& v )
 template< typename VT, bool TF >
 struct SubvectorTrait< SVecTransposer<VT,TF> >
 {
-   using Type = SubvectorTrait_< ResultType_< SVecTransposer<VT,TF> > >;
+   typedef typename SubvectorTrait< typename SVecTransposer<VT,TF>::ResultType >::Type  Type;
 };
 /*! \endcond */
 //*************************************************************************************************

@@ -45,9 +45,10 @@
 #include <string>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/CompressedVector.h>
+#include <blaze/math/DenseRow.h>
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/DynamicVector.h>
-#include <blaze/math/Row.h>
+#include <blaze/math/SparseRow.h>
 #include <blaze/math/StrictlyLowerMatrix.h>
 #include <blaze/math/traits/RowExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
@@ -159,7 +160,7 @@ class RowTest
 template< typename LT >  // Type of the strictly lower matrix
 void RowTest::testAssignment()
 {
-   typedef blaze::RowExprTrait_<LT>  RT;
+   typedef typename blaze::RowExprTrait<LT>::Type  RT;
 
 
    //=====================================================================================
@@ -383,7 +384,7 @@ void RowTest::testAssignment()
 template< typename LT >  // Type of the strictly lower matrix
 void RowTest::testAddAssign()
 {
-   typedef blaze::RowExprTrait_<LT>  RT;
+   typedef typename blaze::RowExprTrait<LT>::Type  RT;
 
 
    //=====================================================================================
@@ -607,7 +608,7 @@ void RowTest::testAddAssign()
 template< typename LT >  // Type of the strictly lower matrix
 void RowTest::testSubAssign()
 {
-   typedef blaze::RowExprTrait_<LT>  RT;
+   typedef typename blaze::RowExprTrait<LT>::Type  RT;
 
 
    //=====================================================================================
@@ -831,7 +832,7 @@ void RowTest::testSubAssign()
 template< typename LT >  // Type of the strictly lower matrix
 void RowTest::testMultAssign()
 {
-   typedef blaze::RowExprTrait_<LT>  RT;
+   typedef typename blaze::RowExprTrait<LT>::Type  RT;
 
 
    //=====================================================================================

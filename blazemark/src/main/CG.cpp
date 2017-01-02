@@ -1,6 +1,6 @@
 //=================================================================================================
 /*!
-//  \file src/main/CG.cpp
+//  \file src/blaze/CG.cpp
 //  \brief Source file for the conjugate gradient benchmark
 //
 //  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved

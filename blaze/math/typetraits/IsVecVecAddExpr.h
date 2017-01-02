@@ -40,11 +40,11 @@
 // Includes
 //*************************************************************************************************
 
+#include <boost/type_traits/is_base_of.hpp>
 #include <blaze/math/expressions/VecVecAddExpr.h>
-#include <blaze/util/IntegralConstant.h>
-#include <blaze/util/mpl/And.h>
-#include <blaze/util/mpl/Not.h>
-#include <blaze/util/typetraits/IsBaseOf.h>
+#include <blaze/util/FalseType.h>
+#include <blaze/util/SelectType.h>
+#include <blaze/util/TrueType.h>
 
 
 namespace blaze {
@@ -56,21 +56,45 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Auxiliary helper struct for the IsVecVecAddExpr type trait.
+// \ingroup math_type_traits
+*/
+template< typename T >
+struct IsVecVecAddExprHelper
+{
+   //**********************************************************************************************
+   enum { value = boost::is_base_of<VecVecAddExpr,T>::value && !boost::is_base_of<T,VecVecAddExpr>::value };
+   typedef typename SelectType<value,TrueType,FalseType>::Type  Type;
+   //**********************************************************************************************
+};
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Compile time check whether the given type is a vector/vector addition expression template.
 // \ingroup math_type_traits
 //
 // This type trait class tests whether or not the given type \a Type is a vector/vector addition
 // expression template. In order to qualify as a valid vector addition expression template, the
 // given type has to derive (publicly or privately) from the VecVecAddExpr base class. In case
-// the given type is a valid vector addition expression template, the \a value member constant
-// is set to \a true, the nested type definition \a Type is \a TrueType, and the class derives
-// from \a TrueType. Otherwise \a value is set to \a false, \a Type is \a FalseType, and the
-// class derives from \a FalseType.
+// the given type is a valid vector addition expression template, the \a value member enumeration
+// is set to 1, the nested type definition \a Type is \a TrueType, and the class derives from
+// \a TrueType. Otherwise \a value is set to 0, \a Type is \a FalseType, and the class derives
+// from \a FalseType.
 */
 template< typename T >
-struct IsVecVecAddExpr
-   : public BoolConstant<  And< IsBaseOf<VecVecAddExpr,T>, Not< IsBaseOf<T,VecVecAddExpr> > >::value>
-{};
+struct IsVecVecAddExpr : public IsVecVecAddExprHelper<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   enum { value = IsVecVecAddExprHelper<T>::value };
+   typedef typename IsVecVecAddExprHelper<T>::Type  Type;
+   /*! \endcond */
+   //**********************************************************************************************
+};
 //*************************************************************************************************
 
 } // namespace blaze

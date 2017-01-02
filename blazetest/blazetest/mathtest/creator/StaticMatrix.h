@@ -42,7 +42,6 @@
 
 #include <blaze/math/StaticMatrix.h>
 #include <blazetest/mathtest/creator/Default.h>
-#include <blazetest/mathtest/creator/Policies.h>
 #include <blazetest/system/Types.h>
 
 
@@ -86,11 +85,7 @@ class Creator< blaze::StaticMatrix<T,M,N,SO> >
    /*!\name Operators */
    //@{
    // No explicitly declared copy assignment operator.
-
    const blaze::StaticMatrix<T,M,N,SO> operator()() const;
-
-   template< typename CP >
-   const blaze::StaticMatrix<T,M,N,SO> operator()( const CP& policy ) const;
    //@}
    //**********************************************************************************************
 
@@ -145,27 +140,7 @@ template< typename T  // Element type of the static matrix
         , size_t M    // Number of rows of the static matrix
         , size_t N    // Number of columns of the static matrix
         , bool SO >   // Storage order of the static matrix
-inline const blaze::StaticMatrix<T,M,N,SO>
-   Creator< blaze::StaticMatrix<T,M,N,SO> >::operator()() const
-{
-   return (*this)( Default() );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Returns a randomly created static matrix.
-//
-// \param policy The creation policy for the elements of fundamental data type.
-// \return The randomly generated static matrix.
-*/
-template< typename T     // Element type of the static matrix
-        , size_t M       // Number of rows of the static matrix
-        , size_t N       // Number of columns of the static matrix
-        , bool SO >      // Storage order of the static matrix
-template< typename CP >  // Creation policy
-inline const blaze::StaticMatrix<T,M,N,SO>
-   Creator< blaze::StaticMatrix<T,M,N,SO> >::operator()( const CP& policy ) const
+inline const blaze::StaticMatrix<T,M,N,SO> Creator< blaze::StaticMatrix<T,M,N,SO> >::operator()() const
 {
    blaze::StaticMatrix<T,M,N,SO> matrix;
 
@@ -173,14 +148,14 @@ inline const blaze::StaticMatrix<T,M,N,SO>
    if( SO ) {
       for( size_t j=0UL; j<N; ++j )
          for( size_t i=0UL; i<M; ++i )
-            matrix(i,j) = ec_( policy );
+            matrix(i,j) = ec_();
    }
 
    // Initialization of a row-major matrix
    else {
       for( size_t i=0UL; i<M; ++i )
          for( size_t j=0UL; j<N; ++j )
-            matrix(i,j) = ec_( policy );
+            matrix(i,j) = ec_();
    }
 
    return matrix;

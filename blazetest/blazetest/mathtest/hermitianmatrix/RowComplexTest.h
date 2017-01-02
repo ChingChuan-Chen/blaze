@@ -45,10 +45,11 @@
 #include <string>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/CompressedVector.h>
+#include <blaze/math/DenseRow.h>
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/DynamicVector.h>
 #include <blaze/math/HermitianMatrix.h>
-#include <blaze/math/Row.h>
+#include <blaze/math/SparseRow.h>
 #include <blaze/math/traits/RowExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blazetest/system/Types.h>
@@ -162,7 +163,7 @@ class RowComplexTest
 template< typename HT >  // Type of the Hermitian matrix
 void RowComplexTest::testAssignment()
 {
-   typedef blaze::RowExprTrait_<HT>  RT;
+   typedef typename blaze::RowExprTrait<HT>::Type  RT;
 
 
    //=====================================================================================
@@ -339,7 +340,7 @@ void RowComplexTest::testAssignment()
 template< typename HT >  // Type of the Hermitian matrix
 void RowComplexTest::testAddAssign()
 {
-   typedef blaze::RowExprTrait_<HT>  RT;
+   typedef typename blaze::RowExprTrait<HT>::Type  RT;
 
 
    //=====================================================================================
@@ -516,7 +517,7 @@ void RowComplexTest::testAddAssign()
 template< typename HT >  // Type of the Hermitian matrix
 void RowComplexTest::testSubAssign()
 {
-   typedef blaze::RowExprTrait_<HT>  RT;
+   typedef typename blaze::RowExprTrait<HT>::Type  RT;
 
 
    //=====================================================================================
@@ -693,7 +694,7 @@ void RowComplexTest::testSubAssign()
 template< typename HT >  // Type of the Hermitian matrix
 void RowComplexTest::testMultAssign()
 {
-   typedef blaze::RowExprTrait_<HT>  RT;
+   typedef typename blaze::RowExprTrait<HT>::Type  RT;
 
 
    //=====================================================================================
@@ -1010,7 +1011,7 @@ void runTest()
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Macro for the execution of the HermitianMatrix row complex test.
+/*!\brief Macro for the execution of the complex HermitianMatrix row test.
 */
 #define RUN_HERMITIANMATRIX_ROWCOMPLEX_TEST \
    blazetest::mathtest::hermitianmatrix::runTest()

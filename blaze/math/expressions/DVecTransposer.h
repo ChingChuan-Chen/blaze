@@ -40,22 +40,21 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/Computation.h>
 #include <blaze/math/constraints/DenseVector.h>
 #include <blaze/math/constraints/TransposeFlag.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/DenseVector.h>
-#include <blaze/math/simd/SIMDTrait.h>
+#include <blaze/math/intrinsics/IntrinsicTrait.h>
 #include <blaze/math/traits/SubvectorTrait.h>
 #include <blaze/math/typetraits/IsAligned.h>
 #include <blaze/math/typetraits/IsPadded.h>
 #include <blaze/system/Inline.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/EnableIf.h>
-#include <blaze/util/IntegralConstant.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/typetraits/IsNumeric.h>
+#include <blaze/util/valuetraits/IsTrue.h>
 
 
 namespace blaze {
@@ -76,35 +75,40 @@ template< typename VT  // Type of the dense vector
         , bool TF >    // Transpose flag
 class DVecTransposer : public DenseVector< DVecTransposer<VT,TF>, TF >
 {
+ private:
+   //**Type definitions****************************************************************************
+   typedef IntrinsicTrait<typename VT::ElementType>  IT;  //!< Intrinsic trait for the vector element type.
+   //**********************************************************************************************
+
  public:
    //**Type definitions****************************************************************************
-   typedef DVecTransposer<VT,TF>    This;            //!< Type of this DVecTransposer instance.
-   typedef TransposeType_<VT>       ResultType;      //!< Result type for expression template evaluations.
-   typedef ResultType_<VT>          TransposeType;   //!< Transpose type for expression template evaluations.
-   typedef ElementType_<VT>         ElementType;     //!< Type of the vector elements.
-   typedef SIMDTrait_<ElementType>  SIMDType;        //!< SIMD type of the vector elements.
-   typedef ReturnType_<VT>          ReturnType;      //!< Return type for expression template evaluations.
-   typedef const This&              CompositeType;   //!< Data type for composite expression templates.
-   typedef Reference_<VT>           Reference;       //!< Reference to a non-constant vector value.
-   typedef ConstReference_<VT>      ConstReference;  //!< Reference to a constant vector value.
-   typedef Pointer_<VT>             Pointer;         //!< Pointer to a non-constant vector value.
-   typedef ConstPointer_<VT>        ConstPointer;    //!< Pointer to a constant vector value.
-   typedef Iterator_<VT>            Iterator;        //!< Iterator over non-constant elements.
-   typedef ConstIterator_<VT>       ConstIterator;   //!< Iterator over constant elements.
+   typedef DVecTransposer<VT,TF>        This;            //!< Type of this DVecTransposer instance.
+   typedef typename VT::TransposeType   ResultType;      //!< Result type for expression template evaluations.
+   typedef typename VT::ResultType      TransposeType;   //!< Transpose type for expression template evaluations.
+   typedef typename VT::ElementType     ElementType;     //!< Type of the vector elements.
+   typedef typename IT::Type            IntrinsicType;   //!< Intrinsic type of the vector elements.
+   typedef typename VT::ReturnType      ReturnType;      //!< Return type for expression template evaluations.
+   typedef const This&                  CompositeType;   //!< Data type for composite expression templates.
+   typedef typename VT::Reference       Reference;       //!< Reference to a non-constant vector value.
+   typedef typename VT::ConstReference  ConstReference;  //!< Reference to a constant vector value.
+   typedef typename VT::Pointer         Pointer;         //!< Pointer to a non-constant vector value.
+   typedef typename VT::ConstPointer    ConstPointer;    //!< Pointer to a constant vector value.
+   typedef typename VT::Iterator        Iterator;        //!< Iterator over non-constant elements.
+   typedef typename VT::ConstIterator   ConstIterator;   //!< Iterator over constant elements.
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
-   //! Compilation flag for SIMD optimization.
-   /*! The \a simdEnabled compilation flag indicates whether expressions the vector is involved
-       in can be optimized via SIMD operations. In case the dense vector operand is vectorizable,
-       the \a simdEnabled compilation flag is set to \a true, otherwise it is set to \a false. */
-   enum : bool { simdEnabled = VT::simdEnabled };
+   //! Compilation flag for intrinsic optimization.
+   /*! The \a vectorizable compilation flag indicates whether expressions the vector is involved
+       in can be optimized via intrinsics. In case the dense vector operand is vectorizable, the
+       \a vectorizable compilation flag is set to \a true, otherwise it is set to \a false. */
+   enum { vectorizable = VT::vectorizable };
 
    //! Compilation flag for SMP assignments.
    /*! The \a smpAssignable compilation flag indicates whether the vector can be used in SMP
        (shared memory parallel) assignments (both on the left-hand and right-hand side of the
        assignment). */
-   enum : bool { smpAssignable = VT::smpAssignable };
+   enum { smpAssignable = VT::smpAssignable };
    //**********************************************************************************************
 
    //**Constructor*********************************************************************************
@@ -112,7 +116,7 @@ class DVecTransposer : public DenseVector< DVecTransposer<VT,TF>, TF >
    //
    // \param dv The dense vector operand.
    */
-   explicit inline DVecTransposer( VT& dv ) noexcept
+   explicit inline DVecTransposer( VT& dv )
       : dv_( dv )  // The dense vector operand
    {}
    //**********************************************************************************************
@@ -176,7 +180,7 @@ class DVecTransposer : public DenseVector< DVecTransposer<VT,TF>, TF >
    //
    // \return Pointer to the internal element storage.
    */
-   inline Pointer data() noexcept {
+   inline Pointer data() {
       return dv_.data();
    }
    //**********************************************************************************************
@@ -186,7 +190,7 @@ class DVecTransposer : public DenseVector< DVecTransposer<VT,TF>, TF >
    //
    // \return Pointer to the internal element storage.
    */
-   inline ConstPointer data() const noexcept {
+   inline ConstPointer data() const {
       return dv_.data();
    }
    //**********************************************************************************************
@@ -259,7 +263,7 @@ class DVecTransposer : public DenseVector< DVecTransposer<VT,TF>, TF >
    // \return Reference to this DVecTransposer.
    */
    template< typename Other >  // Data type of the right-hand side scalar
-   inline EnableIf_< IsNumeric<Other>, DVecTransposer >& operator*=( Other rhs )
+   inline typename EnableIf< IsNumeric<Other>, DVecTransposer >::Type& operator*=( Other rhs )
    {
       (~dv_) *= rhs;
       return *this;
@@ -273,10 +277,10 @@ class DVecTransposer : public DenseVector< DVecTransposer<VT,TF>, TF >
    // \param rhs The right-hand side scalar value for the division.
    // \return Reference to this DVecTransposer.
    //
-   // \note A division by zero is only checked by an user assert.
+   // \note: A division by zero is only checked by an user assert.
    */
    template< typename Other >  // Data type of the right-hand side scalar
-   inline EnableIf_< IsNumeric<Other>, DVecTransposer >& operator/=( Other rhs )
+   inline typename EnableIf< IsNumeric<Other>, DVecTransposer >::Type& operator/=( Other rhs )
    {
       BLAZE_USER_ASSERT( rhs != Other(0), "Division by zero detected" );
 
@@ -290,7 +294,7 @@ class DVecTransposer : public DenseVector< DVecTransposer<VT,TF>, TF >
    //
    // \return The size of the vector.
    */
-   inline size_t size() const noexcept {
+   inline size_t size() const {
       return dv_.size();
    }
    //**********************************************************************************************
@@ -312,7 +316,7 @@ class DVecTransposer : public DenseVector< DVecTransposer<VT,TF>, TF >
    // \return \a true in case the alias corresponds to this vector, \a false if not.
    */
    template< typename Other >  // Data type of the foreign expression
-   inline bool canAlias( const Other* alias ) const noexcept
+   inline bool canAlias( const Other* alias ) const
    {
       return dv_.canAlias( alias );
    }
@@ -325,7 +329,7 @@ class DVecTransposer : public DenseVector< DVecTransposer<VT,TF>, TF >
    // \return \a true in case the alias corresponds to this vector, \a false if not.
    */
    template< typename Other >  // Data type of the foreign expression
-   inline bool isAliased( const Other* alias ) const noexcept
+   inline bool isAliased( const Other* alias ) const
    {
       return dv_.isAliased( alias );
    }
@@ -336,7 +340,7 @@ class DVecTransposer : public DenseVector< DVecTransposer<VT,TF>, TF >
    //
    // \return \a true in case the vector is aligned, \a false if not.
    */
-   inline bool isAligned() const noexcept
+   inline bool isAligned() const
    {
       return dv_.isAligned();
    }
@@ -347,123 +351,123 @@ class DVecTransposer : public DenseVector< DVecTransposer<VT,TF>, TF >
    //
    // \return \a true in case the vector can be used in SMP assignments, \a false if not.
    */
-   inline bool canSMPAssign() const noexcept
+   inline bool canSMPAssign() const
    {
       return dv_.canSMPAssign();
    }
    //**********************************************************************************************
 
    //**Load function*******************************************************************************
-   /*!\brief Load of a SIMD element of the vector.
+   /*!\brief Load of an intrinsic element of the vector.
    //
    // \param index Access index. The index must be smaller than the number of vector elements.
-   // \return The loaded SIMD element.
+   // \return The loaded intrinsic element.
    //
    // This function must \b NOT be called explicitly! It is used internally for the performance
    // optimized evaluation of expression templates. Calling this function explicitly might result
    // in erroneous results and/or in compilation errors.
    */
-   BLAZE_ALWAYS_INLINE SIMDType load( size_t index ) const noexcept
+   BLAZE_ALWAYS_INLINE IntrinsicType load( size_t index ) const
    {
       return dv_.load( index );
    }
    //**********************************************************************************************
 
    //**Loada function******************************************************************************
-   /*!\brief Aligned load of a SIMD element of the vector.
+   /*!\brief Aligned load of an intrinsic element of the vector.
    //
    // \param index Access index. The index must be smaller than the number of vector elements.
-   // \return The loaded SIMD element.
+   // \return The loaded intrinsic element.
    //
    // This function must \b NOT be called explicitly! It is used internally for the performance
    // optimized evaluation of expression templates. Calling this function explicitly might result
    // in erroneous results and/or in compilation errors.
    */
-   BLAZE_ALWAYS_INLINE SIMDType loada( size_t index ) const noexcept
+   BLAZE_ALWAYS_INLINE IntrinsicType loada( size_t index ) const
    {
       return dv_.loada( index );
    }
    //**********************************************************************************************
 
    //**Loadu function******************************************************************************
-   /*!\brief Unaligned load of a SIMD element of the vector.
+   /*!\brief Unaligned load of an intrinsic element of the vector.
    //
    // \param index Access index. The index must be smaller than the number of vector elements.
-   // \return The loaded SIMD element.
+   // \return The loaded intrinsic element.
    //
    // This function must \b NOT be called explicitly! It is used internally for the performance
    // optimized evaluation of expression templates. Calling this function explicitly might result
    // in erroneous results and/or in compilation errors.
    */
-   BLAZE_ALWAYS_INLINE SIMDType loadu( size_t index ) const noexcept
+   BLAZE_ALWAYS_INLINE IntrinsicType loadu( size_t index ) const
    {
       return dv_.loadu( index );
    }
    //**********************************************************************************************
 
    //**Store function******************************************************************************
-   /*!\brief Store of a SIMD element of the vector.
+   /*!\brief Store of an intrinsic element of the vector.
    //
    // \param index Access index. The index must be smaller than the number of vector elements.
-   // \param value The SIMD element to be stored.
+   // \param value The intrinsic element to be stored.
    // \return void
    //
    // This function must \b NOT be called explicitly! It is used internally for the performance
    // optimized evaluation of expression templates. Calling this function explicitly might result
    // in erroneous results and/or in compilation errors.
    */
-   BLAZE_ALWAYS_INLINE void store( size_t index, const SIMDType& value ) noexcept
+   BLAZE_ALWAYS_INLINE void store( size_t index, const IntrinsicType& value )
    {
       dv_.store( index, value );
    }
    //**********************************************************************************************
 
    //**Storea function******************************************************************************
-   /*!\brief Aligned store of a SIMD element of the vector.
+   /*!\brief Aligned store of an intrinsic element of the vector.
    //
    // \param index Access index. The index must be smaller than the number of vector elements.
-   // \param value The SIMD element to be stored.
+   // \param value The intrinsic element to be stored.
    // \return void
    //
    // This function must \b NOT be called explicitly! It is used internally for the performance
    // optimized evaluation of expression templates. Calling this function explicitly might result
    // in erroneous results and/or in compilation errors.
    */
-   BLAZE_ALWAYS_INLINE void storea( size_t index, const SIMDType& value ) noexcept
+   BLAZE_ALWAYS_INLINE void storea( size_t index, const IntrinsicType& value )
    {
       dv_.storea( index, value );
    }
    //**********************************************************************************************
 
    //**Storeu function*****************************************************************************
-   /*!\brief Unaligned store of a SIMD element of the vector.
+   /*!\brief Unaligned store of an intrinsic element of the vector.
    //
    // \param index Access index. The index must be smaller than the number of vector elements.
-   // \param value The SIMD element to be stored.
+   // \param value The intrinsic element to be stored.
    // \return void
    //
    // This function must \b NOT be called explicitly! It is used internally for the performance
    // optimized evaluation of expression templates. Calling this function explicitly might result
    // in erroneous results and/or in compilation errors.
    */
-   BLAZE_ALWAYS_INLINE void storeu( size_t index, const SIMDType& value ) noexcept
+   BLAZE_ALWAYS_INLINE void storeu( size_t index, const IntrinsicType& value )
    {
       dv_.storeu( index, value );
    }
    //**********************************************************************************************
 
    //**Stream function*****************************************************************************
-   /*!\brief Aligned, non-temporal store of a SIMD element of the vector.
+   /*!\brief Aligned, non-temporal store of an intrinsic element of the vector.
    //
    // \param index Access index. The index must be smaller than the number of vector elements.
-   // \param value The SIMD element to be stored.
+   // \param value The intrinsic element to be stored.
    // \return void
    //
    // This function must \b NOT be called explicitly! It is used internally for the performance
    // optimized evaluation of expression templates. Calling this function explicitly might result
    // in erroneous results and/or in compilation errors.
    */
-   BLAZE_ALWAYS_INLINE void stream( size_t index, const SIMDType& value ) noexcept
+   BLAZE_ALWAYS_INLINE void stream( size_t index, const IntrinsicType& value )
    {
       dv_.stream( index, value );
    }
@@ -519,7 +523,7 @@ class DVecTransposer : public DenseVector< DVecTransposer<VT,TF>, TF >
 
       BLAZE_INTERNAL_ASSERT( dv_.size() == (~rhs).size(), "Invalid vector sizes" );
 
-      typedef ConstIterator_<VT2>  RhsConstIterator;
+      typedef typename VT2::ConstIterator  RhsConstIterator;
 
       for( RhsConstIterator element=(~rhs).begin(); element!=(~rhs).end(); ++element )
          dv_[element->index()] = element->value();
@@ -576,7 +580,7 @@ class DVecTransposer : public DenseVector< DVecTransposer<VT,TF>, TF >
 
       BLAZE_INTERNAL_ASSERT( dv_.size() == (~rhs).size(), "Invalid vector sizes" );
 
-      typedef ConstIterator_<VT2>  RhsConstIterator;
+      typedef typename VT2::ConstIterator  RhsConstIterator;
 
       for( RhsConstIterator element=(~rhs).begin(); element!=(~rhs).end(); ++element )
          dv_[element->index()] += element->value();
@@ -633,7 +637,7 @@ class DVecTransposer : public DenseVector< DVecTransposer<VT,TF>, TF >
 
       BLAZE_INTERNAL_ASSERT( dv_.size() == (~rhs).size(), "Invalid vector sizes" );
 
-      typedef ConstIterator_<VT2>  RhsConstIterator;
+      typedef typename VT2::ConstIterator  RhsConstIterator;
 
       for( RhsConstIterator element=(~rhs).begin(); element!=(~rhs).end(); ++element )
          dv_[element->index()] -= element->value();
@@ -690,45 +694,13 @@ class DVecTransposer : public DenseVector< DVecTransposer<VT,TF>, TF >
 
       BLAZE_INTERNAL_ASSERT( dv_.size() == (~rhs).size(), "Invalid vector sizes" );
 
-      typedef ConstIterator_<VT2>  RhsConstIterator;
+      typedef typename VT2::ConstIterator  RhsConstIterator;
 
       const VT tmp( dv_ );
       dv_.reset();
 
       for( RhsConstIterator element=(~rhs).begin(); element!=(~rhs).end(); ++element )
          dv_[element->index()] = tmp[element->index()] * element->value();
-   }
-   //**********************************************************************************************
-
-   //**Transpose division assignment of dense vectors**********************************************
-   /*!\brief Implementation of the transpose division assignment of a dense vector.
-   //
-   // \param rhs The right-hand side dense vector divisor.
-   // \return void
-   //
-   // This function must \b NOT be called explicitly! It is used internally for the performance
-   // optimized evaluation of expression templates. Calling this function explicitly might result
-   // in erroneous results and/or in compilation errors. Instead of using this function use the
-   // assignment operator.
-   */
-   template< typename VT2 >  // Type of the right-hand side dense vector
-   inline void divAssign( const DenseVector<VT2,TF>& rhs )
-   {
-      BLAZE_CONSTRAINT_MUST_BE_VECTOR_WITH_TRANSPOSE_FLAG( VT2, TF );
-
-      BLAZE_INTERNAL_ASSERT( dv_.size() == (~rhs).size(), "Invalid vector sizes" );
-
-      const size_t n( size() );
-
-      const size_t ipos( n & size_t(-2) );
-      BLAZE_INTERNAL_ASSERT( ( n - ( n % 2UL ) ) == ipos, "Invalid end calculation" );
-
-      for( size_t i=0UL; i<ipos; i+=2UL ) {
-         dv_[i    ] /= (~rhs)[i    ];
-         dv_[i+1UL] /= (~rhs)[i+1UL];
-      }
-      if( ipos < n )
-         dv_[ipos] /= (~rhs)[ipos];
    }
    //**********************************************************************************************
 
@@ -785,8 +757,7 @@ inline void reset( DVecTransposer<VT,TF>& v )
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename VT, bool TF >
-struct IsAligned< DVecTransposer<VT,TF> >
-   : public BoolConstant< IsAligned<VT>::value >
+struct IsAligned< DVecTransposer<VT,TF> > : public IsTrue< IsAligned<VT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -803,8 +774,7 @@ struct IsAligned< DVecTransposer<VT,TF> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename VT, bool TF >
-struct IsPadded< DVecTransposer<VT,TF> >
-   : public BoolConstant< IsPadded<VT>::value >
+struct IsPadded< DVecTransposer<VT,TF> > : public IsTrue< IsPadded<VT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -823,7 +793,7 @@ struct IsPadded< DVecTransposer<VT,TF> >
 template< typename VT, bool TF >
 struct SubvectorTrait< DVecTransposer<VT,TF> >
 {
-   using Type = SubvectorTrait_< ResultType_< DVecTransposer<VT,TF> > >;
+   typedef typename SubvectorTrait< typename DVecTransposer<VT,TF>::ResultType >::Type  Type;
 };
 /*! \endcond */
 //*************************************************************************************************

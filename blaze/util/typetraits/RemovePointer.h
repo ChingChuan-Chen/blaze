@@ -40,7 +40,7 @@
 // Includes
 //*************************************************************************************************
 
-#include <type_traits>
+#include <boost/type_traits/remove_pointer.hpp>
 
 
 namespace blaze {
@@ -55,14 +55,14 @@ namespace blaze {
 /*!\brief Removal of pointer modifiers.
 // \ingroup type_traits
 //
-// The RemovePointer type trait removes any pointer modifiers from the given type \a T.
+// The RemoveCV type trait removes any pointer modifiers from the given type \a T.
 
    \code
-   blaze::RemovePointer<int>::Type             // Results in 'int'
-   blaze::RemovePointer<const int*>::Type      // Results in 'const int'
-   blaze::RemovePointer<volatile int**>::Type  // Results in 'volatile int*'
-   blaze::RemovePointer<int&>::Type            // Results in 'int&'
-   blaze::RemovePointer<int*&>::Type           // Results in 'int*&'
+   blaze::RemoveCV<int>::Type             // Results in 'int'
+   blaze::RemoveCV<const int*>::Type      // Results in 'const int'
+   blaze::RemoveCV<volatile int**>::Type  // Results in 'volatile int*'
+   blaze::RemoveCV<int&>::Type            // Results in 'int&'
+   blaze::RemoveCV<int*&>::Type           // Results in 'int*&'
    \endcode
 */
 template< typename T >
@@ -71,28 +71,10 @@ struct RemovePointer
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   typedef typename std::remove_pointer<T>::type  Type;
+   typedef typename boost::remove_pointer<T>::type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the RemovePointer type trait.
-// \ingroup type_traits
-//
-// The RemovePointer_ alias declaration provides a convenient shortcut to access the nested
-// \a Type of the RemovePointer class template. For instance, given the type \a T the following
-// two type definitions are identical:
-
-   \code
-   using Type1 = typename RemovePointer<T>::Type;
-   using Type2 = RemovePointer_<T>;
-   \endcode
-*/
-template< typename T >
-using RemovePointer_ = typename RemovePointer<T>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

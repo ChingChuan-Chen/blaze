@@ -41,16 +41,14 @@
 //*************************************************************************************************
 
 #include <cmath>
-#include <blaze/math/Aliases.h>
 #include <blaze/math/expressions/DenseVector.h>
 #include <blaze/math/expressions/SparseVector.h>
 #include <blaze/math/Functions.h>
 #include <blaze/math/shims/Equal.h>
 #include <blaze/math/shims/IsDefault.h>
-#include <blaze/math/shims/IsDivisor.h>
 #include <blaze/math/shims/IsNaN.h>
-#include <blaze/math/shims/Sqrt.h>
 #include <blaze/math/shims/Square.h>
+#include <blaze/math/traits/CMathTrait.h>
 #include <blaze/math/TransposeFlag.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/constraints/Numeric.h>
@@ -81,10 +79,12 @@ template< typename T1, bool TF1, typename T2, bool TF2 >
 inline bool operator==( const SparseVector<T1,TF1>& lhs, const DenseVector<T2,TF2>& rhs );
 
 template< typename T1, typename T2, bool TF >
-inline EnableIf_<IsNumeric<T2>, bool > operator==( const DenseVector<T1,TF>& vec, T2 scalar );
+inline typename EnableIf< IsNumeric<T2>, bool >::Type
+   operator==( const DenseVector<T1,TF>& vec, T2 scalar );
 
 template< typename T1, typename T2, bool TF >
-inline EnableIf_<IsNumeric<T1>, bool > operator==( T1 scalar, const DenseVector<T2,TF>& vec );
+inline typename EnableIf< IsNumeric<T1>, bool >::Type
+   operator==( T1 scalar, const DenseVector<T2,TF>& vec );
 
 template< typename T1, bool TF1, typename T2, bool TF2 >
 inline bool operator!=( const DenseVector<T1,TF1>& lhs, const DenseVector<T2,TF2>& rhs );
@@ -96,10 +96,12 @@ template< typename T1, bool TF1, typename T2, bool TF2 >
 inline bool operator!=( const SparseVector<T1,TF1>& lhs, const DenseVector<T2,TF2>& rhs );
 
 template< typename T1, typename T2, bool TF >
-inline EnableIf_<IsNumeric<T2>, bool > operator!=( const DenseVector<T1,TF>& vec, T2 scalar );
+inline typename EnableIf< IsNumeric<T2>, bool >::Type
+   operator!=( const DenseVector<T1,TF>& vec, T2 scalar );
 
 template< typename T1, typename T2, bool TF >
-inline EnableIf_<IsNumeric<T1>, bool > operator!=( T1 scalar, const DenseVector<T2,TF>& vec );
+inline typename EnableIf< IsNumeric<T1>, bool >::Type
+   operator!=( T1 scalar, const DenseVector<T2,TF>& vec );
 //@}
 //*************************************************************************************************
 
@@ -118,8 +120,8 @@ template< typename T1  // Type of the left-hand side dense vector
         , bool TF2 >   // Transpose flag of the right-hand side dense vector
 inline bool operator==( const DenseVector<T1,TF1>& lhs, const DenseVector<T2,TF2>& rhs )
 {
-   typedef CompositeType_<T1>  CT1;
-   typedef CompositeType_<T2>  CT2;
+   typedef typename T1::CompositeType  CT1;
+   typedef typename T2::CompositeType  CT2;
 
    // Early exit in case the vector sizes don't match
    if( (~lhs).size() != (~rhs).size() ) return false;
@@ -151,9 +153,9 @@ template< typename T1  // Type of the left-hand side dense vector
         , bool TF2 >   // Transpose flag of the right-hand side sparse vector
 inline bool operator==( const DenseVector<T1,TF1>& lhs, const SparseVector<T2,TF2>& rhs )
 {
-   typedef CompositeType_<T1>  CT1;
-   typedef CompositeType_<T2>  CT2;
-   typedef ConstIterator_< RemoveReference_<CT2> >  ConstIterator;
+   typedef typename T1::CompositeType  CT1;
+   typedef typename T2::CompositeType  CT2;
+   typedef typename RemoveReference<CT2>::Type::ConstIterator  ConstIterator;
 
    // Early exit in case the vector sizes don't match
    if( (~lhs).size() != (~rhs).size() ) return false;
@@ -215,9 +217,10 @@ inline bool operator==( const SparseVector<T1,TF1>& lhs, const DenseVector<T2,TF
 template< typename T1  // Type of the left-hand side dense vector
         , typename T2  // Type of the right-hand side scalar
         , bool TF >    // Transpose flag
-inline EnableIf_<IsNumeric<T2>, bool > operator==( const DenseVector<T1,TF>& vec, T2 scalar )
+inline typename EnableIf< IsNumeric<T2>, bool >::Type
+   operator==( const DenseVector<T1,TF>& vec, T2 scalar )
 {
-   typedef CompositeType_<T1>  CT1;
+   typedef typename T1::CompositeType  CT1;
 
    // Evaluation of the dense vector operand
    CT1 a( ~vec );
@@ -246,7 +249,8 @@ inline EnableIf_<IsNumeric<T2>, bool > operator==( const DenseVector<T1,TF>& vec
 template< typename T1  // Type of the left-hand side scalar
         , typename T2  // Type of the right-hand side dense vector
         , bool TF >    // Transpose flag
-inline EnableIf_<IsNumeric<T1>, bool > operator==( T1 scalar, const DenseVector<T2,TF>& vec )
+inline typename EnableIf< IsNumeric<T1>, bool >::Type
+   operator==( T1 scalar, const DenseVector<T2,TF>& vec )
 {
    return ( vec == scalar );
 }
@@ -325,7 +329,8 @@ inline bool operator!=( const SparseVector<T1,TF1>& lhs, const DenseVector<T2,TF
 template< typename T1  // Type of the left-hand side dense vector
         , typename T2  // Type of the right-hand side scalar
         , bool TF >    // Transpose flag
-inline EnableIf_<IsNumeric<T2>, bool > operator!=( const DenseVector<T1,TF>& vec, T2 scalar )
+inline typename EnableIf< IsNumeric<T2>, bool >::Type
+   operator!=( const DenseVector<T1,TF>& vec, T2 scalar )
 {
    return !( vec == scalar );
 }
@@ -347,7 +352,8 @@ inline EnableIf_<IsNumeric<T2>, bool > operator!=( const DenseVector<T1,TF>& vec
 template< typename T1  // Type of the left-hand side scalar
         , typename T2  // Type of the right-hand side vector
         , bool TF >    // Transpose flag
-inline EnableIf_<IsNumeric<T1>, bool > operator!=( T1 scalar, const DenseVector<T2,TF>& vec )
+inline typename EnableIf< IsNumeric<T1>, bool >::Type
+   operator!=( T1 scalar, const DenseVector<T2,TF>& vec )
 {
    return !( vec == scalar );
 }
@@ -369,22 +375,19 @@ template< typename VT, bool TF >
 bool isnan( const DenseVector<VT,TF>& dv );
 
 template< typename VT, bool TF >
-bool isDivisor( const DenseVector<VT,TF>& dv );
-
-template< typename VT, bool TF >
 bool isUniform( const DenseVector<VT,TF>& dv );
 
 template< typename VT, bool TF >
-const ElementType_<VT> sqrLength( const DenseVector<VT,TF>& dv );
+typename CMathTrait<typename VT::ElementType>::Type length( const DenseVector<VT,TF>& dv );
 
 template< typename VT, bool TF >
-inline auto length( const DenseVector<VT,TF>& dv ) -> decltype( sqrt( sqrLength( ~dv ) ) );
+const typename VT::ElementType sqrLength( const DenseVector<VT,TF>& dv );
 
 template< typename VT, bool TF >
-const ElementType_<VT> min( const DenseVector<VT,TF>& dv );
+const typename VT::ElementType min( const DenseVector<VT,TF>& dv );
 
 template< typename VT, bool TF >
-const ElementType_<VT> max( const DenseVector<VT,TF>& dv );
+const typename VT::ElementType max( const DenseVector<VT,TF>& dv );
 //@}
 //*************************************************************************************************
 
@@ -413,42 +416,14 @@ template< typename VT  // Type of the dense vector
         , bool TF >    // Transpose flag
 bool isnan( const DenseVector<VT,TF>& dv )
 {
-   CompositeType_<VT> a( ~dv );  // Evaluation of the dense vector operand
+   typedef typename VT::CompositeType  CT;
+
+   CT a( ~dv );  // Evaluation of the dense vector operand
 
    for( size_t i=0UL; i<a.size(); ++i ) {
       if( isnan( a[i] ) ) return true;
    }
    return false;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Returns whether the given dense vector is a valid divisor.
-// \ingroup dense_vector
-//
-// \param dv The dense vector to be tested.
-// \return \a true in case the given vector is a valid divisor, \a false otherwise.
-//
-// This function checks if the given dense vector is a valid divisor. If all elements of the
-// vector are valid divisors the function returns \a true, if at least one element of the vector
-// is not a valid divisor, the function returns \a false.
-
-   \code
-   StaticVector<int,3UL> a{ 1, -1, 2 };  // isDivisor( a ) returns true
-   StaticVector<int,3UL> b{ 1, -1, 0 };  // isDivisor( b ) returns false
-   \endcode
-*/
-template< typename VT  // Type of the dense vector
-        , bool TF >    // Transpose flag
-bool isDivisor( const DenseVector<VT,TF>& dv )
-{
-   CompositeType_<VT> a( ~dv );  // Evaluation of the dense vector operand
-
-   for( size_t i=0UL; i<a.size(); ++i ) {
-      if( !isDivisor( a[i] ) ) return false;
-   }
-   return true;
 }
 //*************************************************************************************************
 
@@ -483,8 +458,8 @@ template< typename VT  // Type of the dense vector
         , bool TF >    // Transpose flag
 bool isUniform( const DenseVector<VT,TF>& dv )
 {
-   typedef CompositeType_<VT>  CT;
-   typedef ConstReference_< RemoveReference_<CT> >  ConstReference;
+   typedef typename VT::CompositeType  CT;
+   typedef typename RemoveReference<CT>::Type::ConstReference  ConstReference;
 
    if( (~dv).size() < 2UL )
       return true;
@@ -504,47 +479,18 @@ bool isUniform( const DenseVector<VT,TF>& dv )
 
 
 //*************************************************************************************************
-/*!\brief Calculation of the dense vector square length \f$|\vec{a}|^2\f$.
-// \ingroup dense_vector
-//
-// \param dv The given dense vector.
-// \return The square length of the dense vector.
-//
-// This function calculates the actual square length of the dense vector.
-//
-// \note This operation is only defined for numeric data types. In case the element type is
-// not a numeric data type (i.e. a user defined data type or boolean) the attempt to use the
-// sqrLength() function results in a compile time error!
-*/
-template< typename VT  // Type of the dense vector
-        , bool TF >    // Transpose flag
-const ElementType_<VT> sqrLength( const DenseVector<VT,TF>& dv )
-{
-   typedef ElementType_<VT>  ElementType;
-
-   BLAZE_CONSTRAINT_MUST_BE_NUMERIC_TYPE( ElementType );
-
-   ElementType sum( 0 );
-   for( size_t i=0UL; i<(~dv).size(); ++i )
-      sum += sq( (~dv)[i] );
-   return sum;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
 /*!\brief Calculation of the dense vector length \f$|\vec{a}|\f$.
 // \ingroup dense_vector
 //
 // \param dv The given dense vector.
 // \return The length of the dense vector.
 //
-// This function calculates the actual length of the dense vector. The return type of the
-// length() function depends on the actual element type of the vector instance:
+// This function calculates the actual length of the dense vector. The return type of the length()
+// function depends on the actual element type of the vector instance:
 //
 // <table border="0" cellspacing="0" cellpadding="1">
 //    <tr>
-//       <td width="250px"> \b Type </td>
+//       <td width="250px"> \b ElementType </td>
 //       <td width="100px"> \b LengthType </td>
 //    </tr>
 //    <tr>
@@ -559,21 +505,54 @@ const ElementType_<VT> sqrLength( const DenseVector<VT,TF>& dv )
 //       <td>long double</td>
 //       <td>long double</td>
 //    </tr>
-//    <tr>
-//       <td>complex<T></td>
-//       <td>complex<T></td>
-//    </tr>
 // </table>
 //
-// \note This operation is only defined for numeric data types. In case the element type is
+// \note: This operation is only defined for numeric data types. In case the element type is
+// not a numeric data type (i.e. a user defined data type or boolean) the attempt to use the
+// length() function results in a compile time error!
+*/
+template< typename VT  // Type of the dense vector
+        , bool TF >    // Transpose flag
+typename CMathTrait<typename VT::ElementType>::Type length( const DenseVector<VT,TF>& dv )
+{
+   typedef typename VT::ElementType                ElementType;
+   typedef typename CMathTrait<ElementType>::Type  LengthType;
+
+   BLAZE_CONSTRAINT_MUST_BE_NUMERIC_TYPE( ElementType );
+
+   LengthType sum( 0 );
+   for( size_t i=0UL; i<(~dv).size(); ++i )
+      sum += sq( (~dv)[i] );
+   return std::sqrt( sum );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Calculation of the dense vector square length \f$|\vec{a}|^2\f$.
+// \ingroup dense_vector
+//
+// \param dv The given dense vector.
+// \return The square length of the dense vector.
+//
+// This function calculates the actual square length of the dense vector.
+//
+// \note: This operation is only defined for numeric data types. In case the element type is
 // not a numeric data type (i.e. a user defined data type or boolean) the attempt to use the
 // sqrLength() function results in a compile time error!
 */
 template< typename VT  // Type of the dense vector
         , bool TF >    // Transpose flag
-inline auto length( const DenseVector<VT,TF>& dv ) -> decltype( sqrt( sqrLength( ~dv ) ) )
+const typename VT::ElementType sqrLength( const DenseVector<VT,TF>& dv )
 {
-   return sqrt( sqrLength( ~dv ) );
+   typedef typename VT::ElementType  ElementType;
+
+   BLAZE_CONSTRAINT_MUST_BE_NUMERIC_TYPE( ElementType );
+
+   ElementType sum( 0 );
+   for( size_t i=0UL; i<(~dv).size(); ++i )
+      sum += sq( (~dv)[i] );
+   return sum;
 }
 //*************************************************************************************************
 
@@ -592,12 +571,12 @@ inline auto length( const DenseVector<VT,TF>& dv ) -> decltype( sqrt( sqrLength(
 */
 template< typename VT  // Type of the dense vector
         , bool TF >    // Transpose flag
-const ElementType_<VT> min( const DenseVector<VT,TF>& dv )
+const typename VT::ElementType min( const DenseVector<VT,TF>& dv )
 {
    using blaze::min;
 
-   typedef ElementType_<VT>    ET;
-   typedef CompositeType_<VT>  CT;
+   typedef typename VT::ElementType    ET;
+   typedef typename VT::CompositeType  CT;
 
    CT a( ~dv );  // Evaluation of the dense vector operand
 
@@ -625,12 +604,12 @@ const ElementType_<VT> min( const DenseVector<VT,TF>& dv )
 */
 template< typename VT  // Type of the dense vector
         , bool TF >    // Transpose flag
-const ElementType_<VT> max( const DenseVector<VT,TF>& dv )
+const typename VT::ElementType max( const DenseVector<VT,TF>& dv )
 {
    using blaze::max;
 
-   typedef ElementType_<VT>    ET;
-   typedef CompositeType_<VT>  CT;
+   typedef typename VT::ElementType    ET;
+   typedef typename VT::CompositeType  CT;
 
    CT a( ~dv );  // Evaluation of the dense vector operand
 

@@ -44,7 +44,6 @@
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
-#include <blaze/math/Aliases.h>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/constraints/Computation.h>
 #include <blaze/math/constraints/DenseMatrix.h>
@@ -52,28 +51,22 @@
 #include <blaze/math/constraints/SparseMatrix.h>
 #include <blaze/math/constraints/StorageOrder.h>
 #include <blaze/math/DynamicMatrix.h>
-#include <blaze/math/Functors.h>
+#include <blaze/math/LowerMatrix.h>
 #include <blaze/math/shims/Equal.h>
 #include <blaze/math/shims/IsDefault.h>
+#include <blaze/math/StaticMatrix.h>
+#include <blaze/math/SymmetricMatrix.h>
 #include <blaze/math/traits/AddExprTrait.h>
 #include <blaze/math/traits/AddTrait.h>
-#include <blaze/math/typetraits/IsDiagonal.h>
-#include <blaze/math/typetraits/IsHermitian.h>
-#include <blaze/math/typetraits/IsResizable.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
-#include <blaze/math/typetraits/IsSquare.h>
 #include <blaze/math/typetraits/IsSymmetric.h>
-#include <blaze/math/typetraits/IsTriangular.h>
 #include <blaze/math/typetraits/UnderlyingBuiltin.h>
 #include <blaze/math/typetraits/UnderlyingNumeric.h>
+#include <blaze/math/UpperMatrix.h>
 #include <blaze/math/Views.h>
 #include <blaze/util/constraints/Numeric.h>
 #include <blaze/util/constraints/SameType.h>
-#include <blaze/util/FalseType.h>
 #include <blaze/util/mpl/If.h>
-#include <blaze/util/mpl/Or.h>
-#include <blaze/util/TrueType.h>
-#include <blaze/util/typetraits/IsComplex.h>
 #include <blazetest/system/LAPACK.h>
 #include <blazetest/system/MathTest.h>
 #include <blazetest/mathtest/Creator.h>
@@ -109,49 +102,49 @@ class OperationTest
 {
  private:
    //**Type definitions****************************************************************************
-   typedef blaze::ElementType_<MT1>  ET1;  //!< Element type 1
-   typedef blaze::ElementType_<MT2>  ET2;  //!< Element type 2
+   typedef typename MT1::ElementType  ET1;  //!< Element type 1
+   typedef typename MT2::ElementType  ET2;  //!< Element type 2
 
-   typedef blaze::OppositeType_<MT1>    OMT1;   //!< Matrix type 1 with opposite storage order
-   typedef blaze::OppositeType_<MT2>    OMT2;   //!< Matrix type 2 with opposite storage order
-   typedef blaze::TransposeType_<MT1>   TMT1;   //!< Transpose matrix type 1
-   typedef blaze::TransposeType_<MT2>   TMT2;   //!< Transpose matrix type 2
-   typedef blaze::TransposeType_<OMT1>  TOMT1;  //!< Transpose matrix type 1 with opposite storage order
-   typedef blaze::TransposeType_<OMT2>  TOMT2;  //!< Transpose matrix type 2 with opposite storage order
+   typedef typename MT1::OppositeType    OMT1;   //!< Matrix type 1 with opposite storage order
+   typedef typename MT2::OppositeType    OMT2;   //!< Matrix type 2 with opposite storage order
+   typedef typename MT1::TransposeType   TMT1;   //!< Transpose matrix type 1
+   typedef typename MT2::TransposeType   TMT2;   //!< Transpose matrix type 2
+   typedef typename OMT1::TransposeType  TOMT1;  //!< Transpose matrix type 1 with opposite storage order
+   typedef typename OMT2::TransposeType  TOMT2;  //!< Transpose matrix type 2 with opposite storage order
 
    //! Dense result type
-   typedef blaze::AddTrait_<MT1,MT2>  DRE;
+   typedef typename blaze::AddTrait<MT1,MT2>::Type  DRE;
 
-   typedef blaze::ElementType_<DRE>     DET;    //!< Element type of the dense result
-   typedef blaze::OppositeType_<DRE>    ODRE;   //!< Dense result type with opposite storage order
-   typedef blaze::TransposeType_<DRE>   TDRE;   //!< Transpose dense result type
-   typedef blaze::TransposeType_<ODRE>  TODRE;  //!< Transpose dense result type with opposite storage order
+   typedef typename DRE::ElementType     DET;    //!< Element type of the dense result
+   typedef typename DRE::OppositeType    ODRE;   //!< Dense result type with opposite storage order
+   typedef typename DRE::TransposeType   TDRE;   //!< Transpose dense result type
+   typedef typename ODRE::TransposeType  TODRE;  //!< Transpose dense result type with opposite storage order
 
    //! Sparse result type
-   typedef MatchAdaptor_< DRE, blaze::CompressedMatrix<DET,false> >  SRE;
+   typedef typename MatchAdaptor< DRE, blaze::CompressedMatrix<DET,false> >::Type  SRE;
 
-   typedef blaze::ElementType_<SRE>     SET;    //!< Element type of the sparse result
-   typedef blaze::OppositeType_<SRE>    OSRE;   //!< Sparse result type with opposite storage order
-   typedef blaze::TransposeType_<SRE>   TSRE;   //!< Transpose sparse result type
-   typedef blaze::TransposeType_<OSRE>  TOSRE;  //!< Transpose sparse result type with opposite storage order
+   typedef typename SRE::ElementType     SET;    //!< Element type of the sparse result
+   typedef typename SRE::OppositeType    OSRE;   //!< Sparse result type with opposite storage order
+   typedef typename SRE::TransposeType   TSRE;   //!< Transpose sparse result type
+   typedef typename OSRE::TransposeType  TOSRE;  //!< Transpose sparse result type with opposite storage order
 
    typedef blaze::DynamicMatrix<ET1,false>  RT1;  //!< Reference type 1
    typedef blaze::DynamicMatrix<ET2,false>  RT2;  //!< Reference type 2
 
    //! Reference result type
-   typedef MatchSymmetry_< DRE, blaze::AddTrait_<RT1,RT2> >  RRE;
+   typedef typename MatchSymmetry< DRE, typename blaze::AddTrait<RT1,RT2>::Type >::Type  RRE;
 
    //! Type of the matrix/matrix addition expression
-   typedef blaze::AddExprTrait_<MT1,MT2>  MatMatAddExprType;
+   typedef typename blaze::AddExprTrait<MT1,MT2>::Type  MatMatAddExprType;
 
    //! Type of the matrix/transpose matrix addition expression
-   typedef blaze::AddExprTrait_<MT1,OMT2>  MatTMatAddExprType;
+   typedef typename blaze::AddExprTrait<MT1,OMT2>::Type  MatTMatAddExprType;
 
    //! Type of the transpose matrix/matrix addition expression
-   typedef blaze::AddExprTrait_<OMT1,MT2>  TMatMatAddExprType;
+   typedef typename blaze::AddExprTrait<OMT1,MT2>::Type  TMatMatAddExprType;
 
    //! Type of the transpose matrix/transpose matrix addition expression
-   typedef blaze::AddExprTrait_<OMT1,OMT2>  TMatTMatAddExprType;
+   typedef typename blaze::AddExprTrait<OMT1,OMT2>::Type  TMatTMatAddExprType;
    //**********************************************************************************************
 
  public:
@@ -173,35 +166,22 @@ class OperationTest
    //@{
                           void testInitialStatus     ();
                           void testAssignment        ();
-                          void testEvaluation        ();
                           void testElementAccess     ();
                           void testBasicOperation    ();
                           void testNegatedOperation  ();
    template< typename T > void testScaledOperation   ( T scalar );
                           void testTransOperation    ();
-                          void testCTransOperation   ();
                           void testAbsOperation      ();
                           void testConjOperation     ();
+                          void testCTransOperation   ();
                           void testRealOperation     ();
                           void testImagOperation     ();
                           void testInvOperation      ();
                           void testEvalOperation     ();
                           void testSerialOperation   ();
-                          void testDeclSymOperation  ( blaze::TrueType  );
-                          void testDeclSymOperation  ( blaze::FalseType );
-                          void testDeclHermOperation ( blaze::TrueType  );
-                          void testDeclHermOperation ( blaze::FalseType );
-                          void testDeclLowOperation  ( blaze::TrueType  );
-                          void testDeclLowOperation  ( blaze::FalseType );
-                          void testDeclUppOperation  ( blaze::TrueType  );
-                          void testDeclUppOperation  ( blaze::FalseType );
-                          void testDeclDiagOperation ( blaze::TrueType  );
-                          void testDeclDiagOperation ( blaze::FalseType );
                           void testSubmatrixOperation();
                           void testRowOperation      ();
                           void testColumnOperation   ();
-
-   template< typename OP > void testCustomOperation( OP op, const std::string& name );
    //@}
    //**********************************************************************************************
 
@@ -287,30 +267,30 @@ class OperationTest
    BLAZE_CONSTRAINT_MUST_BE_ROW_MAJOR_MATRIX_TYPE   ( TODRE );
    BLAZE_CONSTRAINT_MUST_BE_ROW_MAJOR_MATRIX_TYPE   ( TOSRE );
 
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET1, blaze::ElementType_<OMT1>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET2, blaze::ElementType_<OMT2>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET1, blaze::ElementType_<TMT1>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET2, blaze::ElementType_<TMT2>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET1, blaze::ElementType_<TOMT1>  );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET2, blaze::ElementType_<TOMT2>  );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_<DRE>    );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_<ODRE>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_<TDRE>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_<TODRE>  );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_<SRE>    );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_<SRE>    );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_<OSRE>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_<TSRE>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_<TOSRE>  );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_<DRE>    );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( MT1, blaze::OppositeType_<OMT1>  );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( MT2, blaze::OppositeType_<OMT2>  );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( MT1, blaze::TransposeType_<TMT1> );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( MT2, blaze::TransposeType_<TMT2> );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DRE, blaze::OppositeType_<ODRE>  );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DRE, blaze::TransposeType_<TDRE> );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SRE, blaze::OppositeType_<OSRE>  );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SRE, blaze::TransposeType_<TSRE> );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET1, typename OMT1::ElementType   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET2, typename OMT2::ElementType   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET1, typename TMT1::ElementType   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET2, typename TMT2::ElementType   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET1, typename TOMT1::ElementType  );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET2, typename TOMT2::ElementType  );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, typename DRE::ElementType    );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, typename ODRE::ElementType   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, typename TDRE::ElementType   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, typename TODRE::ElementType  );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, typename SRE::ElementType    );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, typename SRE::ElementType    );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, typename OSRE::ElementType   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, typename TSRE::ElementType   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, typename TOSRE::ElementType  );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, typename DRE::ElementType    );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( MT1, typename OMT1::OppositeType  );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( MT2, typename OMT2::OppositeType  );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( MT1, typename TMT1::TransposeType );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( MT2, typename TMT2::TransposeType );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DRE, typename ODRE::OppositeType  );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DRE, typename TDRE::TransposeType );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SRE, typename OSRE::OppositeType  );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SRE, typename TSRE::TransposeType );
 
    BLAZE_CONSTRAINT_MUST_BE_MATMATADDEXPR_TYPE( MatMatAddExprType   );
    BLAZE_CONSTRAINT_MUST_BE_MATMATADDEXPR_TYPE( MatTMatAddExprType  );
@@ -363,11 +343,10 @@ OperationTest<MT1,MT2>::OperationTest( const Creator<MT1>& creator1, const Creat
    , test_()             // Label of the currently performed test
    , error_()            // Description of the current error type
 {
-   typedef blaze::UnderlyingNumeric_<DET>  Scalar;
+   typedef typename blaze::UnderlyingNumeric<DET>::Type  Scalar;
 
    testInitialStatus();
    testAssignment();
-   testEvaluation();
    testElementAccess();
    testBasicOperation();
    testNegatedOperation();
@@ -377,19 +356,14 @@ OperationTest<MT1,MT2>::OperationTest( const Creator<MT1>& creator1, const Creat
    testScaledOperation( 2.0 );
    testScaledOperation( Scalar( 2 ) );
    testTransOperation();
-   testCTransOperation();
    testAbsOperation();
    testConjOperation();
+   testCTransOperation();
    testRealOperation();
    testImagOperation();
    testInvOperation();
    testEvalOperation();
    testSerialOperation();
-   testDeclSymOperation( blaze::Or< blaze::IsSquare<DRE>, blaze::IsResizable<DRE> >() );
-   testDeclHermOperation( blaze::Or< blaze::IsSquare<DRE>, blaze::IsResizable<DRE> >() );
-   testDeclLowOperation( blaze::Or< blaze::IsSquare<DRE>, blaze::IsResizable<DRE> >() );
-   testDeclUppOperation( blaze::Or< blaze::IsSquare<DRE>, blaze::IsResizable<DRE> >() );
-   testDeclDiagOperation( blaze::Or< blaze::IsSquare<DRE>, blaze::IsResizable<DRE> >() );
    testSubmatrixOperation();
    testRowOperation();
    testColumnOperation();
@@ -688,228 +662,6 @@ void OperationTest<MT1,MT2>::testAssignment()
           << "   Current initialization:\n" << orhs_ << "\n"
           << "   Expected initialization:\n" << refrhs_ << "\n";
       throw std::runtime_error( oss.str() );
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Testing the explicit evaluation.
-//
-// \return void
-// \exception std::runtime_error Evaluation error detected.
-//
-// This function tests the explicit evaluation. In case any error is detected, a
-// \a std::runtime_error exception is thrown.
-*/
-template< typename MT1    // Type of the left-hand side sparse matrix
-        , typename MT2 >  // Type of the right-hand side dense matrix
-void OperationTest<MT1,MT2>::testEvaluation()
-{
-   using blaze::IsRowMajorMatrix;
-
-
-   //=====================================================================================
-   // Testing the evaluation with two row-major matrices
-   //=====================================================================================
-
-   {
-      const auto res   ( evaluate( lhs_    + rhs_    ) );
-      const auto refres( evaluate( reflhs_ + refrhs_ ) );
-
-      if( !isEqual( res, refres ) ) {
-         std::ostringstream oss;
-         oss << " Test: Evaluation with the given matrices\n"
-             << " Error: Failed evaluation\n"
-             << " Details:\n"
-             << "   Left-hand side " << ( IsRowMajorMatrix<MT1>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
-             << "     " << typeid( lhs_ ).name() << "\n"
-             << "   Right-hand side " << ( IsRowMajorMatrix<MT2>::value ? ( "row-major" ) : ( "column-major" ) ) << " dense matrix type:\n"
-             << "     " << typeid( rhs_ ).name() << "\n"
-             << "   Deduced result type:\n"
-             << "     " << typeid( res ).name() << "\n"
-             << "   Deduced reference result type:\n"
-             << "     " << typeid( refres ).name() << "\n"
-             << "   Result:\n" << res << "\n"
-             << "   Expected result:\n" << refres << "\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      const auto res   ( evaluate( eval( lhs_ )    + eval( rhs_ )    ) );
-      const auto refres( evaluate( eval( reflhs_ ) + eval( refrhs_ ) ) );
-
-      if( !isEqual( res, refres ) ) {
-         std::ostringstream oss;
-         oss << " Test: Evaluation with evaluated matrices\n"
-             << " Error: Failed evaluation\n"
-             << " Details:\n"
-             << "   Left-hand side " << ( IsRowMajorMatrix<MT1>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
-             << "     " << typeid( lhs_ ).name() << "\n"
-             << "   Right-hand side " << ( IsRowMajorMatrix<MT2>::value ? ( "row-major" ) : ( "column-major" ) ) << " dense matrix type:\n"
-             << "     " << typeid( rhs_ ).name() << "\n"
-             << "   Deduced result type:\n"
-             << "     " << typeid( res ).name() << "\n"
-             << "   Deduced reference result type:\n"
-             << "     " << typeid( refres ).name() << "\n"
-             << "   Result:\n" << res << "\n"
-             << "   Expected result:\n" << refres << "\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Testing the evaluation with a row-major matrix and a column-major matrix
-   //=====================================================================================
-
-   {
-      const auto res   ( evaluate( lhs_    + orhs_   ) );
-      const auto refres( evaluate( reflhs_ + refrhs_ ) );
-
-      if( !isEqual( res, refres ) ) {
-         std::ostringstream oss;
-         oss << " Test: Evaluation with the given matrices\n"
-             << " Error: Failed evaluation\n"
-             << " Details:\n"
-             << "   Left-hand side " << ( IsRowMajorMatrix<MT1>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
-             << "     " << typeid( lhs_ ).name() << "\n"
-             << "   Right-hand side " << ( IsRowMajorMatrix<OMT2>::value ? ( "row-major" ) : ( "column-major" ) ) << " dense matrix type:\n"
-             << "     " << typeid( orhs_ ).name() << "\n"
-             << "   Deduced result type:\n"
-             << "     " << typeid( res ).name() << "\n"
-             << "   Deduced reference result type:\n"
-             << "     " << typeid( refres ).name() << "\n"
-             << "   Result:\n" << res << "\n"
-             << "   Expected result:\n" << refres << "\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      const auto res   ( evaluate( eval( lhs_ )    + eval( orhs_ )   ) );
-      const auto refres( evaluate( eval( reflhs_ ) + eval( refrhs_ ) ) );
-
-      if( !isEqual( res, refres ) ) {
-         std::ostringstream oss;
-         oss << " Test: Evaluation with the given matrices\n"
-             << " Error: Failed evaluation\n"
-             << " Details:\n"
-             << "   Left-hand side " << ( IsRowMajorMatrix<MT1>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
-             << "     " << typeid( lhs_ ).name() << "\n"
-             << "   Right-hand side " << ( IsRowMajorMatrix<OMT2>::value ? ( "row-major" ) : ( "column-major" ) ) << " dense matrix type:\n"
-             << "     " << typeid( orhs_ ).name() << "\n"
-             << "   Deduced result type:\n"
-             << "     " << typeid( res ).name() << "\n"
-             << "   Deduced reference result type:\n"
-             << "     " << typeid( refres ).name() << "\n"
-             << "   Result:\n" << res << "\n"
-             << "   Expected result:\n" << refres << "\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Testing the evaluation with a column-major matrix and a row-major matrix
-   //=====================================================================================
-
-   {
-      const auto res   ( evaluate( olhs_   + rhs_    ) );
-      const auto refres( evaluate( reflhs_ + refrhs_ ) );
-
-      if( !isEqual( res, refres ) ) {
-         std::ostringstream oss;
-         oss << " Test: Evaluation with the given matrices\n"
-             << " Error: Failed evaluation\n"
-             << " Details:\n"
-             << "   Left-hand side " << ( IsRowMajorMatrix<OMT1>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
-             << "     " << typeid( olhs_ ).name() << "\n"
-             << "   Right-hand side " << ( IsRowMajorMatrix<MT2>::value ? ( "row-major" ) : ( "column-major" ) ) << " dense matrix type:\n"
-             << "     " << typeid( rhs_ ).name() << "\n"
-             << "   Deduced result type:\n"
-             << "     " << typeid( res ).name() << "\n"
-             << "   Deduced reference result type:\n"
-             << "     " << typeid( refres ).name() << "\n"
-             << "   Result:\n" << res << "\n"
-             << "   Expected result:\n" << refres << "\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      const auto res   ( evaluate( eval( olhs_ )   + eval( rhs_ )    ) );
-      const auto refres( evaluate( eval( reflhs_ ) + eval( refrhs_ ) ) );
-
-      if( !isEqual( res, refres ) ) {
-         std::ostringstream oss;
-         oss << " Test: Evaluation with the given matrices\n"
-             << " Error: Failed evaluation\n"
-             << " Details:\n"
-             << "   Left-hand side " << ( IsRowMajorMatrix<OMT1>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
-             << "     " << typeid( olhs_ ).name() << "\n"
-             << "   Right-hand side " << ( IsRowMajorMatrix<MT2>::value ? ( "row-major" ) : ( "column-major" ) ) << " dense matrix type:\n"
-             << "     " << typeid( rhs_ ).name() << "\n"
-             << "   Deduced result type:\n"
-             << "     " << typeid( res ).name() << "\n"
-             << "   Deduced reference result type:\n"
-             << "     " << typeid( refres ).name() << "\n"
-             << "   Result:\n" << res << "\n"
-             << "   Expected result:\n" << refres << "\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Testing the evaluation with two column-major matrices
-   //=====================================================================================
-
-   {
-      const auto res   ( evaluate( olhs_   + orhs_   ) );
-      const auto refres( evaluate( reflhs_ + refrhs_ ) );
-
-      if( !isEqual( res, refres ) ) {
-         std::ostringstream oss;
-         oss << " Test: Evaluation with the given matrices\n"
-             << " Error: Failed evaluation\n"
-             << " Details:\n"
-             << "   Left-hand side " << ( IsRowMajorMatrix<OMT1>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
-             << "     " << typeid( olhs_ ).name() << "\n"
-             << "   Right-hand side " << ( IsRowMajorMatrix<OMT2>::value ? ( "row-major" ) : ( "column-major" ) ) << " dense matrix type:\n"
-             << "     " << typeid( orhs_ ).name() << "\n"
-             << "   Deduced result type:\n"
-             << "     " << typeid( res ).name() << "\n"
-             << "   Deduced reference result type:\n"
-             << "     " << typeid( refres ).name() << "\n"
-             << "   Result:\n" << res << "\n"
-             << "   Expected result:\n" << refres << "\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      const auto res   ( evaluate( eval( olhs_ )   + eval( orhs_ )   ) );
-      const auto refres( evaluate( eval( reflhs_ ) + eval( refrhs_ ) ) );
-
-      if( !isEqual( res, refres ) ) {
-         std::ostringstream oss;
-         oss << " Test: Evaluation with the given matrices\n"
-             << " Error: Failed evaluation\n"
-             << " Details:\n"
-             << "   Left-hand side " << ( IsRowMajorMatrix<OMT1>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
-             << "     " << typeid( olhs_ ).name() << "\n"
-             << "   Right-hand side " << ( IsRowMajorMatrix<OMT2>::value ? ( "row-major" ) : ( "column-major" ) ) << " dense matrix type:\n"
-             << "     " << typeid( orhs_ ).name() << "\n"
-             << "   Deduced result type:\n"
-             << "     " << typeid( res ).name() << "\n"
-             << "   Deduced reference result type:\n"
-             << "     " << typeid( refres ).name() << "\n"
-             << "   Result:\n" << res << "\n"
-             << "   Expected result:\n" << refres << "\n";
-         throw std::runtime_error( oss.str() );
-      }
    }
 }
 //*************************************************************************************************
@@ -3637,6 +3389,822 @@ void OperationTest<MT1,MT2>::testTransOperation()
 
 
 //*************************************************************************************************
+/*!\brief Testing the abs sparse matrix/dense matrix addition.
+//
+// \return void
+// \exception std::runtime_error Addition error detected.
+//
+// This function tests the abs matrix addition with plain assignment, addition assignment,
+// and subtraction assignment. In case any error resulting from the addition or the subsequent
+// assignment is detected, a \a std::runtime_error exception is thrown.
+*/
+template< typename MT1    // Type of the left-hand side sparse matrix
+        , typename MT2 >  // Type of the right-hand side dense matrix
+void OperationTest<MT1,MT2>::testAbsOperation()
+{
+#if BLAZETEST_MATHTEST_TEST_ABS_OPERATION
+   if( BLAZETEST_MATHTEST_TEST_ABS_OPERATION > 1 )
+   {
+      //=====================================================================================
+      // Abs addition
+      //=====================================================================================
+
+      // Abs addition with the given matrices
+      {
+         test_  = "Abs addition with the given matrices";
+         error_ = "Failed addition operation";
+
+         try {
+            initResults();
+            dres_   = abs( lhs_ + rhs_ );
+            odres_  = abs( lhs_ + rhs_ );
+            sres_   = abs( lhs_ + rhs_ );
+            osres_  = abs( lhs_ + rhs_ );
+            refres_ = abs( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = abs( lhs_ + orhs_ );
+            odres_  = abs( lhs_ + orhs_ );
+            sres_   = abs( lhs_ + orhs_ );
+            osres_  = abs( lhs_ + orhs_ );
+            refres_ = abs( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   = abs( olhs_ + rhs_ );
+            odres_  = abs( olhs_ + rhs_ );
+            sres_   = abs( olhs_ + rhs_ );
+            osres_  = abs( olhs_ + rhs_ );
+            refres_ = abs( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = abs( olhs_ + orhs_ );
+            odres_  = abs( olhs_ + orhs_ );
+            sres_   = abs( olhs_ + orhs_ );
+            osres_  = abs( olhs_ + orhs_ );
+            refres_ = abs( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Abs addition with evaluated matrices
+      {
+         test_  = "Abs addition with evaluated matrices";
+         error_ = "Failed addition operation";
+
+         try {
+            initResults();
+            dres_   = abs( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  = abs( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   = abs( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  = abs( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ = abs( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = abs( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  = abs( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   = abs( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  = abs( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ = abs( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   = abs( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  = abs( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   = abs( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  = abs( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ = abs( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = abs( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  = abs( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   = abs( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  = abs( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ = abs( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Abs addition with addition assignment
+      //=====================================================================================
+
+      // Abs addition with addition assignment with the given matrices
+      {
+         test_  = "Abs addition with addition assignment with the given matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += abs( lhs_ + rhs_ );
+            odres_  += abs( lhs_ + rhs_ );
+            sres_   += abs( lhs_ + rhs_ );
+            osres_  += abs( lhs_ + rhs_ );
+            refres_ += abs( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += abs( lhs_ + orhs_ );
+            odres_  += abs( lhs_ + orhs_ );
+            sres_   += abs( lhs_ + orhs_ );
+            osres_  += abs( lhs_ + orhs_ );
+            refres_ += abs( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   += abs( olhs_ + rhs_ );
+            odres_  += abs( olhs_ + rhs_ );
+            sres_   += abs( olhs_ + rhs_ );
+            osres_  += abs( olhs_ + rhs_ );
+            refres_ += abs( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += abs( olhs_ + orhs_ );
+            odres_  += abs( olhs_ + orhs_ );
+            sres_   += abs( olhs_ + orhs_ );
+            osres_  += abs( olhs_ + orhs_ );
+            refres_ += abs( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Abs addition with addition assignment with evaluated matrices
+      {
+         test_  = "Abs addition with addition assignment with evaluated matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += abs( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  += abs( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   += abs( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  += abs( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ += abs( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += abs( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  += abs( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   += abs( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  += abs( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ += abs( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   += abs( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  += abs( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   += abs( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  += abs( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ += abs( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += abs( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  += abs( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   += abs( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  += abs( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ += abs( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Abs addition with subtraction assignment
+      //=====================================================================================
+
+      // Abs addition with subtraction assignment with the given matrices
+      {
+         test_  = "Abs addition with subtraction assignment with the given matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= abs( lhs_ + rhs_ );
+            odres_  -= abs( lhs_ + rhs_ );
+            sres_   -= abs( lhs_ + rhs_ );
+            osres_  -= abs( lhs_ + rhs_ );
+            refres_ -= abs( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= abs( lhs_ + orhs_ );
+            odres_  -= abs( lhs_ + orhs_ );
+            sres_   -= abs( lhs_ + orhs_ );
+            osres_  -= abs( lhs_ + orhs_ );
+            refres_ -= abs( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   -= abs( olhs_ + rhs_ );
+            odres_  -= abs( olhs_ + rhs_ );
+            sres_   -= abs( olhs_ + rhs_ );
+            osres_  -= abs( olhs_ + rhs_ );
+            refres_ -= abs( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= abs( olhs_ + orhs_ );
+            odres_  -= abs( olhs_ + orhs_ );
+            sres_   -= abs( olhs_ + orhs_ );
+            osres_  -= abs( olhs_ + orhs_ );
+            refres_ -= abs( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Abs addition with subtraction assignment with evaluated matrices
+      {
+         test_  = "Abs addition with subtraction assignment with evaluated matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= abs( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  -= abs( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   -= abs( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  -= abs( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ -= abs( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= abs( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  -= abs( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   -= abs( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  -= abs( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ -= abs( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   -= abs( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  -= abs( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   -= abs( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  -= abs( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ -= abs( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= abs( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  -= abs( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   -= abs( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  -= abs( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ -= abs( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+   }
+#endif
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the conjugate sparse matrix/dense matrix addition.
+//
+// \return void
+// \exception std::runtime_error Addition error detected.
+//
+// This function tests the conjugate matrix addition with plain assignment, addition assignment,
+// and subtraction assignment. In case any error resulting from the addition or the subsequent
+// assignment is detected, a \a std::runtime_error exception is thrown.
+*/
+template< typename MT1    // Type of the left-hand side sparse matrix
+        , typename MT2 >  // Type of the right-hand side dense matrix
+void OperationTest<MT1,MT2>::testConjOperation()
+{
+#if BLAZETEST_MATHTEST_TEST_CONJ_OPERATION
+   if( BLAZETEST_MATHTEST_TEST_CONJ_OPERATION > 1 )
+   {
+      //=====================================================================================
+      // Conjugate addition
+      //=====================================================================================
+
+      // Conjugate addition with the given matrices
+      {
+         test_  = "Conjugate addition with the given matrices";
+         error_ = "Failed addition operation";
+
+         try {
+            initResults();
+            dres_   = conj( lhs_ + rhs_ );
+            odres_  = conj( lhs_ + rhs_ );
+            sres_   = conj( lhs_ + rhs_ );
+            osres_  = conj( lhs_ + rhs_ );
+            refres_ = conj( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = conj( lhs_ + orhs_ );
+            odres_  = conj( lhs_ + orhs_ );
+            sres_   = conj( lhs_ + orhs_ );
+            osres_  = conj( lhs_ + orhs_ );
+            refres_ = conj( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   = conj( olhs_ + rhs_ );
+            odres_  = conj( olhs_ + rhs_ );
+            sres_   = conj( olhs_ + rhs_ );
+            osres_  = conj( olhs_ + rhs_ );
+            refres_ = conj( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = conj( olhs_ + orhs_ );
+            odres_  = conj( olhs_ + orhs_ );
+            sres_   = conj( olhs_ + orhs_ );
+            osres_  = conj( olhs_ + orhs_ );
+            refres_ = conj( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Conjugate addition with evaluated matrices
+      {
+         test_  = "Conjugate addition with evaluated matrices";
+         error_ = "Failed addition operation";
+
+         try {
+            initResults();
+            dres_   = conj( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  = conj( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   = conj( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  = conj( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ = conj( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = conj( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  = conj( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   = conj( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  = conj( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ = conj( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   = conj( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  = conj( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   = conj( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  = conj( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ = conj( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = conj( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  = conj( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   = conj( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  = conj( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ = conj( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Conjugate addition with addition assignment
+      //=====================================================================================
+
+      // Conjugate addition with addition assignment with the given matrices
+      {
+         test_  = "Conjugate addition with addition assignment with the given matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += conj( lhs_ + rhs_ );
+            odres_  += conj( lhs_ + rhs_ );
+            sres_   += conj( lhs_ + rhs_ );
+            osres_  += conj( lhs_ + rhs_ );
+            refres_ += conj( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += conj( lhs_ + orhs_ );
+            odres_  += conj( lhs_ + orhs_ );
+            sres_   += conj( lhs_ + orhs_ );
+            osres_  += conj( lhs_ + orhs_ );
+            refres_ += conj( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   += conj( olhs_ + rhs_ );
+            odres_  += conj( olhs_ + rhs_ );
+            sres_   += conj( olhs_ + rhs_ );
+            osres_  += conj( olhs_ + rhs_ );
+            refres_ += conj( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += conj( olhs_ + orhs_ );
+            odres_  += conj( olhs_ + orhs_ );
+            sres_   += conj( olhs_ + orhs_ );
+            osres_  += conj( olhs_ + orhs_ );
+            refres_ += conj( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Conjugate addition with addition assignment with evaluated matrices
+      {
+         test_  = "Conjugate addition with addition assignment with evaluated matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += conj( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  += conj( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   += conj( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  += conj( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ += conj( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += conj( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  += conj( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   += conj( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  += conj( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ += conj( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   += conj( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  += conj( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   += conj( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  += conj( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ += conj( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += conj( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  += conj( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   += conj( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  += conj( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ += conj( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Conjugate addition with subtraction assignment
+      //=====================================================================================
+
+      // Conjugate addition with subtraction assignment with the given matrices
+      {
+         test_  = "Conjugate addition with subtraction assignment with the given matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= conj( lhs_ + rhs_ );
+            odres_  -= conj( lhs_ + rhs_ );
+            sres_   -= conj( lhs_ + rhs_ );
+            osres_  -= conj( lhs_ + rhs_ );
+            refres_ -= conj( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= conj( lhs_ + orhs_ );
+            odres_  -= conj( lhs_ + orhs_ );
+            sres_   -= conj( lhs_ + orhs_ );
+            osres_  -= conj( lhs_ + orhs_ );
+            refres_ -= conj( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   -= conj( olhs_ + rhs_ );
+            odres_  -= conj( olhs_ + rhs_ );
+            sres_   -= conj( olhs_ + rhs_ );
+            osres_  -= conj( olhs_ + rhs_ );
+            refres_ -= conj( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= conj( olhs_ + orhs_ );
+            odres_  -= conj( olhs_ + orhs_ );
+            sres_   -= conj( olhs_ + orhs_ );
+            osres_  -= conj( olhs_ + orhs_ );
+            refres_ -= conj( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Conjugate addition with subtraction assignment with evaluated matrices
+      {
+         test_  = "Conjugate addition with subtraction assignment with evaluated matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= conj( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  -= conj( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   -= conj( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  -= conj( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ -= conj( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= conj( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  -= conj( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   -= conj( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  -= conj( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ -= conj( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   -= conj( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  -= conj( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   -= conj( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  -= conj( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ -= conj( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= conj( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  -= conj( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   -= conj( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  -= conj( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ -= conj( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+   }
+#endif
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Testing the conjugate transpose sparse matrix/dense matrix addition.
 //
 // \return void
@@ -3787,54 +4355,6 @@ void OperationTest<MT1,MT2>::testCTransOperation()
 
 
 //*************************************************************************************************
-/*!\brief Testing the abs sparse matrix/dense matrix addition.
-//
-// \return void
-// \exception std::runtime_error Addition error detected.
-//
-// This function tests the abs matrix addition with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the addition or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
-*/
-template< typename MT1    // Type of the left-hand side sparse matrix
-        , typename MT2 >  // Type of the right-hand side dense matrix
-void OperationTest<MT1,MT2>::testAbsOperation()
-{
-#if BLAZETEST_MATHTEST_TEST_ABS_OPERATION
-   if( BLAZETEST_MATHTEST_TEST_ABS_OPERATION > 1 )
-   {
-      testCustomOperation( blaze::Abs(), "abs" );
-   }
-#endif
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Testing the conjugate sparse matrix/dense matrix addition.
-//
-// \return void
-// \exception std::runtime_error Addition error detected.
-//
-// This function tests the conjugate matrix addition with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the addition or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
-*/
-template< typename MT1    // Type of the left-hand side sparse matrix
-        , typename MT2 >  // Type of the right-hand side dense matrix
-void OperationTest<MT1,MT2>::testConjOperation()
-{
-#if BLAZETEST_MATHTEST_TEST_CONJ_OPERATION
-   if( BLAZETEST_MATHTEST_TEST_CONJ_OPERATION > 1 )
-   {
-      testCustomOperation( blaze::Conj(), "conj" );
-   }
-#endif
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
 /*!\brief Testing the \a real sparse matrix/dense matrix addition.
 //
 // \return void
@@ -3851,7 +4371,391 @@ void OperationTest<MT1,MT2>::testRealOperation()
 #if BLAZETEST_MATHTEST_TEST_REAL_OPERATION
    if( BLAZETEST_MATHTEST_TEST_REAL_OPERATION > 1 )
    {
-      testCustomOperation( blaze::Real(), "real" );
+      //=====================================================================================
+      // Real addition
+      //=====================================================================================
+
+      // Real addition with the given matrices
+      {
+         test_  = "Real addition with the given matrices";
+         error_ = "Failed addition operation";
+
+         try {
+            initResults();
+            dres_   = real( lhs_ + rhs_ );
+            odres_  = real( lhs_ + rhs_ );
+            sres_   = real( lhs_ + rhs_ );
+            osres_  = real( lhs_ + rhs_ );
+            refres_ = real( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = real( lhs_ + orhs_ );
+            odres_  = real( lhs_ + orhs_ );
+            sres_   = real( lhs_ + orhs_ );
+            osres_  = real( lhs_ + orhs_ );
+            refres_ = real( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   = real( olhs_ + rhs_ );
+            odres_  = real( olhs_ + rhs_ );
+            sres_   = real( olhs_ + rhs_ );
+            osres_  = real( olhs_ + rhs_ );
+            refres_ = real( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = real( olhs_ + orhs_ );
+            odres_  = real( olhs_ + orhs_ );
+            sres_   = real( olhs_ + orhs_ );
+            osres_  = real( olhs_ + orhs_ );
+            refres_ = real( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Real addition with evaluated matrices
+      {
+         test_  = "Real addition with evaluated matrices";
+         error_ = "Failed addition operation";
+
+         try {
+            initResults();
+            dres_   = real( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  = real( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   = real( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  = real( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ = real( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = real( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  = real( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   = real( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  = real( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ = real( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   = real( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  = real( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   = real( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  = real( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ = real( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = real( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  = real( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   = real( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  = real( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ = real( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Real addition with addition assignment
+      //=====================================================================================
+
+      // Real addition with addition assignment with the given matrices
+      {
+         test_  = "Real addition with addition assignment with the given matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += real( lhs_ + rhs_ );
+            odres_  += real( lhs_ + rhs_ );
+            sres_   += real( lhs_ + rhs_ );
+            osres_  += real( lhs_ + rhs_ );
+            refres_ += real( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += real( lhs_ + orhs_ );
+            odres_  += real( lhs_ + orhs_ );
+            sres_   += real( lhs_ + orhs_ );
+            osres_  += real( lhs_ + orhs_ );
+            refres_ += real( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   += real( olhs_ + rhs_ );
+            odres_  += real( olhs_ + rhs_ );
+            sres_   += real( olhs_ + rhs_ );
+            osres_  += real( olhs_ + rhs_ );
+            refres_ += real( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += real( olhs_ + orhs_ );
+            odres_  += real( olhs_ + orhs_ );
+            sres_   += real( olhs_ + orhs_ );
+            osres_  += real( olhs_ + orhs_ );
+            refres_ += real( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Real addition with addition assignment with evaluated matrices
+      {
+         test_  = "Real addition with addition assignment with evaluated matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += real( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  += real( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   += real( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  += real( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ += real( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += real( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  += real( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   += real( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  += real( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ += real( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   += real( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  += real( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   += real( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  += real( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ += real( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += real( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  += real( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   += real( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  += real( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ += real( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Real addition with subtraction assignment
+      //=====================================================================================
+
+      // Real addition with subtraction assignment with the given matrices
+      {
+         test_  = "Real addition with subtraction assignment with the given matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= real( lhs_ + rhs_ );
+            odres_  -= real( lhs_ + rhs_ );
+            sres_   -= real( lhs_ + rhs_ );
+            osres_  -= real( lhs_ + rhs_ );
+            refres_ -= real( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= real( lhs_ + orhs_ );
+            odres_  -= real( lhs_ + orhs_ );
+            sres_   -= real( lhs_ + orhs_ );
+            osres_  -= real( lhs_ + orhs_ );
+            refres_ -= real( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   -= real( olhs_ + rhs_ );
+            odres_  -= real( olhs_ + rhs_ );
+            sres_   -= real( olhs_ + rhs_ );
+            osres_  -= real( olhs_ + rhs_ );
+            refres_ -= real( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= real( olhs_ + orhs_ );
+            odres_  -= real( olhs_ + orhs_ );
+            sres_   -= real( olhs_ + orhs_ );
+            osres_  -= real( olhs_ + orhs_ );
+            refres_ -= real( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Real addition with subtraction assignment with evaluated matrices
+      {
+         test_  = "Real addition with subtraction assignment with evaluated matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= real( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  -= real( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   -= real( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  -= real( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ -= real( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= real( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  -= real( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   -= real( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  -= real( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ -= real( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   -= real( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  -= real( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   -= real( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  -= real( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ -= real( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= real( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  -= real( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   -= real( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  -= real( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ -= real( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
    }
 #endif
 }
@@ -3873,10 +4777,393 @@ template< typename MT1    // Type of the left-hand side sparse matrix
 void OperationTest<MT1,MT2>::testImagOperation()
 {
 #if BLAZETEST_MATHTEST_TEST_IMAG_OPERATION
-   if( BLAZETEST_MATHTEST_TEST_IMAG_OPERATION > 1 &&
-       ( !blaze::IsHermitian<DRE>::value || blaze::isSymmetric( imag( lhs_ + rhs_ ) ) ) )
+   if( BLAZETEST_MATHTEST_TEST_IMAG_OPERATION > 1 )
    {
-      testCustomOperation( blaze::Imag(), "imag" );
+      //=====================================================================================
+      // Imag addition
+      //=====================================================================================
+
+      // Imag addition with the given matrices
+      {
+         test_  = "Imag addition with the given matrices";
+         error_ = "Failed addition operation";
+
+         try {
+            initResults();
+            dres_   = imag( lhs_ + rhs_ );
+            odres_  = imag( lhs_ + rhs_ );
+            sres_   = imag( lhs_ + rhs_ );
+            osres_  = imag( lhs_ + rhs_ );
+            refres_ = imag( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = imag( lhs_ + orhs_ );
+            odres_  = imag( lhs_ + orhs_ );
+            sres_   = imag( lhs_ + orhs_ );
+            osres_  = imag( lhs_ + orhs_ );
+            refres_ = imag( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   = imag( olhs_ + rhs_ );
+            odres_  = imag( olhs_ + rhs_ );
+            sres_   = imag( olhs_ + rhs_ );
+            osres_  = imag( olhs_ + rhs_ );
+            refres_ = imag( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = imag( olhs_ + orhs_ );
+            odres_  = imag( olhs_ + orhs_ );
+            sres_   = imag( olhs_ + orhs_ );
+            osres_  = imag( olhs_ + orhs_ );
+            refres_ = imag( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Imag addition with evaluated matrices
+      {
+         test_  = "Imag addition with evaluated matrices";
+         error_ = "Failed addition operation";
+
+         try {
+            initResults();
+            dres_   = imag( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  = imag( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   = imag( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  = imag( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ = imag( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = imag( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  = imag( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   = imag( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  = imag( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ = imag( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   = imag( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  = imag( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   = imag( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  = imag( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ = imag( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = imag( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  = imag( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   = imag( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  = imag( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ = imag( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Imag addition with addition assignment
+      //=====================================================================================
+
+      // Imag addition with addition assignment with the given matrices
+      {
+         test_  = "Imag addition with addition assignment with the given matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += imag( lhs_ + rhs_ );
+            odres_  += imag( lhs_ + rhs_ );
+            sres_   += imag( lhs_ + rhs_ );
+            osres_  += imag( lhs_ + rhs_ );
+            refres_ += imag( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += imag( lhs_ + orhs_ );
+            odres_  += imag( lhs_ + orhs_ );
+            sres_   += imag( lhs_ + orhs_ );
+            osres_  += imag( lhs_ + orhs_ );
+            refres_ += imag( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   += imag( olhs_ + rhs_ );
+            odres_  += imag( olhs_ + rhs_ );
+            sres_   += imag( olhs_ + rhs_ );
+            osres_  += imag( olhs_ + rhs_ );
+            refres_ += imag( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += imag( olhs_ + orhs_ );
+            odres_  += imag( olhs_ + orhs_ );
+            sres_   += imag( olhs_ + orhs_ );
+            osres_  += imag( olhs_ + orhs_ );
+            refres_ += imag( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Imag addition with addition assignment with evaluated matrices
+      {
+         test_  = "Imag addition with addition assignment with evaluated matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += imag( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  += imag( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   += imag( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  += imag( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ += imag( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += imag( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  += imag( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   += imag( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  += imag( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ += imag( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   += imag( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  += imag( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   += imag( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  += imag( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ += imag( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += imag( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  += imag( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   += imag( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  += imag( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ += imag( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Imag addition with subtraction assignment
+      //=====================================================================================
+
+      // Imag addition with subtraction assignment with the given matrices
+      {
+         test_  = "Imag addition with subtraction assignment with the given matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= imag( lhs_ + rhs_ );
+            odres_  -= imag( lhs_ + rhs_ );
+            sres_   -= imag( lhs_ + rhs_ );
+            osres_  -= imag( lhs_ + rhs_ );
+            refres_ -= imag( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= imag( lhs_ + orhs_ );
+            odres_  -= imag( lhs_ + orhs_ );
+            sres_   -= imag( lhs_ + orhs_ );
+            osres_  -= imag( lhs_ + orhs_ );
+            refres_ -= imag( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   -= imag( olhs_ + rhs_ );
+            odres_  -= imag( olhs_ + rhs_ );
+            sres_   -= imag( olhs_ + rhs_ );
+            osres_  -= imag( olhs_ + rhs_ );
+            refres_ -= imag( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= imag( olhs_ + orhs_ );
+            odres_  -= imag( olhs_ + orhs_ );
+            sres_   -= imag( olhs_ + orhs_ );
+            osres_  -= imag( olhs_ + orhs_ );
+            refres_ -= imag( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Imag addition with subtraction assignment with evaluated matrices
+      {
+         test_  = "Imag addition with subtraction assignment with evaluated matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= imag( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  -= imag( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   -= imag( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  -= imag( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ -= imag( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= imag( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  -= imag( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   -= imag( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  -= imag( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ -= imag( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   -= imag( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  -= imag( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   -= imag( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  -= imag( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ -= imag( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= imag( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  -= imag( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   -= imag( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  -= imag( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ -= imag( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
    }
 #endif
 }
@@ -3903,7 +5190,392 @@ void OperationTest<MT1,MT2>::testInvOperation()
       if( !isSquare( lhs_ + rhs_ ) || blaze::isDefault( det( lhs_ + rhs_ ) ) )
          return;
 
-      testCustomOperation( blaze::Inv(), "inv" );
+
+      //=====================================================================================
+      // Inv addition
+      //=====================================================================================
+
+      // Inv addition with the given matrices
+      {
+         test_  = "Inv addition with the given matrices";
+         error_ = "Failed addition operation";
+
+         try {
+            initResults();
+            dres_   = inv( lhs_ + rhs_ );
+            odres_  = inv( lhs_ + rhs_ );
+            sres_   = inv( lhs_ + rhs_ );
+            osres_  = inv( lhs_ + rhs_ );
+            refres_ = inv( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = inv( lhs_ + orhs_ );
+            odres_  = inv( lhs_ + orhs_ );
+            sres_   = inv( lhs_ + orhs_ );
+            osres_  = inv( lhs_ + orhs_ );
+            refres_ = inv( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   = inv( olhs_ + rhs_ );
+            odres_  = inv( olhs_ + rhs_ );
+            sres_   = inv( olhs_ + rhs_ );
+            osres_  = inv( olhs_ + rhs_ );
+            refres_ = inv( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = inv( olhs_ + orhs_ );
+            odres_  = inv( olhs_ + orhs_ );
+            sres_   = inv( olhs_ + orhs_ );
+            osres_  = inv( olhs_ + orhs_ );
+            refres_ = inv( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Inv addition with evaluated matrices
+      {
+         test_  = "Inv addition with evaluated matrices";
+         error_ = "Failed addition operation";
+
+         try {
+            initResults();
+            dres_   = inv( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  = inv( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   = inv( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  = inv( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ = inv( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = inv( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  = inv( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   = inv( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  = inv( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ = inv( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   = inv( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  = inv( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   = inv( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  = inv( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ = inv( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = inv( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  = inv( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   = inv( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  = inv( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ = inv( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Inv addition with addition assignment
+      //=====================================================================================
+
+      // Inv addition with addition assignment with the given matrices
+      {
+         test_  = "Inv addition with addition assignment with the given matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += inv( lhs_ + rhs_ );
+            odres_  += inv( lhs_ + rhs_ );
+            sres_   += inv( lhs_ + rhs_ );
+            osres_  += inv( lhs_ + rhs_ );
+            refres_ += inv( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += inv( lhs_ + orhs_ );
+            odres_  += inv( lhs_ + orhs_ );
+            sres_   += inv( lhs_ + orhs_ );
+            osres_  += inv( lhs_ + orhs_ );
+            refres_ += inv( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   += inv( olhs_ + rhs_ );
+            odres_  += inv( olhs_ + rhs_ );
+            sres_   += inv( olhs_ + rhs_ );
+            osres_  += inv( olhs_ + rhs_ );
+            refres_ += inv( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += inv( olhs_ + orhs_ );
+            odres_  += inv( olhs_ + orhs_ );
+            sres_   += inv( olhs_ + orhs_ );
+            osres_  += inv( olhs_ + orhs_ );
+            refres_ += inv( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Inv addition with addition assignment with evaluated matrices
+      {
+         test_  = "Inv addition with addition assignment with evaluated matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += inv( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  += inv( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   += inv( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  += inv( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ += inv( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += inv( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  += inv( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   += inv( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  += inv( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ += inv( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   += inv( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  += inv( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   += inv( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  += inv( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ += inv( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += inv( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  += inv( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   += inv( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  += inv( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ += inv( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Inv addition with subtraction assignment
+      //=====================================================================================
+
+      // Inv addition with subtraction assignment with the given matrices
+      {
+         test_  = "Inv addition with subtraction assignment with the given matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= inv( lhs_ + rhs_ );
+            odres_  -= inv( lhs_ + rhs_ );
+            sres_   -= inv( lhs_ + rhs_ );
+            osres_  -= inv( lhs_ + rhs_ );
+            refres_ -= inv( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= inv( lhs_ + orhs_ );
+            odres_  -= inv( lhs_ + orhs_ );
+            sres_   -= inv( lhs_ + orhs_ );
+            osres_  -= inv( lhs_ + orhs_ );
+            refres_ -= inv( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   -= inv( olhs_ + rhs_ );
+            odres_  -= inv( olhs_ + rhs_ );
+            sres_   -= inv( olhs_ + rhs_ );
+            osres_  -= inv( olhs_ + rhs_ );
+            refres_ -= inv( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= inv( olhs_ + orhs_ );
+            odres_  -= inv( olhs_ + orhs_ );
+            sres_   -= inv( olhs_ + orhs_ );
+            osres_  -= inv( olhs_ + orhs_ );
+            refres_ -= inv( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Inv addition with subtraction assignment with evaluated matrices
+      {
+         test_  = "Inv addition with subtraction assignment with evaluated matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= inv( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  -= inv( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   -= inv( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  -= inv( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ -= inv( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= inv( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  -= inv( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   -= inv( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  -= inv( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ -= inv( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   -= inv( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  -= inv( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   -= inv( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  -= inv( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ -= inv( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= inv( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  -= inv( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   -= inv( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  -= inv( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ -= inv( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
    }
 #endif
 }
@@ -3927,7 +5599,391 @@ void OperationTest<MT1,MT2>::testEvalOperation()
 #if BLAZETEST_MATHTEST_TEST_EVAL_OPERATION
    if( BLAZETEST_MATHTEST_TEST_EVAL_OPERATION > 1 )
    {
-      testCustomOperation( blaze::Eval(), "eval" );
+      //=====================================================================================
+      // Eval addition
+      //=====================================================================================
+
+      // Eval addition with the given matrices
+      {
+         test_  = "Eval addition with the given matrices";
+         error_ = "Failed addition operation";
+
+         try {
+            initResults();
+            dres_   = eval( lhs_ + rhs_ );
+            odres_  = eval( lhs_ + rhs_ );
+            sres_   = eval( lhs_ + rhs_ );
+            osres_  = eval( lhs_ + rhs_ );
+            refres_ = eval( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = eval( lhs_ + orhs_ );
+            odres_  = eval( lhs_ + orhs_ );
+            sres_   = eval( lhs_ + orhs_ );
+            osres_  = eval( lhs_ + orhs_ );
+            refres_ = eval( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   = eval( olhs_ + rhs_ );
+            odres_  = eval( olhs_ + rhs_ );
+            sres_   = eval( olhs_ + rhs_ );
+            osres_  = eval( olhs_ + rhs_ );
+            refres_ = eval( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = eval( olhs_ + orhs_ );
+            odres_  = eval( olhs_ + orhs_ );
+            sres_   = eval( olhs_ + orhs_ );
+            osres_  = eval( olhs_ + orhs_ );
+            refres_ = eval( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Eval addition with evaluated matrices
+      {
+         test_  = "Eval addition with evaluated matrices";
+         error_ = "Failed addition operation";
+
+         try {
+            initResults();
+            dres_   = eval( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  = eval( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   = eval( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  = eval( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ = eval( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = eval( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  = eval( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   = eval( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  = eval( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ = eval( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   = eval( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  = eval( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   = eval( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  = eval( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ = eval( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   = eval( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  = eval( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   = eval( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  = eval( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ = eval( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Eval addition with addition assignment
+      //=====================================================================================
+
+      // Eval addition with addition assignment with the given matrices
+      {
+         test_  = "Eval addition with addition assignment with the given matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += eval( lhs_ + rhs_ );
+            odres_  += eval( lhs_ + rhs_ );
+            sres_   += eval( lhs_ + rhs_ );
+            osres_  += eval( lhs_ + rhs_ );
+            refres_ += eval( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += eval( lhs_ + orhs_ );
+            odres_  += eval( lhs_ + orhs_ );
+            sres_   += eval( lhs_ + orhs_ );
+            osres_  += eval( lhs_ + orhs_ );
+            refres_ += eval( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   += eval( olhs_ + rhs_ );
+            odres_  += eval( olhs_ + rhs_ );
+            sres_   += eval( olhs_ + rhs_ );
+            osres_  += eval( olhs_ + rhs_ );
+            refres_ += eval( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += eval( olhs_ + orhs_ );
+            odres_  += eval( olhs_ + orhs_ );
+            sres_   += eval( olhs_ + orhs_ );
+            osres_  += eval( olhs_ + orhs_ );
+            refres_ += eval( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Eval addition with addition assignment with evaluated matrices
+      {
+         test_  = "Eval addition with addition assignment with evaluated matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += eval( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  += eval( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   += eval( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  += eval( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ += eval( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += eval( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  += eval( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   += eval( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  += eval( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ += eval( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   += eval( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  += eval( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   += eval( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  += eval( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ += eval( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   += eval( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  += eval( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   += eval( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  += eval( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ += eval( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Eval addition with subtraction assignment
+      //=====================================================================================
+
+      // Eval addition with subtraction assignment with the given matrices
+      {
+         test_  = "Eval addition with subtraction assignment with the given matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= eval( lhs_ + rhs_ );
+            odres_  -= eval( lhs_ + rhs_ );
+            sres_   -= eval( lhs_ + rhs_ );
+            osres_  -= eval( lhs_ + rhs_ );
+            refres_ -= eval( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= eval( lhs_ + orhs_ );
+            odres_  -= eval( lhs_ + orhs_ );
+            sres_   -= eval( lhs_ + orhs_ );
+            osres_  -= eval( lhs_ + orhs_ );
+            refres_ -= eval( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   -= eval( olhs_ + rhs_ );
+            odres_  -= eval( olhs_ + rhs_ );
+            sres_   -= eval( olhs_ + rhs_ );
+            osres_  -= eval( olhs_ + rhs_ );
+            refres_ -= eval( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= eval( olhs_ + orhs_ );
+            odres_  -= eval( olhs_ + orhs_ );
+            sres_   -= eval( olhs_ + orhs_ );
+            osres_  -= eval( olhs_ + orhs_ );
+            refres_ -= eval( reflhs_ + refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Eval addition with subtraction assignment with evaluated matrices
+      {
+         test_  = "Eval addition with subtraction assignment with evaluated matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= eval( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  -= eval( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   -= eval( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  -= eval( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ -= eval( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= eval( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  -= eval( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   -= eval( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  -= eval( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ -= eval( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   -= eval( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  -= eval( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   -= eval( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  -= eval( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ -= eval( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   -= eval( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  -= eval( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   -= eval( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  -= eval( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ -= eval( eval( reflhs_ ) + eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
    }
 #endif
 }
@@ -3951,72 +6007,22 @@ void OperationTest<MT1,MT2>::testSerialOperation()
 #if BLAZETEST_MATHTEST_TEST_SERIAL_OPERATION
    if( BLAZETEST_MATHTEST_TEST_SERIAL_OPERATION > 1 )
    {
-      testCustomOperation( blaze::Serial(), "serial" );
-   }
-#endif
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Testing the symmetric sparse matrix/dense matrix addition.
-//
-// \return void
-// \exception std::runtime_error Addition error detected.
-//
-// This function tests the symmetric matrix addition with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the addition or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
-*/
-template< typename MT1    // Type of the left-hand side sparse matrix
-        , typename MT2 >  // Type of the right-hand side dense matrix
-void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
-{
-#if BLAZETEST_MATHTEST_TEST_DECLSYM_OPERATION
-   if( BLAZETEST_MATHTEST_TEST_DECLSYM_OPERATION > 1 )
-   {
-      if( ( !blaze::IsDiagonal<MT1>::value && blaze::IsTriangular<MT1>::value ) ||
-          ( !blaze::IsDiagonal<MT2>::value && blaze::IsTriangular<MT2>::value ) ||
-          ( !blaze::IsDiagonal<MT1>::value && blaze::IsHermitian<MT1>::value && blaze::IsComplex<ET1>::value ) ||
-          ( !blaze::IsDiagonal<MT2>::value && blaze::IsHermitian<MT2>::value && blaze::IsComplex<ET2>::value ) ||
-          ( lhs_.rows() != lhs_.columns() ) )
-         return;
-
-
       //=====================================================================================
-      // Test-specific setup of the left-hand side operand
+      // Serial addition
       //=====================================================================================
 
-      MT1  lhs   ( lhs_ * trans( lhs_ ) );
-      OMT1 olhs  ( lhs );
-      RT1  reflhs( lhs );
-
-
-      //=====================================================================================
-      // Test-specific setup of the right-hand side operand
-      //=====================================================================================
-
-      MT2  rhs   ( rhs_ * trans( rhs_ ) );
-      OMT2 orhs  ( rhs );
-      RT2  refrhs( rhs );
-
-
-      //=====================================================================================
-      // Declsym addition
-      //=====================================================================================
-
-      // Declsym addition with the given matrices
+      // Serial addition with the given matrices
       {
-         test_  = "Declsym addition the given matrices";
+         test_  = "Serial addition with the given matrices";
          error_ = "Failed addition operation";
 
          try {
             initResults();
-            dres_   = declsym( lhs + rhs );
-            odres_  = declsym( lhs + rhs );
-            sres_   = declsym( lhs + rhs );
-            osres_  = declsym( lhs + rhs );
-            refres_ = declsym( reflhs + refrhs );
+            dres_   = serial( lhs_ + rhs_ );
+            odres_  = serial( lhs_ + rhs_ );
+            sres_   = serial( lhs_ + rhs_ );
+            osres_  = serial( lhs_ + rhs_ );
+            refres_ = serial( reflhs_ + refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -4026,11 +6032,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   = declsym( lhs + orhs );
-            odres_  = declsym( lhs + orhs );
-            sres_   = declsym( lhs + orhs );
-            osres_  = declsym( lhs + orhs );
-            refres_ = declsym( reflhs + refrhs );
+            dres_   = serial( lhs_ + orhs_ );
+            odres_  = serial( lhs_ + orhs_ );
+            sres_   = serial( lhs_ + orhs_ );
+            osres_  = serial( lhs_ + orhs_ );
+            refres_ = serial( reflhs_ + refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -4040,11 +6046,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   = declsym( olhs + rhs );
-            odres_  = declsym( olhs + rhs );
-            sres_   = declsym( olhs + rhs );
-            osres_  = declsym( olhs + rhs );
-            refres_ = declsym( reflhs + refrhs );
+            dres_   = serial( olhs_ + rhs_ );
+            odres_  = serial( olhs_ + rhs_ );
+            sres_   = serial( olhs_ + rhs_ );
+            osres_  = serial( olhs_ + rhs_ );
+            refres_ = serial( reflhs_ + refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -4054,11 +6060,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   = declsym( olhs + orhs );
-            odres_  = declsym( olhs + orhs );
-            sres_   = declsym( olhs + orhs );
-            osres_  = declsym( olhs + orhs );
-            refres_ = declsym( reflhs + refrhs );
+            dres_   = serial( olhs_ + orhs_ );
+            odres_  = serial( olhs_ + orhs_ );
+            sres_   = serial( olhs_ + orhs_ );
+            osres_  = serial( olhs_ + orhs_ );
+            refres_ = serial( reflhs_ + refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -4067,18 +6073,18 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
          checkResults<OMT1,OMT2>();
       }
 
-      // Declsym addition with evaluated matrices
+      // Serial addition with evaluated matrices
       {
-         test_  = "Declsym addition with evaluated left-hand side matrix";
+         test_  = "Serial addition with evaluated matrices";
          error_ = "Failed addition operation";
 
          try {
             initResults();
-            dres_   = declsym( eval( lhs ) + eval( rhs ) );
-            odres_  = declsym( eval( lhs ) + eval( rhs ) );
-            sres_   = declsym( eval( lhs ) + eval( rhs ) );
-            osres_  = declsym( eval( lhs ) + eval( rhs ) );
-            refres_ = declsym( eval( reflhs ) + eval( refrhs ) );
+            dres_   = serial( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  = serial( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   = serial( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  = serial( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ = serial( eval( reflhs_ ) + eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -4088,11 +6094,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   = declsym( eval( lhs ) + eval( orhs ) );
-            odres_  = declsym( eval( lhs ) + eval( orhs ) );
-            sres_   = declsym( eval( lhs ) + eval( orhs ) );
-            osres_  = declsym( eval( lhs ) + eval( orhs ) );
-            refres_ = declsym( eval( reflhs ) + eval( refrhs ) );
+            dres_   = serial( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  = serial( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   = serial( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  = serial( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ = serial( eval( reflhs_ ) + eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -4102,11 +6108,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   = declsym( eval( olhs ) + eval( rhs ) );
-            odres_  = declsym( eval( olhs ) + eval( rhs ) );
-            sres_   = declsym( eval( olhs ) + eval( rhs ) );
-            osres_  = declsym( eval( olhs ) + eval( rhs ) );
-            refres_ = declsym( eval( reflhs ) + eval( refrhs ) );
+            dres_   = serial( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  = serial( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   = serial( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  = serial( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ = serial( eval( reflhs_ ) + eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -4116,11 +6122,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   = declsym( eval( olhs ) + eval( orhs ) );
-            odres_  = declsym( eval( olhs ) + eval( orhs ) );
-            sres_   = declsym( eval( olhs ) + eval( orhs ) );
-            osres_  = declsym( eval( olhs ) + eval( orhs ) );
-            refres_ = declsym( eval( reflhs ) + eval( refrhs ) );
+            dres_   = serial( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  = serial( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   = serial( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  = serial( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ = serial( eval( reflhs_ ) + eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -4131,21 +6137,21 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
 
       //=====================================================================================
-      // Declsym addition with addition assignment
+      // Serial addition with addition assignment
       //=====================================================================================
 
-      // Declsym addition with addition assignment with the given matrices
+      // Serial addition with addition assignment with the given matrices
       {
-         test_  = "Declsym addition with addition assignment with the given matrices";
-         error_ = "Failed addition operation";
+         test_  = "Serial addition with addition assignment with the given matrices";
+         error_ = "Failed addition assignment operation";
 
          try {
             initResults();
-            dres_   += declsym( lhs + rhs );
-            odres_  += declsym( lhs + rhs );
-            sres_   += declsym( lhs + rhs );
-            osres_  += declsym( lhs + rhs );
-            refres_ += declsym( reflhs + refrhs );
+            dres_   += serial( lhs_ + rhs_ );
+            odres_  += serial( lhs_ + rhs_ );
+            sres_   += serial( lhs_ + rhs_ );
+            osres_  += serial( lhs_ + rhs_ );
+            refres_ += serial( reflhs_ + refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -4155,11 +6161,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   += declsym( lhs + orhs );
-            odres_  += declsym( lhs + orhs );
-            sres_   += declsym( lhs + orhs );
-            osres_  += declsym( lhs + orhs );
-            refres_ += declsym( reflhs + refrhs );
+            dres_   += serial( lhs_ + orhs_ );
+            odres_  += serial( lhs_ + orhs_ );
+            sres_   += serial( lhs_ + orhs_ );
+            osres_  += serial( lhs_ + orhs_ );
+            refres_ += serial( reflhs_ + refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -4169,11 +6175,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   += declsym( olhs + rhs );
-            odres_  += declsym( olhs + rhs );
-            sres_   += declsym( olhs + rhs );
-            osres_  += declsym( olhs + rhs );
-            refres_ += declsym( reflhs + refrhs );
+            dres_   += serial( olhs_ + rhs_ );
+            odres_  += serial( olhs_ + rhs_ );
+            sres_   += serial( olhs_ + rhs_ );
+            osres_  += serial( olhs_ + rhs_ );
+            refres_ += serial( reflhs_ + refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -4183,11 +6189,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   += declsym( olhs + orhs );
-            odres_  += declsym( olhs + orhs );
-            sres_   += declsym( olhs + orhs );
-            osres_  += declsym( olhs + orhs );
-            refres_ += declsym( reflhs + refrhs );
+            dres_   += serial( olhs_ + orhs_ );
+            odres_  += serial( olhs_ + orhs_ );
+            sres_   += serial( olhs_ + orhs_ );
+            osres_  += serial( olhs_ + orhs_ );
+            refres_ += serial( reflhs_ + refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -4196,18 +6202,18 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
          checkResults<OMT1,OMT2>();
       }
 
-      // Declsym addition with addition assignment with evaluated matrices
+      // Serial addition with addition assignment with evaluated matrices
       {
-         test_  = "Declsym addition with addition assignment with evaluated matrices";
-         error_ = "Failed addition operation";
+         test_  = "Serial addition with addition assignment with evaluated matrices";
+         error_ = "Failed addition assignment operation";
 
          try {
             initResults();
-            dres_   += declsym( eval( lhs ) + eval( rhs ) );
-            odres_  += declsym( eval( lhs ) + eval( rhs ) );
-            sres_   += declsym( eval( lhs ) + eval( rhs ) );
-            osres_  += declsym( eval( lhs ) + eval( rhs ) );
-            refres_ += declsym( eval( reflhs ) + eval( refrhs ) );
+            dres_   += serial( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  += serial( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   += serial( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  += serial( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ += serial( eval( reflhs_ ) + eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -4217,11 +6223,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   += declsym( eval( lhs ) + eval( orhs ) );
-            odres_  += declsym( eval( lhs ) + eval( orhs ) );
-            sres_   += declsym( eval( lhs ) + eval( orhs ) );
-            osres_  += declsym( eval( lhs ) + eval( orhs ) );
-            refres_ += declsym( eval( reflhs ) + eval( refrhs ) );
+            dres_   += serial( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  += serial( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   += serial( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  += serial( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ += serial( eval( reflhs_ ) + eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -4231,11 +6237,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   += declsym( eval( olhs ) + eval( rhs ) );
-            odres_  += declsym( eval( olhs ) + eval( rhs ) );
-            sres_   += declsym( eval( olhs ) + eval( rhs ) );
-            osres_  += declsym( eval( olhs ) + eval( rhs ) );
-            refres_ += declsym( eval( reflhs ) + eval( refrhs ) );
+            dres_   += serial( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  += serial( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   += serial( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  += serial( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ += serial( eval( reflhs_ ) + eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -4245,11 +6251,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   += declsym( eval( olhs ) + eval( orhs ) );
-            odres_  += declsym( eval( olhs ) + eval( orhs ) );
-            sres_   += declsym( eval( olhs ) + eval( orhs ) );
-            osres_  += declsym( eval( olhs ) + eval( orhs ) );
-            refres_ += declsym( eval( reflhs ) + eval( refrhs ) );
+            dres_   += serial( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  += serial( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   += serial( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  += serial( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ += serial( eval( reflhs_ ) + eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -4260,21 +6266,21 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
 
       //=====================================================================================
-      // Declsym addition with subtraction assignment
+      // Serial addition with subtraction assignment
       //=====================================================================================
 
-      // Declsym addition with subtraction assignment with the given matrices
+      // Serial addition with subtraction assignment with the given matrices
       {
-         test_  = "Declsym addition with subtraction assignment with the given matrices";
-         error_ = "Failed addition operation";
+         test_  = "Serial addition with subtraction assignment with the given matrices";
+         error_ = "Failed subtraction assignment operation";
 
          try {
             initResults();
-            dres_   -= declsym( lhs + rhs );
-            odres_  -= declsym( lhs + rhs );
-            sres_   -= declsym( lhs + rhs );
-            osres_  -= declsym( lhs + rhs );
-            refres_ -= declsym( reflhs + refrhs );
+            dres_   -= serial( lhs_ + rhs_ );
+            odres_  -= serial( lhs_ + rhs_ );
+            sres_   -= serial( lhs_ + rhs_ );
+            osres_  -= serial( lhs_ + rhs_ );
+            refres_ -= serial( reflhs_ + refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -4284,11 +6290,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   -= declsym( lhs + orhs );
-            odres_  -= declsym( lhs + orhs );
-            sres_   -= declsym( lhs + orhs );
-            osres_  -= declsym( lhs + orhs );
-            refres_ -= declsym( reflhs + refrhs );
+            dres_   -= serial( lhs_ + orhs_ );
+            odres_  -= serial( lhs_ + orhs_ );
+            sres_   -= serial( lhs_ + orhs_ );
+            osres_  -= serial( lhs_ + orhs_ );
+            refres_ -= serial( reflhs_ + refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -4298,11 +6304,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   -= declsym( olhs + rhs );
-            odres_  -= declsym( olhs + rhs );
-            sres_   -= declsym( olhs + rhs );
-            osres_  -= declsym( olhs + rhs );
-            refres_ -= declsym( reflhs + refrhs );
+            dres_   -= serial( olhs_ + rhs_ );
+            odres_  -= serial( olhs_ + rhs_ );
+            sres_   -= serial( olhs_ + rhs_ );
+            osres_  -= serial( olhs_ + rhs_ );
+            refres_ -= serial( reflhs_ + refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -4312,11 +6318,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   -= declsym( olhs + orhs );
-            odres_  -= declsym( olhs + orhs );
-            sres_   -= declsym( olhs + orhs );
-            osres_  -= declsym( olhs + orhs );
-            refres_ -= declsym( reflhs + refrhs );
+            dres_   -= serial( olhs_ + orhs_ );
+            odres_  -= serial( olhs_ + orhs_ );
+            sres_   -= serial( olhs_ + orhs_ );
+            osres_  -= serial( olhs_ + orhs_ );
+            refres_ -= serial( reflhs_ + refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -4325,18 +6331,18 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
          checkResults<OMT1,OMT2>();
       }
 
-      // Declsym addition with subtraction assignment with evaluated matrices
+      // Serial addition with subtraction assignment with evaluated matrices
       {
-         test_  = "Declsym addition with subtraction assignment with evaluated matrices";
-         error_ = "Failed addition operation";
+         test_  = "Serial addition with subtraction assignment with evaluated matrices";
+         error_ = "Failed subtraction assignment operation";
 
          try {
             initResults();
-            dres_   -= declsym( eval( lhs ) + eval( rhs ) );
-            odres_  -= declsym( eval( lhs ) + eval( rhs ) );
-            sres_   -= declsym( eval( lhs ) + eval( rhs ) );
-            osres_  -= declsym( eval( lhs ) + eval( rhs ) );
-            refres_ -= declsym( eval( reflhs ) + eval( refrhs ) );
+            dres_   -= serial( eval( lhs_ ) + eval( rhs_ ) );
+            odres_  -= serial( eval( lhs_ ) + eval( rhs_ ) );
+            sres_   -= serial( eval( lhs_ ) + eval( rhs_ ) );
+            osres_  -= serial( eval( lhs_ ) + eval( rhs_ ) );
+            refres_ -= serial( eval( reflhs_ ) + eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -4346,11 +6352,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   -= declsym( eval( lhs ) + eval( orhs ) );
-            odres_  -= declsym( eval( lhs ) + eval( orhs ) );
-            sres_   -= declsym( eval( lhs ) + eval( orhs ) );
-            osres_  -= declsym( eval( lhs ) + eval( orhs ) );
-            refres_ -= declsym( eval( reflhs ) + eval( refrhs ) );
+            dres_   -= serial( eval( lhs_ ) + eval( orhs_ ) );
+            odres_  -= serial( eval( lhs_ ) + eval( orhs_ ) );
+            sres_   -= serial( eval( lhs_ ) + eval( orhs_ ) );
+            osres_  -= serial( eval( lhs_ ) + eval( orhs_ ) );
+            refres_ -= serial( eval( reflhs_ ) + eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -4360,11 +6366,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   -= declsym( eval( olhs ) + eval( rhs ) );
-            odres_  -= declsym( eval( olhs ) + eval( rhs ) );
-            sres_   -= declsym( eval( olhs ) + eval( rhs ) );
-            osres_  -= declsym( eval( olhs ) + eval( rhs ) );
-            refres_ -= declsym( eval( reflhs ) + eval( refrhs ) );
+            dres_   -= serial( eval( olhs_ ) + eval( rhs_ ) );
+            odres_  -= serial( eval( olhs_ ) + eval( rhs_ ) );
+            sres_   -= serial( eval( olhs_ ) + eval( rhs_ ) );
+            osres_  -= serial( eval( olhs_ ) + eval( rhs_ ) );
+            refres_ -= serial( eval( reflhs_ ) + eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -4374,11 +6380,11 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          try {
             initResults();
-            dres_   -= declsym( eval( olhs ) + eval( orhs ) );
-            odres_  -= declsym( eval( olhs ) + eval( orhs ) );
-            sres_   -= declsym( eval( olhs ) + eval( orhs ) );
-            osres_  -= declsym( eval( olhs ) + eval( orhs ) );
-            refres_ -= declsym( eval( reflhs ) + eval( refrhs ) );
+            dres_   -= serial( eval( olhs_ ) + eval( orhs_ ) );
+            odres_  -= serial( eval( olhs_ ) + eval( orhs_ ) );
+            sres_   -= serial( eval( olhs_ ) + eval( orhs_ ) );
+            osres_  -= serial( eval( olhs_ ) + eval( orhs_ ) );
+            refres_ -= serial( eval( reflhs_ ) + eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -4389,1855 +6395,6 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
    }
 #endif
 }
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Skipping the symmetric sparse matrix/dense matrix addition.
-//
-// \return void
-//
-// This function is called in case the symmetric matrix/matrix addition operation is not
-// available for the given matrix types \a MT1 and \a MT2.
-*/
-template< typename MT1    // Type of the left-hand side sparse matrix
-        , typename MT2 >  // Type of the right-hand side dense matrix
-void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::FalseType )
-{}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Testing the Hermitian sparse matrix/dense matrix addition.
-//
-// \return void
-// \exception std::runtime_error Addition error detected.
-//
-// This function tests the Hermitian matrix addition with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the addition or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
-*/
-template< typename MT1    // Type of the left-hand side sparse matrix
-        , typename MT2 >  // Type of the right-hand side dense matrix
-void OperationTest<MT1,MT2>::testDeclHermOperation( blaze::TrueType )
-{
-#if BLAZETEST_MATHTEST_TEST_DECLHERM_OPERATION
-   if( BLAZETEST_MATHTEST_TEST_DECLHERM_OPERATION > 1 )
-   {
-      if( ( !blaze::IsDiagonal<MT1>::value && blaze::IsTriangular<MT1>::value ) ||
-          ( !blaze::IsDiagonal<MT2>::value && blaze::IsTriangular<MT2>::value ) ||
-          ( !blaze::IsDiagonal<MT1>::value && blaze::IsSymmetric<MT1>::value && blaze::IsComplex<ET1>::value ) ||
-          ( !blaze::IsDiagonal<MT2>::value && blaze::IsSymmetric<MT2>::value && blaze::IsComplex<ET2>::value ) ||
-          ( lhs_.rows() != lhs_.columns() ) )
-         return;
-
-
-      //=====================================================================================
-      // Test-specific setup of the left-hand side operand
-      //=====================================================================================
-
-      MT1  lhs   ( lhs_ * ctrans( lhs_ ) );
-      OMT1 olhs  ( lhs );
-      RT1  reflhs( lhs );
-
-
-      //=====================================================================================
-      // Test-specific setup of the right-hand side operand
-      //=====================================================================================
-
-      MT2  rhs   ( rhs_ * ctrans( rhs_ ) );
-      OMT2 orhs  ( rhs );
-      RT2  refrhs( rhs );
-
-
-      //=====================================================================================
-      // Declherm addition
-      //=====================================================================================
-
-      // Declherm addition with the given matrices
-      {
-         test_  = "Declherm addition the given matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   = declherm( lhs + rhs );
-            odres_  = declherm( lhs + rhs );
-            sres_   = declherm( lhs + rhs );
-            osres_  = declherm( lhs + rhs );
-            refres_ = declherm( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   = declherm( lhs + orhs );
-            odres_  = declherm( lhs + orhs );
-            sres_   = declherm( lhs + orhs );
-            osres_  = declherm( lhs + orhs );
-            refres_ = declherm( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   = declherm( olhs + rhs );
-            odres_  = declherm( olhs + rhs );
-            sres_   = declherm( olhs + rhs );
-            osres_  = declherm( olhs + rhs );
-            refres_ = declherm( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   = declherm( olhs + orhs );
-            odres_  = declherm( olhs + orhs );
-            sres_   = declherm( olhs + orhs );
-            osres_  = declherm( olhs + orhs );
-            refres_ = declherm( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-      // Declherm addition with evaluated matrices
-      {
-         test_  = "Declherm addition with evaluated left-hand side matrix";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   = declherm( eval( lhs ) + eval( rhs ) );
-            odres_  = declherm( eval( lhs ) + eval( rhs ) );
-            sres_   = declherm( eval( lhs ) + eval( rhs ) );
-            osres_  = declherm( eval( lhs ) + eval( rhs ) );
-            refres_ = declherm( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   = declherm( eval( lhs ) + eval( orhs ) );
-            odres_  = declherm( eval( lhs ) + eval( orhs ) );
-            sres_   = declherm( eval( lhs ) + eval( orhs ) );
-            osres_  = declherm( eval( lhs ) + eval( orhs ) );
-            refres_ = declherm( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   = declherm( eval( olhs ) + eval( rhs ) );
-            odres_  = declherm( eval( olhs ) + eval( rhs ) );
-            sres_   = declherm( eval( olhs ) + eval( rhs ) );
-            osres_  = declherm( eval( olhs ) + eval( rhs ) );
-            refres_ = declherm( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   = declherm( eval( olhs ) + eval( orhs ) );
-            odres_  = declherm( eval( olhs ) + eval( orhs ) );
-            sres_   = declherm( eval( olhs ) + eval( orhs ) );
-            osres_  = declherm( eval( olhs ) + eval( orhs ) );
-            refres_ = declherm( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-
-      //=====================================================================================
-      // Declherm addition with addition assignment
-      //=====================================================================================
-
-      // Declherm addition with addition assignment with the given matrices
-      {
-         test_  = "Declherm addition with addition assignment with the given matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   += declherm( lhs + rhs );
-            odres_  += declherm( lhs + rhs );
-            sres_   += declherm( lhs + rhs );
-            osres_  += declherm( lhs + rhs );
-            refres_ += declherm( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   += declherm( lhs + orhs );
-            odres_  += declherm( lhs + orhs );
-            sres_   += declherm( lhs + orhs );
-            osres_  += declherm( lhs + orhs );
-            refres_ += declherm( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   += declherm( olhs + rhs );
-            odres_  += declherm( olhs + rhs );
-            sres_   += declherm( olhs + rhs );
-            osres_  += declherm( olhs + rhs );
-            refres_ += declherm( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   += declherm( olhs + orhs );
-            odres_  += declherm( olhs + orhs );
-            sres_   += declherm( olhs + orhs );
-            osres_  += declherm( olhs + orhs );
-            refres_ += declherm( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-      // Declherm addition with addition assignment with evaluated matrices
-      {
-         test_  = "Declherm addition with addition assignment with evaluated matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   += declherm( eval( lhs ) + eval( rhs ) );
-            odres_  += declherm( eval( lhs ) + eval( rhs ) );
-            sres_   += declherm( eval( lhs ) + eval( rhs ) );
-            osres_  += declherm( eval( lhs ) + eval( rhs ) );
-            refres_ += declherm( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   += declherm( eval( lhs ) + eval( orhs ) );
-            odres_  += declherm( eval( lhs ) + eval( orhs ) );
-            sres_   += declherm( eval( lhs ) + eval( orhs ) );
-            osres_  += declherm( eval( lhs ) + eval( orhs ) );
-            refres_ += declherm( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   += declherm( eval( olhs ) + eval( rhs ) );
-            odres_  += declherm( eval( olhs ) + eval( rhs ) );
-            sres_   += declherm( eval( olhs ) + eval( rhs ) );
-            osres_  += declherm( eval( olhs ) + eval( rhs ) );
-            refres_ += declherm( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   += declherm( eval( olhs ) + eval( orhs ) );
-            odres_  += declherm( eval( olhs ) + eval( orhs ) );
-            sres_   += declherm( eval( olhs ) + eval( orhs ) );
-            osres_  += declherm( eval( olhs ) + eval( orhs ) );
-            refres_ += declherm( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-
-      //=====================================================================================
-      // Declherm addition with subtraction assignment
-      //=====================================================================================
-
-      // Declherm addition with subtraction assignment with the given matrices
-      {
-         test_  = "Declherm addition with subtraction assignment with the given matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   -= declherm( lhs + rhs );
-            odres_  -= declherm( lhs + rhs );
-            sres_   -= declherm( lhs + rhs );
-            osres_  -= declherm( lhs + rhs );
-            refres_ -= declherm( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   -= declherm( lhs + orhs );
-            odres_  -= declherm( lhs + orhs );
-            sres_   -= declherm( lhs + orhs );
-            osres_  -= declherm( lhs + orhs );
-            refres_ -= declherm( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   -= declherm( olhs + rhs );
-            odres_  -= declherm( olhs + rhs );
-            sres_   -= declherm( olhs + rhs );
-            osres_  -= declherm( olhs + rhs );
-            refres_ -= declherm( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   -= declherm( olhs + orhs );
-            odres_  -= declherm( olhs + orhs );
-            sres_   -= declherm( olhs + orhs );
-            osres_  -= declherm( olhs + orhs );
-            refres_ -= declherm( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-      // Declherm addition with subtraction assignment with evaluated matrices
-      {
-         test_  = "Declherm addition with subtraction assignment with evaluated matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   -= declherm( eval( lhs ) + eval( rhs ) );
-            odres_  -= declherm( eval( lhs ) + eval( rhs ) );
-            sres_   -= declherm( eval( lhs ) + eval( rhs ) );
-            osres_  -= declherm( eval( lhs ) + eval( rhs ) );
-            refres_ -= declherm( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   -= declherm( eval( lhs ) + eval( orhs ) );
-            odres_  -= declherm( eval( lhs ) + eval( orhs ) );
-            sres_   -= declherm( eval( lhs ) + eval( orhs ) );
-            osres_  -= declherm( eval( lhs ) + eval( orhs ) );
-            refres_ -= declherm( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   -= declherm( eval( olhs ) + eval( rhs ) );
-            odres_  -= declherm( eval( olhs ) + eval( rhs ) );
-            sres_   -= declherm( eval( olhs ) + eval( rhs ) );
-            osres_  -= declherm( eval( olhs ) + eval( rhs ) );
-            refres_ -= declherm( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   -= declherm( eval( olhs ) + eval( orhs ) );
-            odres_  -= declherm( eval( olhs ) + eval( orhs ) );
-            sres_   -= declherm( eval( olhs ) + eval( orhs ) );
-            osres_  -= declherm( eval( olhs ) + eval( orhs ) );
-            refres_ -= declherm( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-   }
-#endif
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Skipping the Hermitian sparse matrix/dense matrix addition.
-//
-// \return void
-//
-// This function is called in case the Hermitian matrix/matrix addition operation is not
-// available for the given matrix types \a MT1 and \a MT2.
-*/
-template< typename MT1    // Type of the left-hand side sparse matrix
-        , typename MT2 >  // Type of the right-hand side dense matrix
-void OperationTest<MT1,MT2>::testDeclHermOperation( blaze::FalseType )
-{}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Testing the lower sparse matrix/dense matrix addition.
-//
-// \return void
-// \exception std::runtime_error Addition error detected.
-//
-// This function tests the lower matrix addition with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the addition or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
-*/
-template< typename MT1    // Type of the left-hand side sparse matrix
-        , typename MT2 >  // Type of the right-hand side dense matrix
-void OperationTest<MT1,MT2>::testDeclLowOperation( blaze::TrueType )
-{
-#if BLAZETEST_MATHTEST_TEST_DECLLOW_OPERATION
-   if( BLAZETEST_MATHTEST_TEST_DECLLOW_OPERATION > 1 )
-   {
-      if( lhs_.rows() != lhs_.columns() )
-         return;
-
-
-      //=====================================================================================
-      // Test-specific setup of the left-hand side operand
-      //=====================================================================================
-
-      MT1 lhs( lhs_ );
-
-      for( size_t i=0UL; i<lhs.rows(); ++i ) {
-         for( size_t j=i+1UL; j<lhs.columns(); ++j ) {
-            blaze::reset( lhs(i,j) );
-         }
-      }
-
-      OMT1 olhs  ( lhs );
-      RT1  reflhs( lhs );
-
-
-      //=====================================================================================
-      // Test-specific setup of the right-hand side operand
-      //=====================================================================================
-
-      MT2 rhs( rhs_ );
-
-      for( size_t i=0UL; i<rhs.rows(); ++i ) {
-         for( size_t j=i+1UL; j<rhs.columns(); ++j ) {
-            blaze::reset( rhs(i,j) );
-         }
-      }
-
-      OMT2 orhs  ( rhs );
-      RT2  refrhs( rhs );
-
-
-      //=====================================================================================
-      // Decllow addition
-      //=====================================================================================
-
-      // Decllow addition with the given matrices
-      {
-         test_  = "Decllow addition the given matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   = decllow( lhs + rhs );
-            odres_  = decllow( lhs + rhs );
-            sres_   = decllow( lhs + rhs );
-            osres_  = decllow( lhs + rhs );
-            refres_ = decllow( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   = decllow( lhs + orhs );
-            odres_  = decllow( lhs + orhs );
-            sres_   = decllow( lhs + orhs );
-            osres_  = decllow( lhs + orhs );
-            refres_ = decllow( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   = decllow( olhs + rhs );
-            odres_  = decllow( olhs + rhs );
-            sres_   = decllow( olhs + rhs );
-            osres_  = decllow( olhs + rhs );
-            refres_ = decllow( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   = decllow( olhs + orhs );
-            odres_  = decllow( olhs + orhs );
-            sres_   = decllow( olhs + orhs );
-            osres_  = decllow( olhs + orhs );
-            refres_ = decllow( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-      // Decllow addition with evaluated matrices
-      {
-         test_  = "Decllow addition with evaluated left-hand side matrix";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   = decllow( eval( lhs ) + eval( rhs ) );
-            odres_  = decllow( eval( lhs ) + eval( rhs ) );
-            sres_   = decllow( eval( lhs ) + eval( rhs ) );
-            osres_  = decllow( eval( lhs ) + eval( rhs ) );
-            refres_ = decllow( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   = decllow( eval( lhs ) + eval( orhs ) );
-            odres_  = decllow( eval( lhs ) + eval( orhs ) );
-            sres_   = decllow( eval( lhs ) + eval( orhs ) );
-            osres_  = decllow( eval( lhs ) + eval( orhs ) );
-            refres_ = decllow( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   = decllow( eval( olhs ) + eval( rhs ) );
-            odres_  = decllow( eval( olhs ) + eval( rhs ) );
-            sres_   = decllow( eval( olhs ) + eval( rhs ) );
-            osres_  = decllow( eval( olhs ) + eval( rhs ) );
-            refres_ = decllow( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   = decllow( eval( olhs ) + eval( orhs ) );
-            odres_  = decllow( eval( olhs ) + eval( orhs ) );
-            sres_   = decllow( eval( olhs ) + eval( orhs ) );
-            osres_  = decllow( eval( olhs ) + eval( orhs ) );
-            refres_ = decllow( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-
-      //=====================================================================================
-      // Decllow addition with addition assignment
-      //=====================================================================================
-
-      // Decllow addition with addition assignment with the given matrices
-      {
-         test_  = "Decllow addition with addition assignment with the given matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   += decllow( lhs + rhs );
-            odres_  += decllow( lhs + rhs );
-            sres_   += decllow( lhs + rhs );
-            osres_  += decllow( lhs + rhs );
-            refres_ += decllow( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   += decllow( lhs + orhs );
-            odres_  += decllow( lhs + orhs );
-            sres_   += decllow( lhs + orhs );
-            osres_  += decllow( lhs + orhs );
-            refres_ += decllow( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   += decllow( olhs + rhs );
-            odres_  += decllow( olhs + rhs );
-            sres_   += decllow( olhs + rhs );
-            osres_  += decllow( olhs + rhs );
-            refres_ += decllow( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   += decllow( olhs + orhs );
-            odres_  += decllow( olhs + orhs );
-            sres_   += decllow( olhs + orhs );
-            osres_  += decllow( olhs + orhs );
-            refres_ += decllow( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-      // Decllow addition with addition assignment with evaluated matrices
-      {
-         test_  = "Decllow addition with addition assignment with evaluated matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   += decllow( eval( lhs ) + eval( rhs ) );
-            odres_  += decllow( eval( lhs ) + eval( rhs ) );
-            sres_   += decllow( eval( lhs ) + eval( rhs ) );
-            osres_  += decllow( eval( lhs ) + eval( rhs ) );
-            refres_ += decllow( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   += decllow( eval( lhs ) + eval( orhs ) );
-            odres_  += decllow( eval( lhs ) + eval( orhs ) );
-            sres_   += decllow( eval( lhs ) + eval( orhs ) );
-            osres_  += decllow( eval( lhs ) + eval( orhs ) );
-            refres_ += decllow( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   += decllow( eval( olhs ) + eval( rhs ) );
-            odres_  += decllow( eval( olhs ) + eval( rhs ) );
-            sres_   += decllow( eval( olhs ) + eval( rhs ) );
-            osres_  += decllow( eval( olhs ) + eval( rhs ) );
-            refres_ += decllow( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   += decllow( eval( olhs ) + eval( orhs ) );
-            odres_  += decllow( eval( olhs ) + eval( orhs ) );
-            sres_   += decllow( eval( olhs ) + eval( orhs ) );
-            osres_  += decllow( eval( olhs ) + eval( orhs ) );
-            refres_ += decllow( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-
-      //=====================================================================================
-      // Decllow addition with subtraction assignment
-      //=====================================================================================
-
-      // Decllow addition with subtraction assignment with the given matrices
-      {
-         test_  = "Decllow addition with subtraction assignment with the given matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   -= decllow( lhs + rhs );
-            odres_  -= decllow( lhs + rhs );
-            sres_   -= decllow( lhs + rhs );
-            osres_  -= decllow( lhs + rhs );
-            refres_ -= decllow( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   -= decllow( lhs + orhs );
-            odres_  -= decllow( lhs + orhs );
-            sres_   -= decllow( lhs + orhs );
-            osres_  -= decllow( lhs + orhs );
-            refres_ -= decllow( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   -= decllow( olhs + rhs );
-            odres_  -= decllow( olhs + rhs );
-            sres_   -= decllow( olhs + rhs );
-            osres_  -= decllow( olhs + rhs );
-            refres_ -= decllow( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   -= decllow( olhs + orhs );
-            odres_  -= decllow( olhs + orhs );
-            sres_   -= decllow( olhs + orhs );
-            osres_  -= decllow( olhs + orhs );
-            refres_ -= decllow( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-      // Decllow addition with subtraction assignment with evaluated matrices
-      {
-         test_  = "Decllow addition with subtraction assignment with evaluated matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   -= decllow( eval( lhs ) + eval( rhs ) );
-            odres_  -= decllow( eval( lhs ) + eval( rhs ) );
-            sres_   -= decllow( eval( lhs ) + eval( rhs ) );
-            osres_  -= decllow( eval( lhs ) + eval( rhs ) );
-            refres_ -= decllow( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   -= decllow( eval( lhs ) + eval( orhs ) );
-            odres_  -= decllow( eval( lhs ) + eval( orhs ) );
-            sres_   -= decllow( eval( lhs ) + eval( orhs ) );
-            osres_  -= decllow( eval( lhs ) + eval( orhs ) );
-            refres_ -= decllow( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   -= decllow( eval( olhs ) + eval( rhs ) );
-            odres_  -= decllow( eval( olhs ) + eval( rhs ) );
-            sres_   -= decllow( eval( olhs ) + eval( rhs ) );
-            osres_  -= decllow( eval( olhs ) + eval( rhs ) );
-            refres_ -= decllow( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   -= decllow( eval( olhs ) + eval( orhs ) );
-            odres_  -= decllow( eval( olhs ) + eval( orhs ) );
-            sres_   -= decllow( eval( olhs ) + eval( orhs ) );
-            osres_  -= decllow( eval( olhs ) + eval( orhs ) );
-            refres_ -= decllow( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-   }
-#endif
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Skipping the lower sparse matrix/dense matrix addition.
-//
-// \return void
-//
-// This function is called in case the lower matrix/matrix addition operation is not
-// available for the given matrix types \a MT1 and \a MT2.
-*/
-template< typename MT1    // Type of the left-hand side sparse matrix
-        , typename MT2 >  // Type of the right-hand side dense matrix
-void OperationTest<MT1,MT2>::testDeclLowOperation( blaze::FalseType )
-{}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Testing the upper sparse matrix/dense matrix addition.
-//
-// \return void
-// \exception std::runtime_error Addition error detected.
-//
-// This function tests the upper matrix addition with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the addition or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
-*/
-template< typename MT1    // Type of the left-hand side sparse matrix
-        , typename MT2 >  // Type of the right-hand side dense matrix
-void OperationTest<MT1,MT2>::testDeclUppOperation( blaze::TrueType )
-{
-#if BLAZETEST_MATHTEST_TEST_DECLUPP_OPERATION
-   if( BLAZETEST_MATHTEST_TEST_DECLUPP_OPERATION > 1 )
-   {
-      if( lhs_.rows() != lhs_.columns() )
-         return;
-
-
-      //=====================================================================================
-      // Test-specific setup of the left-hand side operand
-      //=====================================================================================
-
-      MT1 lhs( lhs_ );
-
-      for( size_t j=0UL; j<lhs.columns(); ++j ) {
-         for( size_t i=j+1UL; i<lhs.rows(); ++i ) {
-            blaze::reset( lhs(i,j) );
-         }
-      }
-
-      OMT1 olhs  ( lhs );
-      RT1  reflhs( lhs );
-
-
-      //=====================================================================================
-      // Test-specific setup of the right-hand side operand
-      //=====================================================================================
-
-      MT2 rhs( rhs_ );
-
-      for( size_t j=0UL; j<rhs.columns(); ++j ) {
-         for( size_t i=j+1UL; i<rhs.rows(); ++i ) {
-            blaze::reset( rhs(i,j) );
-         }
-      }
-
-      OMT2 orhs  ( rhs );
-      RT2  refrhs( rhs );
-
-
-      //=====================================================================================
-      // Declupp addition
-      //=====================================================================================
-
-      // Declupp addition with the given matrices
-      {
-         test_  = "Declupp addition the given matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   = declupp( lhs + rhs );
-            odres_  = declupp( lhs + rhs );
-            sres_   = declupp( lhs + rhs );
-            osres_  = declupp( lhs + rhs );
-            refres_ = declupp( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   = declupp( lhs + orhs );
-            odres_  = declupp( lhs + orhs );
-            sres_   = declupp( lhs + orhs );
-            osres_  = declupp( lhs + orhs );
-            refres_ = declupp( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   = declupp( olhs + rhs );
-            odres_  = declupp( olhs + rhs );
-            sres_   = declupp( olhs + rhs );
-            osres_  = declupp( olhs + rhs );
-            refres_ = declupp( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   = declupp( olhs + orhs );
-            odres_  = declupp( olhs + orhs );
-            sres_   = declupp( olhs + orhs );
-            osres_  = declupp( olhs + orhs );
-            refres_ = declupp( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-      // Declupp addition with evaluated matrices
-      {
-         test_  = "Declupp addition with evaluated left-hand side matrix";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   = declupp( eval( lhs ) + eval( rhs ) );
-            odres_  = declupp( eval( lhs ) + eval( rhs ) );
-            sres_   = declupp( eval( lhs ) + eval( rhs ) );
-            osres_  = declupp( eval( lhs ) + eval( rhs ) );
-            refres_ = declupp( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   = declupp( eval( lhs ) + eval( orhs ) );
-            odres_  = declupp( eval( lhs ) + eval( orhs ) );
-            sres_   = declupp( eval( lhs ) + eval( orhs ) );
-            osres_  = declupp( eval( lhs ) + eval( orhs ) );
-            refres_ = declupp( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   = declupp( eval( olhs ) + eval( rhs ) );
-            odres_  = declupp( eval( olhs ) + eval( rhs ) );
-            sres_   = declupp( eval( olhs ) + eval( rhs ) );
-            osres_  = declupp( eval( olhs ) + eval( rhs ) );
-            refres_ = declupp( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   = declupp( eval( olhs ) + eval( orhs ) );
-            odres_  = declupp( eval( olhs ) + eval( orhs ) );
-            sres_   = declupp( eval( olhs ) + eval( orhs ) );
-            osres_  = declupp( eval( olhs ) + eval( orhs ) );
-            refres_ = declupp( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-
-      //=====================================================================================
-      // Declupp addition with addition assignment
-      //=====================================================================================
-
-      // Declupp addition with addition assignment with the given matrices
-      {
-         test_  = "Declupp addition with addition assignment with the given matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   += declupp( lhs + rhs );
-            odres_  += declupp( lhs + rhs );
-            sres_   += declupp( lhs + rhs );
-            osres_  += declupp( lhs + rhs );
-            refres_ += declupp( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   += declupp( lhs + orhs );
-            odres_  += declupp( lhs + orhs );
-            sres_   += declupp( lhs + orhs );
-            osres_  += declupp( lhs + orhs );
-            refres_ += declupp( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   += declupp( olhs + rhs );
-            odres_  += declupp( olhs + rhs );
-            sres_   += declupp( olhs + rhs );
-            osres_  += declupp( olhs + rhs );
-            refres_ += declupp( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   += declupp( olhs + orhs );
-            odres_  += declupp( olhs + orhs );
-            sres_   += declupp( olhs + orhs );
-            osres_  += declupp( olhs + orhs );
-            refres_ += declupp( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-      // Declupp addition with addition assignment with evaluated matrices
-      {
-         test_  = "Declupp addition with addition assignment with evaluated matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   += declupp( eval( lhs ) + eval( rhs ) );
-            odres_  += declupp( eval( lhs ) + eval( rhs ) );
-            sres_   += declupp( eval( lhs ) + eval( rhs ) );
-            osres_  += declupp( eval( lhs ) + eval( rhs ) );
-            refres_ += declupp( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   += declupp( eval( lhs ) + eval( orhs ) );
-            odres_  += declupp( eval( lhs ) + eval( orhs ) );
-            sres_   += declupp( eval( lhs ) + eval( orhs ) );
-            osres_  += declupp( eval( lhs ) + eval( orhs ) );
-            refres_ += declupp( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   += declupp( eval( olhs ) + eval( rhs ) );
-            odres_  += declupp( eval( olhs ) + eval( rhs ) );
-            sres_   += declupp( eval( olhs ) + eval( rhs ) );
-            osres_  += declupp( eval( olhs ) + eval( rhs ) );
-            refres_ += declupp( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   += declupp( eval( olhs ) + eval( orhs ) );
-            odres_  += declupp( eval( olhs ) + eval( orhs ) );
-            sres_   += declupp( eval( olhs ) + eval( orhs ) );
-            osres_  += declupp( eval( olhs ) + eval( orhs ) );
-            refres_ += declupp( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-
-      //=====================================================================================
-      // Declupp addition with subtraction assignment
-      //=====================================================================================
-
-      // Declupp addition with subtraction assignment with the given matrices
-      {
-         test_  = "Declupp addition with subtraction assignment with the given matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   -= declupp( lhs + rhs );
-            odres_  -= declupp( lhs + rhs );
-            sres_   -= declupp( lhs + rhs );
-            osres_  -= declupp( lhs + rhs );
-            refres_ -= declupp( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   -= declupp( lhs + orhs );
-            odres_  -= declupp( lhs + orhs );
-            sres_   -= declupp( lhs + orhs );
-            osres_  -= declupp( lhs + orhs );
-            refres_ -= declupp( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   -= declupp( olhs + rhs );
-            odres_  -= declupp( olhs + rhs );
-            sres_   -= declupp( olhs + rhs );
-            osres_  -= declupp( olhs + rhs );
-            refres_ -= declupp( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   -= declupp( olhs + orhs );
-            odres_  -= declupp( olhs + orhs );
-            sres_   -= declupp( olhs + orhs );
-            osres_  -= declupp( olhs + orhs );
-            refres_ -= declupp( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-      // Declupp addition with subtraction assignment with evaluated matrices
-      {
-         test_  = "Declupp addition with subtraction assignment with evaluated matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   -= declupp( eval( lhs ) + eval( rhs ) );
-            odres_  -= declupp( eval( lhs ) + eval( rhs ) );
-            sres_   -= declupp( eval( lhs ) + eval( rhs ) );
-            osres_  -= declupp( eval( lhs ) + eval( rhs ) );
-            refres_ -= declupp( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   -= declupp( eval( lhs ) + eval( orhs ) );
-            odres_  -= declupp( eval( lhs ) + eval( orhs ) );
-            sres_   -= declupp( eval( lhs ) + eval( orhs ) );
-            osres_  -= declupp( eval( lhs ) + eval( orhs ) );
-            refres_ -= declupp( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   -= declupp( eval( olhs ) + eval( rhs ) );
-            odres_  -= declupp( eval( olhs ) + eval( rhs ) );
-            sres_   -= declupp( eval( olhs ) + eval( rhs ) );
-            osres_  -= declupp( eval( olhs ) + eval( rhs ) );
-            refres_ -= declupp( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   -= declupp( eval( olhs ) + eval( orhs ) );
-            odres_  -= declupp( eval( olhs ) + eval( orhs ) );
-            sres_   -= declupp( eval( olhs ) + eval( orhs ) );
-            osres_  -= declupp( eval( olhs ) + eval( orhs ) );
-            refres_ -= declupp( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-   }
-#endif
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Skipping the upper sparse matrix/dense matrix addition.
-//
-// \return void
-//
-// This function is called in case the upper matrix/matrix addition operation is not
-// available for the given matrix types \a MT1 and \a MT2.
-*/
-template< typename MT1    // Type of the left-hand side sparse matrix
-        , typename MT2 >  // Type of the right-hand side dense matrix
-void OperationTest<MT1,MT2>::testDeclUppOperation( blaze::FalseType )
-{}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Testing the diagonal sparse matrix/dense matrix addition.
-//
-// \return void
-// \exception std::runtime_error Addition error detected.
-//
-// This function tests the diagonal matrix addition with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the addition or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
-*/
-template< typename MT1    // Type of the left-hand side sparse matrix
-        , typename MT2 >  // Type of the right-hand side dense matrix
-void OperationTest<MT1,MT2>::testDeclDiagOperation( blaze::TrueType )
-{
-#if BLAZETEST_MATHTEST_TEST_DECLDIAG_OPERATION
-   if( BLAZETEST_MATHTEST_TEST_DECLDIAG_OPERATION > 1 )
-   {
-      if( lhs_.rows() != lhs_.columns() )
-         return;
-
-
-      //=====================================================================================
-      // Test-specific setup of the left-hand side operand
-      //=====================================================================================
-
-      MT1 lhs( lhs_ );
-
-      for( size_t i=0UL; i<lhs.rows(); ++i ) {
-         const size_t jend( blaze::min( i, lhs.columns() ) );
-         for( size_t j=0UL; j<jend; ++j ) {
-            blaze::reset( lhs(i,j) );
-         }
-         for( size_t j=i+1UL; j<lhs.columns(); ++j ) {
-            blaze::reset( lhs(i,j) );
-         }
-      }
-
-      OMT1 olhs  ( lhs );
-      RT1  reflhs( lhs );
-
-
-      //=====================================================================================
-      // Test-specific setup of the right-hand side operand
-      //=====================================================================================
-
-      MT2 rhs( rhs_ );
-
-      for( size_t i=0UL; i<rhs.rows(); ++i ) {
-         const size_t jend( blaze::min( i, rhs.columns() ) );
-         for( size_t j=0UL; j<jend; ++j ) {
-            blaze::reset( rhs(i,j) );
-         }
-         for( size_t j=i+1UL; j<rhs.columns(); ++j ) {
-            blaze::reset( rhs(i,j) );
-         }
-      }
-
-      OMT2 orhs  ( rhs );
-      RT2  refrhs( rhs );
-
-
-      //=====================================================================================
-      // Decldiag addition
-      //=====================================================================================
-
-      // Decldiag addition with the given matrices
-      {
-         test_  = "Decldiag addition the given matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   = decldiag( lhs + rhs );
-            odres_  = decldiag( lhs + rhs );
-            sres_   = decldiag( lhs + rhs );
-            osres_  = decldiag( lhs + rhs );
-            refres_ = decldiag( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   = decldiag( lhs + orhs );
-            odres_  = decldiag( lhs + orhs );
-            sres_   = decldiag( lhs + orhs );
-            osres_  = decldiag( lhs + orhs );
-            refres_ = decldiag( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   = decldiag( olhs + rhs );
-            odres_  = decldiag( olhs + rhs );
-            sres_   = decldiag( olhs + rhs );
-            osres_  = decldiag( olhs + rhs );
-            refres_ = decldiag( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   = decldiag( olhs + orhs );
-            odres_  = decldiag( olhs + orhs );
-            sres_   = decldiag( olhs + orhs );
-            osres_  = decldiag( olhs + orhs );
-            refres_ = decldiag( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-      // Decldiag addition with evaluated matrices
-      {
-         test_  = "Decldiag addition with evaluated left-hand side matrix";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   = decldiag( eval( lhs ) + eval( rhs ) );
-            odres_  = decldiag( eval( lhs ) + eval( rhs ) );
-            sres_   = decldiag( eval( lhs ) + eval( rhs ) );
-            osres_  = decldiag( eval( lhs ) + eval( rhs ) );
-            refres_ = decldiag( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   = decldiag( eval( lhs ) + eval( orhs ) );
-            odres_  = decldiag( eval( lhs ) + eval( orhs ) );
-            sres_   = decldiag( eval( lhs ) + eval( orhs ) );
-            osres_  = decldiag( eval( lhs ) + eval( orhs ) );
-            refres_ = decldiag( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   = decldiag( eval( olhs ) + eval( rhs ) );
-            odres_  = decldiag( eval( olhs ) + eval( rhs ) );
-            sres_   = decldiag( eval( olhs ) + eval( rhs ) );
-            osres_  = decldiag( eval( olhs ) + eval( rhs ) );
-            refres_ = decldiag( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   = decldiag( eval( olhs ) + eval( orhs ) );
-            odres_  = decldiag( eval( olhs ) + eval( orhs ) );
-            sres_   = decldiag( eval( olhs ) + eval( orhs ) );
-            osres_  = decldiag( eval( olhs ) + eval( orhs ) );
-            refres_ = decldiag( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-
-      //=====================================================================================
-      // Decldiag addition with addition assignment
-      //=====================================================================================
-
-      // Decldiag addition with addition assignment with the given matrices
-      {
-         test_  = "Decldiag addition with addition assignment with the given matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   += decldiag( lhs + rhs );
-            odres_  += decldiag( lhs + rhs );
-            sres_   += decldiag( lhs + rhs );
-            osres_  += decldiag( lhs + rhs );
-            refres_ += decldiag( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   += decldiag( lhs + orhs );
-            odres_  += decldiag( lhs + orhs );
-            sres_   += decldiag( lhs + orhs );
-            osres_  += decldiag( lhs + orhs );
-            refres_ += decldiag( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   += decldiag( olhs + rhs );
-            odres_  += decldiag( olhs + rhs );
-            sres_   += decldiag( olhs + rhs );
-            osres_  += decldiag( olhs + rhs );
-            refres_ += decldiag( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   += decldiag( olhs + orhs );
-            odres_  += decldiag( olhs + orhs );
-            sres_   += decldiag( olhs + orhs );
-            osres_  += decldiag( olhs + orhs );
-            refres_ += decldiag( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-      // Decldiag addition with addition assignment with evaluated matrices
-      {
-         test_  = "Decldiag addition with addition assignment with evaluated matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   += decldiag( eval( lhs ) + eval( rhs ) );
-            odres_  += decldiag( eval( lhs ) + eval( rhs ) );
-            sres_   += decldiag( eval( lhs ) + eval( rhs ) );
-            osres_  += decldiag( eval( lhs ) + eval( rhs ) );
-            refres_ += decldiag( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   += decldiag( eval( lhs ) + eval( orhs ) );
-            odres_  += decldiag( eval( lhs ) + eval( orhs ) );
-            sres_   += decldiag( eval( lhs ) + eval( orhs ) );
-            osres_  += decldiag( eval( lhs ) + eval( orhs ) );
-            refres_ += decldiag( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   += decldiag( eval( olhs ) + eval( rhs ) );
-            odres_  += decldiag( eval( olhs ) + eval( rhs ) );
-            sres_   += decldiag( eval( olhs ) + eval( rhs ) );
-            osres_  += decldiag( eval( olhs ) + eval( rhs ) );
-            refres_ += decldiag( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   += decldiag( eval( olhs ) + eval( orhs ) );
-            odres_  += decldiag( eval( olhs ) + eval( orhs ) );
-            sres_   += decldiag( eval( olhs ) + eval( orhs ) );
-            osres_  += decldiag( eval( olhs ) + eval( orhs ) );
-            refres_ += decldiag( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-
-      //=====================================================================================
-      // Decldiag addition with subtraction assignment
-      //=====================================================================================
-
-      // Decldiag addition with subtraction assignment with the given matrices
-      {
-         test_  = "Decldiag addition with subtraction assignment with the given matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   -= decldiag( lhs + rhs );
-            odres_  -= decldiag( lhs + rhs );
-            sres_   -= decldiag( lhs + rhs );
-            osres_  -= decldiag( lhs + rhs );
-            refres_ -= decldiag( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   -= decldiag( lhs + orhs );
-            odres_  -= decldiag( lhs + orhs );
-            sres_   -= decldiag( lhs + orhs );
-            osres_  -= decldiag( lhs + orhs );
-            refres_ -= decldiag( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   -= decldiag( olhs + rhs );
-            odres_  -= decldiag( olhs + rhs );
-            sres_   -= decldiag( olhs + rhs );
-            osres_  -= decldiag( olhs + rhs );
-            refres_ -= decldiag( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   -= decldiag( olhs + orhs );
-            odres_  -= decldiag( olhs + orhs );
-            sres_   -= decldiag( olhs + orhs );
-            osres_  -= decldiag( olhs + orhs );
-            refres_ -= decldiag( reflhs + refrhs );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-
-      // Decldiag addition with subtraction assignment with evaluated matrices
-      {
-         test_  = "Decldiag addition with subtraction assignment with evaluated matrices";
-         error_ = "Failed addition operation";
-
-         try {
-            initResults();
-            dres_   -= decldiag( eval( lhs ) + eval( rhs ) );
-            odres_  -= decldiag( eval( lhs ) + eval( rhs ) );
-            sres_   -= decldiag( eval( lhs ) + eval( rhs ) );
-            osres_  -= decldiag( eval( lhs ) + eval( rhs ) );
-            refres_ -= decldiag( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,MT2>( ex );
-         }
-
-         checkResults<MT1,MT2>();
-
-         try {
-            initResults();
-            dres_   -= decldiag( eval( lhs ) + eval( orhs ) );
-            odres_  -= decldiag( eval( lhs ) + eval( orhs ) );
-            sres_   -= decldiag( eval( lhs ) + eval( orhs ) );
-            osres_  -= decldiag( eval( lhs ) + eval( orhs ) );
-            refres_ -= decldiag( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<MT1,OMT2>( ex );
-         }
-
-         checkResults<MT1,OMT2>();
-
-         try {
-            initResults();
-            dres_   -= decldiag( eval( olhs ) + eval( rhs ) );
-            odres_  -= decldiag( eval( olhs ) + eval( rhs ) );
-            sres_   -= decldiag( eval( olhs ) + eval( rhs ) );
-            osres_  -= decldiag( eval( olhs ) + eval( rhs ) );
-            refres_ -= decldiag( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,MT2>( ex );
-         }
-
-         checkResults<OMT1,MT2>();
-
-         try {
-            initResults();
-            dres_   -= decldiag( eval( olhs ) + eval( orhs ) );
-            odres_  -= decldiag( eval( olhs ) + eval( orhs ) );
-            sres_   -= decldiag( eval( olhs ) + eval( orhs ) );
-            osres_  -= decldiag( eval( olhs ) + eval( orhs ) );
-            refres_ -= decldiag( eval( reflhs ) + eval( refrhs ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<OMT1,OMT2>( ex );
-         }
-
-         checkResults<OMT1,OMT2>();
-      }
-   }
-#endif
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Skipping the diagonal sparse matrix/dense matrix addition.
-//
-// \return void
-//
-// This function is called in case the diagonal matrix/matrix addition operation is not
-// available for the given matrix types \a MT1 and \a MT2.
-*/
-template< typename MT1    // Type of the left-hand side sparse matrix
-        , typename MT2 >  // Type of the right-hand side dense matrix
-void OperationTest<MT1,MT2>::testDeclDiagOperation( blaze::FalseType )
-{}
 //*************************************************************************************************
 
 
@@ -8007,413 +8164,6 @@ void OperationTest<MT1,MT2>::testColumnOperation()
 //*************************************************************************************************
 
 
-//*************************************************************************************************
-/*!\brief Testing the customized sparse matrix/dense matrix addition.
-//
-// \param op The custom operation to be tested.
-// \param name The human-readable name of the operation.
-// \return void
-// \exception std::runtime_error Addition error detected.
-//
-// This function tests the matrix addition with plain assignment, addition assignment, and
-// subtraction assignment in combination with a custom operation. In case any error resulting
-// from the addition or the subsequent assignment is detected, a \a std::runtime_error exception
-// is thrown.
-*/
-template< typename MT1    // Type of the left-hand side sparse matrix
-        , typename MT2 >  // Type of the right-hand side dense matrix
-template< typename OP >   // Type of the custom operation
-void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name )
-{
-   //=====================================================================================
-   // Customized addition
-   //=====================================================================================
-
-   // Customized addition with the given matrices
-   {
-      test_  = "Customized addition with the given matrices (" + name + ")";
-      error_ = "Failed addition operation";
-
-      try {
-         initResults();
-         dres_   = op( lhs_ + rhs_ );
-         odres_  = op( lhs_ + rhs_ );
-         sres_   = op( lhs_ + rhs_ );
-         osres_  = op( lhs_ + rhs_ );
-         refres_ = op( reflhs_ + refrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<MT1,MT2>( ex );
-      }
-
-      checkResults<MT1,MT2>();
-
-      try {
-         initResults();
-         dres_   = op( lhs_ + orhs_ );
-         odres_  = op( lhs_ + orhs_ );
-         sres_   = op( lhs_ + orhs_ );
-         osres_  = op( lhs_ + orhs_ );
-         refres_ = op( reflhs_ + refrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<MT1,OMT2>( ex );
-      }
-
-      checkResults<MT1,OMT2>();
-
-      try {
-         initResults();
-         dres_   = op( olhs_ + rhs_ );
-         odres_  = op( olhs_ + rhs_ );
-         sres_   = op( olhs_ + rhs_ );
-         osres_  = op( olhs_ + rhs_ );
-         refres_ = op( reflhs_ + refrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<OMT1,MT2>( ex );
-      }
-
-      checkResults<OMT1,MT2>();
-
-      try {
-         initResults();
-         dres_   = op( olhs_ + orhs_ );
-         odres_  = op( olhs_ + orhs_ );
-         sres_   = op( olhs_ + orhs_ );
-         osres_  = op( olhs_ + orhs_ );
-         refres_ = op( reflhs_ + refrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<OMT1,OMT2>( ex );
-      }
-
-      checkResults<OMT1,OMT2>();
-   }
-
-   // Customized addition with evaluated matrices
-   {
-      test_  = "Customized addition with evaluated matrices (" + name + ")";
-      error_ = "Failed addition operation";
-
-      try {
-         initResults();
-         dres_   = op( eval( lhs_ ) + eval( rhs_ ) );
-         odres_  = op( eval( lhs_ ) + eval( rhs_ ) );
-         sres_   = op( eval( lhs_ ) + eval( rhs_ ) );
-         osres_  = op( eval( lhs_ ) + eval( rhs_ ) );
-         refres_ = op( eval( reflhs_ ) + eval( refrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<MT1,MT2>( ex );
-      }
-
-      checkResults<MT1,MT2>();
-
-      try {
-         initResults();
-         dres_   = op( eval( lhs_ ) + eval( orhs_ ) );
-         odres_  = op( eval( lhs_ ) + eval( orhs_ ) );
-         sres_   = op( eval( lhs_ ) + eval( orhs_ ) );
-         osres_  = op( eval( lhs_ ) + eval( orhs_ ) );
-         refres_ = op( eval( reflhs_ ) + eval( refrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<MT1,OMT2>( ex );
-      }
-
-      checkResults<MT1,OMT2>();
-
-      try {
-         initResults();
-         dres_   = op( eval( olhs_ ) + eval( rhs_ ) );
-         odres_  = op( eval( olhs_ ) + eval( rhs_ ) );
-         sres_   = op( eval( olhs_ ) + eval( rhs_ ) );
-         osres_  = op( eval( olhs_ ) + eval( rhs_ ) );
-         refres_ = op( eval( reflhs_ ) + eval( refrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<OMT1,MT2>( ex );
-      }
-
-      checkResults<OMT1,MT2>();
-
-      try {
-         initResults();
-         dres_   = op( eval( olhs_ ) + eval( orhs_ ) );
-         odres_  = op( eval( olhs_ ) + eval( orhs_ ) );
-         sres_   = op( eval( olhs_ ) + eval( orhs_ ) );
-         osres_  = op( eval( olhs_ ) + eval( orhs_ ) );
-         refres_ = op( eval( reflhs_ ) + eval( refrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<OMT1,OMT2>( ex );
-      }
-
-      checkResults<OMT1,OMT2>();
-   }
-
-
-   //=====================================================================================
-   // Customized addition with addition assignment
-   //=====================================================================================
-
-   // Customized addition with addition assignment with the given matrices
-   {
-      test_  = "Customized addition with addition assignment with the given matrices (" + name + ")";
-      error_ = "Failed addition assignment operation";
-
-      try {
-         initResults();
-         dres_   += op( lhs_ + rhs_ );
-         odres_  += op( lhs_ + rhs_ );
-         sres_   += op( lhs_ + rhs_ );
-         osres_  += op( lhs_ + rhs_ );
-         refres_ += op( reflhs_ + refrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<MT1,MT2>( ex );
-      }
-
-      checkResults<MT1,MT2>();
-
-      try {
-         initResults();
-         dres_   += op( lhs_ + orhs_ );
-         odres_  += op( lhs_ + orhs_ );
-         sres_   += op( lhs_ + orhs_ );
-         osres_  += op( lhs_ + orhs_ );
-         refres_ += op( reflhs_ + refrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<MT1,OMT2>( ex );
-      }
-
-      checkResults<MT1,OMT2>();
-
-      try {
-         initResults();
-         dres_   += op( olhs_ + rhs_ );
-         odres_  += op( olhs_ + rhs_ );
-         sres_   += op( olhs_ + rhs_ );
-         osres_  += op( olhs_ + rhs_ );
-         refres_ += op( reflhs_ + refrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<OMT1,MT2>( ex );
-      }
-
-      checkResults<OMT1,MT2>();
-
-      try {
-         initResults();
-         dres_   += op( olhs_ + orhs_ );
-         odres_  += op( olhs_ + orhs_ );
-         sres_   += op( olhs_ + orhs_ );
-         osres_  += op( olhs_ + orhs_ );
-         refres_ += op( reflhs_ + refrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<OMT1,OMT2>( ex );
-      }
-
-      checkResults<OMT1,OMT2>();
-   }
-
-   // Customized addition with addition assignment with evaluated matrices
-   {
-      test_  = "Customized addition with addition assignment with evaluated matrices (" + name + ")";
-      error_ = "Failed addition assignment operation";
-
-      try {
-         initResults();
-         dres_   += op( eval( lhs_ ) + eval( rhs_ ) );
-         odres_  += op( eval( lhs_ ) + eval( rhs_ ) );
-         sres_   += op( eval( lhs_ ) + eval( rhs_ ) );
-         osres_  += op( eval( lhs_ ) + eval( rhs_ ) );
-         refres_ += op( eval( reflhs_ ) + eval( refrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<MT1,MT2>( ex );
-      }
-
-      checkResults<MT1,MT2>();
-
-      try {
-         initResults();
-         dres_   += op( eval( lhs_ ) + eval( orhs_ ) );
-         odres_  += op( eval( lhs_ ) + eval( orhs_ ) );
-         sres_   += op( eval( lhs_ ) + eval( orhs_ ) );
-         osres_  += op( eval( lhs_ ) + eval( orhs_ ) );
-         refres_ += op( eval( reflhs_ ) + eval( refrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<MT1,OMT2>( ex );
-      }
-
-      checkResults<MT1,OMT2>();
-
-      try {
-         initResults();
-         dres_   += op( eval( olhs_ ) + eval( rhs_ ) );
-         odres_  += op( eval( olhs_ ) + eval( rhs_ ) );
-         sres_   += op( eval( olhs_ ) + eval( rhs_ ) );
-         osres_  += op( eval( olhs_ ) + eval( rhs_ ) );
-         refres_ += op( eval( reflhs_ ) + eval( refrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<OMT1,MT2>( ex );
-      }
-
-      checkResults<OMT1,MT2>();
-
-      try {
-         initResults();
-         dres_   += op( eval( olhs_ ) + eval( orhs_ ) );
-         odres_  += op( eval( olhs_ ) + eval( orhs_ ) );
-         sres_   += op( eval( olhs_ ) + eval( orhs_ ) );
-         osres_  += op( eval( olhs_ ) + eval( orhs_ ) );
-         refres_ += op( eval( reflhs_ ) + eval( refrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<OMT1,OMT2>( ex );
-      }
-
-      checkResults<OMT1,OMT2>();
-   }
-
-
-   //=====================================================================================
-   // Customized addition with subtraction assignment
-   //=====================================================================================
-
-   // Customized addition with subtraction assignment with the given matrices
-   {
-      test_  = "Customized addition with subtraction assignment with the given matrices (" + name + ")";
-      error_ = "Failed subtraction assignment operation";
-
-      try {
-         initResults();
-         dres_   -= op( lhs_ + rhs_ );
-         odres_  -= op( lhs_ + rhs_ );
-         sres_   -= op( lhs_ + rhs_ );
-         osres_  -= op( lhs_ + rhs_ );
-         refres_ -= op( reflhs_ + refrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<MT1,MT2>( ex );
-      }
-
-      checkResults<MT1,MT2>();
-
-      try {
-         initResults();
-         dres_   -= op( lhs_ + orhs_ );
-         odres_  -= op( lhs_ + orhs_ );
-         sres_   -= op( lhs_ + orhs_ );
-         osres_  -= op( lhs_ + orhs_ );
-         refres_ -= op( reflhs_ + refrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<MT1,OMT2>( ex );
-      }
-
-      checkResults<MT1,OMT2>();
-
-      try {
-         initResults();
-         dres_   -= op( olhs_ + rhs_ );
-         odres_  -= op( olhs_ + rhs_ );
-         sres_   -= op( olhs_ + rhs_ );
-         osres_  -= op( olhs_ + rhs_ );
-         refres_ -= op( reflhs_ + refrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<OMT1,MT2>( ex );
-      }
-
-      checkResults<OMT1,MT2>();
-
-      try {
-         initResults();
-         dres_   -= op( olhs_ + orhs_ );
-         odres_  -= op( olhs_ + orhs_ );
-         sres_   -= op( olhs_ + orhs_ );
-         osres_  -= op( olhs_ + orhs_ );
-         refres_ -= op( reflhs_ + refrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<OMT1,OMT2>( ex );
-      }
-
-      checkResults<OMT1,OMT2>();
-   }
-
-   // Customized addition with subtraction assignment with evaluated matrices
-   {
-      test_  = "Customized addition with subtraction assignment with evaluated matrices (" + name + ")";
-      error_ = "Failed subtraction assignment operation";
-
-      try {
-         initResults();
-         dres_   -= op( eval( lhs_ ) + eval( rhs_ ) );
-         odres_  -= op( eval( lhs_ ) + eval( rhs_ ) );
-         sres_   -= op( eval( lhs_ ) + eval( rhs_ ) );
-         osres_  -= op( eval( lhs_ ) + eval( rhs_ ) );
-         refres_ -= op( eval( reflhs_ ) + eval( refrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<MT1,MT2>( ex );
-      }
-
-      checkResults<MT1,MT2>();
-
-      try {
-         initResults();
-         dres_   -= op( eval( lhs_ ) + eval( orhs_ ) );
-         odres_  -= op( eval( lhs_ ) + eval( orhs_ ) );
-         sres_   -= op( eval( lhs_ ) + eval( orhs_ ) );
-         osres_  -= op( eval( lhs_ ) + eval( orhs_ ) );
-         refres_ -= op( eval( reflhs_ ) + eval( refrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<MT1,OMT2>( ex );
-      }
-
-      checkResults<MT1,OMT2>();
-
-      try {
-         initResults();
-         dres_   -= op( eval( olhs_ ) + eval( rhs_ ) );
-         odres_  -= op( eval( olhs_ ) + eval( rhs_ ) );
-         sres_   -= op( eval( olhs_ ) + eval( rhs_ ) );
-         osres_  -= op( eval( olhs_ ) + eval( rhs_ ) );
-         refres_ -= op( eval( reflhs_ ) + eval( refrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<OMT1,MT2>( ex );
-      }
-
-      checkResults<OMT1,MT2>();
-
-      try {
-         initResults();
-         dres_   -= op( eval( olhs_ ) + eval( orhs_ ) );
-         odres_  -= op( eval( olhs_ ) + eval( orhs_ ) );
-         sres_   -= op( eval( olhs_ ) + eval( orhs_ ) );
-         osres_  -= op( eval( olhs_ ) + eval( orhs_ ) );
-         refres_ -= op( eval( reflhs_ ) + eval( refrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<OMT1,OMT2>( ex );
-      }
-
-      checkResults<OMT1,OMT2>();
-   }
-}
-//*************************************************************************************************
-
-
 
 
 //=================================================================================================
@@ -8550,8 +8300,8 @@ template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side dense matrix
 void OperationTest<MT1,MT2>::initResults()
 {
-   const blaze::UnderlyingBuiltin_<DRE> min( randmin );
-   const blaze::UnderlyingBuiltin_<DRE> max( randmax );
+   const typename blaze::UnderlyingBuiltin<DRE>::Type min( randmin );
+   const typename blaze::UnderlyingBuiltin<DRE>::Type max( randmax );
 
    resize( dres_, rows( lhs_ ), columns( lhs_ ) );
    randomize( dres_, min, max );
@@ -8576,8 +8326,8 @@ template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side dense matrix
 void OperationTest<MT1,MT2>::initTransposeResults()
 {
-   const blaze::UnderlyingBuiltin_<TDRE> min( randmin );
-   const blaze::UnderlyingBuiltin_<TDRE> max( randmax );
+   const typename blaze::UnderlyingBuiltin<TDRE>::Type min( randmin );
+   const typename blaze::UnderlyingBuiltin<TDRE>::Type max( randmax );
 
    resize( tdres_, columns( lhs_ ), rows( lhs_ ) );
    randomize( tdres_, min, max );
@@ -8643,7 +8393,7 @@ template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side dense matrix
 void runTest( const Creator<MT1>& creator1, const Creator<MT2>& creator2 )
 {
-   for( size_t rep=0UL; rep<repetitions; ++rep ) {
+   for( size_t rep=0; rep<repetitions; ++rep ) {
       OperationTest<MT1,MT2>( creator1, creator2 );
    }
 }

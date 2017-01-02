@@ -40,6 +40,8 @@
 // Includes
 //*************************************************************************************************
 
+#include <blaze/util/constraints/ConstraintTest.h>
+#include <blaze/util/Suffix.h>
 #include <blaze/util/typetraits/IsBuiltin.h>
 
 
@@ -52,13 +54,32 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_BE_BUILTIN_TYPE_FAILED;
+template<> struct CONSTRAINT_MUST_BE_BUILTIN_TYPE_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the data type.
 // \ingroup constraints
 //
 // In case the given data type \a T is not a built-in data type, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_BE_BUILTIN_TYPE(T) \
-   static_assert( ::blaze::IsBuiltin<T>::value, "Non-built-in type detected" )
+   typedef \
+      ::blaze::CONSTRAINT_TEST< \
+         ::blaze::CONSTRAINT_MUST_BE_BUILTIN_TYPE_FAILED< ::blaze::IsBuiltin<T>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_BE_BUILTIN_TYPE_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -71,13 +92,32 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_NOT_BE_BUILTIN_TYPE_FAILED;
+template<> struct CONSTRAINT_MUST_NOT_BE_BUILTIN_TYPE_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the data type.
 // \ingroup constraints
 //
 // In case the given data type \a T is a built-in data type, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_NOT_BE_BUILTIN_TYPE(T) \
-   static_assert( !::blaze::IsBuiltin<T>::value, "Built-in type detected" )
+   typedef \
+      ::blaze::CONSTRAINT_TEST< \
+         ::blaze::CONSTRAINT_MUST_NOT_BE_BUILTIN_TYPE_FAILED< !::blaze::IsBuiltin<T>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_NOT_BE_BUILTIN_TYPE_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 } // namespace blaze

@@ -40,8 +40,10 @@
 // Includes
 //*************************************************************************************************
 
-#include <type_traits>
-#include <blaze/util/IntegralConstant.h>
+#include <boost/type_traits/is_array.hpp>
+#include <blaze/util/FalseType.h>
+#include <blaze/util/SelectType.h>
+#include <blaze/util/TrueType.h>
 
 
 namespace blaze {
@@ -53,27 +55,52 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Auxiliary helper struct for the IsArray type trait.
+// \ingroup type_traits
+*/
+template< typename T >
+struct IsArrayHelper
+{
+   //**********************************************************************************************
+   enum { value = boost::is_array<T>::value };
+   typedef typename SelectType<value,TrueType,FalseType>::Type  Type;
+   //**********************************************************************************************
+};
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Compile time type check.
 // \ingroup type_traits
 //
-// The IsArray type trait tests whether or not the given template parameter is an array type. In
-// case the given data type is an array type, the \a value member constant is set to \a true, the
-// nested type definition \a Type is set to \a TrueType, and the class derives from \a TrueType.
-// Otherwise \a value is set to \a false, \a Type is \a FalseType and the class derives from
-// \a FalseType.
+// The IsArray type trait tests whether or not the given template parameter is an array type.
+// In case the given data type is an array type, the \a value member enumeration is set to 1,
+// the nested type definition \a Type is set to \a TrueType, and the class derives from
+// \a TrueType. Otherwise \a value is set to 0, \a Type is \a FalseType and the class derives
+// from \a FalseType.
 
    \code
-   blaze::IsArray< int[3] >::value      // Evaluates to 'true'
+   blaze::IsArray< int[3] >::value      // Evaluates to 1
    blaze::IsArray< const int[] >::Type  // Results in TrueType
    blaze::IsArray< int[][3] >           // Is derived from TrueType
-   blaze::IsArray< int >::value         // Evaluates to 'false'
+   blaze::IsArray< int >::value         // Evaluates to 0
    blaze::IsArray< int const* >::Type   // Results in FalseType
    blaze::IsArray< std::vector<int> >   // Is derived from FalseType
    \endcode
 */
 template< typename T >
-struct IsArray : public BoolConstant< std::is_array<T>::value >
-{};
+struct IsArray : public IsArrayHelper<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   enum { value = IsArrayHelper<T>::value };
+   typedef typename IsArrayHelper<T>::Type  Type;
+   /*! \endcond */
+   //**********************************************************************************************
+};
 //*************************************************************************************************
 
 } // namespace blaze

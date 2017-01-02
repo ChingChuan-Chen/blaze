@@ -41,19 +41,41 @@
 //*************************************************************************************************
 
 #include <boost/cast.hpp>
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/Adaptor.h>
-#include <blaze/math/constraints/BLASCompatible.h>
+#include <blaze/math/constraints/BlasCompatible.h>
 #include <blaze/math/constraints/Computation.h>
 #include <blaze/math/constraints/MutableDataAccess.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/DenseMatrix.h>
-#include <blaze/math/lapack/clapack/trtri.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blaze/util/Assert.h>
+#include <blaze/util/Complex.h>
+#include <blaze/util/Exception.h>
+#include <blaze/util/StaticAssert.h>
 
 
 namespace blaze {
+
+//=================================================================================================
+//
+//  LAPACK FORWARD DECLARATIONS
+//
+//=================================================================================================
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+extern "C" {
+
+void strtri_( char* uplo, char* diag, int* n, float*  A, int* lda, int* info );
+void dtrtri_( char* uplo, char* diag, int* n, double* A, int* lda, int* info );
+void ctrtri_( char* uplo, char* diag, int* n, float*  A, int* lda, int* info );
+void ztrtri_( char* uplo, char* diag, int* n, double* A, int* lda, int* info );
+
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+
 
 //=================================================================================================
 //
@@ -64,9 +86,169 @@ namespace blaze {
 //*************************************************************************************************
 /*!\name LAPACK triangular matrix inversion functions (trtri) */
 //@{
+inline void trtri( char uplo, char diag, int n, float* A, int lda, int* info );
+
+inline void trtri( char uplo, char diag, int n, double* A, int lda, int* info );
+
+inline void trtri( char uplo, char diag, int n, complex<float>* A, int lda, int* info );
+
+inline void trtri( char uplo, char diag, int n, complex<double>* A, int lda, int* info );
+
 template< typename MT, bool SO >
 inline void trtri( DenseMatrix<MT,SO>& A, char uplo, char diag );
 //@}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief LAPACK kernel for the inversion of the given dense triangular single precision
+//        column-major matrix.
+// \ingroup lapack_inversion
+//
+// \param uplo \c 'L' in case of a lower matrix, \c 'U' in case of an upper matrix.
+// \param diag \c 'U' in case of a unitriangular matrix, \c 'N' otherwise.
+// \param n The number of rows/columns of the triangular matrix \f$[0..\infty)\f$.
+// \param A Pointer to the first element of the single precision column-major matrix.
+// \param lda The total number of elements between two columns of the matrix \f$[0..\infty)\f$.
+// \param info Return code of the function call.
+// \return void
+//
+// This function performs the dense matrix inversion based on the LAPACK strtri() function for
+// lower triangular (\a uplo = \c 'L') or upper triangular (\a uplo = \a 'U') single precision
+// column-major matrices.
+//
+// The \a info argument provides feedback on the success of the function call:
+//
+//   - = 0: The inversion finished successfully.
+//   - < 0: If \a info = -i, the i-th argument had an illegal value.
+//   - > 0: If \a info = i, element A(i,i) is exactly zero and the inverse could not be computed.
+//
+// For more information on the strtri() function, see the LAPACK online documentation browser:
+//
+//        http://www.netlib.org/lapack/explore-html/
+//
+// \note This function can only be used if the fitting LAPACK library is available and linked to
+// the executable. Otherwise a call to this function will result in a linker error.
+*/
+inline void trtri( char uplo, char diag, int n, float* A, int lda, int* info )
+{
+   strtri_( &uplo, &diag, &n, A, &lda, info );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief LAPACK kernel for the inversion of the given dense triangular double precision
+//        column-major matrix.
+// \ingroup lapack_inversion
+//
+// \param uplo \c 'L' in case of a lower matrix, \c 'U' in case of an upper matrix.
+// \param diag \c 'U' in case of a unitriangular matrix, \c 'N' otherwise.
+// \param n The number of rows/columns of the triangular matrix \f$[0..\infty)\f$.
+// \param A Pointer to the first element of the double precision column-major matrix.
+// \param lda The total number of elements between two columns of the matrix \f$[0..\infty)\f$.
+// \param info Return code of the function call.
+// \return void
+//
+// This function performs the dense matrix inversion based on the LAPACK dtrtri() function for
+// lower triangular (\a uplo = \c 'L') or upper triangular (\a uplo = \a 'U') double precision
+// column-major matrices.
+//
+// The \a info argument provides feedback on the success of the function call:
+//
+//   - = 0: The inversion finished successfully.
+//   - < 0: If \a info = -i, the i-th argument had an illegal value.
+//   - > 0: If \a info = i, element A(i,i) is exactly zero and the inverse could not be computed.
+//
+// For more information on the dtrtri() function, see the LAPACK online documentation browser:
+//
+//        http://www.netlib.org/lapack/explore-html/
+//
+// \note This function can only be used if the fitting LAPACK library is available and linked to
+// the executable. Otherwise a call to this function will result in a linker error.
+*/
+inline void trtri( char uplo, char diag, int n, double* A, int lda, int* info )
+{
+   dtrtri_( &uplo, &diag, &n, A, &lda, info );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief LAPACK kernel for the inversion of the given dense triangular single precision complex
+//        column-major matrix.
+// \ingroup lapack_inversion
+//
+// \param uplo \c 'L' in case of a lower matrix, \c 'U' in case of an upper matrix.
+// \param diag \c 'U' in case of a unitriangular matrix, \c 'N' otherwise.
+// \param n The number of rows/columns of the triangular matrix \f$[0..\infty)\f$.
+// \param A Pointer to the first element of the single precision complex column-major matrix.
+// \param lda The total number of elements between two columns of the matrix \f$[0..\infty)\f$.
+// \param info Return code of the function call.
+// \return void
+//
+// This function performs the dense matrix inversion based on the LAPACK ctrtri() function for
+// lower triangular (\a uplo = \c 'L') or upper triangular (\a uplo = \a 'U') single precision
+// complex column-major matrices.
+//
+// The \a info argument provides feedback on the success of the function call:
+//
+//   - = 0: The inversion finished successfully.
+//   - < 0: If \a info = -i, the i-th argument had an illegal value.
+//   - > 0: If \a info = i, element A(i,i) is exactly zero and the inverse could not be computed.
+//
+// For more information on the ctrtri() function, see the LAPACK online documentation browser:
+//
+//        http://www.netlib.org/lapack/explore-html/
+//
+// \note This function can only be used if the fitting LAPACK library is available and linked to
+// the executable. Otherwise a call to this function will result in a linker error.
+*/
+inline void trtri( char uplo, char diag, int n, complex<float>* A, int lda, int* info )
+{
+   BLAZE_STATIC_ASSERT( sizeof( complex<float> ) == 2UL*sizeof( float ) );
+
+   ctrtri_( &uplo, &diag, &n, reinterpret_cast<float*>( A ), &lda, info );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief LAPACK kernel for the inversion of the given dense triangular double precision complex
+//        column-major matrix.
+// \ingroup lapack_inversion
+//
+// \param uplo \c 'L' in case of a lower matrix, \c 'U' in case of an upper matrix.
+// \param diag \c 'U' in case of a unitriangular matrix, \c 'N' otherwise.
+// \param n The number of rows/columns of the triangular matrix \f$[0..\infty)\f$.
+// \param A Pointer to the first element of the double precision complex column-major matrix.
+// \param lda The total number of elements between two columns of the matrix \f$[0..\infty)\f$.
+// \param info Return code of the function call.
+// \return void
+//
+// This function performs the dense matrix inversion based on the LAPACK ztrtri() function for
+// lower triangular (\a uplo = \c 'L') or upper triangular (\a uplo = \a 'U') double precision
+// complex column-major matrices.
+//
+// The \a info argument provides feedback on the success of the function call:
+//
+//   - = 0: The inversion finished successfully.
+//   - < 0: If \a info = -i, the i-th argument had an illegal value.
+//   - > 0: If \a info = i, element A(i,i) is exactly zero and the inverse could not be computed.
+//
+// For more information on the ztrtri() function, see the LAPACK online documentation browser:
+//
+//        http://www.netlib.org/lapack/explore-html/
+//
+// \note This function can only be used if the fitting LAPACK library is available and linked to
+// the executable. Otherwise a call to this function will result in a linker error.
+*/
+inline void trtri( char uplo, char diag, int n, complex<double>* A, int lda, int* info )
+{
+   BLAZE_STATIC_ASSERT( sizeof( complex<double> ) == 2UL*sizeof( double ) );
+
+   ztrtri_( &uplo, &diag, &n, reinterpret_cast<double*>( A ), &lda, info );
+}
 //*************************************************************************************************
 
 
@@ -81,7 +263,7 @@ inline void trtri( DenseMatrix<MT,SO>& A, char uplo, char diag );
 // \exception std::invalid_argument Invalid non-square matrix provided.
 // \exception std::invalid_argument Invalid uplo argument provided.
 // \exception std::invalid_argument Invalid diag argument provided.
-// \exception std::runtime_error Inversion of singular matrix failed.
+// \exception std::invalid_argument Inversion of singular matrix failed.
 //
 // This function performs the dense matrix inversion based on the LAPACK trtri() functions for
 // a lower triangular (\a uplo = \c 'L') or upper triangular (\a uplo = \a 'U') matrix. Note
@@ -96,7 +278,7 @@ inline void trtri( DenseMatrix<MT,SO>& A, char uplo, char diag );
 //  - ... the given \a diag argument is neither \c 'U' nor \c 'N';
 //  - ... the given matrix is singular and not invertible.
 //
-// In all failure cases an exception is thrown.
+// In all failure cases a \a std::invalid_argument exception is thrown.
 //
 // For more information on the trtri() functions (i.e. strtri(), dtrtri(), ctrtri(), and ztrtri())
 // see the LAPACK online documentation browser:
@@ -118,7 +300,7 @@ inline void trtri( DenseMatrix<MT,SO>& A, char uplo, char diag )
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_COMPUTATION_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_HAVE_MUTABLE_DATA_ACCESS( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( typename MT::ElementType );
 
    if( !isSquare( ~A ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid non-square matrix provided" );
@@ -149,7 +331,7 @@ inline void trtri( DenseMatrix<MT,SO>& A, char uplo, char diag )
    BLAZE_INTERNAL_ASSERT( info >= 0, "Invalid argument for matrix inversion" );
 
    if( info > 0 ) {
-      BLAZE_THROW_LAPACK_ERROR( "Inversion of singular matrix failed" );
+      BLAZE_THROW_INVALID_ARGUMENT( "Inversion of singular matrix failed" );
    }
 }
 //*************************************************************************************************

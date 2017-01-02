@@ -41,9 +41,10 @@
 //*************************************************************************************************
 
 #include <Eigen/Sparse>
-#include <blaze/util/Indices.h>
+#include <blaze/util/Random.h>
 #include <blazemark/system/Config.h>
 #include <blazemark/system/Types.h>
+#include <blazemark/util/Indices.h>
 
 
 namespace blazemark {
@@ -107,8 +108,8 @@ void init( ::Eigen::SparseMatrix<Type,::Eigen::RowMajor,EigenSparseIndexType>& m
    {
       for( int i=0UL; i<M; ++i ) {
          m.startVec( i );
-         ::blaze::Indices indices( 0UL, N-1UL, nonzeros );
-         for( ::blaze::Indices::ConstIterator it=indices.begin(); it!=indices.end(); ++it ) {
+         ::blazemark::Indices indices( N, nonzeros );
+         for( ::blazemark::Indices::Iterator it=indices.begin(); it!=indices.end(); ++it ) {
             m.insertBack(i,*it) = ::blaze::rand<Type>( 0, 10 );
          }
       }
@@ -158,8 +159,8 @@ void init( ::Eigen::SparseMatrix<Type,::Eigen::ColMajor,EigenSparseIndexType>& m
    {
       for( int j=0UL; j<N; ++j ) {
          m.startVec( j );
-         ::blaze::Indices indices( 0UL, M-1UL, nonzeros );
-         for( ::blaze::Indices::ConstIterator it=indices.begin(); it!=indices.end(); ++it ) {
+         ::blazemark::Indices indices( M, nonzeros );
+         for( ::blazemark::Indices::Iterator it=indices.begin(); it!=indices.end(); ++it ) {
             m.insertBack(*it,j) = ::blaze::rand<Type>( 0, 10 );
          }
       }

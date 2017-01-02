@@ -40,27 +40,27 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/Expression.h>
 #include <blaze/math/constraints/Hermitian.h>
 #include <blaze/math/constraints/Lower.h>
 #include <blaze/math/constraints/Matrix.h>
 #include <blaze/math/constraints/Symmetric.h>
 #include <blaze/math/constraints/Upper.h>
-#include <blaze/math/Exception.h>
-#include <blaze/math/InitializerList.h>
 #include <blaze/math/proxy/Proxy.h>
 #include <blaze/math/shims/Clear.h>
+#include <blaze/math/shims/Conjugate.h>
 #include <blaze/math/shims/IsDefault.h>
 #include <blaze/math/shims/IsNaN.h>
 #include <blaze/math/shims/IsOne.h>
 #include <blaze/math/shims/IsReal.h>
 #include <blaze/math/shims/IsZero.h>
 #include <blaze/math/shims/Reset.h>
+#include <blaze/math/traits/ConjExprTrait.h>
 #include <blaze/util/constraints/Const.h>
 #include <blaze/util/constraints/Pointer.h>
 #include <blaze/util/constraints/Reference.h>
 #include <blaze/util/constraints/Volatile.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/typetraits/AddConst.h>
 #include <blaze/util/typetraits/AddReference.h>
 #include <blaze/util/Types.h>
@@ -95,19 +95,24 @@ namespace blaze {
    \endcode
 */
 template< typename MT >  // Type of the adapted matrix
-class UpperProxy : public Proxy< UpperProxy<MT>, ElementType_<MT> >
+class UpperProxy : public Proxy< UpperProxy<MT>, typename MT::ElementType >
 {
  private:
    //**Type definitions****************************************************************************
    //! Reference type of the underlying matrix type.
-   typedef AddConst_< typename MT::Reference >  ReferenceType;
+   typedef typename AddConst< typename MT::Reference >::Type  ReferenceType;
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
-   typedef ElementType_<MT>              RepresentedType;  //!< Type of the represented matrix element.
-   typedef AddReference_<ReferenceType>  RawReference;     //!< Reference-to-non-const to the represented element.
-   typedef const RepresentedType&        ConstReference;   //!< Reference-to-const to the represented element.
+   //! Type of the represented matrix element.
+   typedef typename MT::ElementType  RepresentedType;
+
+   //! Reference-to-non-const to the represented element.
+   typedef typename AddReference<ReferenceType>::Type  RawReference;
+
+   //! Reference-to-const to the represented element.
+   typedef const RepresentedType&  ConstReference;
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
@@ -125,14 +130,7 @@ class UpperProxy : public Proxy< UpperProxy<MT>, ElementType_<MT> >
    //**Assignment operators************************************************************************
    /*!\name Assignment operators */
    //@{
-   inline const UpperProxy& operator=( const UpperProxy& up ) const;
-
-   template< typename T >
-   inline const UpperProxy& operator=( initializer_list<T> list ) const;
-
-   template< typename T >
-   inline const UpperProxy& operator=( initializer_list< initializer_list<T> > list ) const;
-
+                          inline const UpperProxy& operator= ( const UpperProxy& up ) const;
    template< typename T > inline const UpperProxy& operator= ( const T& value ) const;
    template< typename T > inline const UpperProxy& operator+=( const T& value ) const;
    template< typename T > inline const UpperProxy& operator-=( const T& value ) const;
@@ -144,15 +142,15 @@ class UpperProxy : public Proxy< UpperProxy<MT>, ElementType_<MT> >
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-   inline RawReference get()          const noexcept;
-   inline bool         isRestricted() const noexcept;
+   inline RawReference get()          const;
+   inline bool         isRestricted() const;
    //@}
    //**********************************************************************************************
 
    //**Conversion operator*************************************************************************
    /*!\name Conversion operator */
    //@{
-   inline operator ConstReference() const noexcept;
+   inline operator ConstReference() const;
    //@}
    //**********************************************************************************************
 
@@ -248,56 +246,6 @@ inline const UpperProxy<MT>& UpperProxy<MT>::operator=( const UpperProxy& up ) c
    }
 
    value_ = up.value_;
-
-   return *this;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Initializer list assignment to the accessed matrix element.
-//
-// \param list The list to be assigned to the matrix element.
-// \return Reference to the assigned proxy.
-// \exception std::invalid_argument Invalid assignment to lower matrix element.
-//
-// In case the proxy represents an element in the lower matrix, a \a std::invalid_argument
-// exception is thrown.
-*/
-template< typename MT >  // Type of the adapted matrix
-template< typename T >   // Type of the right-hand side value
-inline const UpperProxy<MT>& UpperProxy<MT>::operator=( initializer_list<T> list ) const
-{
-   if( restricted_ ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to lower matrix element" );
-   }
-
-   value_ = list;
-
-   return *this;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Initializer list assignment to the accessed matrix element.
-//
-// \param list The list to be assigned to the matrix element.
-// \return Reference to the assigned proxy.
-// \exception std::invalid_argument Invalid assignment to lower matrix element.
-//
-// In case the proxy represents an element in the lower matrix, a \a std::invalid_argument
-// exception is thrown.
-*/
-template< typename MT >  // Type of the adapted matrix
-template< typename T >   // Type of the right-hand side value
-inline const UpperProxy<MT>& UpperProxy<MT>::operator=( initializer_list< initializer_list<T> > list ) const
-{
-   if( restricted_ ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to lower matrix element" );
-   }
-
-   value_ = list;
 
    return *this;
 }
@@ -443,7 +391,7 @@ inline const UpperProxy<MT>& UpperProxy<MT>::operator/=( const T& value ) const
 // \return Direct/raw reference to the accessed matrix element.
 */
 template< typename MT >  // Type of the adapted matrix
-inline typename UpperProxy<MT>::RawReference UpperProxy<MT>::get() const noexcept
+inline typename UpperProxy<MT>::RawReference UpperProxy<MT>::get() const
 {
    return value_;
 }
@@ -456,7 +404,7 @@ inline typename UpperProxy<MT>::RawReference UpperProxy<MT>::get() const noexcep
 // \return \a true in case access to the matrix element is restricted, \a false if not.
 */
 template< typename MT >  // Type of the adapted matrix
-inline bool UpperProxy<MT>::isRestricted() const noexcept
+inline bool UpperProxy<MT>::isRestricted() const
 {
    return restricted_;
 }
@@ -477,7 +425,7 @@ inline bool UpperProxy<MT>::isRestricted() const noexcept
 // \return Reference-to-const to the accessed matrix element.
 */
 template< typename MT >  // Type of the adapted matrix
-inline UpperProxy<MT>::operator ConstReference() const noexcept
+inline UpperProxy<MT>::operator ConstReference() const
 {
    return static_cast<ConstReference>( value_ );
 }
@@ -495,6 +443,10 @@ inline UpperProxy<MT>::operator ConstReference() const noexcept
 //*************************************************************************************************
 /*!\name UpperProxy global functions */
 //@{
+template< typename MT >
+inline typename ConjExprTrait< typename UpperProxy<MT>::RepresentedType >::Type
+   conj( const UpperProxy<MT>& proxy );
+
 template< typename MT >
 inline void reset( const UpperProxy<MT>& proxy );
 
@@ -516,6 +468,28 @@ inline bool isOne( const UpperProxy<MT>& proxy );
 template< typename MT >
 inline bool isnan( const UpperProxy<MT>& proxy );
 //@}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Computing the complex conjugate of the represented element.
+// \ingroup upper_matrix
+//
+// \param proxy The given proxy instance.
+// \return The complex conjugate of the represented element.
+//
+// This function computes the complex conjugate of the element represented by the access proxy.
+// In case the proxy represents a vector- or matrix-like data structure the function returns an
+// expression representing the complex conjugate of the vector/matrix.
+*/
+template< typename MT >
+inline typename ConjExprTrait< typename UpperProxy<MT>::RepresentedType >::Type
+   conj( const UpperProxy<MT>& proxy )
+{
+   using blaze::conj;
+
+   return conj( (~proxy).get() );
+}
 //*************************************************************************************************
 
 

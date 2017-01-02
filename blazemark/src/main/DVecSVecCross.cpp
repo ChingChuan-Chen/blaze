@@ -1,6 +1,6 @@
 //=================================================================================================
 /*!
-//  \file src/main/DVecSVecCross.cpp
+//  \file src/blaze/DVecSVecCross.cpp
 //  \brief Source file for the dense vector/sparse vector cross product benchmark
 //
 //  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
@@ -56,6 +56,7 @@
 #include <blazemark/system/Config.h>
 #include <blazemark/system/Types.h>
 #include <blazemark/util/Benchmarks.h>
+#include <blazemark/util/Indices.h>
 #include <blazemark/util/Parser.h>
 #include <blazemark/util/StaticSparseRun.h>
 

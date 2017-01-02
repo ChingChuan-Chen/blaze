@@ -46,10 +46,11 @@
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
 #include <blaze/util/typetraits/AddReference.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -75,39 +76,21 @@ struct DerestrictTrait
  private:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Tmp = If< Or< IsVector<T>, IsMatrix<T> >
-                 , AddReference_<T>
-                 , INVALID_TYPE >;
+   typedef If< Or< IsVector<T>, IsMatrix<T> >
+             , typename AddReference<T>::Type, INVALID_TYPE >  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<T>::Type >::Type  Type1;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<T>, IsVolatile<T>, IsReference<T> >
-                            , DerestrictTrait< Decay_<T> >
-                            , Tmp >::Type;
+   typedef typename If< Or< IsConst<T>, IsVolatile<T>, IsReference<T> >
+                      , DerestrictTrait<Type1>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the DerestrictTrait type trait.
-// \ingroup math_traits
-//
-// The DerestrictTrait_ alias declaration provides a convenient shortcut to access the
-// nested \a Type of the DerestrictTrait class template. For instance, given the type \a T
-// the following two type definitions are identical:
-
-   \code
-   using Type1 = typename DerestrictTrait<T>::Type;
-   using Type2 = DerestrictTrait_<T>;
-   \endcode
-*/
-template< typename T >
-using DerestrictTrait_ = typename DerestrictTrait<T>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

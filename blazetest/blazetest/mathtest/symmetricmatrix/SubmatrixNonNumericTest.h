@@ -44,9 +44,10 @@
 #include <stdexcept>
 #include <string>
 #include <blaze/math/CompressedMatrix.h>
+#include <blaze/math/DenseSubmatrix.h>
 #include <blaze/math/DynamicMatrix.h>
-#include <blaze/math/Submatrix.h>
 #include <blaze/math/SymmetricMatrix.h>
+#include <blaze/math/SparseSubmatrix.h>
 #include <blaze/math/traits/SubmatrixExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blazetest/system/Types.h>
@@ -158,7 +159,7 @@ class SubmatrixNonNumericTest
 template< typename ST >  // Type of the symmetric matrix
 void SubmatrixNonNumericTest::testAssignment()
 {
-   typedef blaze::SubmatrixExprTrait_<ST,blaze::unaligned>  SMT;
+   typedef typename blaze::SubmatrixExprTrait<ST,blaze::unaligned>::Type  SMT;
 
 
    //=====================================================================================
@@ -1909,7 +1910,7 @@ void runTest()
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Macro for the execution of the SymmetricMatrix submatrix non-numeric test.
+/*!\brief Macro for the execution of the non-numeric SymmetricMatrix submatrix test.
 */
 #define RUN_SYMMETRICMATRIX_SUBMATRIXNONNUMERIC_TEST \
    blazetest::mathtest::symmetricmatrix::runTest()

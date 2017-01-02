@@ -45,7 +45,7 @@ namespace blaze {
 // The size of the cache is specified in Byte. For instance, a cache of 3 MiByte must therefore
 // be specified as 3145728.
 */
-constexpr size_t cacheSize = 3145728UL;
+const size_t cacheSize = 3145728UL;
 //*************************************************************************************************
 
 } // namespace blaze

@@ -42,7 +42,6 @@
 
 #include <blaze/math/HybridVector.h>
 #include <blazetest/mathtest/creator/Default.h>
-#include <blazetest/mathtest/creator/Policies.h>
 #include <blazetest/system/Types.h>
 
 
@@ -86,11 +85,7 @@ class Creator< blaze::HybridVector<T,N,TF> >
    /*!\name Operators */
    //@{
    // No explicitly declared copy assignment operator.
-
    const blaze::HybridVector<T,N,TF> operator()() const;
-
-   template< typename CP >
-   const blaze::HybridVector<T,N,TF> operator()( const CP& policy ) const;
    //@}
    //**********************************************************************************************
 
@@ -163,27 +158,9 @@ template< typename T  // Element type of the hybrid vector
         , bool TF >   // Transpose flag of the hybrid vector
 inline const blaze::HybridVector<T,N,TF> Creator< blaze::HybridVector<T,N,TF> >::operator()() const
 {
-   return (*this)( Default() );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Returns a randomly created hybrid vector.
-//
-// \param policy The creation policy for the elements of fundamental data type.
-// \return The randomly generated hybrid vector.
-*/
-template< typename T     // Element type of the hybrid vector
-        , size_t N       // Number of elements of the hybrid vector
-        , bool TF >      // Transpose flag of the hybrid vector
-template< typename CP >  // Creation policy
-inline const blaze::HybridVector<T,N,TF>
-   Creator< blaze::HybridVector<T,N,TF> >::operator()( const CP& policy ) const
-{
    blaze::HybridVector<T,N,TF> vector( size_ );
-   for( size_t i=0UL; i<size_; ++i )
-      vector[i] = ec_( policy );
+   for( size_t i=0; i<size_; ++i )
+      vector[i] = ec_();
    return vector;
 }
 //*************************************************************************************************

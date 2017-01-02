@@ -45,10 +45,11 @@
 #include <string>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/CompressedVector.h>
-#include <blaze/math/Column.h>
+#include <blaze/math/DenseColumn.h>
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/DynamicVector.h>
 #include <blaze/math/LowerMatrix.h>
+#include <blaze/math/SparseColumn.h>
 #include <blaze/math/traits/ColumnExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blazetest/system/Types.h>
@@ -159,7 +160,7 @@ class ColumnTest
 template< typename LT >  // Type of the lower matrix
 void ColumnTest::testAssignment()
 {
-   typedef blaze::ColumnExprTrait_<LT>  CT;
+   typedef typename blaze::ColumnExprTrait<LT>::Type  CT;
 
 
    //=====================================================================================
@@ -331,7 +332,7 @@ void ColumnTest::testAssignment()
 template< typename LT >  // Type of the lower matrix
 void ColumnTest::testAddAssign()
 {
-   typedef blaze::ColumnExprTrait_<LT>  CT;
+   typedef typename blaze::ColumnExprTrait<LT>::Type  CT;
 
 
    //=====================================================================================
@@ -502,7 +503,7 @@ void ColumnTest::testAddAssign()
 template< typename LT >  // Type of the lower matrix
 void ColumnTest::testSubAssign()
 {
-   typedef blaze::ColumnExprTrait_<LT>  CT;
+   typedef typename blaze::ColumnExprTrait<LT>::Type  CT;
 
 
    //=====================================================================================
@@ -673,7 +674,7 @@ void ColumnTest::testSubAssign()
 template< typename LT >  // Type of the lower matrix
 void ColumnTest::testMultAssign()
 {
-   typedef blaze::ColumnExprTrait_<LT>  CT;
+   typedef typename blaze::ColumnExprTrait<LT>::Type  CT;
 
 
    //=====================================================================================

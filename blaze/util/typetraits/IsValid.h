@@ -59,22 +59,30 @@ namespace blaze {
 //
 // This class tests whether the given template parameter is a valid or invalid data type (i.e.
 // if the type is the INVALID_TYPE). If \a T is not the INVALID_TYPE class type, the \a value
-// member constant is set to \a true, the nested type definition \a Type is \a TrueType, and
-// the class derives from \a TrueType. Otherwise \a value is set to \a false, \a Type is
-// \a FalseType, and the class derives from \a FalseType.
+// member enumeration is set to 1, the nested type definition \a Type is \a TrueType, and the
+// class derives from \a TrueType. Otherwise \a value is set to 0, \a Type is \a FalseType,
+// and the class derives from \a FalseType.
 
    \code
-   blaze::IsValid<int>::value                // Evaluates to 'true'
+   blaze::IsValid<int>::value                // Evaluates to 1
    blaze::IsValid<float const>::Type         // Results in TrueType
    blaze::IsValid<double volatile>           // Is derived from TrueType
-   blaze::IsValid<INVALID_TYPE>::value       // Evaluates to 'false'
+   blaze::IsValid<INVALID_TYPE>::value       // Evaluates to 0
    blaze::IsValid<INVALID_TYPE const>::Type  // Results in FalseType
    blaze::IsValid<INVALID_TYPE volatile>     // Is derived from FalseType
    \endcode
 */
 template< typename T >
 struct IsValid : public TrueType
-{};
+{
+ public:
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   enum { value = 1 };
+   typedef TrueType  Type;
+   /*! \endcond */
+   //**********************************************************************************************
+};
 //*************************************************************************************************
 
 
@@ -83,7 +91,13 @@ struct IsValid : public TrueType
 //! Specialization of the IsValid type trait for the plain 'INVALID_TYPE' type.
 template<>
 struct IsValid<INVALID_TYPE> : public FalseType
-{};
+{
+ public:
+   //**********************************************************************************************
+   enum { value = 0 };
+   typedef FalseType  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -93,7 +107,13 @@ struct IsValid<INVALID_TYPE> : public FalseType
 //! Specialization of the IsValid type trait for 'const INVALID_TYPE'.
 template<>
 struct IsValid<const INVALID_TYPE> : public FalseType
-{};
+{
+ public:
+   //**********************************************************************************************
+   enum { value = 0 };
+   typedef FalseType  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -103,7 +123,13 @@ struct IsValid<const INVALID_TYPE> : public FalseType
 //! Specialization of the IsValid type trait for 'volatile INVALID_TYPE'.
 template<>
 struct IsValid<volatile INVALID_TYPE> : public FalseType
-{};
+{
+ public:
+   //**********************************************************************************************
+   enum { value = 0 };
+   typedef FalseType  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -113,7 +139,13 @@ struct IsValid<volatile INVALID_TYPE> : public FalseType
 //! Specialization of the IsValid type trait for 'const volatile INVALID_TYPE'.
 template<>
 struct IsValid<const volatile INVALID_TYPE> : public FalseType
-{};
+{
+ public:
+   //**********************************************************************************************
+   enum { value = 0 };
+   typedef FalseType  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 

@@ -78,7 +78,8 @@ namespace blaze {
    \endcode
 */
 template< typename Type >
-BLAZE_ALWAYS_INLINE EnableIf_< IsNumeric<Type>, bool > isOne( const Type& v )
+BLAZE_ALWAYS_INLINE typename EnableIf< IsNumeric<Type>, bool >::Type
+   isOne( const Type& v )
 {
    return equal( v, Type(1) );
 }
@@ -94,7 +95,8 @@ BLAZE_ALWAYS_INLINE EnableIf_< IsNumeric<Type>, bool > isOne( const Type& v )
 // \return \a false.
 */
 template< typename Type >
-BLAZE_ALWAYS_INLINE DisableIf_< IsNumeric<Type>, bool > isOne( const Type& v ) noexcept
+BLAZE_ALWAYS_INLINE typename DisableIf< IsNumeric<Type>, bool >::Type
+   isOne( const Type& v )
 {
    UNUSED_PARAMETER( v );
 

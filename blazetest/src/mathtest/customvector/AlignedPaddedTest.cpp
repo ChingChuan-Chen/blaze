@@ -39,7 +39,6 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <memory>
 #include <blaze/math/CompressedVector.h>
 #include <blaze/math/shims/Equal.h>
 #include <blaze/util/Complex.h>
@@ -48,6 +47,7 @@
 #include <blaze/util/Random.h>
 #include <blaze/util/typetraits/AlignmentOf.h>
 #include <blaze/util/typetraits/IsVectorizable.h>
+#include <blaze/util/UniqueArray.h>
 #include <blazetest/mathtest/customvector/AlignedPaddedTest.h>
 #include <blazetest/mathtest/RandomMaximum.h>
 #include <blazetest/mathtest/RandomMinimum.h>
@@ -77,7 +77,6 @@ AlignedPaddedTest::AlignedPaddedTest()
    testAddAssign();
    testSubAssign();
    testMultAssign();
-   testDivAssign();
    testScaling();
    testSubscript();
    testAt();
@@ -133,7 +132,7 @@ void AlignedPaddedTest::testConstructors()
 
       // Constructing a custom vector of size 10
       {
-         std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 16UL ) );
+         blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 16UL ) );
          VT vec( array.get(), 10UL, 16UL );
 
          checkSize    ( vec, 10UL );
@@ -142,11 +141,11 @@ void AlignedPaddedTest::testConstructors()
 
       // Trying to construct a custom vector with invalid array of elements
       try {
-         VT vec( nullptr, 0UL, 0UL );
+         VT vec( NULL, 0UL, 0UL );
 
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Constructing a custom vector with a nullptr succeeded\n";
+             << " Error: Constructing a custom vector with a NULL pointer succeeded\n";
          throw std::runtime_error( oss.str() );
       }
       catch( std::invalid_argument& ) {}
@@ -155,7 +154,7 @@ void AlignedPaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 17UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 17UL ) );
             VT vec( array.get()+1UL, 4UL, 16UL );
 
             std::ostringstream oss;
@@ -172,7 +171,7 @@ void AlignedPaddedTest::testConstructors()
       if( blaze::IsVectorizable<int>::value )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 3UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 3UL ) );
             VT vec( array.get(), 2UL, 3UL );
 
             std::ostringstream oss;
@@ -204,11 +203,11 @@ void AlignedPaddedTest::testConstructors()
 
       // Trying to construct a custom vector with invalid array of elements
       try {
-         VT vec( nullptr, 0UL, 0UL, blaze::Deallocate() );
+         VT vec( NULL, 0UL, 0UL, blaze::Deallocate() );
 
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Constructing a custom vector with a nullptr succeeded\n";
+             << " Error: Constructing a custom vector with a NULL pointer succeeded\n";
          throw std::runtime_error( oss.str() );
       }
       catch( std::invalid_argument& ) {}
@@ -217,7 +216,7 @@ void AlignedPaddedTest::testConstructors()
       if( blaze::AlignmentOf<int>::value > 1UL )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 17UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 17UL ) );
             VT vec( array.get()+1UL, 4UL, 16UL, blaze::Deallocate() );
 
             std::ostringstream oss;
@@ -234,7 +233,7 @@ void AlignedPaddedTest::testConstructors()
       if( blaze::IsVectorizable<int>::value )
       {
          try {
-            std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 3UL ) );
+            blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 3UL ) );
             VT vec( array.get(), 2UL, 3UL, blaze::Deallocate() );
 
             std::ostringstream oss;
@@ -289,47 +288,6 @@ void AlignedPaddedTest::testConstructors()
          throw std::runtime_error( oss.str() );
       }
    }
-
-
-   //=====================================================================================
-   // Move constructor
-   //=====================================================================================
-
-   {
-      test_ = "CustomVector move constructor (size 0)";
-
-      VT vec1;
-      VT vec2( std::move( vec1 ) );
-
-      checkSize    ( vec2, 0UL );
-      checkNonZeros( vec2, 0UL );
-   }
-
-   {
-      test_ = "CustomVector copy constructor (size 5)";
-
-      VT vec1( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
-      vec1[0] = 1;
-      vec1[1] = 2;
-      vec1[2] = 3;
-      vec1[3] = 4;
-      vec1[4] = 5;
-      VT vec2( std::move( vec1 ) );
-
-      checkSize    ( vec2, 5UL );
-      checkCapacity( vec2, 5UL );
-      checkNonZeros( vec2, 5UL );
-
-      if( vec2[0] != 1 || vec2[1] != 2 || vec2[2] != 3 || vec2[3] != 4 || vec2[4] != 5 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << vec2 << "\n"
-             << "   Expected result:\n( 1 2 3 4 5 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
 }
 //*************************************************************************************************
 
@@ -366,53 +324,6 @@ void AlignedPaddedTest::testAssignment()
              << " Details:\n"
              << "   Result:\n" << vec << "\n"
              << "   Expected result:\n( 2 2 2 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // List assignment
-   //=====================================================================================
-
-   {
-      test_ = "CustomVector initializer list assignment (complete list)";
-
-      VT vec( blaze::allocate<int>( 16UL ), 4UL, 16UL, blaze::Deallocate() );
-      vec = { 1, 2, 3, 4 };
-
-      checkSize    ( vec, 4UL );
-      checkCapacity( vec, 4UL );
-      checkNonZeros( vec, 4UL );
-
-      if( vec[0] != 1 || vec[1] != 2 || vec[2] != 3 || vec[3] != 4 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << vec << "\n"
-             << "   Expected result:\n( 1 2 3 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "CustomVector initializer list assignment (incomplete list)";
-
-      VT vec( blaze::allocate<int>( 16UL ), 4UL, 16UL, blaze::Deallocate() );
-      vec = { 1, 2 };
-
-      checkSize    ( vec, 4UL );
-      checkCapacity( vec, 4UL );
-      checkNonZeros( vec, 2UL );
-
-      if( vec[0] != 1 || vec[1] != 2 || vec[2] != 0 || vec[3] != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << vec << "\n"
-             << "   Expected result:\n( 1 2 0 0 )\n";
          throw std::runtime_error( oss.str() );
       }
    }
@@ -478,73 +389,8 @@ void AlignedPaddedTest::testAssignment()
 
 
    //=====================================================================================
-   // Move assignment
-   //=====================================================================================
-
-   {
-      test_ = "CustomVector move assignment";
-
-      VT vec1( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
-      vec1[0] = 1;
-      vec1[1] = 2;
-      vec1[2] = 3;
-      vec1[3] = 4;
-      vec1[4] = 5;
-      VT vec2( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
-      vec2 = std::move( vec1 );
-
-      checkSize    ( vec2, 5UL );
-      checkCapacity( vec2, 5UL );
-      checkNonZeros( vec2, 5UL );
-
-      if( vec2[0] != 1 || vec2[1] != 2 || vec2[2] != 3 || vec2[3] != 4 || vec2[4] != 5 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << vec2 << "\n"
-             << "   Expected result:\n( 1 2 3 4 5 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Dense vector assignment
    //=====================================================================================
-
-   {
-      test_ = "CustomVector dense vector assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::padded;
-      using blaze::rowVector;
-
-      typedef blaze::CustomVector<short,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<short>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
-      vec1[0] = 1;
-      vec1[1] = 2;
-      vec1[2] = 3;
-      vec1[3] = 4;
-      vec1[4] = 5;
-
-      VT vec2( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
-      vec2 = vec1;
-
-      checkSize    ( vec2, 5UL );
-      checkCapacity( vec2, 5UL );
-      checkNonZeros( vec2, 5UL );
-
-      if( vec2[0] != 1 || vec2[1] != 2 || vec2[2] != 3 || vec2[3] != 4 || vec2[4] != 5 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << vec2 << "\n"
-             << "   Expected result:\n( 1 2 3 4 5 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
 
    {
       test_ = "CustomVector dense vector assignment (aligned/padded)";
@@ -587,7 +433,7 @@ void AlignedPaddedTest::testAssignment()
       using blaze::rowVector;
 
       typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[6UL] );
+      blaze::UniqueArray<int> array( new int[6UL] );
       UnalignedUnpadded vec1( array.get()+1UL, 5UL );
       vec1[0] = 1;
       vec1[1] = 2;
@@ -662,45 +508,6 @@ void AlignedPaddedTest::testAddAssign()
    //=====================================================================================
 
    {
-      test_ = "CustomVector dense vector addition assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::padded;
-      using blaze::rowVector;
-
-      typedef blaze::CustomVector<short,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<short>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
-      vec1[0] =  1;
-      vec1[1] =  0;
-      vec1[2] = -2;
-      vec1[3] =  3;
-      vec1[4] =  0;
-
-      VT vec2( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
-      vec2[0] =  0;
-      vec2[1] =  4;
-      vec2[2] =  2;
-      vec2[3] = -6;
-      vec2[4] =  7;
-
-      vec2 += vec1;
-
-      checkSize    ( vec2, 5UL );
-      checkCapacity( vec2, 5UL );
-      checkNonZeros( vec2, 4UL );
-
-      if( vec2[0] != 1 || vec2[1] != 4 || vec2[2] != 0 || vec2[3] != -3 || vec2[4] != 7 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Addition assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << vec2 << "\n"
-             << "   Expected result:\n( 1 4 0 -3 7 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "CustomVector dense vector addition assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -747,7 +554,7 @@ void AlignedPaddedTest::testAddAssign()
       using blaze::rowVector;
 
       typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[6UL] );
+      blaze::UniqueArray<int> array( new int[6UL] );
       UnalignedUnpadded vec1( array.get()+1UL, 5UL );
       vec1[0] =  1;
       vec1[1] =  0;
@@ -834,45 +641,6 @@ void AlignedPaddedTest::testSubAssign()
    //=====================================================================================
 
    {
-      test_ = "CustomVector dense vector subtraction assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::padded;
-      using blaze::rowVector;
-
-      typedef blaze::CustomVector<short,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<short>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
-      vec1[0] = -1;
-      vec1[1] =  0;
-      vec1[2] =  2;
-      vec1[3] = -3;
-      vec1[4] =  0;
-
-      VT vec2( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
-      vec2[0] =  0;
-      vec2[1] =  4;
-      vec2[2] =  2;
-      vec2[3] = -6;
-      vec2[4] =  7;
-
-      vec2 -= vec1;
-
-      checkSize    ( vec2, 5UL );
-      checkCapacity( vec2, 5UL );
-      checkNonZeros( vec2, 4UL );
-
-      if( vec2[0] != 1 || vec2[1] != 4 || vec2[2] != 0 || vec2[3] != -3 || vec2[4] != 7 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Subtraction assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << vec2 << "\n"
-             << "   Expected result:\n( 1 4 0 -3 7 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "CustomVector dense vector subtraction assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -919,7 +687,7 @@ void AlignedPaddedTest::testSubAssign()
       using blaze::rowVector;
 
       typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[6UL] );
+      blaze::UniqueArray<int> array( new int[6UL] );
       UnalignedUnpadded vec1( array.get()+1UL, 5UL );
       vec1[0] = -1;
       vec1[1] =  0;
@@ -1006,45 +774,6 @@ void AlignedPaddedTest::testMultAssign()
    //=====================================================================================
 
    {
-      test_ = "CustomVector dense vector multiplication assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::padded;
-      using blaze::rowVector;
-
-      typedef blaze::CustomVector<short,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<short>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
-      vec1[0] =  1;
-      vec1[1] =  0;
-      vec1[2] = -2;
-      vec1[3] =  3;
-      vec1[4] =  0;
-
-      VT vec2( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
-      vec2[0] =  0;
-      vec2[1] =  4;
-      vec2[2] =  2;
-      vec2[3] = -6;
-      vec2[4] =  7;
-
-      vec2 *= vec1;
-
-      checkSize    ( vec2, 5UL );
-      checkCapacity( vec2, 5UL );
-      checkNonZeros( vec2, 2UL );
-
-      if( vec2[0] != 0 || vec2[1] != 0 || vec2[2] != -4 || vec2[3] != -18 || vec2[4] != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Multiplication assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << vec2 << "\n"
-             << "   Expected result:\n( 0 0 -4 -18 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
       test_ = "CustomVector dense vector multiplication assignment (aligned/padded)";
 
       using blaze::aligned;
@@ -1091,7 +820,7 @@ void AlignedPaddedTest::testMultAssign()
       using blaze::rowVector;
 
       typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[6UL] );
+      blaze::UniqueArray<int> array( new int[6UL] );
       UnalignedUnpadded vec1( array.get()+1UL, 5UL );
       vec1[0] =  1;
       vec1[1] =  0;
@@ -1145,8 +874,8 @@ void AlignedPaddedTest::testMultAssign()
       vec2 *= vec1;
 
       checkSize    ( vec2, 5UL );
-      checkCapacity( vec2, 5UL );
-      checkNonZeros( vec2, 2UL );
+      //checkCapacity( vec2, 5UL );
+      //checkNonZeros( vec2, 2UL );
 
       if( vec2[0] != 0 || vec2[1] != 0 || vec2[2] != -4 || vec2[3] != -18 || vec2[4] != 0 ) {
          std::ostringstream oss;
@@ -1155,142 +884,6 @@ void AlignedPaddedTest::testMultAssign()
              << " Details:\n"
              << "   Result:\n" << vec2 << "\n"
              << "   Expected result:\n( 0 0 -4 -18 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Test of the CustomVector division assignment operators.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the division assignment operators of the CustomVector
-// class template. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void AlignedPaddedTest::testDivAssign()
-{
-   //=====================================================================================
-   // Dense vector division assignment
-   //=====================================================================================
-
-   {
-      test_ = "CustomVector dense vector division assignment (mixed type)";
-
-      using blaze::aligned;
-      using blaze::padded;
-      using blaze::rowVector;
-
-      typedef blaze::CustomVector<short,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<short>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
-      vec1[0] =  1;
-      vec1[1] =  2;
-      vec1[2] = -3;
-      vec1[3] =  4;
-      vec1[4] =  1;
-
-      VT vec2( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
-      vec2[0] =  2;
-      vec2[1] =  0;
-      vec2[2] = -3;
-      vec2[3] =  8;
-      vec2[4] =  0;
-
-      vec2 /= vec1;
-
-      checkSize    ( vec2, 5UL );
-      checkCapacity( vec2, 5UL );
-      checkNonZeros( vec2, 3UL );
-
-      if( vec2[0] != 2 || vec2[1] != 0 || vec2[2] != 1 || vec2[3] != 2 || vec2[4] != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Division assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << vec2 << "\n"
-             << "   Expected result:\n( 2 0 1 2 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "CustomVector dense vector division assignment (aligned/padded)";
-
-      using blaze::aligned;
-      using blaze::padded;
-      using blaze::rowVector;
-
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
-      vec1[0] =  1;
-      vec1[1] =  2;
-      vec1[2] = -3;
-      vec1[3] =  4;
-      vec1[4] =  1;
-
-      VT vec2( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
-      vec2[0] =  2;
-      vec2[1] =  0;
-      vec2[2] = -3;
-      vec2[3] =  8;
-      vec2[4] =  0;
-
-      vec2 /= vec1;
-
-      checkSize    ( vec2, 5UL );
-      checkCapacity( vec2, 5UL );
-      checkNonZeros( vec2, 3UL );
-
-      if( vec2[0] != 2 || vec2[1] != 0 || vec2[2] != 1 || vec2[3] != 2 || vec2[4] != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Division assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << vec2 << "\n"
-             << "   Expected result:\n( 2 0 1 2 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "CustomVector dense vector division assignment (unaligned/unpadded)";
-
-      using blaze::unaligned;
-      using blaze::unpadded;
-      using blaze::rowVector;
-
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[6UL] );
-      UnalignedUnpadded vec1( array.get()+1UL, 5UL );
-      vec1[0] =  1;
-      vec1[1] =  2;
-      vec1[2] = -3;
-      vec1[3] =  4;
-      vec1[4] =  1;
-
-      VT vec2( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
-      vec2[0] =  2;
-      vec2[1] =  0;
-      vec2[2] = -3;
-      vec2[3] =  8;
-      vec2[4] =  0;
-
-      vec2 /= vec1;
-
-      checkSize    ( vec2, 5UL );
-      checkCapacity( vec2, 5UL );
-      checkNonZeros( vec2, 3UL );
-
-      if( vec2[0] != 2 || vec2[1] != 0 || vec2[2] != 1 || vec2[3] != 2 || vec2[4] != 0 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Division assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << vec2 << "\n"
-             << "   Expected result:\n( 2 0 1 2 0 )\n";
          throw std::runtime_error( oss.str() );
       }
    }
@@ -2334,7 +1927,7 @@ void AlignedPaddedTest::testReset()
       vec[2] = 3;
       vec[3] = 4;
 
-      std::unique_ptr<int[],blaze::Deallocate> array( blaze::allocate<int>( 32UL ) );
+      blaze::UniqueArray<int,blaze::Deallocate> array( blaze::allocate<int>( 32UL ) );
       vec.reset( array.get(), 27UL, 32UL );
 
       checkSize    ( vec, 27UL );

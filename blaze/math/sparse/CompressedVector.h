@@ -41,12 +41,9 @@
 //*************************************************************************************************
 
 #include <algorithm>
-#include <utility>
-#include <blaze/math/Aliases.h>
+#include <functional>
 #include <blaze/math/constraints/DenseVector.h>
-#include <blaze/math/constraints/RequiresEvaluation.h>
 #include <blaze/math/constraints/TransposeFlag.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/DenseVector.h>
 #include <blaze/math/expressions/SparseVector.h>
 #include <blaze/math/Forward.h>
@@ -58,29 +55,28 @@
 #include <blaze/math/traits/AddTrait.h>
 #include <blaze/math/traits/CrossTrait.h>
 #include <blaze/math/traits/DivTrait.h>
+#include <blaze/math/traits/MathTrait.h>
 #include <blaze/math/traits/MultTrait.h>
 #include <blaze/math/traits/SubTrait.h>
 #include <blaze/math/traits/SubvectorTrait.h>
-#include <blaze/math/typetraits/HighType.h>
 #include <blaze/math/typetraits/IsResizable.h>
 #include <blaze/math/typetraits/IsSMPAssignable.h>
-#include <blaze/math/typetraits/LowType.h>
+#include <blaze/math/typetraits/IsSparseVector.h>
 #include <blaze/system/Thresholds.h>
 #include <blaze/system/TransposeFlag.h>
-#include <blaze/util/Algorithm.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/constraints/Const.h>
 #include <blaze/util/constraints/Pointer.h>
 #include <blaze/util/constraints/Reference.h>
 #include <blaze/util/constraints/SameSize.h>
 #include <blaze/util/constraints/Volatile.h>
-#include <blaze/util/DisableIf.h>
 #include <blaze/util/EnableIf.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/Memory.h>
 #include <blaze/util/mpl/If.h>
+#include <blaze/util/Null.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/typetraits/IsFloatingPoint.h>
-#include <blaze/util/typetraits/IsIntegral.h>
 #include <blaze/util/typetraits/IsNumeric.h>
 
 
@@ -192,76 +188,44 @@ class CompressedVector : public SparseVector< CompressedVector<Type,TF>, TF >
 {
  private:
    //**Type definitions****************************************************************************
-   typedef ValueIndexPair<Type>  ElementBase;   //!< Base class for the compressed vector element.
-   typedef ElementBase*          IteratorBase;  //!< Iterator over non-constant base elements.
+   typedef ValueIndexPair<Type>  ElementBase;  //!< Base class for the compressed vector element.
    //**********************************************************************************************
 
    //**Private class Element***********************************************************************
    /*! \cond BLAZE_INTERNAL */
    /*!\brief Value-index-pair for the CompressedVector class.
-   //
-   // This struct grants access to the data members of the base class and adapts the copy and
-   // move semantics of the value-index-pair.
    */
    struct Element : public ElementBase
    {
-      //**Constructors*****************************************************************************
-      explicit Element() = default;
-               Element( const Element& rhs ) = default;
-               Element( Element&& rhs ) = default;
-      //*******************************************************************************************
-
-      //**Assignment operators*********************************************************************
-      inline Element& operator=( const Element& rhs )
-      {
-         this->value_ = rhs.value_;
-         return *this;
-      }
-
-      inline Element& operator=( Element&& rhs )
-      {
-         this->value_ = std::move( rhs.value_ );
-         return *this;
-      }
-
+      // This operator is required due to a bug in all versions of the the MSVC compiler.
+      // A simple 'using ElementBase::operator=;' statement results in ambiguity problems.
       template< typename Other >
-      inline EnableIf_< IsSparseElement<Other>, Element& >
-         operator=( const Other& rhs )
+      inline Element& operator=( const Other& rhs )
       {
-         this->value_ = rhs.value();
+         ElementBase::operator=( rhs );
          return *this;
       }
 
-      template< typename Other >
-      inline EnableIf_< And< IsSparseElement< RemoveReference_<Other> >
-                           , IsRValueReference<Other&&> >, Element& >
-         operator=( Other&& rhs )
-      {
-         this->value_ = std::move( rhs.value() );
-         return *this;
-      }
-
-      template< typename Other >
-      inline EnableIf_< Not< IsSparseElement<Other> >, Element& >
-         operator=( const Other& v )
-      {
-         this->value_ = v;
-         return *this;
-      }
-
-      template< typename Other >
-      inline EnableIf_< And< Not< IsSparseElement< RemoveReference_<Other> > >
-                           , IsRValueReference<Other&&> >, Element& >
-         operator=( Other&& v )
-      {
-         this->value_ = std::move( v );
-         return *this;
-      }
-      //*******************************************************************************************
-
-      //**Friend declarations**********************************************************************
       friend class CompressedVector;
-      //*******************************************************************************************
+   };
+   /*! \endcond */
+   //**********************************************************************************************
+
+   //**Private class FindIndex*********************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   /*!\brief Helper class for the lower_bound() function.
+   */
+   struct FindIndex : public std::binary_function<Element,size_t,bool>
+   {
+      inline bool operator()( const Element& element, size_t index ) const {
+         return element.index() < index;
+      }
+      inline bool operator()( size_t index, const Element& element ) const {
+         return index < element.index();
+      }
+      inline bool operator()( const Element& element1, const Element& element2 ) const {
+         return element1.index() < element2.index();
+      }
    };
    /*! \endcond */
    //**********************************************************************************************
@@ -269,7 +233,6 @@ class CompressedVector : public SparseVector< CompressedVector<Type,TF>, TF >
  public:
    //**Type definitions****************************************************************************
    typedef CompressedVector<Type,TF>   This;            //!< Type of this CompressedVector instance.
-   typedef SparseVector<This,TF>       BaseType;        //!< Base type of this CompressedVector instance.
    typedef This                        ResultType;      //!< Result type for expression template evaluations.
    typedef CompressedVector<Type,!TF>  TransposeType;   //!< Transpose type for expression template evaluations.
    typedef Type                        ElementType;     //!< Type of the compressed vector elements.
@@ -295,17 +258,16 @@ class CompressedVector : public SparseVector< CompressedVector<Type,TF>, TF >
    /*! The \a smpAssignable compilation flag indicates whether the vector can be used in SMP
        (shared memory parallel) assignments (both on the left-hand and right-hand side of the
        assignment). */
-   enum : bool { smpAssignable = !IsSMPAssignable<Type>::value };
+   enum { smpAssignable = !IsSMPAssignable<Type>::value };
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
    /*!\name Constructors */
    //@{
-                           explicit inline CompressedVector() noexcept;
-                           explicit inline CompressedVector( size_t size ) noexcept;
+                           explicit inline CompressedVector();
+                           explicit inline CompressedVector( size_t size );
                            explicit inline CompressedVector( size_t size, size_t nonzeros );
                                     inline CompressedVector( const CompressedVector& sv );
-                                    inline CompressedVector( CompressedVector&& sv ) noexcept;
    template< typename VT >          inline CompressedVector( const DenseVector<VT,TF>&  dv );
    template< typename VT >          inline CompressedVector( const SparseVector<VT,TF>& sv );
    //@}
@@ -321,70 +283,56 @@ class CompressedVector : public SparseVector< CompressedVector<Type,TF>, TF >
    //**Data access functions***********************************************************************
    /*!\name Data access functions */
    //@{
-   inline Reference      operator[]( size_t index ) noexcept;
-   inline ConstReference operator[]( size_t index ) const noexcept;
+   inline Reference      operator[]( size_t index );
+   inline ConstReference operator[]( size_t index ) const;
    inline Reference      at( size_t index );
    inline ConstReference at( size_t index ) const;
-   inline Iterator       begin () noexcept;
-   inline ConstIterator  begin () const noexcept;
-   inline ConstIterator  cbegin() const noexcept;
-   inline Iterator       end   () noexcept;
-   inline ConstIterator  end   () const noexcept;
-   inline ConstIterator  cend  () const noexcept;
+   inline Iterator       begin ();
+   inline ConstIterator  begin () const;
+   inline ConstIterator  cbegin() const;
+   inline Iterator       end   ();
+   inline ConstIterator  end   () const;
+   inline ConstIterator  cend  () const;
    //@}
    //**********************************************************************************************
 
    //**Assignment operators************************************************************************
    /*!\name Assignment operators */
    //@{
-   inline CompressedVector& operator=( const CompressedVector& rhs );
-   inline CompressedVector& operator=( CompressedVector&& rhs ) noexcept;
-
-   template< typename VT > inline CompressedVector& operator= ( const DenseVector<VT,TF>& rhs );
+                           inline CompressedVector& operator= ( const CompressedVector& rhs );
+   template< typename VT > inline CompressedVector& operator= ( const DenseVector<VT,TF>&  rhs );
    template< typename VT > inline CompressedVector& operator= ( const SparseVector<VT,TF>& rhs );
    template< typename VT > inline CompressedVector& operator+=( const Vector<VT,TF>& rhs );
    template< typename VT > inline CompressedVector& operator-=( const Vector<VT,TF>& rhs );
-   template< typename VT > inline CompressedVector& operator*=( const DenseVector<VT,TF>& rhs );
-   template< typename VT > inline CompressedVector& operator*=( const SparseVector<VT,TF>& rhs );
-   template< typename VT > inline CompressedVector& operator/=( const DenseVector<VT,TF>& rhs );
+   template< typename VT > inline CompressedVector& operator*=( const Vector<VT,TF>& rhs );
 
    template< typename Other >
-   inline EnableIf_< IsNumeric<Other>, CompressedVector >& operator*=( Other rhs );
+   inline typename EnableIf< IsNumeric<Other>, CompressedVector >::Type&
+      operator*=( Other rhs );
 
    template< typename Other >
-   inline EnableIf_< IsNumeric<Other>, CompressedVector >& operator/=( Other rhs );
+   inline typename EnableIf< IsNumeric<Other>, CompressedVector >::Type&
+      operator/=( Other rhs );
    //@}
    //**********************************************************************************************
 
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-                              inline size_t            size() const noexcept;
-                              inline size_t            capacity() const noexcept;
+                              inline size_t            size() const;
+                              inline size_t            capacity() const;
                               inline size_t            nonZeros() const;
                               inline void              reset();
                               inline void              clear();
                               inline Iterator          set   ( size_t index, const Type& value );
                               inline Iterator          insert( size_t index, const Type& value );
+                              inline void              erase ( size_t index );
+                              inline Iterator          erase ( Iterator pos );
+                              inline Iterator          erase ( Iterator first, Iterator last );
                               inline void              resize( size_t n, bool preserve=true );
                                      void              reserve( size_t n );
    template< typename Other > inline CompressedVector& scale( const Other& scalar );
-                              inline void              swap( CompressedVector& sv ) noexcept;
-   //@}
-   //**********************************************************************************************
-
-   //**Erase functions*****************************************************************************
-   /*!\name Erase functions */
-   //@{
-   inline void     erase( size_t index );
-   inline Iterator erase( Iterator pos );
-   inline Iterator erase( Iterator first, Iterator last );
-
-   template< typename Pred, typename = DisableIf_< IsIntegral<Pred> > >
-   inline void erase( Pred predicate );
-
-   template< typename Pred >
-   inline void erase( Iterator first, Iterator last, Pred predicate );
+                              inline void              swap( CompressedVector& sv ) /* throw() */;
    //@}
    //**********************************************************************************************
 
@@ -410,19 +358,17 @@ class CompressedVector : public SparseVector< CompressedVector<Type,TF>, TF >
    //**Expression template evaluation functions****************************************************
    /*!\name Expression template evaluation functions */
    //@{
-   template< typename Other > inline bool canAlias ( const Other* alias ) const noexcept;
-   template< typename Other > inline bool isAliased( const Other* alias ) const noexcept;
+   template< typename Other > inline bool canAlias ( const Other* alias ) const;
+   template< typename Other > inline bool isAliased( const Other* alias ) const;
 
-   inline bool canSMPAssign() const noexcept;
+   inline bool canSMPAssign() const;
 
-   template< typename VT > inline void assign    ( const DenseVector <VT,TF>& rhs );
-   template< typename VT > inline void assign    ( const SparseVector<VT,TF>& rhs );
-   template< typename VT > inline void addAssign ( const DenseVector <VT,TF>& rhs );
-   template< typename VT > inline void addAssign ( const SparseVector<VT,TF>& rhs );
-   template< typename VT > inline void subAssign ( const DenseVector <VT,TF>& rhs );
-   template< typename VT > inline void subAssign ( const SparseVector<VT,TF>& rhs );
-   template< typename VT > inline void multAssign( const DenseVector <VT,TF>& rhs );
-   template< typename VT > inline void divAssign ( const DenseVector <VT,TF>& rhs );
+   template< typename VT > inline void assign   ( const DenseVector <VT,TF>& rhs );
+   template< typename VT > inline void assign   ( const SparseVector<VT,TF>& rhs );
+   template< typename VT > inline void addAssign( const DenseVector <VT,TF>& rhs );
+   template< typename VT > inline void addAssign( const SparseVector<VT,TF>& rhs );
+   template< typename VT > inline void subAssign( const DenseVector <VT,TF>& rhs );
+   template< typename VT > inline void subAssign( const SparseVector<VT,TF>& rhs );
    //@}
    //**********************************************************************************************
 
@@ -431,10 +377,7 @@ class CompressedVector : public SparseVector< CompressedVector<Type,TF>, TF >
    /*!\name Utility functions */
    //@{
           Iterator insert( Iterator pos, size_t index, const Type& value );
-   inline size_t   extendCapacity() const noexcept;
-
-   inline Iterator     castDown( IteratorBase it ) const noexcept;
-   inline IteratorBase castUp  ( Iterator     it ) const noexcept;
+   inline size_t   extendCapacity() const;
    //@}
    //**********************************************************************************************
 
@@ -489,11 +432,11 @@ const Type CompressedVector<Type,TF>::zero_ = Type();
 */
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
-inline CompressedVector<Type,TF>::CompressedVector() noexcept
-   : size_    ( 0UL )      // The current size/dimension of the compressed vector
-   , capacity_( 0UL )      // The maximum capacity of the compressed vector
-   , begin_   ( nullptr )  // Pointer to the first non-zero element of the compressed vector
-   , end_     ( nullptr )  // Pointer to the last non-zero element of the compressed vector
+inline CompressedVector<Type,TF>::CompressedVector()
+   : size_    ( 0UL )   // The current size/dimension of the compressed vector
+   , capacity_( 0UL )   // The maximum capacity of the compressed vector
+   , begin_   ( NULL )  // Pointer to the first non-zero element of the compressed vector
+   , end_     ( NULL )  // Pointer to the last non-zero element of the compressed vector
 {}
 //*************************************************************************************************
 
@@ -505,11 +448,11 @@ inline CompressedVector<Type,TF>::CompressedVector() noexcept
 */
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
-inline CompressedVector<Type,TF>::CompressedVector( size_t n ) noexcept
-   : size_    ( n   )      // The current size/dimension of the compressed vector
-   , capacity_( 0UL )      // The maximum capacity of the compressed vector
-   , begin_   ( nullptr )  // Pointer to the first non-zero element of the compressed vector
-   , end_     ( nullptr )  // Pointer to the last non-zero element of the compressed vector
+inline CompressedVector<Type,TF>::CompressedVector( size_t n )
+   : size_    ( n   )   // The current size/dimension of the compressed vector
+   , capacity_( 0UL )   // The maximum capacity of the compressed vector
+   , begin_   ( NULL )  // Pointer to the first non-zero element of the compressed vector
+   , end_     ( NULL )  // Pointer to the last non-zero element of the compressed vector
 {}
 //*************************************************************************************************
 
@@ -547,28 +490,7 @@ inline CompressedVector<Type,TF>::CompressedVector( const CompressedVector& sv )
    , begin_   ( allocate<Element>( capacity_ ) )  // Pointer to the first non-zero element of the compressed vector
    , end_     ( begin_+capacity_ )                // Pointer to the last non-zero element of the compressed vector
 {
-   std::copy( sv.begin_, sv.end_, castUp( begin_ ) );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief The move constructor for CompressedVector.
-//
-// \param sv The compressed vector to be moved into this instance.
-*/
-template< typename Type  // Data type of the vector
-        , bool TF >      // Transpose flag
-inline CompressedVector<Type,TF>::CompressedVector( CompressedVector&& sv ) noexcept
-   : size_    ( sv.size_ )      // The current size/dimension of the compressed vector
-   , capacity_( sv.capacity_ )  // The maximum capacity of the compressed vector
-   , begin_   ( sv.begin_ )     // Pointer to the first non-zero element of the compressed vector
-   , end_     ( sv.end_ )       // Pointer to the last non-zero element of the compressed vector
-{
-   sv.size_     = 0UL;
-   sv.capacity_ = 0UL;
-   sv.begin_    = nullptr;
-   sv.end_      = nullptr;
+   std::copy( sv.begin_, sv.end_, begin_ );
 }
 //*************************************************************************************************
 
@@ -583,9 +505,9 @@ template< typename Type  // Data type of the vector
 template< typename VT >  // Type of the foreign dense vector
 inline CompressedVector<Type,TF>::CompressedVector( const DenseVector<VT,TF>& dv )
    : size_    ( (~dv).size() )  // The current size/dimension of the compressed vector
-   , capacity_( 0UL )           // The maximum capacity of the compressed vector
-   , begin_   ( nullptr )       // Pointer to the first non-zero element of the compressed vector
-   , end_     ( nullptr )       // Pointer to the last non-zero element of the compressed vector
+   , capacity_( 0UL  )          // The maximum capacity of the compressed vector
+   , begin_   ( NULL )          // Pointer to the first non-zero element of the compressed vector
+   , end_     ( NULL )          // Pointer to the last non-zero element of the compressed vector
 {
    using blaze::assign;
    assign( *this, ~dv );
@@ -655,7 +577,7 @@ inline CompressedVector<Type,TF>::~CompressedVector()
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
 inline typename CompressedVector<Type,TF>::Reference
-   CompressedVector<Type,TF>::operator[]( size_t index ) noexcept
+   CompressedVector<Type,TF>::operator[]( size_t index )
 {
    BLAZE_USER_ASSERT( index < size_, "Invalid compressed vector access index" );
 
@@ -673,7 +595,7 @@ inline typename CompressedVector<Type,TF>::Reference
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
 inline typename CompressedVector<Type,TF>::ConstReference
-   CompressedVector<Type,TF>::operator[]( size_t index ) const noexcept
+   CompressedVector<Type,TF>::operator[]( size_t index ) const
 {
    BLAZE_USER_ASSERT( index < size_, "Invalid compressed vector access index" );
 
@@ -744,7 +666,7 @@ inline typename CompressedVector<Type,TF>::ConstReference
 */
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
-inline typename CompressedVector<Type,TF>::Iterator CompressedVector<Type,TF>::begin() noexcept
+inline typename CompressedVector<Type,TF>::Iterator CompressedVector<Type,TF>::begin()
 {
    return Iterator( begin_ );
 }
@@ -758,8 +680,7 @@ inline typename CompressedVector<Type,TF>::Iterator CompressedVector<Type,TF>::b
 */
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
-inline typename CompressedVector<Type,TF>::ConstIterator
-   CompressedVector<Type,TF>::begin() const noexcept
+inline typename CompressedVector<Type,TF>::ConstIterator CompressedVector<Type,TF>::begin() const
 {
    return ConstIterator( begin_ );
 }
@@ -773,8 +694,7 @@ inline typename CompressedVector<Type,TF>::ConstIterator
 */
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
-inline typename CompressedVector<Type,TF>::ConstIterator
-   CompressedVector<Type,TF>::cbegin() const noexcept
+inline typename CompressedVector<Type,TF>::ConstIterator CompressedVector<Type,TF>::cbegin() const
 {
    return ConstIterator( begin_ );
 }
@@ -788,7 +708,7 @@ inline typename CompressedVector<Type,TF>::ConstIterator
 */
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
-inline typename CompressedVector<Type,TF>::Iterator CompressedVector<Type,TF>::end() noexcept
+inline typename CompressedVector<Type,TF>::Iterator CompressedVector<Type,TF>::end()
 {
    return Iterator( end_ );
 }
@@ -802,8 +722,7 @@ inline typename CompressedVector<Type,TF>::Iterator CompressedVector<Type,TF>::e
 */
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
-inline typename CompressedVector<Type,TF>::ConstIterator
-   CompressedVector<Type,TF>::end() const noexcept
+inline typename CompressedVector<Type,TF>::ConstIterator CompressedVector<Type,TF>::end() const
 {
    return ConstIterator( end_ );
 }
@@ -817,8 +736,7 @@ inline typename CompressedVector<Type,TF>::ConstIterator
 */
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
-inline typename CompressedVector<Type,TF>::ConstIterator
-   CompressedVector<Type,TF>::cend() const noexcept
+inline typename CompressedVector<Type,TF>::ConstIterator CompressedVector<Type,TF>::cend() const
 {
    return ConstIterator( end_ );
 }
@@ -853,7 +771,7 @@ inline CompressedVector<Type,TF>&
 
    if( nonzeros > capacity_ ) {
       Iterator newBegin( allocate<Element>( nonzeros ) );
-      end_ = castDown( std::copy( rhs.begin_, rhs.end_, castUp( newBegin ) ) );
+      end_ = std::copy( rhs.begin_, rhs.end_, newBegin );
       std::swap( begin_, newBegin );
       deallocate( newBegin );
 
@@ -861,37 +779,9 @@ inline CompressedVector<Type,TF>&
       capacity_ = nonzeros;
    }
    else {
-      end_  = castDown( std::copy( rhs.begin_, rhs.end_, castUp( begin_ ) ) );
+      end_  = std::copy( rhs.begin_, rhs.end_, begin_ );
       size_ = rhs.size_;
    }
-
-   return *this;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Move assignment operator for CompressedVector.
-//
-// \param rhs The compressed vector to be moved into this instance.
-// \return Reference to the assigned compressed vector.
-*/
-template< typename Type  // Data type of the vector
-        , bool TF >      // Transpose flag
-inline CompressedVector<Type,TF>&
-   CompressedVector<Type,TF>::operator=( CompressedVector&& rhs ) noexcept
-{
-   deallocate( begin_ );
-
-   size_     = rhs.size_;
-   capacity_ = rhs.capacity_;
-   begin_    = rhs.begin_;
-   end_      = rhs.end_;
-
-   rhs.size_     = 0UL;
-   rhs.capacity_ = 0UL;
-   rhs.begin_    = nullptr;
-   rhs.end_      = nullptr;
 
    return *this;
 }
@@ -1019,10 +909,10 @@ inline CompressedVector<Type,TF>& CompressedVector<Type,TF>::operator-=( const V
 
 
 //*************************************************************************************************
-/*!\brief Multiplication assignment operator for the multiplication of a dense vector
+/*!\brief Multiplication assignment operator for the multiplication of a vector
 //        (\f$ \vec{a}*=\vec{b} \f$).
 //
-// \param rhs The right-hand side dense vector to be multiplied with the compressed vector.
+// \param rhs The right-hand side vector to be multiplied with the compressed vector.
 // \return Reference to the compressed vector.
 // \exception std::invalid_argument Vector sizes do not match.
 //
@@ -1032,87 +922,14 @@ inline CompressedVector<Type,TF>& CompressedVector<Type,TF>::operator-=( const V
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
 template< typename VT >  // Type of the right-hand side vector
-inline CompressedVector<Type,TF>&
-   CompressedVector<Type,TF>::operator*=( const DenseVector<VT,TF>& rhs )
-{
-   using blaze::multAssign;
-
-   if( (~rhs).size() != size_ ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
-   }
-
-   if( (~rhs).canAlias( this ) ) {
-      CompressedVector tmp( *this * (~rhs) );
-      swap( tmp );
-   }
-   else {
-      CompositeType_<VT> tmp( ~rhs );
-      multAssign( *this, tmp );
-   }
-
-   return *this;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Multiplication assignment operator for the multiplication of a sparse vector
-//        (\f$ \vec{a}*=\vec{b} \f$).
-//
-// \param rhs The right-hand side sparse vector to be multiplied with the compressed vector.
-// \return Reference to the compressed vector.
-// \exception std::invalid_argument Vector sizes do not match.
-//
-// In case the current sizes of the two vectors don't match, a \a std::invalid_argument exception
-// is thrown.
-*/
-template< typename Type  // Data type of the vector
-        , bool TF >      // Transpose flag
-template< typename VT >  // Type of the right-hand side vector
-inline CompressedVector<Type,TF>&
-   CompressedVector<Type,TF>::operator*=( const SparseVector<VT,TF>& rhs )
+inline CompressedVector<Type,TF>& CompressedVector<Type,TF>::operator*=( const Vector<VT,TF>& rhs )
 {
    if( (~rhs).size() != size_ ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   CompressedVector tmp( *this * (~rhs) );
+   CompressedVector<Type,TF> tmp( *this * (~rhs) );
    swap( tmp );
-
-   return *this;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Division assignment operator for the division of a dense vector (\f$ \vec{a}/=\vec{b} \f$).
-//
-// \param rhs The right-hand side dense vector divisor.
-// \return Reference to the compressed vector.
-// \exception std::invalid_argument Vector sizes do not match.
-//
-// In case the current sizes of the two vectors don't match, a \a std::invalid_argument exception
-// is thrown.
-*/
-template< typename Type  // Data type of the vector
-        , bool TF >      // Transpose flag
-template< typename VT >  // Type of the right-hand side vector
-inline CompressedVector<Type,TF>& CompressedVector<Type,TF>::operator/=( const DenseVector<VT,TF>& rhs )
-{
-   using blaze::divAssign;
-
-   if( (~rhs).size() != size_ ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
-   }
-
-   if( (~rhs).canAlias( this ) ) {
-      CompressedVector tmp( *this / (~rhs) );
-      swap( tmp );
-   }
-   else {
-      CompositeType_<VT> tmp( ~rhs );
-      divAssign( *this, tmp );
-   }
 
    return *this;
 }
@@ -1133,7 +950,7 @@ inline CompressedVector<Type,TF>& CompressedVector<Type,TF>::operator/=( const D
 template< typename Type     // Data type of the vector
         , bool TF >         // Transpose flag
 template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_< IsNumeric<Other>, CompressedVector<Type,TF> >&
+inline typename EnableIf< IsNumeric<Other>, CompressedVector<Type,TF> >::Type&
    CompressedVector<Type,TF>::operator*=( Other rhs )
 {
    for( Iterator element=begin_; element!=end_; ++element )
@@ -1158,13 +975,13 @@ inline EnableIf_< IsNumeric<Other>, CompressedVector<Type,TF> >&
 template< typename Type     // Data type of the vector
         , bool TF >         // Transpose flag
 template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_< IsNumeric<Other>, CompressedVector<Type,TF> >&
+inline typename EnableIf< IsNumeric<Other>, CompressedVector<Type,TF> >::Type&
    CompressedVector<Type,TF>::operator/=( Other rhs )
 {
    BLAZE_USER_ASSERT( rhs != Other(0), "Division by zero detected" );
 
-   typedef DivTrait_<Type,Other>            DT;
-   typedef If_< IsNumeric<DT>, DT, Other >  Tmp;
+   typedef typename DivTrait<Type,Other>::Type  DT;
+   typedef typename If< IsNumeric<DT>, DT, Other >::Type  Tmp;
 
    // Depending on the two involved data types, an integer division is applied or a
    // floating point division is selected.
@@ -1198,7 +1015,7 @@ inline EnableIf_< IsNumeric<Other>, CompressedVector<Type,TF> >&
 */
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
-inline size_t CompressedVector<Type,TF>::size() const noexcept
+inline size_t CompressedVector<Type,TF>::size() const
 {
    return size_;
 }
@@ -1212,7 +1029,7 @@ inline size_t CompressedVector<Type,TF>::size() const noexcept
 */
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
-inline size_t CompressedVector<Type,TF>::capacity() const noexcept
+inline size_t CompressedVector<Type,TF>::capacity() const
 {
    return capacity_;
 }
@@ -1341,7 +1158,7 @@ typename CompressedVector<Type,TF>::Iterator
    CompressedVector<Type,TF>::insert( Iterator pos, size_t index, const Type& value )
 {
     if( nonZeros() != capacity_ ) {
-      std::move_backward( pos, end_, castUp( end_+1 ) );
+      std::copy_backward( pos, end_, end_+1 );
       pos->value_ = value;
       pos->index_ = index;
       ++end_;
@@ -1352,10 +1169,10 @@ typename CompressedVector<Type,TF>::Iterator
       size_t newCapacity( extendCapacity() );
 
       Iterator newBegin = allocate<Element>( newCapacity );
-      Iterator tmp = castDown( std::move( begin_, pos, castUp( newBegin ) ) );
+      Iterator tmp      = std::copy( begin_, pos, newBegin );
       tmp->value_ = value;
       tmp->index_ = index;
-      end_ = castDown( std::move( pos, end_, castUp( tmp+1 ) ) );
+      end_ = std::copy( pos, end_, tmp+1 );
 
       std::swap( newBegin, begin_ );
       deallocate( newBegin );
@@ -1363,6 +1180,73 @@ typename CompressedVector<Type,TF>::Iterator
 
       return tmp;
    }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Erasing an element from the compressed vector.
+//
+// \param index The index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
+// \return void
+//
+// This function erases an element from the compressed vector.
+*/
+template< typename Type  // Data type of the vector
+        , bool TF >      // Transpose flag
+inline void CompressedVector<Type,TF>::erase( size_t index )
+{
+   BLAZE_USER_ASSERT( index < size_, "Invalid compressed vector access index" );
+
+   const Iterator pos( find( index ) );
+   if( pos != end_ )
+      end_ = std::copy( pos+1, end_, pos );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Erasing an element from the compressed vector.
+//
+// \param pos Iterator to the element to be erased.
+// \return Iterator to the element after the erased element.
+//
+// This function erases an element from the compressed vector.
+*/
+template< typename Type  // Data type of the vector
+        , bool TF >      // Transpose flag
+inline typename CompressedVector<Type,TF>::Iterator CompressedVector<Type,TF>::erase( Iterator pos )
+{
+   BLAZE_USER_ASSERT( pos >= begin_ && pos <= end_, "Invalid compressed vector iterator" );
+
+   if( pos != end_ )
+      end_ = std::copy( pos+1, end_, pos );
+   return pos;
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Erasing a range of elements from the compressed vector.
+//
+// \param first Iterator to first element to be erased.
+// \param last Iterator just past the last element to be erased.
+// \return Iterator to the element after the erased element.
+//
+// This function erases a range of elements from the compressed vector.
+*/
+template< typename Type  // Data type of the vector
+        , bool TF >      // Transpose flag
+inline typename CompressedVector<Type,TF>::Iterator
+   CompressedVector<Type,TF>::erase( Iterator first, Iterator last )
+{
+   BLAZE_USER_ASSERT( first <= last, "Invalid iterator range" );
+   BLAZE_USER_ASSERT( first >= begin_ && first <= end_, "Invalid compressed vector iterator" );
+   BLAZE_USER_ASSERT( last  >= begin_ && last  <= end_, "Invalid compressed vector iterator" );
+
+   if( first != last )
+      end_ = std::copy( last, end_, first );
+   return first;
 }
 //*************************************************************************************************
 
@@ -1417,7 +1301,7 @@ void CompressedVector<Type,TF>::reserve( size_t n )
       Iterator newBegin  = allocate<Element>( newCapacity );
 
       // Replacing the old data and index array
-      end_ = castDown( transfer( begin_, end_, castUp( newBegin ) ) );
+      end_ = std::copy( begin_, end_, newBegin );
       std::swap( newBegin, begin_ );
       capacity_ = newCapacity;
       deallocate( newBegin );
@@ -1449,10 +1333,11 @@ inline CompressedVector<Type,TF>& CompressedVector<Type,TF>::scale( const Other&
 //
 // \param sv The compressed vector to be swapped.
 // \return void
+// \exception no-throw guarantee.
 */
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
-inline void CompressedVector<Type,TF>::swap( CompressedVector& sv ) noexcept
+inline void CompressedVector<Type,TF>::swap( CompressedVector& sv ) /* throw() */
 {
    std::swap( size_, sv.size_ );
    std::swap( capacity_, sv.capacity_ );
@@ -1472,7 +1357,7 @@ inline void CompressedVector<Type,TF>::swap( CompressedVector& sv ) noexcept
 */
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
-inline size_t CompressedVector<Type,TF>::extendCapacity() const noexcept
+inline size_t CompressedVector<Type,TF>::extendCapacity() const
 {
    using blaze::max;
    using blaze::min;
@@ -1484,195 +1369,6 @@ inline size_t CompressedVector<Type,TF>::extendCapacity() const noexcept
    BLAZE_INTERNAL_ASSERT( nonzeros > capacity_, "Invalid capacity value" );
 
    return nonzeros;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Performs a down-cast of the given iterator.
-//
-// \return The casted iterator.
-//
-// This function performs a down-cast of the given iterator to base elements to an iterator to
-// derived elements.
-*/
-template< typename Type  // Data type of the vector
-        , bool TF >      // Transpose flag
-inline typename CompressedVector<Type,TF>::Iterator
-   CompressedVector<Type,TF>::castDown( IteratorBase it ) const noexcept
-{
-   return static_cast<Iterator>( it );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Performs an up-cast of the given iterator.
-//
-// \return The casted iterator.
-//
-// This function performs an up-cast of the given iterator to derived elements to an iterator
-// to base elements.
-*/
-template< typename Type  // Data type of the vector
-        , bool TF >      // Transpose flag
-inline typename CompressedVector<Type,TF>::IteratorBase
-   CompressedVector<Type,TF>::castUp( Iterator it ) const noexcept
-{
-   return static_cast<IteratorBase>( it );
-}
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  ERASE FUNCTIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*!\brief Erasing an element from the compressed vector.
-//
-// \param index The index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
-// \return void
-//
-// This function erases an element from the compressed vector.
-*/
-template< typename Type  // Data type of the vector
-        , bool TF >      // Transpose flag
-inline void CompressedVector<Type,TF>::erase( size_t index )
-{
-   BLAZE_USER_ASSERT( index < size_, "Invalid compressed vector access index" );
-
-   const Iterator pos( find( index ) );
-   if( pos != end_ )
-      end_ = castDown( std::move( pos+1, end_, castUp( pos ) ) );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Erasing an element from the compressed vector.
-//
-// \param pos Iterator to the element to be erased.
-// \return Iterator to the element after the erased element.
-//
-// This function erases an element from the compressed vector.
-*/
-template< typename Type  // Data type of the vector
-        , bool TF >      // Transpose flag
-inline typename CompressedVector<Type,TF>::Iterator
-   CompressedVector<Type,TF>::erase( Iterator pos )
-{
-   BLAZE_USER_ASSERT( pos >= begin_ && pos <= end_, "Invalid compressed vector iterator" );
-
-   if( pos != end_ )
-      end_ = castDown( std::move( pos+1, end_, castUp( pos ) ) );
-   return pos;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Erasing a range of elements from the compressed vector.
-//
-// \param first Iterator to first element to be erased.
-// \param last Iterator just past the last element to be erased.
-// \return Iterator to the element after the erased element.
-//
-// This function erases a range of elements from the compressed vector.
-*/
-template< typename Type  // Data type of the vector
-        , bool TF >      // Transpose flag
-inline typename CompressedVector<Type,TF>::Iterator
-   CompressedVector<Type,TF>::erase( Iterator first, Iterator last )
-{
-   BLAZE_USER_ASSERT( first <= last, "Invalid iterator range" );
-   BLAZE_USER_ASSERT( first >= begin_ && first <= end_, "Invalid compressed vector iterator" );
-   BLAZE_USER_ASSERT( last  >= begin_ && last  <= end_, "Invalid compressed vector iterator" );
-
-   if( first != last )
-      end_ = castDown( std::move( last, end_, castUp( first ) ) );
-   return first;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Erasing specific elements from the compressed vector.
-//
-// \param predicate The unary predicate for the element selection.
-// \return void.
-//
-// This function erases specific elements from the compressed vector. The elements are selected
-// by the given unary predicate \a predicate, which is expected to accept a single argument of
-// the type of the elements and to be pure. The following example demonstrates how to remove all
-// elements that are smaller than a certain threshold value:
-
-   \code
-   blaze::CompressedVector<double> a;
-   // ... Resizing and initialization
-
-   a.erase( []( double value ){ return value < 1E-8; } );
-   \endcode
-
-// \note The predicate is required to be pure, i.e. to produce deterministic results for elements
-// with the same value. The attempt to use an impure predicate leads to undefined behavior!
-*/
-template< typename Type  // Data type of the vector
-        , bool TF >      // Transpose flag
-template< typename Pred  // Type of the unary predicate
-        , typename >     // Type restriction on the unary predicate
-inline void CompressedVector<Type,TF>::erase( Pred predicate )
-{
-   end_ = castDown( std::remove_if( castUp( begin_ ), castUp( end_ ),
-                                    [predicate=predicate]( const ElementBase& element ) {
-                                       return predicate( element.value() );
-                                    } ) );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Erasing specific elements from a range of the compressed vector.
-//
-// \param first Iterator to first element of the range.
-// \param last Iterator just past the last element of the range.
-// \param predicate The unary predicate for the element selection.
-// \return void.
-//
-// This function erases specific elements from a range of elements of the compressed vector.
-// The elements are selected by the given unary predicate \a predicate, which is expected to
-// accept a single argument of the type of the elements and to be pure. The following example
-// demonstrates how to remove all elements that are smaller than a certain threshold value:
-
-   \code
-   blaze::CompressedVector<double> a;
-   // ... Resizing and initialization
-
-   a.erase( a.begin(), a.end(), []( double value ){ return value < 1E-8; } );
-   \endcode
-
-// \note The predicate is required to be pure, i.e. to produce deterministic results for elements
-// with the same value. The attempt to use an impure predicate leads to undefined behavior!
-*/
-template< typename Type    // Data type of the vector
-        , bool TF >        // Transpose flag
-template< typename Pred >  // Type of the unary predicate
-inline void CompressedVector<Type,TF>::erase( Iterator first, Iterator last, Pred predicate )
-{
-   BLAZE_USER_ASSERT( first <= last, "Invalid iterator range" );
-   BLAZE_USER_ASSERT( first >= begin_ && first <= end_, "Invalid compressed vector iterator" );
-   BLAZE_USER_ASSERT( last  >= begin_ && last  <= end_, "Invalid compressed vector iterator" );
-
-   const auto pos = std::remove_if( castUp( first ), castUp( last  ),
-                                    [predicate=predicate]( const ElementBase& element ) {
-                                       return predicate( element.value() );
-                                    } );
-
-   end_ = castDown( std::move( last, end_, pos ) );
 }
 //*************************************************************************************************
 
@@ -1771,11 +1467,7 @@ template< typename Type  // Data type of the vector
 inline typename CompressedVector<Type,TF>::ConstIterator
    CompressedVector<Type,TF>::lowerBound( size_t index ) const
 {
-   return std::lower_bound( begin_, end_, index,
-                            []( const Element& element, size_t i )
-                            {
-                               return element.index() < i;
-                            } );
+   return std::lower_bound( begin_, end_, index, FindIndex() );
 }
 //*************************************************************************************************
 
@@ -1819,11 +1511,7 @@ template< typename Type  // Data type of the vector
 inline typename CompressedVector<Type,TF>::ConstIterator
    CompressedVector<Type,TF>::upperBound( size_t index ) const
 {
-   return std::upper_bound( begin_, end_, index,
-                            []( size_t i, const Element& element )
-                            {
-                               return i < element.index();
-                            } );
+   return std::upper_bound( begin_, end_, index, FindIndex() );
 }
 //*************************************************************************************************
 
@@ -1857,7 +1545,7 @@ inline typename CompressedVector<Type,TF>::ConstIterator
 // value is a default value (for instance 0 in case of an integral element type) the value is
 // not appended. Per default the values are not tested.
 //
-// \note Although append() does not allocate new memory, it still invalidates all iterators
+// \note: Although append() does not allocate new memory, it still invalidates all iterators
 // returned by the end() functions!
 */
 template< typename Type  // Data type of the vector
@@ -1899,7 +1587,7 @@ inline void CompressedVector<Type,TF>::append( size_t index, const Type& value, 
 template< typename Type     // Data type of the vector
         , bool TF >         // Transpose flag
 template< typename Other >  // Data type of the foreign expression
-inline bool CompressedVector<Type,TF>::canAlias( const Other* alias ) const noexcept
+inline bool CompressedVector<Type,TF>::canAlias( const Other* alias ) const
 {
    return static_cast<const void*>( this ) == static_cast<const void*>( alias );
 }
@@ -1919,7 +1607,7 @@ inline bool CompressedVector<Type,TF>::canAlias( const Other* alias ) const noex
 template< typename Type     // Data type of the vector
         , bool TF >         // Transpose flag
 template< typename Other >  // Data type of the foreign expression
-inline bool CompressedVector<Type,TF>::isAliased( const Other* alias ) const noexcept
+inline bool CompressedVector<Type,TF>::isAliased( const Other* alias ) const
 {
    return static_cast<const void*>( this ) == static_cast<const void*>( alias );
 }
@@ -1938,7 +1626,7 @@ inline bool CompressedVector<Type,TF>::isAliased( const Other* alias ) const noe
 */
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
-inline bool CompressedVector<Type,TF>::canSMPAssign() const noexcept
+inline bool CompressedVector<Type,TF>::canSMPAssign() const
 {
    return false;
 }
@@ -2008,7 +1696,7 @@ inline void CompressedVector<Type,TF>::assign( const SparseVector<VT,TF>& rhs )
    //
    // results in much less requirements on the ConstIterator type provided from the right-hand
    // sparse vector type
-   for( ConstIterator_<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
+   for( typename VT::ConstIterator element=(~rhs).begin(); element!=(~rhs).end(); ++element )
       append( element->index(), element->value() );
 }
 //*************************************************************************************************
@@ -2030,11 +1718,11 @@ template< typename Type  // Data type of the vector
 template< typename VT >  // Type of the right-hand side dense vector
 inline void CompressedVector<Type,TF>::addAssign( const DenseVector<VT,TF>& rhs )
 {
-   typedef AddTrait_< This, ResultType_<VT> >  AddType;
+   typedef typename AddTrait<This,typename VT::ResultType>::Type  AddType;
 
    BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE( AddType );
    BLAZE_CONSTRAINT_MUST_BE_VECTOR_WITH_TRANSPOSE_FLAG( AddType, TF );
-   BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<AddType> );
+   BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( typename AddType::CompositeType );
 
    BLAZE_INTERNAL_ASSERT( size_ == (~rhs).size(), "Invalid vector sizes" );
 
@@ -2063,7 +1751,7 @@ inline void CompressedVector<Type,TF>::addAssign( const SparseVector<VT,TF>& rhs
 {
    BLAZE_INTERNAL_ASSERT( size_ == (~rhs).size(), "Invalid vector sizes" );
 
-   CompressedVector tmp( serial( *this + (~rhs) ) );
+   CompressedVector<Type,TF> tmp( serial( *this + (~rhs) ) );
    swap( tmp );
 }
 //*************************************************************************************************
@@ -2085,11 +1773,11 @@ template< typename Type  // Data type of the vector
 template< typename VT >  // Type of the right-hand side dense vector
 inline void CompressedVector<Type,TF>::subAssign( const DenseVector<VT,TF>& rhs )
 {
-   typedef SubTrait_< This, ResultType_<VT> >  SubType;
+   typedef typename SubTrait<This,typename VT::ResultType>::Type  SubType;
 
    BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE( SubType );
    BLAZE_CONSTRAINT_MUST_BE_VECTOR_WITH_TRANSPOSE_FLAG( SubType, TF );
-   BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<SubType> );
+   BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( typename SubType::CompositeType );
 
    BLAZE_INTERNAL_ASSERT( size_ == (~rhs).size(), "Invalid vector sizes" );
 
@@ -2118,62 +1806,8 @@ inline void CompressedVector<Type,TF>::subAssign( const SparseVector<VT,TF>& rhs
 {
    BLAZE_INTERNAL_ASSERT( size_ == (~rhs).size(), "Invalid vector sizes" );
 
-   CompressedVector tmp( serial( *this - (~rhs) ) );
+   CompressedVector<Type,TF> tmp( serial( *this - (~rhs) ) );
    swap( tmp );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Default implementation of the multiplication assignment of a dense vector.
-//
-// \param rhs The right-hand side dense vector to be multiplied.
-// \return void
-//
-// This function must \b NOT be called explicitly! It is used internally for the performance
-// optimized evaluation of expression templates. Calling this function explicitly might result
-// in erroneous results and/or in compilation errors. Instead of using this function use the
-// assignment operator.
-*/
-template< typename Type  // Data type of the vector
-        , bool TF >      // Transpose flag
-template< typename VT >  // Type of the right-hand side dense vector
-inline void CompressedVector<Type,TF>::multAssign( const DenseVector<VT,TF>& rhs )
-{
-   BLAZE_INTERNAL_ASSERT( size_ == (~rhs).size(), "Invalid vector sizes" );
-
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( VT );
-
-   for( Iterator element=begin_; element!=end_; ++element ) {
-      element->value_ *= (~rhs)[element->index_];
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Default implementation of the division assignment of a dense vector.
-//
-// \param rhs The right-hand side dense vector divisor.
-// \return void
-//
-// This function must \b NOT be called explicitly! It is used internally for the performance
-// optimized evaluation of expression templates. Calling this function explicitly might result
-// in erroneous results and/or in compilation errors. Instead of using this function use the
-// assignment operator.
-*/
-template< typename Type  // Data type of the vector
-        , bool TF >      // Transpose flag
-template< typename VT >  // Type of the right-hand side dense vector
-inline void CompressedVector<Type,TF>::divAssign( const DenseVector<VT,TF>& rhs )
-{
-   BLAZE_INTERNAL_ASSERT( size_ == (~rhs).size(), "Invalid vector sizes" );
-
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( VT );
-
-   for( Iterator element=begin_; element!=end_; ++element ) {
-      element->value_ /= (~rhs)[element->index_];
-   }
 }
 //*************************************************************************************************
 
@@ -2199,10 +1833,13 @@ template< typename Type, bool TF >
 inline bool isDefault( const CompressedVector<Type,TF>& v );
 
 template< typename Type, bool TF >
-inline bool isIntact( const CompressedVector<Type,TF>& v ) noexcept;
+inline bool isIntact( const CompressedVector<Type,TF>& v );
 
 template< typename Type, bool TF >
-inline void swap( CompressedVector<Type,TF>& a, CompressedVector<Type,TF>& b ) noexcept;
+inline void swap( CompressedVector<Type,TF>& a, CompressedVector<Type,TF>& b ) /* throw() */;
+
+template< typename Type, bool TF >
+inline void move( CompressedVector<Type,TF>& dst, CompressedVector<Type,TF>& src ) /* throw() */;
 //@}
 //*************************************************************************************************
 
@@ -2285,7 +1922,7 @@ inline bool isDefault( const CompressedVector<Type,TF>& v )
 */
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
-inline bool isIntact( const CompressedVector<Type,TF>& v ) noexcept
+inline bool isIntact( const CompressedVector<Type,TF>& v )
 {
    return ( v.nonZeros() <= v.capacity() );
 }
@@ -2299,12 +1936,31 @@ inline bool isIntact( const CompressedVector<Type,TF>& v ) noexcept
 // \param a The first compressed vector to be swapped.
 // \param b The second compressed vector to be swapped.
 // \return void
+// \exception no-throw guarantee.
 */
 template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
-inline void swap( CompressedVector<Type,TF>& a, CompressedVector<Type,TF>& b ) noexcept
+inline void swap( CompressedVector<Type,TF>& a, CompressedVector<Type,TF>& b ) /* throw() */
 {
    a.swap( b );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Moving the contents of one compressed vector to another.
+// \ingroup compressed_vector
+//
+// \param dst The destination vector.
+// \param src The source vector.
+// \return void
+// \exception no-throw guarantee.
+*/
+template< typename Type  // Data type of the vector
+        , bool TF >      // Transpose flag
+inline void move( CompressedVector<Type,TF>& dst, CompressedVector<Type,TF>& src ) /* throw() */
+{
+   dst.swap( src );
 }
 //*************************************************************************************************
 
@@ -2321,7 +1977,10 @@ inline void swap( CompressedVector<Type,TF>& a, CompressedVector<Type,TF>& b ) n
 /*! \cond BLAZE_INTERNAL */
 template< typename T, bool TF >
 struct IsResizable< CompressedVector<T,TF> > : public TrueType
-{};
+{
+   enum { value = 1 };
+   typedef TrueType  Type;
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -2339,55 +1998,55 @@ struct IsResizable< CompressedVector<T,TF> > : public TrueType
 template< typename T1, bool TF, typename T2, size_t N >
 struct AddTrait< CompressedVector<T1,TF>, StaticVector<T2,N,TF> >
 {
-   using Type = StaticVector< AddTrait_<T1,T2>, N, TF >;
+   typedef StaticVector< typename AddTrait<T1,T2>::Type, N, TF >  Type;
 };
 
 template< typename T1, size_t N, bool TF, typename T2 >
 struct AddTrait< StaticVector<T1,N,TF>, CompressedVector<T2,TF> >
 {
-   using Type = StaticVector< AddTrait_<T1,T2>, N, TF >;
+   typedef StaticVector< typename AddTrait<T1,T2>::Type, N, TF >  Type;
 };
 
 template< typename T1, bool TF, typename T2, size_t N >
 struct AddTrait< CompressedVector<T1,TF>, HybridVector<T2,N,TF> >
 {
-   using Type = HybridVector< AddTrait_<T1,T2>, N, TF >;
+   typedef HybridVector< typename AddTrait<T1,T2>::Type, N, TF >  Type;
 };
 
 template< typename T1, size_t N, bool TF, typename T2 >
 struct AddTrait< HybridVector<T1,N,TF>, CompressedVector<T2,TF> >
 {
-   using Type = HybridVector< AddTrait_<T1,T2>, N, TF >;
+   typedef HybridVector< typename AddTrait<T1,T2>::Type, N, TF >  Type;
 };
 
 template< typename T1, bool TF, typename T2 >
 struct AddTrait< CompressedVector<T1,TF>, DynamicVector<T2,TF> >
 {
-   using Type = DynamicVector< AddTrait_<T1,T2>, TF >;
+   typedef DynamicVector< typename AddTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, bool TF, typename T2 >
 struct AddTrait< DynamicVector<T1,TF>, CompressedVector<T2,TF> >
 {
-   using Type = DynamicVector< AddTrait_<T1,T2>, TF >;
+   typedef DynamicVector< typename AddTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, bool TF, typename T2, bool AF, bool PF >
 struct AddTrait< CompressedVector<T1,TF>, CustomVector<T2,AF,PF,TF> >
 {
-   using Type = DynamicVector< AddTrait_<T1,T2>, TF >;
+   typedef DynamicVector< typename AddTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool TF, typename T2 >
 struct AddTrait< CustomVector<T1,AF,PF,TF>, CompressedVector<T2,TF> >
 {
-   using Type = DynamicVector< AddTrait_<T1,T2>, TF >;
+   typedef DynamicVector< typename AddTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, bool TF, typename T2 >
 struct AddTrait< CompressedVector<T1,TF>, CompressedVector<T2,TF> >
 {
-   using Type = CompressedVector< AddTrait_<T1,T2>, TF >;
+   typedef CompressedVector< typename AddTrait<T1,T2>::Type, TF >  Type;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -2406,55 +2065,55 @@ struct AddTrait< CompressedVector<T1,TF>, CompressedVector<T2,TF> >
 template< typename T1, bool TF, typename T2, size_t N >
 struct SubTrait< CompressedVector<T1,TF>, StaticVector<T2,N,TF> >
 {
-   using Type = StaticVector< SubTrait_<T1,T2>, N, TF >;
+   typedef StaticVector< typename SubTrait<T1,T2>::Type, N, TF >  Type;
 };
 
 template< typename T1, size_t N, bool TF, typename T2 >
 struct SubTrait< StaticVector<T1,N,TF>, CompressedVector<T2,TF> >
 {
-   using Type = StaticVector< SubTrait_<T1,T2>, N, TF >;
+   typedef StaticVector< typename SubTrait<T1,T2>::Type, N, TF >  Type;
 };
 
 template< typename T1, bool TF, typename T2, size_t N >
 struct SubTrait< CompressedVector<T1,TF>, HybridVector<T2,N,TF> >
 {
-   using Type = HybridVector< SubTrait_<T1,T2>, N, TF >;
+   typedef HybridVector< typename SubTrait<T1,T2>::Type, N, TF >  Type;
 };
 
 template< typename T1, size_t N, bool TF, typename T2 >
 struct SubTrait< HybridVector<T1,N,TF>, CompressedVector<T2,TF> >
 {
-   using Type = HybridVector< SubTrait_<T1,T2>, N, TF >;
+   typedef HybridVector< typename SubTrait<T1,T2>::Type, N, TF >  Type;
 };
 
 template< typename T1, bool TF, typename T2 >
 struct SubTrait< CompressedVector<T1,TF>, DynamicVector<T2,TF> >
 {
-   using Type = DynamicVector< SubTrait_<T1,T2>, TF >;
+   typedef DynamicVector< typename SubTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, bool TF, typename T2 >
 struct SubTrait< DynamicVector<T1,TF>, CompressedVector<T2,TF> >
 {
-   using Type = DynamicVector< SubTrait_<T1,T2>, TF >;
+   typedef DynamicVector< typename SubTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, bool TF, typename T2, bool AF, bool PF >
 struct SubTrait< CompressedVector<T1,TF>, CustomVector<T2,AF,PF,TF> >
 {
-   using Type = DynamicVector< SubTrait_<T1,T2>, TF >;
+   typedef DynamicVector< typename SubTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool TF, typename T2 >
 struct SubTrait< CustomVector<T1,AF,PF,TF>, CompressedVector<T2,TF> >
 {
-   using Type = DynamicVector< SubTrait_<T1,T2>, TF >;
+   typedef DynamicVector< typename SubTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, bool TF, typename T2 >
 struct SubTrait< CompressedVector<T1,TF>, CompressedVector<T2,TF> >
 {
-   using Type = CompressedVector< SubTrait_<T1,T2>, TF >;
+   typedef CompressedVector< typename SubTrait<T1,T2>::Type, TF >  Type;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -2471,177 +2130,177 @@ struct SubTrait< CompressedVector<T1,TF>, CompressedVector<T2,TF> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T1, bool TF, typename T2 >
-struct MultTrait< CompressedVector<T1,TF>, T2, EnableIf_< IsNumeric<T2> > >
+struct MultTrait< CompressedVector<T1,TF>, T2, typename EnableIf< IsNumeric<T2> >::Type >
 {
-   using Type = CompressedVector< MultTrait_<T1,T2>, TF >;
+   typedef CompressedVector< typename MultTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, typename T2, bool TF >
-struct MultTrait< T1, CompressedVector<T2,TF>, EnableIf_< IsNumeric<T1> > >
+struct MultTrait< T1, CompressedVector<T2,TF>, typename EnableIf< IsNumeric<T1> >::Type >
 {
-   using Type = CompressedVector< MultTrait_<T1,T2>, TF >;
+   typedef CompressedVector< typename MultTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, bool TF, typename T2, size_t N >
 struct MultTrait< CompressedVector<T1,TF>, StaticVector<T2,N,TF> >
 {
-   using Type = CompressedVector< MultTrait_<T1,T2>, TF >;
+   typedef CompressedVector< typename MultTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, typename T2, size_t N >
 struct MultTrait< CompressedVector<T1,false>, StaticVector<T2,N,true> >
 {
-   using Type = CompressedMatrix< MultTrait_<T1,T2>, true >;
+   typedef CompressedMatrix< typename MultTrait<T1,T2>::Type, true >  Type;
 };
 
 template< typename T1, typename T2, size_t N >
 struct MultTrait< CompressedVector<T1,true>, StaticVector<T2,N,false> >
 {
-   using Type = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  Type;
 };
 
 template< typename T1, size_t N, bool TF, typename T2 >
 struct MultTrait< StaticVector<T1,N,TF>, CompressedVector<T2,TF> >
 {
-   using Type = CompressedVector< MultTrait_<T1,T2>, TF >;
+   typedef CompressedVector< typename MultTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, size_t N, typename T2 >
 struct MultTrait< StaticVector<T1,N,false>, CompressedVector<T2,true> >
 {
-   using Type = CompressedMatrix< MultTrait_<T1,T2>, false >;
+   typedef CompressedMatrix< typename MultTrait<T1,T2>::Type, false >  Type;
 };
 
 template< typename T1, size_t N, typename T2 >
 struct MultTrait< StaticVector<T1,N,true>, CompressedVector<T2,false> >
 {
-   using Type = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  Type;
 };
 
 template< typename T1, bool TF, typename T2, size_t N >
 struct MultTrait< CompressedVector<T1,TF>, HybridVector<T2,N,TF> >
 {
-   using Type = CompressedVector< MultTrait_<T1,T2>, TF >;
+   typedef CompressedVector< typename MultTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, typename T2, size_t N >
 struct MultTrait< CompressedVector<T1,false>, HybridVector<T2,N,true> >
 {
-   using Type = CompressedMatrix< MultTrait_<T1,T2>, true >;
+   typedef CompressedMatrix< typename MultTrait<T1,T2>::Type, true >  Type;
 };
 
 template< typename T1, typename T2, size_t N >
 struct MultTrait< CompressedVector<T1,true>, HybridVector<T2,N,false> >
 {
-   using Type = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  Type;
 };
 
 template< typename T1, size_t N, bool TF, typename T2 >
 struct MultTrait< HybridVector<T1,N,TF>, CompressedVector<T2,TF> >
 {
-   using Type = CompressedVector< MultTrait_<T1,T2>, TF >;
+   typedef CompressedVector< typename MultTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, size_t N, typename T2 >
 struct MultTrait< HybridVector<T1,N,false>, CompressedVector<T2,true> >
 {
-   using Type = CompressedMatrix< MultTrait_<T1,T2>, false >;
+   typedef CompressedMatrix< typename MultTrait<T1,T2>::Type, false >  Type;
 };
 
 template< typename T1, size_t N, typename T2 >
 struct MultTrait< HybridVector<T1,N,true>, CompressedVector<T2,false> >
 {
-   using Type = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  Type;
 };
 
 template< typename T1, bool TF, typename T2 >
 struct MultTrait< CompressedVector<T1,TF>, DynamicVector<T2,TF> >
 {
-   using Type = CompressedVector< MultTrait_<T1,T2>, TF >;
+   typedef CompressedVector< typename MultTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, typename T2 >
 struct MultTrait< CompressedVector<T1,false>, DynamicVector<T2,true> >
 {
-   using Type = CompressedMatrix< MultTrait_<T1,T2>, true >;
+   typedef CompressedMatrix< typename MultTrait<T1,T2>::Type, true >  Type;
 };
 
 template< typename T1, typename T2 >
 struct MultTrait< CompressedVector<T1,true>, DynamicVector<T2,false> >
 {
-   using Type = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  Type;
 };
 
 template< typename T1, bool TF, typename T2 >
 struct MultTrait< DynamicVector<T1,TF>, CompressedVector<T2,TF> >
 {
-   using Type = CompressedVector< MultTrait_<T1,T2>, TF >;
+   typedef CompressedVector< typename MultTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, typename T2 >
 struct MultTrait< DynamicVector<T1,false>, CompressedVector<T2,true> >
 {
-   using Type = CompressedMatrix< MultTrait_<T1,T2>, false >;
+   typedef CompressedMatrix< typename MultTrait<T1,T2>::Type, false >  Type;
 };
 
 template< typename T1, typename T2 >
 struct MultTrait< DynamicVector<T1,true>, CompressedVector<T2,false> >
 {
-   using Type = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  Type;
 };
 
 template< typename T1, bool TF, typename T2, bool AF, bool PF >
 struct MultTrait< CompressedVector<T1,TF>, CustomVector<T2,AF,PF,TF> >
 {
-   using Type = CompressedVector< MultTrait_<T1,T2>, TF >;
+   typedef CompressedVector< typename MultTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, typename T2, bool AF, bool PF >
 struct MultTrait< CompressedVector<T1,false>, CustomVector<T2,AF,PF,true> >
 {
-   using Type = CompressedMatrix< MultTrait_<T1,T2>, true >;
+   typedef CompressedMatrix< typename MultTrait<T1,T2>::Type, true >  Type;
 };
 
 template< typename T1, typename T2, bool AF, bool PF >
 struct MultTrait< CompressedVector<T1,true>, CustomVector<T2,AF,PF,false> >
 {
-   using Type = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  Type;
 };
 
 template< typename T1, bool AF, bool PF, bool TF, typename T2 >
 struct MultTrait< CustomVector<T1,AF,PF,TF>, CompressedVector<T2,TF> >
 {
-   using Type = CompressedVector< MultTrait_<T1,T2>, TF >;
+   typedef CompressedVector< typename MultTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, bool AF, bool PF, typename T2 >
 struct MultTrait< CustomVector<T1,AF,PF,false>, CompressedVector<T2,true> >
 {
-   using Type = CompressedMatrix< MultTrait_<T1,T2>, false >;
+   typedef CompressedMatrix< typename MultTrait<T1,T2>::Type, false >  Type;
 };
 
 template< typename T1, bool AF, bool PF, typename T2 >
 struct MultTrait< CustomVector<T1,AF,PF,true>, CompressedVector<T2,false> >
 {
-   using Type = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  Type;
 };
 
 template< typename T1, bool TF, typename T2 >
 struct MultTrait< CompressedVector<T1,TF>, CompressedVector<T2,TF> >
 {
-   using Type = CompressedVector< MultTrait_<T1,T2>, TF >;
+   typedef CompressedVector< typename MultTrait<T1,T2>::Type, TF >  Type;
 };
 
 template< typename T1, typename T2 >
 struct MultTrait< CompressedVector<T1,false>, CompressedVector<T2,true> >
 {
-   using Type = CompressedMatrix< MultTrait_<T1,T2>, false >;
+   typedef CompressedMatrix< typename MultTrait<T1,T2>::Type, false >  Type;
 };
 
 template< typename T1, typename T2 >
 struct MultTrait< CompressedVector<T1,true>, CompressedVector<T2,false> >
 {
-   using Type = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  Type;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -2657,74 +2316,74 @@ struct MultTrait< CompressedVector<T1,true>, CompressedVector<T2,false> >
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-template< typename T1, bool TF, typename T2 >
-struct CrossTrait< CompressedVector<T1,TF>, StaticVector<T2,3UL,TF> >
+template< typename T1, typename T2 >
+struct CrossTrait< CompressedVector<T1,false>, StaticVector<T2,3UL,false> >
 {
  private:
-   using T = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  T;
 
  public:
-   using Type = StaticVector< SubTrait_<T,T>, 3UL, TF >;
+   typedef StaticVector< typename SubTrait<T,T>::Type, 3UL, false >  Type;
 };
 
-template< typename T1, bool TF, typename T2 >
-struct CrossTrait< StaticVector<T1,3UL,TF>, CompressedVector<T2,TF> >
+template< typename T1, typename T2 >
+struct CrossTrait< StaticVector<T1,3UL,false>, CompressedVector<T2,false> >
 {
  private:
-   using T = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  T;
 
  public:
-   using Type = StaticVector< SubTrait_<T,T>, 3UL, TF >;
+   typedef StaticVector< typename SubTrait<T,T>::Type, 3UL, false >  Type;
 };
 
-template< typename T1, bool TF, typename T2, size_t N >
-struct CrossTrait< CompressedVector<T1,TF>, HybridVector<T2,N,TF> >
+template< typename T1, typename T2, size_t N >
+struct CrossTrait< CompressedVector<T1,false>, HybridVector<T2,N,false> >
 {
  private:
-   using T = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  T;
 
  public:
-   using Type = StaticVector< SubTrait_<T,T>, 3UL, TF >;
+   typedef StaticVector< typename SubTrait<T,T>::Type, 3UL, false >  Type;
 };
 
-template< typename T1, size_t N, bool TF, typename T2 >
-struct CrossTrait< HybridVector<T1,N,TF>, CompressedVector<T2,TF> >
+template< typename T1, size_t N, typename T2 >
+struct CrossTrait< HybridVector<T1,N,false>, CompressedVector<T2,false> >
 {
  private:
-   using T = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  T;
 
  public:
-   using Type = StaticVector< SubTrait_<T,T>, 3UL, TF >;
+   typedef StaticVector< typename SubTrait<T,T>::Type, 3UL, false >  Type;
 };
 
-template< typename T1, bool TF, typename T2 >
-struct CrossTrait< CompressedVector<T1,TF>, DynamicVector<T2,TF> >
+template< typename T1, typename T2 >
+struct CrossTrait< CompressedVector<T1,false>, DynamicVector<T2,false> >
 {
  private:
-   using T = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  T;
 
  public:
-   using Type = StaticVector< SubTrait_<T,T>, 3UL, TF >;
+   typedef StaticVector< typename SubTrait<T,T>::Type, 3UL, false >  Type;
 };
 
-template< typename T1, bool TF, typename T2 >
-struct CrossTrait< DynamicVector<T1,TF>, CompressedVector<T2,TF> >
+template< typename T1, typename T2 >
+struct CrossTrait< DynamicVector<T1,false>, CompressedVector<T2,false> >
 {
  private:
-   using T = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  T;
 
  public:
-   using Type = StaticVector< SubTrait_<T,T>, 3UL, TF >;
+   typedef StaticVector< typename SubTrait<T,T>::Type, 3UL, false >  Type;
 };
 
-template< typename T1, bool TF, typename T2 >
-struct CrossTrait< CompressedVector<T1,TF>, CompressedVector<T2,TF> >
+template< typename T1, typename T2 >
+struct CrossTrait< CompressedVector<T1,false>, CompressedVector<T2,false> >
 {
  private:
-   using T = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  T;
 
  public:
-   using Type = StaticVector< SubTrait_<T,T>, 3UL, TF >;
+   typedef StaticVector< typename SubTrait<T,T>::Type, 3UL, false >  Type;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -2741,82 +2400,9 @@ struct CrossTrait< CompressedVector<T1,TF>, CompressedVector<T2,TF> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T1, bool TF, typename T2 >
-struct DivTrait< CompressedVector<T1,TF>, T2, EnableIf_< IsNumeric<T2> > >
+struct DivTrait< CompressedVector<T1,TF>, T2, typename EnableIf< IsNumeric<T2> >::Type >
 {
-   using Type = CompressedVector< DivTrait_<T1,T2>, TF >;
-};
-
-template< typename T1, bool TF, typename T2, size_t N >
-struct DivTrait< CompressedVector<T1,TF>, StaticVector<T2,N,TF> >
-{
-   using Type = CompressedVector< DivTrait_<T1,T2>, TF >;
-};
-
-template< typename T1, size_t N, bool TF, typename T2 >
-struct DivTrait< StaticVector<T1,N,TF>, CompressedVector<T2,TF> >
-{
-   using Type = CompressedVector< DivTrait_<T1,T2>, TF >;
-};
-
-template< typename T1, bool TF, typename T2, size_t N >
-struct DivTrait< CompressedVector<T1,TF>, HybridVector<T2,N,TF> >
-{
-   using Type = CompressedVector< DivTrait_<T1,T2>, TF >;
-};
-
-template< typename T1, size_t N, bool TF, typename T2 >
-struct DivTrait< HybridVector<T1,N,TF>, CompressedVector<T2,TF> >
-{
-   using Type = CompressedVector< DivTrait_<T1,T2>, TF >;
-};
-
-template< typename T1, bool TF, typename T2 >
-struct DivTrait< CompressedVector<T1,TF>, DynamicVector<T2,TF> >
-{
-   using Type = CompressedVector< DivTrait_<T1,T2>, TF >;
-};
-
-template< typename T1, bool TF, typename T2 >
-struct DivTrait< DynamicVector<T1,TF>, CompressedVector<T2,TF> >
-{
-   using Type = CompressedVector< DivTrait_<T1,T2>, TF >;
-};
-
-template< typename T1, bool TF, typename T2, bool AF, bool PF >
-struct DivTrait< CompressedVector<T1,TF>, CustomVector<T2,AF,PF,TF> >
-{
-   using Type = CompressedVector< DivTrait_<T1,T2>, TF >;
-};
-
-template< typename T1, bool AF, bool PF, bool TF, typename T2 >
-struct DivTrait< CustomVector<T1,AF,PF,TF>, CompressedVector<T2,TF> >
-{
-   using Type = CompressedVector< DivTrait_<T1,T2>, TF >;
-};
-
-template< typename T1, bool TF, typename T2 >
-struct DivTrait< CompressedVector<T1,TF>, CompressedVector<T2,TF> >
-{
-   using Type = CompressedVector< DivTrait_<T1,T2>, TF >;
-};
-/*! \endcond */
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  HIGHTYPE SPECIALIZATIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename T1, bool TF, typename T2 >
-struct HighType< CompressedVector<T1,TF>, CompressedVector<T2,TF> >
-{
-   using Type = CompressedVector< typename HighType<T1,T2>::Type, TF >;
+   typedef CompressedVector< typename DivTrait<T1,T2>::Type, TF >  Type;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -2833,9 +2419,10 @@ struct HighType< CompressedVector<T1,TF>, CompressedVector<T2,TF> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T1, bool TF, typename T2 >
-struct LowType< CompressedVector<T1,TF>, CompressedVector<T2,TF> >
+struct MathTrait< CompressedVector<T1,TF>, CompressedVector<T2,TF> >
 {
-   using Type = CompressedVector< typename LowType<T1,T2>::Type, TF >;
+   typedef CompressedVector< typename MathTrait<T1,T2>::HighType, TF >  HighType;
+   typedef CompressedVector< typename MathTrait<T1,T2>::LowType , TF >  LowType;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -2854,7 +2441,7 @@ struct LowType< CompressedVector<T1,TF>, CompressedVector<T2,TF> >
 template< typename T1, bool TF >
 struct SubvectorTrait< CompressedVector<T1,TF> >
 {
-   using Type = CompressedVector<T1,TF>;
+   typedef CompressedVector<T1,TF>  Type;
 };
 /*! \endcond */
 //*************************************************************************************************

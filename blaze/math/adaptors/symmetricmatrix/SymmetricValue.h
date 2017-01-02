@@ -40,7 +40,6 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/Expression.h>
 #include <blaze/math/constraints/Hermitian.h>
 #include <blaze/math/constraints/Lower.h>
@@ -49,6 +48,7 @@
 #include <blaze/math/constraints/Upper.h>
 #include <blaze/math/proxy/Proxy.h>
 #include <blaze/math/shims/Clear.h>
+#include <blaze/math/shims/Conjugate.h>
 #include <blaze/math/shims/Invert.h>
 #include <blaze/math/shims/IsDefault.h>
 #include <blaze/math/shims/IsNaN.h>
@@ -56,6 +56,7 @@
 #include <blaze/math/shims/IsReal.h>
 #include <blaze/math/shims/IsZero.h>
 #include <blaze/math/shims/Reset.h>
+#include <blaze/math/traits/ConjExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blaze/util/constraints/Const.h>
 #include <blaze/util/constraints/Numeric.h>
@@ -137,12 +138,12 @@ class SymmetricValue : public Proxy< SymmetricValue<MT> >
 
  public:
    //**Type definitions****************************************************************************
-   typedef ElementType_<MT>  RepresentedType;  //!< Type of the represented matrix element.
+   typedef typename MT::ElementType  RepresentedType;  //!< Type of the represented matrix element.
 
    //! Value type of the represented complex element.
-   typedef typename If_< IsComplex<RepresentedType>
-                       , ComplexType<RepresentedType>
-                       , BuiltinType<RepresentedType> >::Type  ValueType;
+   typedef typename If< IsComplex<RepresentedType>
+                      , ComplexType<RepresentedType>
+                      , BuiltinType<RepresentedType> >::Type::Type  ValueType;
 
    typedef ValueType  value_type;  //!< Value type of the represented complex element.
    //**********************************************************************************************
@@ -173,14 +174,14 @@ class SymmetricValue : public Proxy< SymmetricValue<MT> >
    inline void clear () const;
    inline void invert() const;
 
-   inline RepresentedType get() const noexcept;
+   inline RepresentedType get() const;
    //@}
    //**********************************************************************************************
 
    //**Conversion operator*************************************************************************
    /*!\name Conversion operator */
    //@{
-   inline operator RepresentedType() const noexcept;
+   inline operator RepresentedType() const;
    //@}
    //**********************************************************************************************
 
@@ -451,7 +452,7 @@ inline void SymmetricValue<MT>::invert() const
 // \return Copy of the represented value.
 */
 template< typename MT >  // Type of the adapted matrix
-inline typename SymmetricValue<MT>::RepresentedType SymmetricValue<MT>::get() const noexcept
+inline typename SymmetricValue<MT>::RepresentedType SymmetricValue<MT>::get() const
 {
    return pos_->value();
 }
@@ -491,7 +492,7 @@ inline void SymmetricValue<MT>::sync() const
 // \return Copy of the represented value.
 */
 template< typename MT >  // Type of the adapted matrix
-inline SymmetricValue<MT>::operator RepresentedType() const noexcept
+inline SymmetricValue<MT>::operator RepresentedType() const
 {
    return pos_->value();
 }
@@ -586,6 +587,10 @@ inline void SymmetricValue<MT>::imag( ValueType value ) const
 /*!\name SymmetricValue global functions */
 //@{
 template< typename MT >
+inline typename ConjExprTrait< typename SymmetricValue<MT>::RepresentedType >::Type
+   conj( const SymmetricValue<MT>& value );
+
+template< typename MT >
 inline void reset( const SymmetricValue<MT>& value );
 
 template< typename MT >
@@ -609,6 +614,28 @@ inline bool isOne( const SymmetricValue<MT>& value );
 template< typename MT >
 inline bool isnan( const SymmetricValue<MT>& value );
 //@}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Computing the complex conjugate of the symmetric value.
+// \ingroup symmetric_matrix
+//
+// \param value The given symmetric value.
+// \return The complex conjugate of the symmetric value.
+//
+// This function computes the complex conjugate of the symmetric value. In case the value
+// represents a vector- or matrix-like data structure the function returns an expression
+// representing the complex conjugate of the vector/matrix.
+*/
+template< typename MT >
+inline typename ConjExprTrait< typename SymmetricValue<MT>::RepresentedType >::Type
+   conj( const SymmetricValue<MT>& value )
+{
+   using blaze::conj;
+
+   return conj( (~value).get() );
+}
 //*************************************************************************************************
 
 

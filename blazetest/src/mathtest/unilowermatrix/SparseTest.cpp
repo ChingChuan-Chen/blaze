@@ -39,13 +39,13 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <blaze/math/Column.h>
 #include <blaze/math/CompressedVector.h>
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/DynamicVector.h>
-#include <blaze/math/Row.h>
+#include <blaze/math/SparseColumn.h>
+#include <blaze/math/SparseRow.h>
+#include <blaze/math/SparseSubmatrix.h>
 #include <blaze/math/StaticMatrix.h>
-#include <blaze/math/Submatrix.h>
 #include <blaze/util/Complex.h>
 #include <blazetest/mathtest/unilowermatrix/SparseTest.h>
 
@@ -82,11 +82,11 @@ SparseTest::SparseTest()
    testSet();
    testInsert();
    testAppend();
+   testErase();
    testResize();
    testReserve();
    testTrim();
    testSwap();
-   testErase();
    testFind();
    testLowerBound();
    testUpperBound();
@@ -174,54 +174,6 @@ void SparseTest::testConstructors()
       lower1(2,0) =  7;
 
       const LT lower2( lower1 );
-
-      checkRows    ( lower2, 3UL );
-      checkColumns ( lower2, 3UL );
-      checkCapacity( lower2, 5UL );
-      checkNonZeros( lower2, 5UL );
-      checkNonZeros( lower2, 0UL, 1UL );
-      checkNonZeros( lower2, 1UL, 2UL );
-      checkNonZeros( lower2, 2UL, 2UL );
-
-      if( lower2(0,0) !=  1 || lower2(0,1) != 0 || lower2(0,2) != 0 ||
-          lower2(1,0) != -4 || lower2(1,1) != 1 || lower2(1,2) != 0 ||
-          lower2(2,0) !=  7 || lower2(2,1) != 0 || lower2(2,2) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower2 << "\n"
-             << "   Expected result:\n(  1 0 0 )\n( -4 1 0 )\n(  7 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Row-major UniLowerMatrix move constructor (0x0)";
-
-      LT lower1;
-      LT lower2( std::move( lower1 ) );
-
-      checkRows    ( lower2, 0UL );
-      checkColumns ( lower2, 0UL );
-      checkNonZeros( lower2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Row-major UniLowerMatrix move constructor (3x3)";
-
-      LT lower1( 3UL );
-      lower1(1,0) = -4;
-      lower1(2,0) =  7;
-
-      LT lower2( std::move( lower1 ) );
 
       checkRows    ( lower2, 3UL );
       checkColumns ( lower2, 3UL );
@@ -433,54 +385,6 @@ void SparseTest::testConstructors()
 
 
    //=====================================================================================
-   // Column-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Column-major UniLowerMatrix move constructor (0x0)";
-
-      OLT lower1;
-      OLT lower2( std::move( lower1 ) );
-
-      checkRows    ( lower2, 0UL );
-      checkColumns ( lower2, 0UL );
-      checkNonZeros( lower2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Column-major UniLowerMatrix move constructor (3x3)";
-
-      OLT lower1( 3UL );
-      lower1(1,0) = -4;
-      lower1(2,0) =  7;
-
-      OLT lower2( std::move( lower1 ) );
-
-      checkRows    ( lower2, 3UL );
-      checkColumns ( lower2, 3UL );
-      checkCapacity( lower2, 5UL );
-      checkNonZeros( lower2, 5UL );
-      checkNonZeros( lower2, 0UL, 3UL );
-      checkNonZeros( lower2, 1UL, 1UL );
-      checkNonZeros( lower2, 2UL, 1UL );
-
-      if( lower2(0,0) !=  1 || lower2(0,1) != 0 || lower2(0,2) != 0 ||
-          lower2(1,0) != -4 || lower2(1,1) != 1 || lower2(1,2) != 0 ||
-          lower2(2,0) !=  7 || lower2(2,1) != 0 || lower2(2,2) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower2 << "\n"
-             << "   Expected result:\n(  1 0 0 )\n( -4 1 0 )\n(  7 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major conversion constructor
    //=====================================================================================
 
@@ -627,55 +531,6 @@ void SparseTest::testAssignment()
 
       LT lower2;
       lower2 = lower1;
-
-      checkRows    ( lower2, 3UL );
-      checkColumns ( lower2, 3UL );
-      checkNonZeros( lower2, 5UL );
-      checkNonZeros( lower2, 0UL, 1UL );
-      checkNonZeros( lower2, 1UL, 2UL );
-      checkNonZeros( lower2, 2UL, 2UL );
-
-      if( lower2(0,0) !=  1 || lower2(0,1) != 0 || lower2(0,2) != 0 ||
-          lower2(1,0) != -4 || lower2(1,1) != 1 || lower2(1,2) != 0 ||
-          lower2(2,0) !=  7 || lower2(2,1) != 0 || lower2(2,2) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower2 << "\n"
-             << "   Expected result:\n(  1 0 0 )\n( -4 1 0 )\n(  7 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Row-major UniLowerMatrix move assignment (0x0)";
-
-      LT lower1, lower2;
-
-      lower2 = std::move( lower1 );
-
-      checkRows    ( lower2, 0UL );
-      checkColumns ( lower2, 0UL );
-      checkNonZeros( lower2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Row-major UniLowerMatrix move assignment (3x3)";
-
-      LT lower1( 3UL );
-      lower1(1,0) = -4;
-      lower1(2,0) =  7;
-
-      LT lower2;
-      lower2 = std::move( lower1 );
 
       checkRows    ( lower2, 3UL );
       checkColumns ( lower2, 3UL );
@@ -1129,55 +984,6 @@ void SparseTest::testAssignment()
 
       OLT lower2;
       lower2 = lower1;
-
-      checkRows    ( lower2, 3UL );
-      checkColumns ( lower2, 3UL );
-      checkNonZeros( lower2, 5UL );
-      checkNonZeros( lower2, 0UL, 3UL );
-      checkNonZeros( lower2, 1UL, 1UL );
-      checkNonZeros( lower2, 2UL, 1UL );
-
-      if( lower2(0,0) !=  1 || lower2(0,1) != 0 || lower2(0,2) != 0 ||
-          lower2(1,0) != -4 || lower2(1,1) != 1 || lower2(1,2) != 0 ||
-          lower2(2,0) !=  7 || lower2(2,1) != 0 || lower2(2,2) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower2 << "\n"
-             << "   Expected result:\n(  1 0 0 )\n( -4 1 0 )\n(  7 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Column-major UniLowerMatrix move assignment (0x0)";
-
-      OLT lower1, lower2;
-
-      lower2 = std::move( lower1 );
-
-      checkRows    ( lower2, 0UL );
-      checkColumns ( lower2, 0UL );
-      checkNonZeros( lower2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Column-major UniLowerMatrix move assignment (3x3)";
-
-      OLT lower1( 3UL );
-      lower1(1,0) = -4;
-      lower1(2,0) =  7;
-
-      OLT lower2;
-      lower2 = std::move( lower1 );
 
       checkRows    ( lower2, 3UL );
       checkColumns ( lower2, 3UL );
@@ -6377,6 +6183,952 @@ void SparseTest::testAppend()
 
 
 //*************************************************************************************************
+/*!\brief Test of the \c erase() member function of the UniLowerMatrix specialization.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c erase() member function of the UniLowerMatrix
+// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void SparseTest::testErase()
+{
+   //=====================================================================================
+   // Row-major index-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Row-major UniLowerMatrix::erase( size_t, size_t )";
+
+      // Initialization check
+      LT lower( 4UL, 9UL );
+      lower(1,0) = 2;
+      lower(2,0) = 3;
+      lower(2,1) = 4;
+      lower(3,0) = 5;
+      lower(3,1) = 6;
+
+      checkRows    ( lower, 4UL );
+      checkColumns ( lower, 4UL );
+      checkCapacity( lower, 9UL );
+      checkNonZeros( lower, 9UL );
+      checkNonZeros( lower, 0UL, 1UL );
+      checkNonZeros( lower, 1UL, 2UL );
+      checkNonZeros( lower, 2UL, 3UL );
+      checkNonZeros( lower, 3UL, 3UL );
+
+      if( lower(0,0) != 1 ||
+          lower(1,0) != 2 || lower(1,1) != 1 ||
+          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
+          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 4 1 0 )\n( 5 6 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (2,1)
+      lower.erase( 2UL, 1UL );
+
+      checkRows    ( lower, 4UL );
+      checkColumns ( lower, 4UL );
+      checkCapacity( lower, 8UL );
+      checkNonZeros( lower, 8UL );
+      checkNonZeros( lower, 0UL, 1UL );
+      checkNonZeros( lower, 1UL, 2UL );
+      checkNonZeros( lower, 2UL, 2UL );
+      checkNonZeros( lower, 3UL, 3UL );
+
+      if( lower(0,0) != 1 ||
+          lower(1,0) != 2 || lower(1,1) != 1 ||
+          lower(2,0) != 3 || lower(2,2) != 1 ||
+          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a non-zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 5 6 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (3,0)
+      lower.erase( 3UL, 0UL );
+
+      checkRows    ( lower, 4UL );
+      checkColumns ( lower, 4UL );
+      checkCapacity( lower, 7UL );
+      checkNonZeros( lower, 7UL );
+      checkNonZeros( lower, 0UL, 1UL );
+      checkNonZeros( lower, 1UL, 2UL );
+      checkNonZeros( lower, 2UL, 2UL );
+      checkNonZeros( lower, 3UL, 2UL );
+
+      if( lower(0,0) != 1 ||
+          lower(1,0) != 2 || lower(1,1) != 1 ||
+          lower(2,0) != 3 || lower(2,2) != 1 ||
+          lower(3,1) != 6 || lower(3,3) != 1 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a non-zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Trying to erase a zero element
+      lower.erase( 3UL, 2UL );
+
+      checkRows    ( lower, 4UL );
+      checkColumns ( lower, 4UL );
+      checkCapacity( lower, 7UL );
+      checkNonZeros( lower, 7UL );
+      checkNonZeros( lower, 0UL, 1UL );
+      checkNonZeros( lower, 1UL, 2UL );
+      checkNonZeros( lower, 2UL, 2UL );
+      checkNonZeros( lower, 3UL, 2UL );
+
+      if( lower(0,0) != 1 ||
+          lower(1,0) != 2 || lower(1,1) != 1 ||
+          lower(2,0) != 3 || lower(2,2) != 1 ||
+          lower(3,1) != 6 || lower(3,3) != 1 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Trying to erase a diagonal element
+      try {
+         lower.erase( 0UL, 0UL );
+
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a diagonal element succeeded\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+      catch( std::invalid_argument& ) {}
+   }
+
+
+   //=====================================================================================
+   // Row-major iterator-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Row-major UniLowerMatrix::erase( size_t, Iterator )";
+
+      typedef LT::Iterator  Iterator;
+
+      // Initialization check
+      LT lower( 4UL, 9UL );
+      lower(1,0) = 2;
+      lower(2,0) = 3;
+      lower(2,1) = 4;
+      lower(3,0) = 5;
+      lower(3,1) = 6;
+
+      checkRows    ( lower, 4UL );
+      checkColumns ( lower, 4UL );
+      checkCapacity( lower, 9UL );
+      checkNonZeros( lower, 9UL );
+      checkNonZeros( lower, 0UL, 1UL );
+      checkNonZeros( lower, 1UL, 2UL );
+      checkNonZeros( lower, 2UL, 3UL );
+      checkNonZeros( lower, 3UL, 3UL );
+
+      if( lower(0,0) != 1 ||
+          lower(1,0) != 2 || lower(1,1) != 1 ||
+          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
+          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 4 1 0 )\n( 5 6 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (2,1)
+      {
+         Iterator pos = lower.erase( 2UL, lower.find( 2UL, 1UL ) );
+
+         checkRows    ( lower, 4UL );
+         checkColumns ( lower, 4UL );
+         checkCapacity( lower, 9UL );
+         checkNonZeros( lower, 8UL );
+         checkNonZeros( lower, 0UL, 1UL );
+         checkNonZeros( lower, 1UL, 2UL );
+         checkNonZeros( lower, 2UL, 2UL );
+         checkNonZeros( lower, 3UL, 3UL );
+
+         if( lower(0,0) != 1 ||
+             lower(1,0) != 2 || lower(1,1) != 1 ||
+             lower(2,0) != 3 || lower(2,2) != 1 ||
+             lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a non-zero element failed\n"
+                << " Details:\n"
+                << " Details:\n"
+                << "   Result:\n" << lower << "\n"
+                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 5 6 0 1 )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != 1 || pos->index() != 2 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: 1\n"
+                << "   Expected index: 2\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element at (3,0)
+      {
+         Iterator pos = lower.erase( 3UL, lower.find( 3UL, 0UL ) );
+
+         checkRows    ( lower, 4UL );
+         checkColumns ( lower, 4UL );
+         checkCapacity( lower, 9UL );
+         checkNonZeros( lower, 7UL );
+         checkNonZeros( lower, 0UL, 1UL );
+         checkNonZeros( lower, 1UL, 2UL );
+         checkNonZeros( lower, 2UL, 2UL );
+         checkNonZeros( lower, 3UL, 2UL );
+
+         if( lower(0,0) != 1 ||
+             lower(1,0) != 2 || lower(1,1) != 1 ||
+             lower(2,0) != 3 || lower(2,2) != 1 ||
+             lower(3,1) != 6 || lower(3,3) != 1 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a non-zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << lower << "\n"
+                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != 6 || pos->index() != 1 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: 6\n"
+                << "   Expected index: 1\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Trying to erase a zero element
+      {
+         Iterator pos = lower.erase( 3UL, lower.find( 3UL, 2UL ) );
+
+         checkRows    ( lower, 4UL );
+         checkColumns ( lower, 4UL );
+         checkCapacity( lower, 9UL );
+         checkNonZeros( lower, 7UL );
+         checkNonZeros( lower, 0UL, 1UL );
+         checkNonZeros( lower, 1UL, 2UL );
+         checkNonZeros( lower, 2UL, 2UL );
+         checkNonZeros( lower, 3UL, 2UL );
+
+         if( lower(0,0) != 1 ||
+             lower(1,0) != 2 || lower(1,1) != 1 ||
+             lower(2,0) != 3 || lower(2,2) != 1 ||
+             lower(3,1) != 6 || lower(3,3) != 1 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << lower << "\n"
+                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != lower.end( 3UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Trying to erase a diagonal element
+      try {
+         lower.erase( 0UL, lower.find( 0UL, 0UL ) );
+
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a diagonal element succeeded\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+      catch( std::invalid_argument& ) {}
+   }
+
+
+   //=====================================================================================
+   // Row-major iterator-range-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Row-major UniLowerMatrix::erase( size_t, Iterator, Iterator )";
+
+      typedef LT::Iterator  Iterator;
+
+      // Initialization check
+      LT lower( 4UL, 9UL );
+      lower(1,0) = 2;
+      lower(2,0) = 3;
+      lower(2,1) = 4;
+      lower(3,0) = 5;
+      lower(3,1) = 6;
+
+      checkRows    ( lower, 4UL );
+      checkColumns ( lower, 4UL );
+      checkCapacity( lower, 9UL );
+      checkNonZeros( lower, 9UL );
+      checkNonZeros( lower, 0UL, 1UL );
+      checkNonZeros( lower, 1UL, 2UL );
+      checkNonZeros( lower, 2UL, 3UL );
+      checkNonZeros( lower, 3UL, 3UL );
+
+      if( lower(0,0) != 1 ||
+          lower(1,0) != 2 || lower(1,1) != 1 ||
+          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
+          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 4 1 0 )\n( 5 6 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the elements from (2,1) to (2,2)
+      {
+         Iterator pos = lower.erase( 2UL, lower.find( 2UL, 1UL ), lower.find( 2UL, 2UL ) );
+
+         checkRows    ( lower, 4UL );
+         checkColumns ( lower, 4UL );
+         checkCapacity( lower, 9UL );
+         checkNonZeros( lower, 8UL );
+         checkNonZeros( lower, 0UL, 1UL );
+         checkNonZeros( lower, 1UL, 2UL );
+         checkNonZeros( lower, 2UL, 2UL );
+         checkNonZeros( lower, 3UL, 3UL );
+
+         if( lower(0,0) != 1 ||
+             lower(1,0) != 2 || lower(1,1) != 1 ||
+             lower(2,0) != 3 || lower(2,2) != 1 ||
+             lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a single-element range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << lower << "\n"
+                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 5 6 0 1 )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != 1 || pos->index() != 2 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: 1\n"
+                << "   Expected index: 2\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the elements from the beginning of row 3 to (3,3)
+      {
+         Iterator pos = lower.erase( 3UL, lower.begin( 3UL ), lower.find( 3UL, 3UL ) );
+
+         checkRows    ( lower, 4UL );
+         checkColumns ( lower, 4UL );
+         checkCapacity( lower, 9UL );
+         checkNonZeros( lower, 6UL );
+         checkNonZeros( lower, 0UL, 1UL );
+         checkNonZeros( lower, 1UL, 2UL );
+         checkNonZeros( lower, 2UL, 2UL );
+         checkNonZeros( lower, 3UL, 1UL );
+
+         if( lower(0,0) != 1 ||
+             lower(1,0) != 2 || lower(1,1) != 1 ||
+             lower(2,0) != 3 || lower(2,2) != 1 ||
+             lower(3,3) != 1 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a multi-element range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << lower << "\n"
+                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 0 0 1 )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != 1 || pos->index() != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: 1\n"
+                << "   Expected index: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Trying to erase an empty range
+      {
+         Iterator pos = lower.erase( 3UL, lower.find( 3UL, 3UL ), lower.find( 3UL, 3UL ) );
+
+         checkRows    ( lower, 4UL );
+         checkColumns ( lower, 4UL );
+         checkCapacity( lower, 9UL );
+         checkNonZeros( lower, 6UL );
+         checkNonZeros( lower, 0UL, 1UL );
+         checkNonZeros( lower, 1UL, 2UL );
+         checkNonZeros( lower, 2UL, 2UL );
+         checkNonZeros( lower, 3UL, 1UL );
+
+         if( lower(0,0) != 1 ||
+             lower(1,0) != 2 || lower(1,1) != 1 ||
+             lower(2,0) != 3 || lower(2,2) != 1 ||
+             lower(3,3) != 1 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing an empty range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << lower << "\n"
+                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 0 0 1 )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != 1 || pos->index() != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: 1\n"
+                << "   Expected index: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Trying to erase a range including a diagonal element
+      try {
+         lower.erase( 1UL, lower.begin( 1UL ), lower.end( 1UL ) );
+
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a range including a diagonal element succeeded\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 0 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+      catch( std::invalid_argument& ) {}
+   }
+
+
+   //=====================================================================================
+   // Column-major index-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Column-major UniLowerMatrix::erase( size_t, size_t )";
+
+      // Initialization check
+      OLT lower( 4UL, 9UL );
+      lower(1,0) = 2;
+      lower(2,0) = 3;
+      lower(2,1) = 4;
+      lower(3,0) = 5;
+      lower(3,1) = 6;
+
+      checkRows    ( lower, 4UL );
+      checkColumns ( lower, 4UL );
+      checkCapacity( lower, 9UL );
+      checkNonZeros( lower, 9UL );
+      checkNonZeros( lower, 0UL, 4UL );
+      checkNonZeros( lower, 1UL, 3UL );
+      checkNonZeros( lower, 2UL, 1UL );
+      checkNonZeros( lower, 3UL, 1UL );
+
+      if( lower(0,0) != 1 ||
+          lower(1,0) != 2 || lower(1,1) != 1 ||
+          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
+          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 4 1 0 )\n( 5 6 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (2,1)
+      lower.erase( 2UL, 1UL );
+
+      checkRows    ( lower, 4UL );
+      checkColumns ( lower, 4UL );
+      checkCapacity( lower, 9UL );
+      checkNonZeros( lower, 8UL );
+      checkNonZeros( lower, 0UL, 4UL );
+      checkNonZeros( lower, 1UL, 2UL );
+      checkNonZeros( lower, 2UL, 1UL );
+      checkNonZeros( lower, 3UL, 1UL );
+
+      if( lower(0,0) != 1 ||
+          lower(1,0) != 2 || lower(1,1) != 1 ||
+          lower(2,0) != 3 || lower(2,2) != 1 ||
+          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a non-zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 5 6 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (3,0)
+      lower.erase( 3UL, 0UL );
+
+      checkRows    ( lower, 4UL );
+      checkColumns ( lower, 4UL );
+      checkCapacity( lower, 9UL );
+      checkNonZeros( lower, 7UL );
+      checkNonZeros( lower, 0UL, 3UL );
+      checkNonZeros( lower, 1UL, 2UL );
+      checkNonZeros( lower, 2UL, 1UL );
+      checkNonZeros( lower, 3UL, 1UL );
+
+      if( lower(0,0) != 1 ||
+          lower(1,0) != 2 || lower(1,1) != 1 ||
+          lower(2,0) != 3 || lower(2,2) != 1 ||
+          lower(3,1) != 6 || lower(3,3) != 1 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a non-zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Trying to erase a zero element
+      lower.erase( 3UL, 2UL );
+
+      checkRows    ( lower, 4UL );
+      checkColumns ( lower, 4UL );
+      checkCapacity( lower, 9UL );
+      checkNonZeros( lower, 7UL );
+      checkNonZeros( lower, 0UL, 3UL );
+      checkNonZeros( lower, 1UL, 2UL );
+      checkNonZeros( lower, 2UL, 1UL );
+      checkNonZeros( lower, 3UL, 1UL );
+
+      if( lower(0,0) != 1 ||
+          lower(1,0) != 2 || lower(1,1) != 1 ||
+          lower(2,0) != 3 || lower(2,2) != 1 ||
+          lower(3,1) != 6 || lower(3,3) != 1 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Trying to erase a diagonal element
+      try {
+         lower.erase( 3UL, 3UL );
+
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a diagonal element succeeded\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+      catch( std::invalid_argument& ) {}
+   }
+
+
+   //=====================================================================================
+   // Column-major iterator-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Column-major UniLowerMatrix::erase( size_t, Iterator )";
+
+      typedef OLT::Iterator  Iterator;
+
+      // Initialization check
+      OLT lower( 4UL, 9UL );
+      lower(1,0) = 2;
+      lower(2,0) = 3;
+      lower(2,1) = 4;
+      lower(3,0) = 5;
+      lower(3,1) = 6;
+
+      checkRows    ( lower, 4UL );
+      checkColumns ( lower, 4UL );
+      checkCapacity( lower, 9UL );
+      checkNonZeros( lower, 9UL );
+      checkNonZeros( lower, 0UL, 4UL );
+      checkNonZeros( lower, 1UL, 3UL );
+      checkNonZeros( lower, 2UL, 1UL );
+      checkNonZeros( lower, 3UL, 1UL );
+
+      if( lower(0,0) != 1 ||
+          lower(1,0) != 2 || lower(1,1) != 1 ||
+          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
+          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 4 1 0 )\n( 5 6 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (2,1)
+      {
+         Iterator pos = lower.erase( 1UL, lower.find( 2UL, 1UL ) );
+
+         checkRows    ( lower, 4UL );
+         checkColumns ( lower, 4UL );
+         checkCapacity( lower, 9UL );
+         checkNonZeros( lower, 8UL );
+         checkNonZeros( lower, 0UL, 4UL );
+         checkNonZeros( lower, 1UL, 2UL );
+         checkNonZeros( lower, 2UL, 1UL );
+         checkNonZeros( lower, 3UL, 1UL );
+
+         if( lower(0,0) != 1 ||
+             lower(1,0) != 2 || lower(1,1) != 1 ||
+             lower(2,0) != 3 || lower(2,2) != 1 ||
+             lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a non-zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << lower << "\n"
+                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 5 6 0 1 )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != 6 || pos->index() != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: 6\n"
+                << "   Expected index: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element at (3,0)
+      {
+         Iterator pos = lower.erase( 0UL, lower.find( 3UL, 0UL ) );
+
+         checkRows    ( lower, 4UL );
+         checkColumns ( lower, 4UL );
+         checkCapacity( lower, 9UL );
+         checkNonZeros( lower, 7UL );
+         checkNonZeros( lower, 0UL, 3UL );
+         checkNonZeros( lower, 1UL, 2UL );
+         checkNonZeros( lower, 2UL, 1UL );
+         checkNonZeros( lower, 3UL, 1UL );
+
+         if( lower(0,0) != 1 ||
+             lower(1,0) != 2 || lower(1,1) != 1 ||
+             lower(2,0) != 3 || lower(2,2) != 1 ||
+             lower(3,1) != 6 || lower(3,3) != 1 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a non-zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << lower << "\n"
+                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != lower.end( 0UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Trying to erase a zero element
+      {
+         Iterator pos = lower.erase( 2UL, lower.find( 3UL, 2UL ) );
+
+         checkRows    ( lower, 4UL );
+         checkColumns ( lower, 4UL );
+         checkCapacity( lower, 9UL );
+         checkNonZeros( lower, 7UL );
+         checkNonZeros( lower, 0UL, 3UL );
+         checkNonZeros( lower, 1UL, 2UL );
+         checkNonZeros( lower, 2UL, 1UL );
+         checkNonZeros( lower, 3UL, 1UL );
+
+         if( lower(0,0) != 1 ||
+             lower(1,0) != 2 || lower(1,1) != 1 ||
+             lower(2,0) != 3 || lower(2,2) != 1 ||
+             lower(3,1) != 6 || lower(3,3) != 1 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << lower << "\n"
+                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != lower.end( 2UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Trying to erase a diagonal element
+      try {
+         lower.erase( 3UL, lower.find( 3UL, 3UL ) );
+
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a diagonal element succeeded\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+      catch( std::invalid_argument& ) {}
+   }
+
+
+   //=====================================================================================
+   // Column-major iterator-range-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Column-major UniLowerMatrix::erase( size_t, Iterator, Iterator )";
+
+      typedef OLT::Iterator  Iterator;
+
+      // Initialization check
+      OLT lower( 4UL, 9UL );
+      lower(1,0) = 2;
+      lower(2,0) = 3;
+      lower(2,1) = 4;
+      lower(3,0) = 5;
+      lower(3,1) = 6;
+
+      checkRows    ( lower, 4UL );
+      checkColumns ( lower, 4UL );
+      checkCapacity( lower, 9UL );
+      checkNonZeros( lower, 9UL );
+      checkNonZeros( lower, 0UL, 4UL );
+      checkNonZeros( lower, 1UL, 3UL );
+      checkNonZeros( lower, 2UL, 1UL );
+      checkNonZeros( lower, 3UL, 1UL );
+
+      if( lower(0,0) != 1 ||
+          lower(1,0) != 2 || lower(1,1) != 1 ||
+          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
+          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 4 1 0 )\n( 5 6 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the elements from (2,1) to (3,1)
+      {
+         Iterator pos = lower.erase( 1UL, lower.find( 2UL, 1UL ), lower.find( 3UL, 1UL ) );
+
+         checkRows    ( lower, 4UL );
+         checkColumns ( lower, 4UL );
+         checkCapacity( lower, 9UL );
+         checkNonZeros( lower, 8UL );
+         checkNonZeros( lower, 0UL, 4UL );
+         checkNonZeros( lower, 1UL, 2UL );
+         checkNonZeros( lower, 2UL, 1UL );
+         checkNonZeros( lower, 3UL, 1UL );
+
+         if( lower(0,0) != 1 ||
+             lower(1,0) != 2 || lower(1,1) != 1 ||
+             lower(2,0) != 3 || lower(2,2) != 1 ||
+             lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a single-element range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << lower << "\n"
+                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 5 6 0 1 )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != 6 || pos->index() != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: 6\n"
+                << "   Expected index: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the elements from (1,0) to the column end
+      {
+         Iterator pos = lower.erase( 0UL, lower.find( 1UL, 0UL ), lower.end( 0UL ) );
+
+         checkRows    ( lower, 4UL );
+         checkColumns ( lower, 4UL );
+         checkCapacity( lower, 9UL );
+         checkNonZeros( lower, 5UL );
+         checkNonZeros( lower, 0UL, 1UL );
+         checkNonZeros( lower, 1UL, 2UL );
+         checkNonZeros( lower, 2UL, 1UL );
+         checkNonZeros( lower, 3UL, 1UL );
+
+         if( lower(0,0) != 1 ||
+             lower(1,1) != 1 ||
+             lower(2,2) != 1 ||
+             lower(3,1) != 6 || lower(3,3) != 1 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a multi-element range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << lower << "\n"
+                << "   Expected result:\n( 1 0 0 0 )\n( 0 1 0 0 )\n( 0 0 1 0 )\n( 0 6 0 1 )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != lower.end( 0UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Trying to erase an empty range
+      {
+         Iterator pos = lower.erase( 3UL, lower.find( 3UL, 3UL ), lower.find( 3UL, 3UL ) );
+
+         checkRows    ( lower, 4UL );
+         checkColumns ( lower, 4UL );
+         checkCapacity( lower, 9UL );
+         checkNonZeros( lower, 5UL );
+         checkNonZeros( lower, 0UL, 1UL );
+         checkNonZeros( lower, 1UL, 2UL );
+         checkNonZeros( lower, 2UL, 1UL );
+         checkNonZeros( lower, 3UL, 1UL );
+
+         if( lower(0,0) != 1 ||
+             lower(1,1) != 1 ||
+             lower(2,2) != 1 ||
+             lower(3,1) != 6 || lower(3,3) != 1 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing an empty range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << lower << "\n"
+                << "   Expected result:\n( 1 0 0 0 )\n( 0 1 0 0 )\n( 0 0 1 0 )\n( 0 6 0 1 )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != 1 || pos->index() != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: 1\n"
+                << "   Expected index: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Trying to erase a range including a diagonal element
+      try {
+         lower.erase( 2UL, lower.begin( 2UL ), lower.end( 2UL ) );
+
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a range including a diagonal element succeeded\n"
+             << " Details:\n"
+             << "   Result:\n" << lower << "\n"
+             << "   Expected result:\n( 1 0 0 0 )\n( 0 1 0 0 )\n( 0 0 1 0 )\n( 0 6 0 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+      catch( std::invalid_argument& ) {}
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Test of the \c resize() member function of the UniLowerMatrix specialization.
 //
 // \return void
@@ -7025,1310 +7777,6 @@ void SparseTest::testSwap()
              << " Details:\n"
              << "   Result:\n" << lower2 << "\n"
              << "   Expected result:\n( 1 0 )\n( 2 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Test of the \c erase() member function of the UniLowerMatrix specialization.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c erase() member function of the UniLowerMatrix
-// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void SparseTest::testErase()
-{
-   //=====================================================================================
-   // Row-major index-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Row-major UniLowerMatrix::erase( size_t, size_t )";
-
-      // Initialization check
-      LT lower( 4UL, 9UL );
-      lower(1,0) = 2;
-      lower(2,0) = 3;
-      lower(2,1) = 4;
-      lower(3,0) = 5;
-      lower(3,1) = 6;
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 9UL );
-      checkNonZeros( lower, 0UL, 1UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 3UL );
-      checkNonZeros( lower, 3UL, 3UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
-          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 4 1 0 )\n( 5 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (2,1)
-      lower.erase( 2UL, 1UL );
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 8UL );
-      checkNonZeros( lower, 8UL );
-      checkNonZeros( lower, 0UL, 1UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 2UL );
-      checkNonZeros( lower, 3UL, 3UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,2) != 1 ||
-          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a non-zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 5 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (3,0)
-      lower.erase( 3UL, 0UL );
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 7UL );
-      checkNonZeros( lower, 7UL );
-      checkNonZeros( lower, 0UL, 1UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 2UL );
-      checkNonZeros( lower, 3UL, 2UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,2) != 1 ||
-          lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a non-zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase a zero element
-      lower.erase( 3UL, 2UL );
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 7UL );
-      checkNonZeros( lower, 7UL );
-      checkNonZeros( lower, 0UL, 1UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 2UL );
-      checkNonZeros( lower, 3UL, 2UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,2) != 1 ||
-          lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase a diagonal element
-      try {
-         lower.erase( 0UL, 0UL );
-
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a diagonal element succeeded\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-      catch( std::invalid_argument& ) {}
-   }
-
-
-   //=====================================================================================
-   // Row-major iterator-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Row-major UniLowerMatrix::erase( size_t, Iterator )";
-
-      typedef LT::Iterator  Iterator;
-
-      // Initialization check
-      LT lower( 4UL, 9UL );
-      lower(1,0) = 2;
-      lower(2,0) = 3;
-      lower(2,1) = 4;
-      lower(3,0) = 5;
-      lower(3,1) = 6;
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 9UL );
-      checkNonZeros( lower, 0UL, 1UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 3UL );
-      checkNonZeros( lower, 3UL, 3UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
-          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 4 1 0 )\n( 5 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (2,1)
-      {
-         Iterator pos = lower.erase( 2UL, lower.find( 2UL, 1UL ) );
-
-         checkRows    ( lower, 4UL );
-         checkColumns ( lower, 4UL );
-         checkCapacity( lower, 9UL );
-         checkNonZeros( lower, 8UL );
-         checkNonZeros( lower, 0UL, 1UL );
-         checkNonZeros( lower, 1UL, 2UL );
-         checkNonZeros( lower, 2UL, 2UL );
-         checkNonZeros( lower, 3UL, 3UL );
-
-         if( lower(0,0) != 1 ||
-             lower(1,0) != 2 || lower(1,1) != 1 ||
-             lower(2,0) != 3 || lower(2,2) != 1 ||
-             lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a non-zero element failed\n"
-                << " Details:\n"
-                << " Details:\n"
-                << "   Result:\n" << lower << "\n"
-                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 5 6 0 1 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != 1 || pos->index() != 2 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: 1\n"
-                << "   Expected index: 2\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element at (3,0)
-      {
-         Iterator pos = lower.erase( 3UL, lower.find( 3UL, 0UL ) );
-
-         checkRows    ( lower, 4UL );
-         checkColumns ( lower, 4UL );
-         checkCapacity( lower, 9UL );
-         checkNonZeros( lower, 7UL );
-         checkNonZeros( lower, 0UL, 1UL );
-         checkNonZeros( lower, 1UL, 2UL );
-         checkNonZeros( lower, 2UL, 2UL );
-         checkNonZeros( lower, 3UL, 2UL );
-
-         if( lower(0,0) != 1 ||
-             lower(1,0) != 2 || lower(1,1) != 1 ||
-             lower(2,0) != 3 || lower(2,2) != 1 ||
-             lower(3,1) != 6 || lower(3,3) != 1 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a non-zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << lower << "\n"
-                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != 6 || pos->index() != 1 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: 6\n"
-                << "   Expected index: 1\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Trying to erase a zero element
-      {
-         Iterator pos = lower.erase( 3UL, lower.find( 3UL, 2UL ) );
-
-         checkRows    ( lower, 4UL );
-         checkColumns ( lower, 4UL );
-         checkCapacity( lower, 9UL );
-         checkNonZeros( lower, 7UL );
-         checkNonZeros( lower, 0UL, 1UL );
-         checkNonZeros( lower, 1UL, 2UL );
-         checkNonZeros( lower, 2UL, 2UL );
-         checkNonZeros( lower, 3UL, 2UL );
-
-         if( lower(0,0) != 1 ||
-             lower(1,0) != 2 || lower(1,1) != 1 ||
-             lower(2,0) != 3 || lower(2,2) != 1 ||
-             lower(3,1) != 6 || lower(3,3) != 1 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << lower << "\n"
-                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != lower.end( 3UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Trying to erase a diagonal element
-      try {
-         lower.erase( 0UL, lower.find( 0UL, 0UL ) );
-
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a diagonal element succeeded\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-      catch( std::invalid_argument& ) {}
-   }
-
-
-   //=====================================================================================
-   // Row-major iterator-range-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Row-major UniLowerMatrix::erase( size_t, Iterator, Iterator )";
-
-      typedef LT::Iterator  Iterator;
-
-      // Initialization check
-      LT lower( 4UL, 9UL );
-      lower(1,0) = 2;
-      lower(2,0) = 3;
-      lower(2,1) = 4;
-      lower(3,0) = 5;
-      lower(3,1) = 6;
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 9UL );
-      checkNonZeros( lower, 0UL, 1UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 3UL );
-      checkNonZeros( lower, 3UL, 3UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
-          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 4 1 0 )\n( 5 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the elements from (2,1) to (2,2)
-      {
-         Iterator pos = lower.erase( 2UL, lower.find( 2UL, 1UL ), lower.find( 2UL, 2UL ) );
-
-         checkRows    ( lower, 4UL );
-         checkColumns ( lower, 4UL );
-         checkCapacity( lower, 9UL );
-         checkNonZeros( lower, 8UL );
-         checkNonZeros( lower, 0UL, 1UL );
-         checkNonZeros( lower, 1UL, 2UL );
-         checkNonZeros( lower, 2UL, 2UL );
-         checkNonZeros( lower, 3UL, 3UL );
-
-         if( lower(0,0) != 1 ||
-             lower(1,0) != 2 || lower(1,1) != 1 ||
-             lower(2,0) != 3 || lower(2,2) != 1 ||
-             lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a single-element range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << lower << "\n"
-                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 5 6 0 1 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != 1 || pos->index() != 2 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: 1\n"
-                << "   Expected index: 2\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the elements from the beginning of row 3 to (3,3)
-      {
-         Iterator pos = lower.erase( 3UL, lower.begin( 3UL ), lower.find( 3UL, 3UL ) );
-
-         checkRows    ( lower, 4UL );
-         checkColumns ( lower, 4UL );
-         checkCapacity( lower, 9UL );
-         checkNonZeros( lower, 6UL );
-         checkNonZeros( lower, 0UL, 1UL );
-         checkNonZeros( lower, 1UL, 2UL );
-         checkNonZeros( lower, 2UL, 2UL );
-         checkNonZeros( lower, 3UL, 1UL );
-
-         if( lower(0,0) != 1 ||
-             lower(1,0) != 2 || lower(1,1) != 1 ||
-             lower(2,0) != 3 || lower(2,2) != 1 ||
-             lower(3,3) != 1 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a multi-element range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << lower << "\n"
-                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 0 0 1 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != 1 || pos->index() != 3 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: 1\n"
-                << "   Expected index: 3\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Trying to erase an empty range
-      {
-         Iterator pos = lower.erase( 3UL, lower.find( 3UL, 3UL ), lower.find( 3UL, 3UL ) );
-
-         checkRows    ( lower, 4UL );
-         checkColumns ( lower, 4UL );
-         checkCapacity( lower, 9UL );
-         checkNonZeros( lower, 6UL );
-         checkNonZeros( lower, 0UL, 1UL );
-         checkNonZeros( lower, 1UL, 2UL );
-         checkNonZeros( lower, 2UL, 2UL );
-         checkNonZeros( lower, 3UL, 1UL );
-
-         if( lower(0,0) != 1 ||
-             lower(1,0) != 2 || lower(1,1) != 1 ||
-             lower(2,0) != 3 || lower(2,2) != 1 ||
-             lower(3,3) != 1 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing an empty range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << lower << "\n"
-                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 0 0 1 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != 1 || pos->index() != 3 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: 1\n"
-                << "   Expected index: 3\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Trying to erase a range including a diagonal element
-      try {
-         lower.erase( 1UL, lower.begin( 1UL ), lower.end( 1UL ) );
-
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a range including a diagonal element succeeded\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 0 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-      catch( std::invalid_argument& ) {}
-   }
-
-
-   //=====================================================================================
-   // Row-major erase function with predicate
-   //=====================================================================================
-
-   {
-      test_ = "Row-major UniLowerMatrix::erase( Predicate )";
-
-      // Initialization check
-      LT lower( 4UL, 9UL );
-      lower(1,0) = 2;
-      lower(2,0) = 3;
-      lower(2,1) = 4;
-      lower(3,0) = 5;
-      lower(3,1) = 6;
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 9UL );
-      checkNonZeros( lower, 0UL, 1UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 3UL );
-      checkNonZeros( lower, 3UL, 3UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
-          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 4 1 0 )\n( 5 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing a selection of elements
-      lower.erase( []( int value ){ return value == 2 || value == 4 || value == 5; } );
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 6UL );
-      checkNonZeros( lower, 6UL );
-      checkNonZeros( lower, 0UL, 1UL );
-      checkNonZeros( lower, 1UL, 1UL );
-      checkNonZeros( lower, 2UL, 2UL );
-      checkNonZeros( lower, 3UL, 2UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,2) != 1 ||
-          lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 0 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase all elements with value 1
-      lower.erase( []( int value ){ return value == 1; } );
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 6UL );
-      checkNonZeros( lower, 6UL );
-      checkNonZeros( lower, 0UL, 1UL );
-      checkNonZeros( lower, 1UL, 1UL );
-      checkNonZeros( lower, 2UL, 2UL );
-      checkNonZeros( lower, 3UL, 2UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,2) != 1 ||
-          lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing all elements with value 1 failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 0 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major iterator-range-based erase function with predicate
-   //=====================================================================================
-
-   {
-      test_ = "Row-major UniLowerMatrix::erase( size_t, Iterator, Iterator, Predicate )";
-
-      // Initialization check
-      LT lower( 4UL, 9UL );
-      lower(1,0) = 2;
-      lower(2,0) = 3;
-      lower(2,1) = 4;
-      lower(3,0) = 5;
-      lower(3,1) = 6;
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 9UL );
-      checkNonZeros( lower, 0UL, 1UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 3UL );
-      checkNonZeros( lower, 3UL, 3UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
-          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 4 1 0 )\n( 5 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing a selection of elements
-      lower.erase( 3UL, lower.begin( 3UL ), lower.find( 3UL, 3UL ),
-                   []( int value ){ return value == 5 || value == 6; } );
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 7UL );
-      checkNonZeros( lower, 7UL );
-      checkNonZeros( lower, 0UL, 1UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 3UL );
-      checkNonZeros( lower, 3UL, 1UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
-          lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 0 1 0 0 )\n( 0 4 1 0 )\n( 0 0 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase from an empty range
-      lower.erase( 3UL, lower.begin( 3UL ), lower.begin( 3UL ), []( int ){ return true; } );
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 7UL );
-      checkNonZeros( lower, 7UL );
-      checkNonZeros( lower, 0UL, 1UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 3UL );
-      checkNonZeros( lower, 3UL, 1UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
-          lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing from an empty range failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 0 1 0 0 )\n( 0 4 1 0 )\n( 0 0 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major index-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Column-major UniLowerMatrix::erase( size_t, size_t )";
-
-      // Initialization check
-      OLT lower( 4UL, 9UL );
-      lower(1,0) = 2;
-      lower(2,0) = 3;
-      lower(2,1) = 4;
-      lower(3,0) = 5;
-      lower(3,1) = 6;
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 9UL );
-      checkNonZeros( lower, 0UL, 4UL );
-      checkNonZeros( lower, 1UL, 3UL );
-      checkNonZeros( lower, 2UL, 1UL );
-      checkNonZeros( lower, 3UL, 1UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
-          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 4 1 0 )\n( 5 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (2,1)
-      lower.erase( 2UL, 1UL );
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 8UL );
-      checkNonZeros( lower, 0UL, 4UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 1UL );
-      checkNonZeros( lower, 3UL, 1UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,2) != 1 ||
-          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a non-zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 5 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (3,0)
-      lower.erase( 3UL, 0UL );
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 7UL );
-      checkNonZeros( lower, 0UL, 3UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 1UL );
-      checkNonZeros( lower, 3UL, 1UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,2) != 1 ||
-          lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a non-zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase a zero element
-      lower.erase( 3UL, 2UL );
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 7UL );
-      checkNonZeros( lower, 0UL, 3UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 1UL );
-      checkNonZeros( lower, 3UL, 1UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,2) != 1 ||
-          lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase a diagonal element
-      try {
-         lower.erase( 3UL, 3UL );
-
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a diagonal element succeeded\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-      catch( std::invalid_argument& ) {}
-   }
-
-
-   //=====================================================================================
-   // Column-major iterator-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Column-major UniLowerMatrix::erase( size_t, Iterator )";
-
-      typedef OLT::Iterator  Iterator;
-
-      // Initialization check
-      OLT lower( 4UL, 9UL );
-      lower(1,0) = 2;
-      lower(2,0) = 3;
-      lower(2,1) = 4;
-      lower(3,0) = 5;
-      lower(3,1) = 6;
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 9UL );
-      checkNonZeros( lower, 0UL, 4UL );
-      checkNonZeros( lower, 1UL, 3UL );
-      checkNonZeros( lower, 2UL, 1UL );
-      checkNonZeros( lower, 3UL, 1UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
-          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 4 1 0 )\n( 5 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (2,1)
-      {
-         Iterator pos = lower.erase( 1UL, lower.find( 2UL, 1UL ) );
-
-         checkRows    ( lower, 4UL );
-         checkColumns ( lower, 4UL );
-         checkCapacity( lower, 9UL );
-         checkNonZeros( lower, 8UL );
-         checkNonZeros( lower, 0UL, 4UL );
-         checkNonZeros( lower, 1UL, 2UL );
-         checkNonZeros( lower, 2UL, 1UL );
-         checkNonZeros( lower, 3UL, 1UL );
-
-         if( lower(0,0) != 1 ||
-             lower(1,0) != 2 || lower(1,1) != 1 ||
-             lower(2,0) != 3 || lower(2,2) != 1 ||
-             lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a non-zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << lower << "\n"
-                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 5 6 0 1 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != 6 || pos->index() != 3 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: 6\n"
-                << "   Expected index: 3\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element at (3,0)
-      {
-         Iterator pos = lower.erase( 0UL, lower.find( 3UL, 0UL ) );
-
-         checkRows    ( lower, 4UL );
-         checkColumns ( lower, 4UL );
-         checkCapacity( lower, 9UL );
-         checkNonZeros( lower, 7UL );
-         checkNonZeros( lower, 0UL, 3UL );
-         checkNonZeros( lower, 1UL, 2UL );
-         checkNonZeros( lower, 2UL, 1UL );
-         checkNonZeros( lower, 3UL, 1UL );
-
-         if( lower(0,0) != 1 ||
-             lower(1,0) != 2 || lower(1,1) != 1 ||
-             lower(2,0) != 3 || lower(2,2) != 1 ||
-             lower(3,1) != 6 || lower(3,3) != 1 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a non-zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << lower << "\n"
-                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != lower.end( 0UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Trying to erase a zero element
-      {
-         Iterator pos = lower.erase( 2UL, lower.find( 3UL, 2UL ) );
-
-         checkRows    ( lower, 4UL );
-         checkColumns ( lower, 4UL );
-         checkCapacity( lower, 9UL );
-         checkNonZeros( lower, 7UL );
-         checkNonZeros( lower, 0UL, 3UL );
-         checkNonZeros( lower, 1UL, 2UL );
-         checkNonZeros( lower, 2UL, 1UL );
-         checkNonZeros( lower, 3UL, 1UL );
-
-         if( lower(0,0) != 1 ||
-             lower(1,0) != 2 || lower(1,1) != 1 ||
-             lower(2,0) != 3 || lower(2,2) != 1 ||
-             lower(3,1) != 6 || lower(3,3) != 1 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << lower << "\n"
-                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != lower.end( 2UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Trying to erase a diagonal element
-      try {
-         lower.erase( 3UL, lower.find( 3UL, 3UL ) );
-
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a diagonal element succeeded\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-      catch( std::invalid_argument& ) {}
-   }
-
-
-   //=====================================================================================
-   // Column-major iterator-range-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Column-major UniLowerMatrix::erase( size_t, Iterator, Iterator )";
-
-      typedef OLT::Iterator  Iterator;
-
-      // Initialization check
-      OLT lower( 4UL, 9UL );
-      lower(1,0) = 2;
-      lower(2,0) = 3;
-      lower(2,1) = 4;
-      lower(3,0) = 5;
-      lower(3,1) = 6;
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 9UL );
-      checkNonZeros( lower, 0UL, 4UL );
-      checkNonZeros( lower, 1UL, 3UL );
-      checkNonZeros( lower, 2UL, 1UL );
-      checkNonZeros( lower, 3UL, 1UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
-          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 4 1 0 )\n( 5 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the elements from (2,1) to (3,1)
-      {
-         Iterator pos = lower.erase( 1UL, lower.find( 2UL, 1UL ), lower.find( 3UL, 1UL ) );
-
-         checkRows    ( lower, 4UL );
-         checkColumns ( lower, 4UL );
-         checkCapacity( lower, 9UL );
-         checkNonZeros( lower, 8UL );
-         checkNonZeros( lower, 0UL, 4UL );
-         checkNonZeros( lower, 1UL, 2UL );
-         checkNonZeros( lower, 2UL, 1UL );
-         checkNonZeros( lower, 3UL, 1UL );
-
-         if( lower(0,0) != 1 ||
-             lower(1,0) != 2 || lower(1,1) != 1 ||
-             lower(2,0) != 3 || lower(2,2) != 1 ||
-             lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a single-element range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << lower << "\n"
-                << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 0 1 0 )\n( 5 6 0 1 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != 6 || pos->index() != 3 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: 6\n"
-                << "   Expected index: 3\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the elements from (1,0) to the column end
-      {
-         Iterator pos = lower.erase( 0UL, lower.find( 1UL, 0UL ), lower.end( 0UL ) );
-
-         checkRows    ( lower, 4UL );
-         checkColumns ( lower, 4UL );
-         checkCapacity( lower, 9UL );
-         checkNonZeros( lower, 5UL );
-         checkNonZeros( lower, 0UL, 1UL );
-         checkNonZeros( lower, 1UL, 2UL );
-         checkNonZeros( lower, 2UL, 1UL );
-         checkNonZeros( lower, 3UL, 1UL );
-
-         if( lower(0,0) != 1 ||
-             lower(1,1) != 1 ||
-             lower(2,2) != 1 ||
-             lower(3,1) != 6 || lower(3,3) != 1 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a multi-element range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << lower << "\n"
-                << "   Expected result:\n( 1 0 0 0 )\n( 0 1 0 0 )\n( 0 0 1 0 )\n( 0 6 0 1 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != lower.end( 0UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Trying to erase an empty range
-      {
-         Iterator pos = lower.erase( 3UL, lower.find( 3UL, 3UL ), lower.find( 3UL, 3UL ) );
-
-         checkRows    ( lower, 4UL );
-         checkColumns ( lower, 4UL );
-         checkCapacity( lower, 9UL );
-         checkNonZeros( lower, 5UL );
-         checkNonZeros( lower, 0UL, 1UL );
-         checkNonZeros( lower, 1UL, 2UL );
-         checkNonZeros( lower, 2UL, 1UL );
-         checkNonZeros( lower, 3UL, 1UL );
-
-         if( lower(0,0) != 1 ||
-             lower(1,1) != 1 ||
-             lower(2,2) != 1 ||
-             lower(3,1) != 6 || lower(3,3) != 1 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing an empty range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << lower << "\n"
-                << "   Expected result:\n( 1 0 0 0 )\n( 0 1 0 0 )\n( 0 0 1 0 )\n( 0 6 0 1 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != 1 || pos->index() != 3 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: 1\n"
-                << "   Expected index: 3\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Trying to erase a range including a diagonal element
-      try {
-         lower.erase( 2UL, lower.begin( 2UL ), lower.end( 2UL ) );
-
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a range including a diagonal element succeeded\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 0 1 0 0 )\n( 0 0 1 0 )\n( 0 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-      catch( std::invalid_argument& ) {}
-   }
-
-
-   //=====================================================================================
-   // Column-major erase function with predicate
-   //=====================================================================================
-
-   {
-      test_ = "Column-major UniLowerMatrix::erase( Predicate )";
-
-      // Initialization check
-      OLT lower( 4UL, 9UL );
-      lower(1,0) = 2;
-      lower(2,0) = 3;
-      lower(2,1) = 4;
-      lower(3,0) = 5;
-      lower(3,1) = 6;
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 9UL );
-      checkNonZeros( lower, 0UL, 4UL );
-      checkNonZeros( lower, 1UL, 3UL );
-      checkNonZeros( lower, 2UL, 1UL );
-      checkNonZeros( lower, 3UL, 1UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
-          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 4 1 0 )\n( 5 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing a selection of elements
-      lower.erase( []( int value ){ return value == 2 || value == 4 || value == 5; } );
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 6UL );
-      checkNonZeros( lower, 6UL );
-      checkNonZeros( lower, 0UL, 2UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 1UL );
-      checkNonZeros( lower, 3UL, 1UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,2) != 1 ||
-          lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 0 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase all elements with value 1
-      lower.erase( []( int value ){ return value == 1; } );
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 6UL );
-      checkNonZeros( lower, 6UL );
-      checkNonZeros( lower, 0UL, 2UL );
-      checkNonZeros( lower, 1UL, 2UL );
-      checkNonZeros( lower, 2UL, 1UL );
-      checkNonZeros( lower, 3UL, 1UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,2) != 1 ||
-          lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing all elements with value 1 failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 0 1 0 0 )\n( 3 0 1 0 )\n( 0 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major iterator-range-based erase function with predicate
-   //=====================================================================================
-
-   {
-      test_ = "Column-major UniLowerMatrix::erase( size_t, Iterator, Iterator, Predicate )";
-
-      // Initialization check
-      OLT lower( 4UL, 9UL );
-      lower(1,0) = 2;
-      lower(2,0) = 3;
-      lower(2,1) = 4;
-      lower(3,0) = 5;
-      lower(3,1) = 6;
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 9UL );
-      checkNonZeros( lower, 9UL );
-      checkNonZeros( lower, 0UL, 4UL );
-      checkNonZeros( lower, 1UL, 3UL );
-      checkNonZeros( lower, 2UL, 1UL );
-      checkNonZeros( lower, 3UL, 1UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,0) != 2 || lower(1,1) != 1 ||
-          lower(2,0) != 3 || lower(2,1) != 4 || lower(2,2) != 1 ||
-          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 2 1 0 0 )\n( 3 4 1 0 )\n( 5 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing a selection of elements
-      lower.erase( 0UL, lower.begin( 0UL ), lower.find( 3UL, 0UL ),
-                   []( int value ){ return value == 2 || value == 3; } );
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 7UL );
-      checkNonZeros( lower, 7UL );
-      checkNonZeros( lower, 0UL, 2UL );
-      checkNonZeros( lower, 1UL, 3UL );
-      checkNonZeros( lower, 2UL, 1UL );
-      checkNonZeros( lower, 3UL, 1UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,1) != 1 ||
-          lower(2,1) != 4 || lower(2,2) != 1 ||
-          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 0 1 0 0 )\n( 0 4 1 0 )\n( 5 6 0 1 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase from an empty range
-      lower.erase( 0UL, lower.begin( 0UL ), lower.begin( 0UL ), []( int ){ return true; } );
-
-      checkRows    ( lower, 4UL );
-      checkColumns ( lower, 4UL );
-      checkCapacity( lower, 7UL );
-      checkNonZeros( lower, 7UL );
-      checkNonZeros( lower, 0UL, 2UL );
-      checkNonZeros( lower, 1UL, 3UL );
-      checkNonZeros( lower, 2UL, 1UL );
-      checkNonZeros( lower, 3UL, 1UL );
-
-      if( lower(0,0) != 1 ||
-          lower(1,1) != 1 ||
-          lower(2,1) != 4 || lower(2,2) != 1 ||
-          lower(3,0) != 5 || lower(3,1) != 6 || lower(3,3) != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing from an empty range failed\n"
-             << " Details:\n"
-             << "   Result:\n" << lower << "\n"
-             << "   Expected result:\n( 1 0 0 0 )\n( 0 1 0 0 )\n( 0 4 1 0 )\n( 5 6 0 1 )\n";
          throw std::runtime_error( oss.str() );
       }
    }
@@ -9410,7 +8858,7 @@ void SparseTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function";
 
-      typedef blaze::Submatrix<LT>  SMT;
+      typedef blaze::SparseSubmatrix<LT>  SMT;
 
       LT lower( 3UL );
       lower(1,0) = -4;
@@ -9499,7 +8947,7 @@ void SparseTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function";
 
-      typedef blaze::Submatrix<OLT>  SMT;
+      typedef blaze::SparseSubmatrix<OLT>  SMT;
 
       OLT lower( 3UL );
       lower(1,0) = -4;
@@ -9601,7 +9049,7 @@ void SparseTest::testRow()
    {
       test_ = "Row-major row() function";
 
-      typedef blaze::Row<LT>  RT;
+      typedef blaze::SparseRow<LT>  RT;
 
       LT lower( 3UL );
       lower(1,0) = -4;
@@ -9688,7 +9136,7 @@ void SparseTest::testRow()
    {
       test_ = "Column-major row() function";
 
-      typedef blaze::Row<OLT>  RT;
+      typedef blaze::SparseRow<OLT>  RT;
 
       OLT lower( 3UL );
       lower(1,0) = -4;
@@ -9788,7 +9236,7 @@ void SparseTest::testColumn()
    {
       test_ = "Row-major column() function";
 
-      typedef blaze::Column<LT>  CT;
+      typedef blaze::SparseColumn<LT>  CT;
 
       LT lower( 3UL );
       lower(1,0) = -4;
@@ -9875,7 +9323,7 @@ void SparseTest::testColumn()
    {
       test_ = "Column-major column() function";
 
-      typedef blaze::Column<OLT>  CT;
+      typedef blaze::SparseColumn<OLT>  CT;
 
       OLT lower( 3UL );
       lower(1,0) = -4;

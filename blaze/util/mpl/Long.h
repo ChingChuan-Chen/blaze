@@ -40,7 +40,7 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/util/IntegralConstant.h>
+#include <blaze/util/mpl/IntegralC.h>
 
 
 namespace blaze {
@@ -67,7 +67,7 @@ namespace blaze {
    \endcode
 */
 template< long N >
-struct Long : public IntegralConstant<long,N>
+struct Long : public IntegralC<long,N>
 {};
 //*************************************************************************************************
 

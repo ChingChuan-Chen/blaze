@@ -40,15 +40,14 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/ColumnVector.h>
 #include <blaze/math/constraints/DenseVector.h>
 #include <blaze/math/constraints/RowVector.h>
 #include <blaze/math/constraints/SparseVector.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/DenseVector.h>
 #include <blaze/math/expressions/SparseVector.h>
 #include <blaze/math/traits/MultTrait.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/logging/FunctionTrace.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/typetraits/RemoveReference.h>
@@ -95,19 +94,19 @@ namespace blaze {
 */
 template< typename T1    // Type of the left-hand side dense vector
         , typename T2 >  // Type of the right-hand side sparse vector
-inline const MultTrait_< ElementType_<T1>, ElementType_<T2> >
+inline const typename MultTrait<typename T1::ElementType,typename T2::ElementType>::Type
    operator*( const DenseVector<T1,true>& lhs, const SparseVector<T2,false>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
 
-   typedef CompositeType_<T1>     Lhs;            // Composite type of the left-hand side dense vector expression
-   typedef CompositeType_<T2>     Rhs;            // Composite type of the right-hand side sparse vector expression
-   typedef RemoveReference_<Lhs>  X1;             // Auxiliary type for the left-hand side composite type
-   typedef RemoveReference_<Rhs>  X2;             // Auxiliary type for the right-hand side composite type
-   typedef ElementType_<X1>       ET1;            // Element type of the left-hand side dense vector expression
-   typedef ElementType_<X2>       ET2;            // Element type of the right-hand side sparse vector expression
-   typedef MultTrait_<ET1,ET2>    MultType;       // Multiplication result type
-   typedef ConstIterator_<X2>     ConstIterator;  // Iterator type of the right-hand sparse vector expression
+   typedef typename T1::CompositeType           Lhs;            // Composite type of the left-hand side dense vector expression
+   typedef typename T2::CompositeType           Rhs;            // Composite type of the right-hand side sparse vector expression
+   typedef typename RemoveReference<Lhs>::Type  X1;             // Auxiliary type for the left-hand side composite type
+   typedef typename RemoveReference<Rhs>::Type  X2;             // Auxiliary type for the right-hand side composite type
+   typedef typename X1::ElementType             ET1;            // Element type of the left-hand side dense vector expression
+   typedef typename X2::ElementType             ET2;            // Element type of the right-hand side sparse vector expression
+   typedef typename MultTrait<ET1,ET2>::Type    MultType;       // Multiplication result type
+   typedef typename X2::ConstIterator           ConstIterator;  // Iterator type of the right-hand sparse vector expression
 
    BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE ( T1 );
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_VECTOR_TYPE( T2 );
@@ -118,20 +117,17 @@ inline const MultTrait_< ElementType_<T1>, ElementType_<T2> >
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
+   if( (~rhs).nonZeros() == 0UL ) return MultType();
+
    Lhs left ( ~lhs );
    Rhs right( ~rhs );
 
    ConstIterator element( right.begin() );
-   ConstIterator end    ( right.end()   );
+   MultType sp( left[ element->index() ] * element->value() );
+   ++element;
 
-   MultType sp = MultType();
-
-   if( element != end ) {
-      sp = left[ element->index() ] * element->value();
-      ++element;
-      for( ; element!=end; ++element )
-         sp += left[ element->index() ] * element->value();
-   }
+   for( ; element!=right.end(); ++element )
+      sp += left[ element->index() ] * element->value();
 
    return sp;
 }

@@ -40,13 +40,12 @@
 // Includes
 //*************************************************************************************************
 
+#include <algorithm>
 #include <iterator>
-#include <utility>
 #include <vector>
 #include <blaze/math/adaptors/symmetricmatrix/BaseTemplate.h>
 #include <blaze/math/adaptors/symmetricmatrix/NonNumericProxy.h>
 #include <blaze/math/adaptors/symmetricmatrix/SharedValue.h>
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/Computation.h>
 #include <blaze/math/constraints/Hermitian.h>
 #include <blaze/math/constraints/Expression.h>
@@ -56,11 +55,11 @@
 #include <blaze/math/constraints/StorageOrder.h>
 #include <blaze/math/constraints/Symmetric.h>
 #include <blaze/math/constraints/Upper.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/SparseMatrix.h>
 #include <blaze/math/shims/Clear.h>
 #include <blaze/math/shims/Conjugate.h>
 #include <blaze/math/shims/IsDefault.h>
+#include <blaze/math/shims/Move.h>
 #include <blaze/math/sparse/SparseElement.h>
 #include <blaze/math/sparse/SparseMatrix.h>
 #include <blaze/math/traits/AddTrait.h>
@@ -78,8 +77,8 @@
 #include <blaze/util/constraints/Pointer.h>
 #include <blaze/util/constraints/Reference.h>
 #include <blaze/util/constraints/Volatile.h>
-#include <blaze/util/DisableIf.h>
 #include <blaze/util/EnableIf.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/StaticAssert.h>
 #include <blaze/util/typetraits/IsNumeric.h>
@@ -110,9 +109,9 @@ class SymmetricMatrix<MT,SO,false,false>
 {
  private:
    //**Type definitions****************************************************************************
-   typedef OppositeType_<MT>   OT;  //!< Opposite type of the sparse matrix.
-   typedef TransposeType_<MT>  TT;  //!< Transpose type of the sparse matrix.
-   typedef ElementType_<MT>    ET;  //!< Element type of the sparse matrix.
+   typedef typename MT::OppositeType   OT;  //!< Opposite type of the sparse matrix.
+   typedef typename MT::TransposeType  TT;  //!< Transpose type of the sparse matrix.
+   typedef typename MT::ElementType    ET;  //!< Element type of the sparse matrix.
 
    //! Rebound matrix type for shared values.
    typedef typename MT::template Rebind< SharedValue<ET> >::Other  MatrixType;
@@ -121,15 +120,14 @@ class SymmetricMatrix<MT,SO,false,false>
  public:
    //**Type definitions****************************************************************************
    typedef SymmetricMatrix<MT,SO,false,false>   This;            //!< Type of this SymmetricMatrix instance.
-   typedef SparseMatrix<This,SO>                BaseType;        //!< Base type of this SymmetricMatrix instance.
    typedef This                                 ResultType;      //!< Result type for expression template evaluations.
    typedef SymmetricMatrix<OT,!SO,false,false>  OppositeType;    //!< Result type with opposite storage order for expression template evaluations.
    typedef SymmetricMatrix<TT,!SO,false,false>  TransposeType;   //!< Transpose type for expression template evaluations.
    typedef ET                                   ElementType;     //!< Type of the matrix elements.
-   typedef ReturnType_<MT>                      ReturnType;      //!< Return type for expression template evaluations.
+   typedef typename MT::ReturnType              ReturnType;      //!< Return type for expression template evaluations.
    typedef const This&                          CompositeType;   //!< Data type for composite expression templates.
    typedef NonNumericProxy<MatrixType>          Reference;       //!< Reference to a non-constant matrix value.
-   typedef ConstReference_<MT>                  ConstReference;  //!< Reference to a constant matrix value.
+   typedef typename MT::ConstReference          ConstReference;  //!< Reference to a constant matrix value.
    //**********************************************************************************************
 
    //**Rebind struct definition********************************************************************
@@ -436,19 +434,19 @@ class SymmetricMatrix<MT,SO,false,false>
 
    //**Type definitions****************************************************************************
    //! Iterator over non-constant elements.
-   typedef SharedIterator< SharedElement< Iterator_<MatrixType> >
-                         , Iterator_<MatrixType>
+   typedef SharedIterator< SharedElement< typename MatrixType::Iterator >
+                         , typename MatrixType::Iterator
                          >  Iterator;
 
    //! Iterator over constant elements.
-   typedef SharedIterator< const SharedElement< ConstIterator_<MatrixType> >
-                         , ConstIterator_<MatrixType>
+   typedef SharedIterator< const SharedElement< typename MatrixType::ConstIterator >
+                         , typename MatrixType::ConstIterator
                          >  ConstIterator;
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = false };
+   enum { smpAssignable = 0 };
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
@@ -459,9 +457,7 @@ class SymmetricMatrix<MT,SO,false,false>
    explicit inline SymmetricMatrix( size_t n, size_t nonzeros );
    explicit inline SymmetricMatrix( size_t n, const std::vector<size_t>& nonzeros );
 
-   inline SymmetricMatrix( const SymmetricMatrix& m );
-   inline SymmetricMatrix( SymmetricMatrix&& m ) noexcept;
-
+                            inline SymmetricMatrix( const SymmetricMatrix& m );
    template< typename MT2 > inline SymmetricMatrix( const Matrix<MT2,SO>&  m );
    template< typename MT2 > inline SymmetricMatrix( const Matrix<MT2,!SO>& m );
    //@}
@@ -491,13 +487,14 @@ class SymmetricMatrix<MT,SO,false,false>
    /*!\name Assignment operators */
    //@{
    inline SymmetricMatrix& operator=( const SymmetricMatrix& rhs );
-   inline SymmetricMatrix& operator=( SymmetricMatrix&& rhs ) noexcept;
 
    template< typename MT2 >
-   inline DisableIf_< IsComputation<MT2>, SymmetricMatrix& > operator=( const Matrix<MT2,SO>& rhs );
+   inline typename DisableIf< IsComputation<MT2>, SymmetricMatrix& >::Type
+      operator=( const Matrix<MT2,SO>& rhs );
 
    template< typename MT2 >
-   inline EnableIf_< IsComputation<MT2>, SymmetricMatrix& > operator=( const Matrix<MT2,SO>& rhs );
+   inline typename EnableIf< IsComputation<MT2>, SymmetricMatrix& >::Type
+      operator=( const Matrix<MT2,SO>& rhs );
 
    template< typename MT2 >
    inline SymmetricMatrix& operator=( const Matrix<MT2,!SO>& rhs );
@@ -518,20 +515,22 @@ class SymmetricMatrix<MT,SO,false,false>
    inline SymmetricMatrix& operator*=( const Matrix<MT2,SO2>& rhs );
 
    template< typename Other >
-   inline EnableIf_< IsNumeric<Other>, SymmetricMatrix >& operator*=( Other rhs );
+   inline typename EnableIf< IsNumeric<Other>, SymmetricMatrix >::Type&
+      operator*=( Other rhs );
 
    template< typename Other >
-   inline EnableIf_< IsNumeric<Other>, SymmetricMatrix >& operator/=( Other rhs );
+   inline typename EnableIf< IsNumeric<Other>, SymmetricMatrix >::Type&
+      operator/=( Other rhs );
    //@}
    //**********************************************************************************************
 
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-                              inline size_t           rows() const noexcept;
-                              inline size_t           columns() const noexcept;
-                              inline size_t           capacity() const noexcept;
-                              inline size_t           capacity( size_t i ) const noexcept;
+                              inline size_t           rows() const;
+                              inline size_t           columns() const;
+                              inline size_t           capacity() const;
+                              inline size_t           capacity( size_t i ) const;
                               inline size_t           nonZeros() const;
                               inline size_t           nonZeros( size_t i ) const;
                               inline void             reset();
@@ -539,6 +538,9 @@ class SymmetricMatrix<MT,SO,false,false>
                               inline void             clear();
                               inline Iterator         set( size_t i, size_t j, const ElementType& value );
                               inline Iterator         insert( size_t i, size_t j, const ElementType& value );
+                              inline void             erase( size_t i, size_t j );
+                              inline Iterator         erase( size_t i, Iterator pos );
+                              inline Iterator         erase( size_t i, Iterator first, Iterator last );
                               inline void             resize ( size_t n, bool preserve=true );
                               inline void             reserve( size_t nonzeros );
                               inline void             reserve( size_t i, size_t nonzeros );
@@ -548,22 +550,7 @@ class SymmetricMatrix<MT,SO,false,false>
                               inline SymmetricMatrix& ctranspose();
    template< typename Other > inline SymmetricMatrix& scale( const Other& scalar );
    template< typename Other > inline SymmetricMatrix& scaleDiagonal( Other scale );
-                              inline void             swap( SymmetricMatrix& m ) noexcept;
-   //@}
-   //**********************************************************************************************
-
-   //**Lookup functions****************************************************************************
-   /*!\name Lookup functions */
-   //@{
-   inline void     erase( size_t i, size_t j );
-   inline Iterator erase( size_t i, Iterator pos );
-   inline Iterator erase( size_t i, Iterator first, Iterator last );
-
-   template< typename Pred >
-   inline void erase( Pred predicate );
-
-   template< typename Pred >
-   inline void erase( size_t i, Iterator first, Iterator last, Pred predicate );
+                              inline void             swap( SymmetricMatrix& m ) /* throw() */;
    //@}
    //**********************************************************************************************
 
@@ -590,17 +577,17 @@ class SymmetricMatrix<MT,SO,false,false>
    //**Debugging functions*************************************************************************
    /*!\name Utility functions */
    //@{
-   inline bool isIntact() const noexcept;
+   inline bool isIntact() const;
    //@}
    //**********************************************************************************************
 
    //**Expression template evaluation functions****************************************************
    /*!\name Expression template evaluation functions */
    //@{
-   template< typename Other > inline bool canAlias ( const Other* alias ) const noexcept;
-   template< typename Other > inline bool isAliased( const Other* alias ) const noexcept;
+   template< typename Other > inline bool canAlias ( const Other* alias ) const;
+   template< typename Other > inline bool isAliased( const Other* alias ) const;
 
-   inline bool canSMPAssign() const noexcept;
+   inline bool canSMPAssign() const;
    //@}
    //**********************************************************************************************
 
@@ -763,24 +750,6 @@ inline SymmetricMatrix<MT,SO,false,false>::SymmetricMatrix( const SymmetricMatri
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief The move constructor for SymmetricMatrix.
-//
-// \param m The symmetric matrix to be moved into this instance.
-*/
-template< typename MT  // Type of the adapted sparse matrix
-        , bool SO >    // Storage order of the adapted sparse matrix
-inline SymmetricMatrix<MT,SO,false,false>::SymmetricMatrix( SymmetricMatrix&& m ) noexcept
-   : matrix_( std::move( m.matrix_ ) )  // The adapted sparse matrix
-{
-   BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square symmetric matrix detected" );
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
 /*!\brief Conversion constructor from different matrices with the same storage order.
 //
 // \param m Matrix to be copied.
@@ -797,8 +766,8 @@ inline SymmetricMatrix<MT,SO,false,false>::SymmetricMatrix( const Matrix<MT2,SO>
 {
    using blaze::resize;
 
-   typedef RemoveAdaptor_< ResultType_<MT2> >   RT;
-   typedef If_< IsComputation<MT2>, RT, const MT2& >  Tmp;
+   typedef typename RemoveAdaptor<typename MT2::ResultType>::Type   RT;
+   typedef typename If< IsComputation<MT2>, RT, const MT2& >::Type  Tmp;
 
    Tmp tmp( ~m );
 
@@ -834,8 +803,8 @@ inline SymmetricMatrix<MT,SO,false,false>::SymmetricMatrix( const Matrix<MT2,!SO
 {
    using blaze::resize;
 
-   typedef RemoveAdaptor_< ResultType_<MT2> >   RT;
-   typedef If_< IsComputation<MT2>, RT, const MT2& >  Tmp;
+   typedef typename RemoveAdaptor<typename MT2::ResultType>::Type   RT;
+   typedef typename If< IsComputation<MT2>, RT, const MT2& >::Type  Tmp;
 
    Tmp tmp( ~m );
 
@@ -1165,29 +1134,6 @@ inline SymmetricMatrix<MT,SO,false,false>&
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Move assignment operator for SymmetricMatrix.
-//
-// \param rhs The matrix to be moved into this instance.
-// \return Reference to the assigned matrix.
-*/
-template< typename MT  // Type of the adapted sparse matrix
-        , bool SO >    // Storage order of the adapted sparse matrix
-inline SymmetricMatrix<MT,SO,false,false>&
-   SymmetricMatrix<MT,SO,false,false>::operator=( SymmetricMatrix&& rhs ) noexcept
-{
-   matrix_ = std::move( rhs.matrix_ );
-
-   BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square symmetric matrix detected" );
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
-
-   return *this;
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
 /*!\brief Assignment operator for general matrices.
 //
 // \param rhs The general matrix to be copied.
@@ -1203,7 +1149,7 @@ inline SymmetricMatrix<MT,SO,false,false>&
 template< typename MT     // Type of the adapted sparse matrix
         , bool SO >       // Storage order of the adapted sparse matrix
 template< typename MT2 >  // Type of the right-hand side matrix
-inline DisableIf_< IsComputation<MT2>, SymmetricMatrix<MT,SO,false,false>& >
+inline typename DisableIf< IsComputation<MT2>, SymmetricMatrix<MT,SO,false,false>& >::Type
    SymmetricMatrix<MT,SO,false,false>::operator=( const Matrix<MT2,SO>& rhs )
 {
    using blaze::resize;
@@ -1248,7 +1194,7 @@ inline DisableIf_< IsComputation<MT2>, SymmetricMatrix<MT,SO,false,false>& >
 template< typename MT     // Type of the adapted sparse matrix
         , bool SO >       // Storage order of the adapted sparse matrix
 template< typename MT2 >  // Type of the right-hand side matrix
-inline EnableIf_< IsComputation<MT2>, SymmetricMatrix<MT,SO,false,false>& >
+inline typename EnableIf< IsComputation<MT2>, SymmetricMatrix<MT,SO,false,false>& >::Type
    SymmetricMatrix<MT,SO,false,false>::operator=( const Matrix<MT2,SO>& rhs )
 {
    using blaze::resize;
@@ -1257,7 +1203,7 @@ inline EnableIf_< IsComputation<MT2>, SymmetricMatrix<MT,SO,false,false>& >
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
    }
 
-   const ResultType_<MT2> tmp( ~rhs );
+   typename MT2::ResultType tmp( ~rhs );
 
    if( !IsSymmetric<MT2>::value && !isSymmetric( tmp ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
@@ -1323,7 +1269,7 @@ inline SymmetricMatrix<MT,SO,false,false>&
 {
    using blaze::resize;
 
-   typedef AddTrait_< MT, ResultType_<MT2> >  Tmp;
+   typedef typename AddTrait<MT,typename MT2::ResultType>::Type  Tmp;
 
    if( !IsSquare<MT2>::value && !isSquare( ~rhs ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
@@ -1395,7 +1341,7 @@ inline SymmetricMatrix<MT,SO,false,false>&
 {
    using blaze::resize;
 
-   typedef SubTrait_< MT, ResultType_<MT2> >  Tmp;
+   typedef typename SubTrait<MT,typename MT2::ResultType>::Type  Tmp;
 
    if( !IsSquare<MT2>::value && !isSquare( ~rhs ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
@@ -1467,7 +1413,7 @@ inline SymmetricMatrix<MT,SO,false,false>&
 {
    using blaze::resize;
 
-   typedef MultTrait_< MT, ResultType_<MT2> >  Tmp;
+   typedef typename MultTrait<MT,typename MT2::ResultType>::Type  Tmp;
 
    if( matrix_.rows() != (~rhs).columns() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
@@ -1503,12 +1449,12 @@ inline SymmetricMatrix<MT,SO,false,false>&
 template< typename MT       // Type of the adapted sparse matrix
         , bool SO >         // Storage order of the adapted sparse matrix
 template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_< IsNumeric<Other>, SymmetricMatrix<MT,SO,false,false> >&
+inline typename EnableIf< IsNumeric<Other>, SymmetricMatrix<MT,SO,false,false> >::Type&
    SymmetricMatrix<MT,SO,false,false>::operator*=( Other rhs )
 {
    for( size_t i=0UL; i<rows(); ++i ) {
-      const Iterator_<MatrixType> last( matrix_.upperBound(i,i) );
-      for( Iterator_<MatrixType> element=matrix_.begin(i); element!=last; ++element )
+      const typename MatrixType::Iterator last( matrix_.upperBound(i,i) );
+      for( typename MatrixType::Iterator element=matrix_.begin(i); element!=last; ++element )
          *element->value() *= rhs;
    }
 
@@ -1529,14 +1475,14 @@ inline EnableIf_< IsNumeric<Other>, SymmetricMatrix<MT,SO,false,false> >&
 template< typename MT       // Type of the adapted sparse matrix
         , bool SO >         // Storage order of the adapted sparse matrix
 template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_< IsNumeric<Other>, SymmetricMatrix<MT,SO,false,false> >&
+inline typename EnableIf< IsNumeric<Other>, SymmetricMatrix<MT,SO,false,false> >::Type&
    SymmetricMatrix<MT,SO,false,false>::operator/=( Other rhs )
 {
    BLAZE_USER_ASSERT( rhs != Other(0), "Division by zero detected" );
 
    for( size_t i=0UL; i<rows(); ++i ) {
-      const Iterator_<MatrixType> last( matrix_.upperBound(i,i) );
-      for( Iterator_<MatrixType> element=matrix_.begin(i); element!=last; ++element )
+      const typename MatrixType::Iterator last( matrix_.upperBound(i,i) );
+      for( typename MatrixType::Iterator element=matrix_.begin(i); element!=last; ++element )
          *element->value() /= rhs;
    }
 
@@ -1562,7 +1508,7 @@ inline EnableIf_< IsNumeric<Other>, SymmetricMatrix<MT,SO,false,false> >&
 */
 template< typename MT  // Type of the adapted sparse matrix
         , bool SO >    // Storage order of the adapted sparse matrix
-inline size_t SymmetricMatrix<MT,SO,false,false>::rows() const noexcept
+inline size_t SymmetricMatrix<MT,SO,false,false>::rows() const
 {
    return matrix_.rows();
 }
@@ -1578,7 +1524,7 @@ inline size_t SymmetricMatrix<MT,SO,false,false>::rows() const noexcept
 */
 template< typename MT  // Type of the adapted sparse matrix
         , bool SO >    // Storage order of the adapted sparse matrix
-inline size_t SymmetricMatrix<MT,SO,false,false>::columns() const noexcept
+inline size_t SymmetricMatrix<MT,SO,false,false>::columns() const
 {
    return matrix_.columns();
 }
@@ -1594,7 +1540,7 @@ inline size_t SymmetricMatrix<MT,SO,false,false>::columns() const noexcept
 */
 template< typename MT  // Type of the adapted sparse matrix
         , bool SO >    // Storage order of the adapted sparse matrix
-inline size_t SymmetricMatrix<MT,SO,false,false>::capacity() const noexcept
+inline size_t SymmetricMatrix<MT,SO,false,false>::capacity() const
 {
    return matrix_.capacity();
 }
@@ -1615,7 +1561,7 @@ inline size_t SymmetricMatrix<MT,SO,false,false>::capacity() const noexcept
 */
 template< typename MT  // Type of the adapted sparse matrix
         , bool SO >    // Storage order of the adapted sparse matrix
-inline size_t SymmetricMatrix<MT,SO,false,false>::capacity( size_t i ) const noexcept
+inline size_t SymmetricMatrix<MT,SO,false,false>::capacity( size_t i ) const
 {
    return matrix_.capacity(i);
 }
@@ -1721,7 +1667,7 @@ template< typename MT  // Type of the adapted sparse matrix
         , bool SO >    // Storage order of the adapted sparse matrix
 inline void SymmetricMatrix<MT,SO,false,false>::reset( size_t i )
 {
-   for( Iterator_<MatrixType> it=matrix_.begin(i); it!=matrix_.end(i); ++it )
+   for( typename MatrixType::Iterator it=matrix_.begin(i); it!=matrix_.end(i); ++it )
    {
       const size_t j( it->index() );
 
@@ -1729,12 +1675,12 @@ inline void SymmetricMatrix<MT,SO,false,false>::reset( size_t i )
          continue;
 
       if( SO ) {
-         const Iterator_<MatrixType> pos( matrix_.find( i, j ) );
+         const typename MatrixType::Iterator pos( matrix_.find( i, j ) );
          BLAZE_INTERNAL_ASSERT( pos != matrix_.end( j ), "Missing element detected" );
          matrix_.erase( j, pos );
       }
       else {
-         const Iterator_<MatrixType> pos( matrix_.find( j, i ) );
+         const typename MatrixType::Iterator pos( matrix_.find( j, i ) );
          BLAZE_INTERNAL_ASSERT( pos != matrix_.end( j ), "Missing element detected" );
          matrix_.erase( j, pos );
       }
@@ -1822,6 +1768,110 @@ inline typename SymmetricMatrix<MT,SO,false,false>::Iterator
       matrix_.insert( j, i, shared );
 
    return Iterator( matrix_.insert( i, j, shared ) );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Erasing elements from the symmetric matrix.
+//
+// \param i The row index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
+// \param j The column index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
+// \return void
+//
+// This function erases both elements \f$ a_{ij} \f$ and \f$ a_{ji} \f$ from the symmetric matrix.
+*/
+template< typename MT  // Type of the adapted sparse matrix
+        , bool SO >    // Storage order of the adapted sparse matrix
+inline void SymmetricMatrix<MT,SO,false,false>::erase( size_t i, size_t j )
+{
+   matrix_.erase( i, j );
+   if( i != j )
+      matrix_.erase( j, i );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Erasing elements from the symmetric matrix.
+//
+// \param i The row/column index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
+// \param pos Iterator to the element to be erased.
+// \return Iterator to the element after the erased element.
+//
+// This function erases both the specified element and its according symmetric counterpart from
+// the symmetric matrix. In case the storage order is set to \a rowMajor the given index \a i
+// refers to a row, in case the storage flag is set to \a columnMajor \a i refers to a column.
+*/
+template< typename MT  // Type of the adapted sparse matrix
+        , bool SO >    // Storage order of the adapted sparse matrix
+inline typename SymmetricMatrix<MT,SO,false,false>::Iterator
+   SymmetricMatrix<MT,SO,false,false>::erase( size_t i, Iterator pos )
+{
+   if( pos == end( i ) )
+      return pos;
+
+   const size_t j( pos->index() );
+
+   if( i == j )
+      return Iterator( matrix_.erase( i, pos.base() ) );
+
+   if( SO ) {
+      BLAZE_INTERNAL_ASSERT( matrix_.find( i, j ) != matrix_.end( j ), "Missing element detected" );
+      matrix_.erase( j, matrix_.find( i, j ) );
+      return Iterator( matrix_.erase( i, pos.base() ) );
+   }
+   else {
+      BLAZE_INTERNAL_ASSERT( matrix_.find( j, i ) != matrix_.end( j ), "Missing element detected" );
+      matrix_.erase( j, matrix_.find( j, i ) );
+      return Iterator( matrix_.erase( i, pos.base() ) );
+   }
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Erasing a range of elements from the symmetric matrix.
+//
+// \param i The row/column index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
+// \param first Iterator to first element to be erased.
+// \param last Iterator just past the last element to be erased.
+// \return Iterator to the element after the erased element.
+//
+// This function erases both the range of elements specified by the iterator pair \a first and
+// \a last and their according symmetric counterparts from the symmetric matrix. In case the
+// storage order is set to \a rowMajor the given index \a i refers to a row, in case the storage
+// flag is set to \a columnMajor \a i refers to a column.
+*/
+template< typename MT  // Type of the adapted sparse matrix
+        , bool SO >    // Storage order of the adapted sparse matrix
+inline typename SymmetricMatrix<MT,SO,false,false>::Iterator
+   SymmetricMatrix<MT,SO,false,false>::erase( size_t i, Iterator first, Iterator last )
+{
+   for( Iterator it=first; it!=last; ++it )
+   {
+      const size_t j( it->index() );
+
+      if( i == j )
+         continue;
+
+      if( SO ) {
+         BLAZE_INTERNAL_ASSERT( matrix_.find( i, j ) != matrix_.end( j ), "Missing element detected" );
+         matrix_.erase( i, j );
+      }
+      else {
+         BLAZE_INTERNAL_ASSERT( matrix_.find( j, i ) != matrix_.end( j ), "Missing element detected" );
+         matrix_.erase( j, i );
+      }
+   }
+
+   return Iterator( matrix_.erase( i, first.base(), last.base() ) );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1973,8 +2023,8 @@ template< typename MT  // Type of the adapted sparse matrix
 inline SymmetricMatrix<MT,SO,false,false>& SymmetricMatrix<MT,SO,false,false>::ctranspose()
 {
    for( size_t i=0UL; i<rows(); ++i ) {
-      const Iterator_<MatrixType> last( matrix_.upperBound(i,i) );
-      for( Iterator_<MatrixType> element=matrix_.begin(i); element!=last; ++element )
+      const typename MatrixType::Iterator last( matrix_.upperBound(i,i) );
+      for( typename MatrixType::Iterator element=matrix_.begin(i); element!=last; ++element )
          conjugate( *element->value() );
    }
 
@@ -1998,8 +2048,8 @@ inline SymmetricMatrix<MT,SO,false,false>&
    SymmetricMatrix<MT,SO,false,false>::scale( const Other& scalar )
 {
    for( size_t i=0UL; i<rows(); ++i ) {
-      const Iterator_<MatrixType> last( matrix_.upperBound(i,i) );
-      for( Iterator_<MatrixType> element=matrix_.begin(i); element!=last; ++element )
+      const typename MatrixType::Iterator last( matrix_.upperBound(i,i) );
+      for( typename MatrixType::Iterator element=matrix_.begin(i); element!=last; ++element )
          ( *element->value() ).scale( scalar );
    }
 
@@ -2035,201 +2085,15 @@ inline SymmetricMatrix<MT,SO,false,false>&
 //
 // \param m The matrix to be swapped.
 // \return void
+// \exception no-throw guarantee.
 */
 template< typename MT  // Type of the adapted sparse matrix
         , bool SO >    // Storage order of the adapted sparse matrix
-inline void SymmetricMatrix<MT,SO,false,false>::swap( SymmetricMatrix& m ) noexcept
+inline void SymmetricMatrix<MT,SO,false,false>::swap( SymmetricMatrix& m ) /* throw() */
 {
    using std::swap;
 
    swap( matrix_, m.matrix_ );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  ERASE FUNCTIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Erasing elements from the symmetric matrix.
-//
-// \param i The row index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
-// \param j The column index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
-// \return void
-//
-// This function erases both elements \f$ a_{ij} \f$ and \f$ a_{ji} \f$ from the symmetric matrix.
-*/
-template< typename MT  // Type of the adapted sparse matrix
-        , bool SO >    // Storage order of the adapted sparse matrix
-inline void SymmetricMatrix<MT,SO,false,false>::erase( size_t i, size_t j )
-{
-   matrix_.erase( i, j );
-   if( i != j )
-      matrix_.erase( j, i );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Erasing elements from the symmetric matrix.
-//
-// \param i The row/column index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
-// \param pos Iterator to the element to be erased.
-// \return Iterator to the element after the erased element.
-//
-// This function erases both the specified element and its according symmetric counterpart from
-// the symmetric matrix. In case the storage order is set to \a rowMajor the given index \a i
-// refers to a row, in case the storage flag is set to \a columnMajor \a i refers to a column.
-*/
-template< typename MT  // Type of the adapted sparse matrix
-        , bool SO >    // Storage order of the adapted sparse matrix
-inline typename SymmetricMatrix<MT,SO,false,false>::Iterator
-   SymmetricMatrix<MT,SO,false,false>::erase( size_t i, Iterator pos )
-{
-   if( pos == end( i ) )
-      return pos;
-
-   const size_t j( pos->index() );
-
-   if( i == j )
-      return Iterator( matrix_.erase( i, pos.base() ) );
-
-   if( SO ) {
-      BLAZE_INTERNAL_ASSERT( matrix_.find( i, j ) != matrix_.end( j ), "Missing element detected" );
-      matrix_.erase( j, matrix_.find( i, j ) );
-      return Iterator( matrix_.erase( i, pos.base() ) );
-   }
-   else {
-      BLAZE_INTERNAL_ASSERT( matrix_.find( j, i ) != matrix_.end( j ), "Missing element detected" );
-      matrix_.erase( j, matrix_.find( j, i ) );
-      return Iterator( matrix_.erase( i, pos.base() ) );
-   }
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Erasing a range of elements from the symmetric matrix.
-//
-// \param i The row/column index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
-// \param first Iterator to first element to be erased.
-// \param last Iterator just past the last element to be erased.
-// \return Iterator to the element after the erased element.
-//
-// This function erases both the range of elements specified by the iterator pair \a first and
-// \a last and their according symmetric counterparts from the symmetric matrix. In case the
-// storage order is set to \a rowMajor the given index \a i refers to a row, in case the storage
-// flag is set to \a columnMajor \a i refers to a column.
-*/
-template< typename MT  // Type of the adapted sparse matrix
-        , bool SO >    // Storage order of the adapted sparse matrix
-inline typename SymmetricMatrix<MT,SO,false,false>::Iterator
-   SymmetricMatrix<MT,SO,false,false>::erase( size_t i, Iterator first, Iterator last )
-{
-   for( Iterator it=first; it!=last; ++it )
-   {
-      const size_t j( it->index() );
-
-      if( i == j )
-         continue;
-
-      if( SO ) {
-         BLAZE_INTERNAL_ASSERT( matrix_.find( i, j ) != matrix_.end( j ), "Missing element detected" );
-         matrix_.erase( i, j );
-      }
-      else {
-         BLAZE_INTERNAL_ASSERT( matrix_.find( j, i ) != matrix_.end( j ), "Missing element detected" );
-         matrix_.erase( j, i );
-      }
-   }
-
-   return Iterator( matrix_.erase( i, first.base(), last.base() ) );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Erasing specific elements from the symmetric matrix.
-//
-// \param predicate The unary predicate for the element selection.
-// \return void.
-//
-// This function erases specific elements from the symmetric matrix. The elements are selected
-// by the given unary predicate \a predicate, which is expected to accept a single argument of
-// the type of the elements and to be pure.
-//
-// \note The predicate is required to be pure, i.e. to produce deterministic results for elements
-// with the same value. The attempt to use an impure predicate leads to undefined behavior!
-*/
-template< typename MT      // Type of the adapted sparse matrix
-        , bool SO >        // Storage order of the adapted sparse matrix
-template< typename Pred >  // Type of the unary predicate
-inline void SymmetricMatrix<MT,SO,false,false>::erase( Pred predicate )
-{
-   matrix_.erase( [predicate=predicate]( const SharedValue<ET>& value ) {
-                     return predicate( *value );
-                  } );
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Erasing specific elements from a range of the symmetric matrix.
-//
-// \param i The row/column index of the elements to be erased. The index has to be in the range \f$[0..M-1]\f$.
-// \param first Iterator to first element of the range.
-// \param last Iterator just past the last element of the range.
-// \param predicate The unary predicate for the element selection.
-// \return void
-//
-// This function erases specific elements from a range of elements of the symmetric matrix. The
-// elements are selected by the given unary predicate \a predicate, which is expected to accept
-// a single argument of the type of the elements and to be pure. In case the storage order is
-// set to \a rowMajor the function erases a range of elements from row \a i, in case the storage
-// flag is set to \a columnMajor the function erases a range of elements from column \a i.
-//
-// \note The predicate is required to be pure, i.e. to produce deterministic results for elements
-// with the same value. The attempt to use an impure predicate leads to undefined behavior!
-*/
-template< typename MT      // Type of the adapted sparse matrix
-        , bool SO >        // Storage order of the adapted sparse matrix
-template< typename Pred >  // Type of the unary predicate
-inline void
-   SymmetricMatrix<MT,SO,false,false>::erase( size_t i, Iterator first, Iterator last, Pred predicate )
-{
-   for( Iterator it=first; it!=last; ++it ) {
-      const size_t j( it->index() );
-      if( i != j && predicate( it->value() ) ) {
-         if( SO )
-            matrix_.erase( i, j );
-         else
-            matrix_.erase( j, i );
-      }
-   }
-
-   matrix_.erase( i, first.base(), last.base(),
-                  [predicate=predicate]( const SharedValue<ET>& value ) {
-                     return predicate( *value );
-                  } );
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -2465,7 +2329,7 @@ inline typename SymmetricMatrix<MT,SO,false,false>::ConstIterator
    A.append( 2, 0, 3.0 );  // Appending the value 3 at position (2,0) and (0,2)
    \endcode
 
-// \note Although append() does not allocate new memory, it still invalidates all iterators
+// \note: Although append() does not allocate new memory, it still invalidates all iterators
 // returned by the end() functions!
 */
 template< typename MT  // Type of the adapted sparse matrix
@@ -2493,7 +2357,7 @@ inline void SymmetricMatrix<MT,SO,false,false>::append( size_t i, size_t j, cons
 // After completion of row/column \a i via the append() function, this function can be called to
 // finalize row/column \a i and prepare the next row/column for insertion process via append().
 //
-// \note Although finalize() does not allocate new memory, it still invalidates all iterators
+// \note: Although finalize() does not allocate new memory, it still invalidates all iterators
 // returned by the end() functions!
 */
 template< typename MT  // Type of the adapted sparse matrix
@@ -2526,7 +2390,7 @@ inline void SymmetricMatrix<MT,SO,false,false>::finalize( size_t i )
 */
 template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
-inline bool SymmetricMatrix<MT,SO,false,false>::isIntact() const noexcept
+inline bool SymmetricMatrix<MT,SO,false,false>::isIntact() const
 {
    using blaze::isIntact;
 
@@ -2558,7 +2422,7 @@ inline bool SymmetricMatrix<MT,SO,false,false>::isIntact() const noexcept
 template< typename MT       // Type of the adapted sparse matrix
         , bool SO >         // Storage order of the adapted sparse matrix
 template< typename Other >  // Data type of the foreign expression
-inline bool SymmetricMatrix<MT,SO,false,false>::canAlias( const Other* alias ) const noexcept
+inline bool SymmetricMatrix<MT,SO,false,false>::canAlias( const Other* alias ) const
 {
    return matrix_.canAlias( alias );
 }
@@ -2580,7 +2444,7 @@ inline bool SymmetricMatrix<MT,SO,false,false>::canAlias( const Other* alias ) c
 template< typename MT       // Type of the adapted sparse matrix
         , bool SO >         // Storage order of the adapted sparse matrix
 template< typename Other >  // Data type of the foreign expression
-inline bool SymmetricMatrix<MT,SO,false,false>::isAliased( const Other* alias ) const noexcept
+inline bool SymmetricMatrix<MT,SO,false,false>::isAliased( const Other* alias ) const
 {
    return matrix_.isAliased( alias );
 }
@@ -2601,7 +2465,7 @@ inline bool SymmetricMatrix<MT,SO,false,false>::isAliased( const Other* alias ) 
 */
 template< typename MT  // Type of the adapted sparse matrix
         , bool SO >    // Storage order of the adapted sparse matrix
-inline bool SymmetricMatrix<MT,SO,false,false>::canSMPAssign() const noexcept
+inline bool SymmetricMatrix<MT,SO,false,false>::canSMPAssign() const
 {
    return matrix_.canSMPAssign();
 }
@@ -2648,7 +2512,7 @@ void SymmetricMatrix<MT,SO,false,false>::assign( DenseMatrix<MT2,SO>& rhs )
       for( size_t j=i; j<columns(); ++j ) {
          if( !isDefault( (~rhs)(i,j) ) ) {
             SharedValue<ET> shared;
-            *shared = std::move( (~rhs)(i,j) );
+            move( *shared, (~rhs)(i,j) );
             matrix_.append( i, j, shared, false );
             if( i != j )
                matrix_.append( j, i, shared, false );
@@ -2746,10 +2610,10 @@ void SymmetricMatrix<MT,SO,false,false>::assign( SparseMatrix<MT2,SO>& rhs )
    }
 
    for( size_t i=0UL; i<rows(); ++i ) {
-      for( Iterator_<MT2> it=(~rhs).lowerBound(i,i); it!=(~rhs).end(i); ++it ) {
+      for( typename MT2::Iterator it=(~rhs).lowerBound(i,i); it!=(~rhs).end(i); ++it ) {
          if( !isDefault( it->value() ) ) {
             SharedValue<ET> shared;
-            *shared = std::move( it->value() );
+            move( *shared, it->value() );
             matrix_.append( i, it->index(), shared, false );
             if( i != it->index() )
                matrix_.append( it->index(), i, shared, false );
@@ -2797,7 +2661,7 @@ void SymmetricMatrix<MT,SO,false,false>::assign( const SparseMatrix<MT2,SO>& rhs
    }
 
    for( size_t i=0UL; i<rows(); ++i ) {
-      for( ConstIterator_<MT2> it=(~rhs).lowerBound(i,i); it!=(~rhs).end(i); ++it ) {
+      for( typename MT2::ConstIterator it=(~rhs).lowerBound(i,i); it!=(~rhs).end(i); ++it ) {
          if( !isDefault( it->value() ) ) {
             const SharedValue<ET> shared( it->value() );
             matrix_.append( i, it->index(), shared, false );

@@ -40,22 +40,22 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/Expression.h>
 #include <blaze/math/constraints/Hermitian.h>
 #include <blaze/math/constraints/Lower.h>
 #include <blaze/math/constraints/SparseMatrix.h>
 #include <blaze/math/constraints/Symmetric.h>
 #include <blaze/math/constraints/Upper.h>
-#include <blaze/math/InitializerList.h>
 #include <blaze/math/proxy/Proxy.h>
 #include <blaze/math/shims/Clear.h>
+#include <blaze/math/shims/Conjugate.h>
 #include <blaze/math/shims/IsDefault.h>
 #include <blaze/math/shims/IsNaN.h>
 #include <blaze/math/shims/IsOne.h>
 #include <blaze/math/shims/IsReal.h>
 #include <blaze/math/shims/IsZero.h>
 #include <blaze/math/shims/Reset.h>
+#include <blaze/math/traits/ConjExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/constraints/Const.h>
@@ -100,24 +100,24 @@ namespace blaze {
    \endcode
 */
 template< typename MT >  // Type of the adapted matrix
-class NonNumericProxy : public Proxy< NonNumericProxy<MT>, ValueType_< ElementType_<MT> > >
+class NonNumericProxy : public Proxy< NonNumericProxy<MT>, typename MT::ElementType::ValueType >
 {
  private:
    //**Enumerations********************************************************************************
    //! Compile time flag indicating whether the given matrix type is a row-major matrix.
-   enum : bool { rmm = IsRowMajorMatrix<MT>::value };
+   enum { rmm = IsRowMajorMatrix<MT>::value };
    //**********************************************************************************************
 
    //**Type definitions****************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   typedef ElementType_<MT>  ET;  //!< Element type of the adapted matrix.
+   typedef typename MT::ElementType  ET;  //!< Element type of the adapted matrix.
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
-   typedef ValueType_<ET>  RepresentedType;  //!< Type of the represented matrix element.
-   typedef Reference_<ET>  RawReference;     //!< Raw reference to the represented element.
+   typedef typename ET::ValueType  RepresentedType;  //!< Type of the represented matrix element.
+   typedef typename ET::Reference  RawReference;     //!< Raw reference to the represented element.
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
@@ -138,14 +138,7 @@ class NonNumericProxy : public Proxy< NonNumericProxy<MT>, ValueType_< ElementTy
    //**Operators***********************************************************************************
    /*!\name Operators */
    //@{
-   inline NonNumericProxy& operator= ( const NonNumericProxy& nnp );
-
-   template< typename T >
-   inline NonNumericProxy& operator=( initializer_list<T> list );
-
-   template< typename T >
-   inline NonNumericProxy& operator=( initializer_list< initializer_list<T> > list );
-
+                          inline NonNumericProxy& operator= ( const NonNumericProxy& nnp );
    template< typename T > inline NonNumericProxy& operator= ( const T& value );
    template< typename T > inline NonNumericProxy& operator+=( const T& value );
    template< typename T > inline NonNumericProxy& operator-=( const T& value );
@@ -157,14 +150,14 @@ class NonNumericProxy : public Proxy< NonNumericProxy<MT>, ValueType_< ElementTy
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-   inline RawReference get() const noexcept;
+   inline RawReference get() const;
    //@}
    //**********************************************************************************************
 
    //**Conversion operator*************************************************************************
    /*!\name Conversion operator */
    //@{
-   inline operator RawReference() const noexcept;
+   inline operator RawReference() const;
    //@}
    //**********************************************************************************************
 
@@ -230,7 +223,7 @@ inline NonNumericProxy<MT>::NonNumericProxy( MT& matrix, size_t i, size_t j )
 
    if( pos == matrix_.end(index) )
    {
-      const ElementType_<MT> element( ( RepresentedType() ) );
+      const typename MT::ElementType element( ( RepresentedType() ) );
       matrix_.insert( i_, j_, element );
       if( i_ != j_ )
          matrix_.insert( j_, i_, element );
@@ -303,40 +296,6 @@ template< typename MT >  // Type of the adapted matrix
 inline NonNumericProxy<MT>& NonNumericProxy<MT>::operator=( const NonNumericProxy& nnp )
 {
    get() = nnp.get();
-   return *this;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Initializer list assignment to the represented matrix element.
-//
-// \param list The list to be assigned to the matrix element.
-// \return Reference to the assigned proxy.
-*/
-template< typename MT >  // Type of the adapted matrix
-template< typename T >   // Type of the right-hand side value
-inline NonNumericProxy<MT>& NonNumericProxy<MT>::operator=( initializer_list<T> list )
-{
-   get() = list;
-
-   return *this;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Initializer list assignment to the represented matrix element.
-//
-// \param list The list to be assigned to the matrix element.
-// \return Reference to the assigned proxy.
-*/
-template< typename MT >  // Type of the adapted matrix
-template< typename T >   // Type of the right-hand side value
-inline NonNumericProxy<MT>& NonNumericProxy<MT>::operator=( initializer_list< initializer_list<T> > list )
-{
-   get() = list;
-
    return *this;
 }
 //*************************************************************************************************
@@ -436,7 +395,7 @@ inline NonNumericProxy<MT>& NonNumericProxy<MT>::operator/=( const T& value )
 // \return Direct/raw reference to the accessed matrix element.
 */
 template< typename MT >  // Type of the sparse matrix
-inline typename NonNumericProxy<MT>::RawReference NonNumericProxy<MT>::get() const noexcept
+inline typename NonNumericProxy<MT>::RawReference NonNumericProxy<MT>::get() const
 {
    const typename MT::Iterator pos( matrix_.find( i_, j_ ) );
    BLAZE_INTERNAL_ASSERT( pos != matrix_.end( rmm ? i_ : j_ ), "Missing matrix element detected" );
@@ -459,7 +418,7 @@ inline typename NonNumericProxy<MT>::RawReference NonNumericProxy<MT>::get() con
 // \return Direct/raw reference to the represented matrix element.
 */
 template< typename MT >  // Type of the adapted matrix
-inline NonNumericProxy<MT>::operator RawReference() const noexcept
+inline NonNumericProxy<MT>::operator RawReference() const
 {
    return get();
 }
@@ -477,6 +436,10 @@ inline NonNumericProxy<MT>::operator RawReference() const noexcept
 //*************************************************************************************************
 /*!\name NonNumericProxy global functions */
 //@{
+template< typename MT >
+inline typename ConjExprTrait< typename NonNumericProxy<MT>::RepresentedType >::Type
+   conj( const NonNumericProxy<MT>& proxy );
+
 template< typename MT >
 inline void reset( const NonNumericProxy<MT>& proxy );
 
@@ -498,6 +461,28 @@ inline bool isOne( const NonNumericProxy<MT>& proxy );
 template< typename MT >
 inline bool isnan( const NonNumericProxy<MT>& proxy );
 //@}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Computing the complex conjugate of the represented element.
+// \ingroup symmetric_matrix
+//
+// \param proxy The given proxy instance.
+// \return The complex conjugate of the represented element.
+//
+// This function computes the complex conjugate of the element represented by the access proxy.
+// In case the proxy represents a vector- or matrix-like data structure the function returns an
+// expression representing the complex conjugate of the vector/matrix.
+*/
+template< typename MT >
+inline typename ConjExprTrait< typename NonNumericProxy<MT>::RepresentedType >::Type
+   conj( const NonNumericProxy<MT>& proxy )
+{
+   using blaze::conj;
+
+   return conj( (~proxy).get() );
+}
 //*************************************************************************************************
 
 

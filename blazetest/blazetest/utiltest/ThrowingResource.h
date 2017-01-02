@@ -41,6 +41,7 @@
 //*************************************************************************************************
 
 #include <stdexcept>
+#include <blaze/system/Alignment.h>
 #include <blaze/util/StaticAssert.h>
 #include <blaze/util/typetraits/AlignmentOf.h>
 #include <blazetest/utiltest/InstanceCounter.h>
@@ -63,7 +64,7 @@ namespace utiltest {
 // counted via the InstanceCounter class and guaranteed to be 16-bit aligned. Additionally, it
 // throws an exception during the construction of the 7th instance.
 */
-class alignas( 16UL ) ThrowingResource : public InstanceCounter<ThrowingResource>
+class BLAZE_ALIGN( 16UL ) ThrowingResource : public InstanceCounter<ThrowingResource>
 {
  public:
    //**Constructors********************************************************************************

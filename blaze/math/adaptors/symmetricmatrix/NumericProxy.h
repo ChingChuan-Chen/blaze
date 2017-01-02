@@ -40,7 +40,6 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/Expression.h>
 #include <blaze/math/constraints/Hermitian.h>
 #include <blaze/math/constraints/Lower.h>
@@ -49,6 +48,7 @@
 #include <blaze/math/constraints/Upper.h>
 #include <blaze/math/proxy/Proxy.h>
 #include <blaze/math/shims/Clear.h>
+#include <blaze/math/shims/Conjugate.h>
 #include <blaze/math/shims/Invert.h>
 #include <blaze/math/shims/IsDefault.h>
 #include <blaze/math/shims/IsNaN.h>
@@ -56,6 +56,7 @@
 #include <blaze/math/shims/IsReal.h>
 #include <blaze/math/shims/IsZero.h>
 #include <blaze/math/shims/Reset.h>
+#include <blaze/math/traits/ConjExprTrait.h>
 #include <blaze/util/constraints/Const.h>
 #include <blaze/util/constraints/Numeric.h>
 #include <blaze/util/constraints/Pointer.h>
@@ -118,16 +119,16 @@ class NumericProxy : public Proxy< NumericProxy<MT> >
 
  public:
    //**Type definitions****************************************************************************
-   typedef ElementType_<MT>     RepresentedType;  //!< Type of the represented matrix element.
-   typedef Reference_<MT>       Reference;        //!< Reference to the represented element.
-   typedef ConstReference_<MT>  ConstReference;   //!< Reference-to-const to the represented element.
-   typedef NumericProxy*        Pointer;          //!< Pointer to the represented element.
-   typedef const NumericProxy*  ConstPointer;     //!< Pointer-to-const to the represented element.
+   typedef typename MT::ElementType     RepresentedType;  //!< Type of the represented matrix element.
+   typedef typename MT::Reference       Reference;        //!< Reference to the represented element.
+   typedef typename MT::ConstReference  ConstReference;   //!< Reference-to-const to the represented element.
+   typedef NumericProxy*                Pointer;          //!< Pointer to the represented element.
+   typedef const NumericProxy*          ConstPointer;     //!< Pointer-to-const to the represented element.
 
    //! Value type of the represented complex element.
-   typedef typename If_< IsComplex<RepresentedType>
-                       , ComplexType<RepresentedType>
-                       , BuiltinType<RepresentedType> >::Type  ValueType;
+   typedef typename If< IsComplex<RepresentedType>
+                      , ComplexType<RepresentedType>
+                      , BuiltinType<RepresentedType> >::Type::Type  ValueType;
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
@@ -169,14 +170,14 @@ class NumericProxy : public Proxy< NumericProxy<MT> >
    inline void clear () const;
    inline void invert() const;
 
-   inline ConstReference get() const noexcept;
+   inline ConstReference get() const;
    //@}
    //**********************************************************************************************
 
    //**Conversion operator*************************************************************************
    /*!\name Conversion operator */
    //@{
-   inline operator ConstReference() const noexcept;
+   inline operator ConstReference() const;
    //@}
    //**********************************************************************************************
 
@@ -480,7 +481,7 @@ inline void NumericProxy<MT>::invert() const
 // \return Direct/raw reference to the accessed matrix element.
 */
 template< typename MT >  // Type of the adapted matrix
-inline typename NumericProxy<MT>::ConstReference NumericProxy<MT>::get() const noexcept
+inline typename NumericProxy<MT>::ConstReference NumericProxy<MT>::get() const
 {
    return const_cast<const MT&>( matrix_ )(row_,column_);
 }
@@ -501,7 +502,7 @@ inline typename NumericProxy<MT>::ConstReference NumericProxy<MT>::get() const n
 // \return Direct/raw reference to the accessed matrix element.
 */
 template< typename MT >  // Type of the adapted matrix
-inline NumericProxy<MT>::operator ConstReference() const noexcept
+inline NumericProxy<MT>::operator ConstReference() const
 {
    return get();
 }
@@ -597,6 +598,10 @@ inline void NumericProxy<MT>::imag( ValueType value ) const
 /*!\name NumericProxy global functions */
 //@{
 template< typename MT >
+inline typename ConjExprTrait< typename NumericProxy<MT>::RepresentedType >::Type
+   conj( const NumericProxy<MT>& proxy );
+
+template< typename MT >
 inline void reset( const NumericProxy<MT>& proxy );
 
 template< typename MT >
@@ -620,6 +625,28 @@ inline bool isOne( const NumericProxy<MT>& proxy );
 template< typename MT >
 inline bool isnan( const NumericProxy<MT>& proxy );
 //@}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Computing the complex conjugate of the represented element.
+// \ingroup symmetric_matrix
+//
+// \param proxy The given proxy instance.
+// \return The complex conjugate of the represented element.
+//
+// This function computes the complex conjugate of the element represented by the access proxy.
+// In case the proxy represents a vector- or matrix-like data structure the function returns an
+// expression representing the complex conjugate of the vector/matrix.
+*/
+template< typename MT >
+inline typename ConjExprTrait< typename NumericProxy<MT>::RepresentedType >::Type
+   conj( const NumericProxy<MT>& proxy )
+{
+   using blaze::conj;
+
+   return conj( (~proxy).get() );
+}
 //*************************************************************************************************
 
 

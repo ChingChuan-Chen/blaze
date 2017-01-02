@@ -40,7 +40,6 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/adaptors/symmetricmatrix/SymmetricValue.h>
 #include <blaze/math/constraints/Expression.h>
 #include <blaze/math/constraints/Hermitian.h>
@@ -106,8 +105,8 @@ class SymmetricElement : private SparseElement
 {
  private:
    //**Type definitions****************************************************************************
-   typedef ElementType_<MT>  ElementType;   //!< Type of the represented matrix element.
-   typedef Iterator_<MT>     IteratorType;  //!< Type of the underlying sparse matrix iterators.
+   typedef typename MT::ElementType  ElementType;   //!< Type of the represented matrix element.
+   typedef typename MT::Iterator     IteratorType;  //!< Type of the underlying sparse matrix iterators.
    //**********************************************************************************************
 
  public:
@@ -140,7 +139,7 @@ class SymmetricElement : private SparseElement
    //**Access operators****************************************************************************
    /*!\name Access operators */
    //@{
-   inline Pointer operator->() noexcept;
+   inline Pointer operator->();
    //@}
    //**********************************************************************************************
 
@@ -319,7 +318,7 @@ inline SymmetricElement<MT>& SymmetricElement<MT>::operator/=( const T& v )
 // \return Reference to the value of the Hermitian element.
 */
 template< typename MT >  // Type of the adapted matrix
-inline typename SymmetricElement<MT>::Pointer SymmetricElement<MT>::operator->() noexcept
+inline typename SymmetricElement<MT>::Pointer SymmetricElement<MT>::operator->()
 {
    return this;
 }

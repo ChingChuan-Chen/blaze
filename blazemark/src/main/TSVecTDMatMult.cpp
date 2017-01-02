@@ -1,6 +1,6 @@
 //=================================================================================================
 /*!
-//  \file src/main/TSVecTDMatMult.cpp
+//  \file src/blaze/TSVecTDMatMult.cpp
 //  \brief Source file for the transpose sparse vector/transpose dense matrix multiplication benchmark
 //
 //  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
@@ -58,6 +58,7 @@
 #include <blazemark/system/Types.h>
 #include <blazemark/util/Benchmarks.h>
 #include <blazemark/util/DynamicSparseRun.h>
+#include <blazemark/util/Indices.h>
 #include <blazemark/util/Parser.h>
 
 

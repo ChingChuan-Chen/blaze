@@ -98,31 +98,13 @@ struct UnderlyingNumeric
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   typedef typename If_< Or< IsBuiltin<T>, IsComplex<T> >
-                       , BuiltinOrComplex<T>
-                       , Other<T>
-                       >::Type  Type;
+   typedef typename If< Or< IsBuiltin<T>, IsComplex<T> >
+                      , BuiltinOrComplex<T>
+                      , Other<T>
+                      >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the UnderlyingNumeric type trait.
-// \ingroup type_traits
-//
-// The UnderlyingNumeric_ alias declaration provides a convenient shortcut to access the
-// nested \a Type of the UnderlyingNumeric class template. For instance, given the type \a T
-// the following two type definitions are identical:
-
-   \code
-   using Type1 = typename UnderlyingNumeric<T>::Type;
-   using Type2 = UnderlyingNumeric_<T>;
-   \endcode
-*/
-template< typename T >
-using UnderlyingNumeric_ = typename UnderlyingNumeric<T>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

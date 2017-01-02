@@ -42,14 +42,12 @@
 
 #include <blaze/math/expressions/DenseMatrix.h>
 #include <blaze/math/expressions/DVecTSVecMultExpr.h>
-#include <blaze/math/expressions/SMatDeclDiagExpr.h>
-#include <blaze/math/expressions/SMatDeclHermExpr.h>
-#include <blaze/math/expressions/SMatDeclLowExpr.h>
-#include <blaze/math/expressions/SMatDeclSymExpr.h>
-#include <blaze/math/expressions/SMatDeclUppExpr.h>
+#include <blaze/math/expressions/SMatAbsExpr.h>
+#include <blaze/math/expressions/SMatConjExpr.h>
 #include <blaze/math/expressions/SMatDVecMultExpr.h>
 #include <blaze/math/expressions/SMatEvalExpr.h>
-#include <blaze/math/expressions/SMatForEachExpr.h>
+#include <blaze/math/expressions/SMatImagExpr.h>
+#include <blaze/math/expressions/SMatRealExpr.h>
 #include <blaze/math/expressions/SMatScalarDivExpr.h>
 #include <blaze/math/expressions/SMatScalarMultExpr.h>
 #include <blaze/math/expressions/SMatSerialExpr.h>
@@ -79,8 +77,5 @@
 #include <blaze/math/smp/DenseMatrix.h>
 #include <blaze/math/smp/SparseMatrix.h>
 #include <blaze/math/sparse/SparseMatrix.h>
-#include <blaze/math/views/Column.h>
-#include <blaze/math/views/Row.h>
-#include <blaze/math/views/Submatrix.h>
 
 #endif

@@ -41,7 +41,6 @@
 //*************************************************************************************************
 
 #include <iterator>
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/ColumnMajorMatrix.h>
 #include <blaze/math/constraints/ColumnVector.h>
 #include <blaze/math/constraints/DenseMatrix.h>
@@ -51,13 +50,12 @@
 #include <blaze/math/constraints/StorageOrder.h>
 #include <blaze/math/constraints/Symmetric.h>
 #include <blaze/math/constraints/VecTVecMultExpr.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/Computation.h>
 #include <blaze/math/expressions/DenseMatrix.h>
 #include <blaze/math/expressions/Forward.h>
 #include <blaze/math/expressions/VecTVecMultExpr.h>
+#include <blaze/math/Intrinsics.h>
 #include <blaze/math/shims/Serial.h>
-#include <blaze/math/SIMD.h>
 #include <blaze/math/traits/ColumnExprTrait.h>
 #include <blaze/math/traits/MultExprTrait.h>
 #include <blaze/math/traits/MultTrait.h>
@@ -65,12 +63,10 @@
 #include <blaze/math/traits/SubmatrixExprTrait.h>
 #include <blaze/math/traits/SubvectorExprTrait.h>
 #include <blaze/math/typetraits/Columns.h>
-#include <blaze/math/typetraits/HasSIMDMult.h>
 #include <blaze/math/typetraits/IsAligned.h>
 #include <blaze/math/typetraits/IsComputation.h>
 #include <blaze/math/typetraits/IsExpression.h>
 #include <blaze/math/typetraits/IsPadded.h>
-#include <blaze/math/typetraits/IsSIMDCombinable.h>
 #include <blaze/math/typetraits/IsTemporary.h>
 #include <blaze/math/typetraits/RequiresEvaluation.h>
 #include <blaze/math/typetraits/Rows.h>
@@ -81,12 +77,12 @@
 #include <blaze/util/Assert.h>
 #include <blaze/util/constraints/Reference.h>
 #include <blaze/util/EnableIf.h>
-#include <blaze/util/IntegralConstant.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/logging/FunctionTrace.h>
-#include <blaze/util/mpl/And.h>
-#include <blaze/util/mpl/If.h>
+#include <blaze/util/SelectType.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/typetraits/IsReference.h>
+#include <blaze/util/valuetraits/IsTrue.h>
 
 
 namespace blaze {
@@ -112,24 +108,24 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
 {
  private:
    //**Type definitions****************************************************************************
-   typedef ResultType_<VT1>     RT1;  //!< Result type of the left-hand side dense vector expression.
-   typedef ResultType_<VT2>     RT2;  //!< Result type of the right-hand side dense vector expression.
-   typedef ElementType_<RT1>    ET1;  //!< Element type of the left-hand side dense vector expression.
-   typedef ElementType_<RT2>    ET2;  //!< Element type of the right-hand side dense vector expression.
-   typedef ReturnType_<VT1>     RN1;  //!< Return type of the left-hand side dense vector expression.
-   typedef ReturnType_<VT2>     RN2;  //!< Return type of the right-hand side dense vector expression.
-   typedef CompositeType_<VT1>  CT1;  //!< Composite type of the left-hand side dense vector expression.
-   typedef CompositeType_<VT2>  CT2;  //!< Composite type of the right-hand side dense vector expression.
+   typedef typename VT1::ResultType     RT1;  //!< Result type of the left-hand side dense vector expression.
+   typedef typename VT2::ResultType     RT2;  //!< Result type of the right-hand side dense vector expression.
+   typedef typename RT1::ElementType    ET1;  //!< Element type of the left-hand side dense vector expression.
+   typedef typename RT2::ElementType    ET2;  //!< Element type of the right-hand side dense vector expression.
+   typedef typename VT1::ReturnType     RN1;  //!< Return type of the left-hand side dense vector expression.
+   typedef typename VT2::ReturnType     RN2;  //!< Return type of the right-hand side dense vector expression.
+   typedef typename VT1::CompositeType  CT1;  //!< Composite type of the left-hand side dense vector expression.
+   typedef typename VT2::CompositeType  CT2;  //!< Composite type of the right-hand side dense vector expression.
    //**********************************************************************************************
 
    //**********************************************************************************************
    //! Compilation switch for the composite type of the left-hand side dense vector expression.
-   enum : bool { evaluateLeft = IsComputation<VT1>::value || RequiresEvaluation<VT1>::value };
+   enum { evaluateLeft = IsComputation<VT1>::value || RequiresEvaluation<VT1>::value };
    //**********************************************************************************************
 
    //**********************************************************************************************
    //! Compilation switch for the composite type of the right-hand side dense vector expression.
-   enum : bool { evaluateRight = IsComputation<VT2>::value || RequiresEvaluation<VT2>::value };
+   enum { evaluateRight = IsComputation<VT2>::value || RequiresEvaluation<VT2>::value };
    //**********************************************************************************************
 
    //**Return type evaluation**********************************************************************
@@ -139,10 +135,10 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
        or matrix, \a returnExpr will be set to \a false and the subscript operator will
        return it's result by value. Otherwise \a returnExpr will be set to \a true and
        the subscript operator may return it's result as an expression. */
-   enum : bool { returnExpr = !IsTemporary<RN1>::value && !IsTemporary<RN2>::value };
+   enum { returnExpr = !IsTemporary<RN1>::value && !IsTemporary<RN2>::value };
 
    //! Expression return type for the subscript operator.
-   typedef MultExprTrait_<RN1,RN2>  ExprReturnType;
+   typedef typename MultExprTrait<RN1,RN2>::Type  ExprReturnType;
    //**********************************************************************************************
 
    //**Serial evaluation strategy******************************************************************
@@ -153,13 +149,13 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
        and the outer product expression will be evaluated via the \a assign function family.
        Otherwise \a useAssign will be set to \a false and the expression will be evaluated
        via the function call operator. */
-   enum : bool { useAssign = ( evaluateLeft || evaluateRight ) };
+   enum { useAssign = ( evaluateLeft || evaluateRight ) };
 
    /*! \cond BLAZE_INTERNAL */
    //! Helper structure for the explicit application of the SFINAE principle.
    template< typename VT >
    struct UseAssign {
-      enum : bool { value = useAssign };
+      enum { value = useAssign };
    };
    /*! \endcond */
    //**********************************************************************************************
@@ -172,7 +168,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
        the nested \value will be set to 1, otherwise it will be 0. */
    template< typename VT >
    struct UseSMPAssign {
-      enum : bool { value = evaluateRight };
+      enum { value = evaluateRight };
    };
    /*! \endcond */
    //**********************************************************************************************
@@ -184,12 +180,11 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
        outer product, the nested \value will be set to 1, otherwise it will be 0. */
    template< typename T1, typename T2, typename T3 >
    struct UseVectorizedKernel {
-      enum : bool { value = useOptimizedKernels &&
-                            T1::simdEnabled && T2::simdEnabled && T3::simdEnabled &&
-                            IsSIMDCombinable< ElementType_<T1>
-                                            , ElementType_<T2>
-                                            , ElementType_<T3> >::value &&
-                            HasSIMDMult< ElementType_<T2>, ElementType_<T3> >::value };
+      enum { value = useOptimizedKernels &&
+                     T1::vectorizable && T2::vectorizable && T3::vectorizable &&
+                     IsSame<typename T1::ElementType,typename T2::ElementType>::value &&
+                     IsSame<typename T1::ElementType,typename T3::ElementType>::value &&
+                     IntrinsicTrait<typename T1::ElementType>::multiplication };
    };
    /*! \endcond */
    //**********************************************************************************************
@@ -201,37 +196,37 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
        otherwise it will be 0. */
    template< typename T1, typename T2, typename T3 >
    struct UseDefaultKernel {
-      enum : bool { value = !UseVectorizedKernel<T1,T2,T3>::value };
+      enum { value = !UseVectorizedKernel<T1,T2,T3>::value };
    };
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
-   typedef DVecTDVecMultExpr<VT1,VT2>  This;           //!< Type of this DVecTDVecMultExpr instance.
-   typedef MultTrait_<RT1,RT2>         ResultType;     //!< Result type for expression template evaluations.
-   typedef OppositeType_<ResultType>   OppositeType;   //!< Result type with opposite storage order for expression template evaluations.
-   typedef TransposeType_<ResultType>  TransposeType;  //!< Transpose type for expression template evaluations.
-   typedef ElementType_<ResultType>    ElementType;    //!< Resulting element type.
-   typedef SIMDTrait_<ElementType>     SIMDType;       //!< Resulting SIMD element type.
+   typedef DVecTDVecMultExpr<VT1,VT2>                  This;           //!< Type of this DVecTDVecMultExpr instance.
+   typedef typename MultTrait<RT1,RT2>::Type           ResultType;     //!< Result type for expression template evaluations.
+   typedef typename ResultType::OppositeType           OppositeType;   //!< Result type with opposite storage order for expression template evaluations.
+   typedef typename ResultType::TransposeType          TransposeType;  //!< Transpose type for expression template evaluations.
+   typedef typename ResultType::ElementType            ElementType;    //!< Resulting element type.
+   typedef typename IntrinsicTrait<ElementType>::Type  IntrinsicType;  //!< Resulting intrinsic element type.
 
    //! Return type for expression template evaluations.
-   typedef const IfTrue_< returnExpr, ExprReturnType, ElementType >  ReturnType;
+   typedef const typename SelectType< returnExpr, ExprReturnType, ElementType >::Type  ReturnType;
 
    //! Data type for composite expression templates.
-   typedef IfTrue_< useAssign, const ResultType, const DVecTDVecMultExpr& >  CompositeType;
+   typedef typename SelectType< useAssign, const ResultType, const DVecTDVecMultExpr& >::Type  CompositeType;
 
    //! Composite type of the left-hand side dense vector expression.
-   typedef If_< IsExpression<VT1>, const VT1, const VT1& >  LeftOperand;
+   typedef typename SelectType< IsExpression<VT1>::value, const VT1, const VT1& >::Type  LeftOperand;
 
    //! Composite type of the right-hand side dense vector expression.
-   typedef If_< IsExpression<VT2>, const VT2, const VT2& >  RightOperand;
+   typedef typename SelectType< IsExpression<VT2>::value, const VT2, const VT2& >::Type  RightOperand;
 
    //! Type for the assignment of the left-hand side dense vector operand.
-   typedef IfTrue_< evaluateLeft, const RT1, CT1 >  LT;
+   typedef typename SelectType< evaluateLeft, const RT1, CT1 >::Type  LT;
 
    //! Type for the assignment of the right-hand side dense vector operand.
-   typedef IfTrue_< evaluateRight, const RT2, CT2 >  RT;
+   typedef typename SelectType< evaluateRight, const RT2, CT2 >::Type  RT;
    //**********************************************************************************************
 
    //**ConstIterator class definition**************************************************************
@@ -255,10 +250,10 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
       typedef DifferenceType    difference_type;    //!< Difference between two iterators.
 
       //! ConstIterator type of the left-hand side dense matrix expression.
-      typedef ConstIterator_<VT1>  LeftIteratorType;
+      typedef typename VT1::ConstIterator  LeftIteratorType;
 
       //! ConstIterator type of the right-hand side dense matrix expression.
-      typedef ConstIterator_<VT2>  RightIteratorType;
+      typedef typename VT2::ConstIterator  RightIteratorType;
       //*******************************************************************************************
 
       //**Constructor******************************************************************************
@@ -350,11 +345,11 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
       //*******************************************************************************************
 
       //**Load function****************************************************************************
-      /*!\brief Access to the SIMD elements of the matrix.
+      /*!\brief Access to the intrinsic elements of the matrix.
       //
-      // \return The resulting SIMD element.
+      // \return The resulting intrinsic value.
       */
-      inline auto load() const noexcept {
+      inline IntrinsicType load() const {
          return set( *left_ ) * right_.load();
       }
       //*******************************************************************************************
@@ -482,16 +477,12 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template evaluation strategy.
-   enum : bool { simdEnabled = VT1::simdEnabled && VT2::simdEnabled &&
-                               HasSIMDMult<ET1,ET2>::value };
+   enum { vectorizable = VT1::vectorizable && VT2::vectorizable &&
+                         IsSame<ET1,ET2>::value &&
+                         IntrinsicTrait<ET1>::multiplication };
 
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = VT1::smpAssignable && !evaluateRight };
-   //**********************************************************************************************
-
-   //**SIMD properties*****************************************************************************
-   //! The number of elements packed within a single SIMD element.
-   enum : size_t { SIMDSIZE = SIMDTrait<ElementType>::size };
+   enum { smpAssignable = VT1::smpAssignable && !evaluateRight };
    //**********************************************************************************************
 
    //**Constructor*********************************************************************************
@@ -500,7 +491,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    // \param lhs The left-hand side dense vector operand of the multiplication expression.
    // \param rhs The right-hand side dense vector operand of the multiplication expression.
    */
-   explicit inline DVecTDVecMultExpr( const VT1& lhs, const VT2& rhs ) noexcept
+   explicit inline DVecTDVecMultExpr( const VT1& lhs, const VT2& rhs )
       : lhs_( lhs )  // Left-hand side dense vector of the multiplication expression
       , rhs_( rhs )  // Right-hand side dense vector of the multiplication expression
    {}
@@ -541,17 +532,20 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    //**********************************************************************************************
 
    //**Load function*******************************************************************************
-   /*!\brief Access to the SIMD elements of the matrix.
+   /*!\brief Access to the intrinsic elements of the matrix.
    //
    // \param i Access index for the row. The index has to be in the range \f$[0..M-1]\f$.
    // \param j Access index for the column. The index has to be in the range \f$[0..N-1]\f$.
    // \return Reference to the accessed values.
    */
-   BLAZE_ALWAYS_INLINE auto load( size_t i, size_t j ) const noexcept {
+   BLAZE_ALWAYS_INLINE IntrinsicType load( size_t i, size_t j ) const {
+      typedef IntrinsicTrait<ElementType>  IT;
       BLAZE_INTERNAL_ASSERT( i < lhs_.size()    , "Invalid row access index"    );
       BLAZE_INTERNAL_ASSERT( j < rhs_.size()    , "Invalid column access index" );
-      BLAZE_INTERNAL_ASSERT( j % SIMDSIZE == 0UL, "Invalid column access index" );
-      return set( lhs_[i] ) * rhs_.load( j );
+      BLAZE_INTERNAL_ASSERT( j % IT::size == 0UL, "Invalid column access index" );
+      const IntrinsicType xmm1( set( lhs_[i] ) );
+      const IntrinsicType xmm2( rhs_.load( j ) );
+      return xmm1 * xmm2;
    }
    //**********************************************************************************************
 
@@ -584,7 +578,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    //
    // \return The number of rows of the matrix.
    */
-   inline size_t rows() const noexcept {
+   inline size_t rows() const {
       return lhs_.size();
    }
    //**********************************************************************************************
@@ -594,7 +588,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    //
    // \return The number of columns of the matrix.
    */
-   inline size_t columns() const noexcept {
+   inline size_t columns() const {
       return rhs_.size();
    }
    //**********************************************************************************************
@@ -604,7 +598,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    //
    // \return The left-hand side dense vector operand.
    */
-   inline LeftOperand leftOperand() const noexcept {
+   inline LeftOperand leftOperand() const {
       return lhs_;
    }
    //**********************************************************************************************
@@ -614,7 +608,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    //
    // \return The right-hand side dense vector operand.
    */
-   inline RightOperand rightOperand() const noexcept {
+   inline RightOperand rightOperand() const {
       return rhs_;
    }
    //**********************************************************************************************
@@ -626,7 +620,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    // \return \a true in case the expression can alias, \a false otherwise.
    */
    template< typename T >
-   inline bool canAlias( const T* alias ) const noexcept {
+   inline bool canAlias( const T* alias ) const {
       return ( lhs_.canAlias( alias ) || rhs_.canAlias( alias ) );
    }
    //**********************************************************************************************
@@ -638,7 +632,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    // \return \a true in case an alias effect is detected, \a false otherwise.
    */
    template< typename T >
-   inline bool isAliased( const T* alias ) const noexcept {
+   inline bool isAliased( const T* alias ) const {
       return ( lhs_.isAliased( alias ) || rhs_.isAliased( alias ) );
    }
    //**********************************************************************************************
@@ -648,7 +642,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    //
    // \return \a true in case the operands are aligned, \a false if not.
    */
-   inline bool isAligned() const noexcept {
+   inline bool isAligned() const {
       return lhs_.isAligned() && rhs_.isAligned();
    }
    //**********************************************************************************************
@@ -658,8 +652,8 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    //
    // \return \a true in case the expression can be used in SMP assignments, \a false if not.
    */
-   inline bool canSMPAssign() const noexcept {
-      return ( rows() * columns() >= SMP_DVECTDVECMULT_THRESHOLD );
+   inline bool canSMPAssign() const {
+      return ( rows() > SMP_DVECTDVECMULT_THRESHOLD );
    }
    //**********************************************************************************************
 
@@ -684,7 +678,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    // in case either of the two operands requires an intermediate evaluation.
    */
    template< typename MT >  // Type of the target dense matrix
-   friend inline EnableIf_< UseAssign<MT> >
+   friend inline typename EnableIf< UseAssign<MT> >::Type
       assign( DenseMatrix<MT,false>& lhs, const DVecTDVecMultExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -722,7 +716,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    template< typename MT     // Type of the left-hand side target matrix
            , typename VT3    // Type of the left-hand side vector operand
            , typename VT4 >  // Type of the right-hand side vector operand
-   static inline EnableIf_< UseDefaultKernel<MT,VT3,VT4> >
+   static inline typename EnableIf< UseDefaultKernel<MT,VT3,VT4> >::Type
       selectAssignKernel( DenseMatrix<MT,false>& A, const VT3& x, const VT4& y )
    {
       const size_t M( (~A).rows() );
@@ -761,24 +755,26 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    template< typename MT     // Type of the left-hand side target matrix
            , typename VT3    // Type of the left-hand side vector operand
            , typename VT4 >  // Type of the right-hand side vector operand
-   static inline EnableIf_< UseVectorizedKernel<MT,VT3,VT4> >
+   static inline typename EnableIf< UseVectorizedKernel<MT,VT3,VT4> >::Type
       selectAssignKernel( DenseMatrix<MT,false>& A, const VT3& x, const VT4& y )
    {
-      constexpr bool remainder( !IsPadded<MT>::value || !IsPadded<VT4>::value );
+      typedef IntrinsicTrait<ElementType>  IT;
 
       const size_t M( (~A).rows() );
       const size_t N( (~A).columns() );
 
-      const size_t jpos( remainder ? ( N & size_t(-SIMDSIZE) ) : N );
-      BLAZE_INTERNAL_ASSERT( !remainder || ( N - ( N % SIMDSIZE ) ) == jpos, "Invalid end calculation" );
+      const bool remainder( !IsPadded<MT>::value || !IsPadded<VT4>::value );
+
+      const size_t jpos( remainder ? ( N & size_t(-IT::size) ) : N );
+      BLAZE_INTERNAL_ASSERT( !remainder || ( N - ( N % IT::size ) ) == jpos, "Invalid end calculation" );
 
       for( size_t i=0UL; i<M; ++i )
       {
-         const SIMDType x1( set( x[i] ) );
+         const IntrinsicType x1( set( x[i] ) );
 
          size_t j( 0UL );
 
-         for( ; j<jpos; j+=SIMDSIZE ) {
+         for( ; j<jpos; j+=IT::size ) {
             (~A).store( i, j, x1 * y.load(j) );
          }
          for( ; remainder && j<N; ++j ) {
@@ -841,7 +837,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    template< typename MT     // Type of the left-hand side target matrix
            , typename VT3    // Type of the left-hand side vector operand
            , typename VT4 >  // Type of the right-hand side vector operand
-   static inline EnableIf_< UseDefaultKernel<MT,VT3,VT4> >
+   static inline typename EnableIf< UseDefaultKernel<MT,VT3,VT4> >::Type
       selectAssignKernel( DenseMatrix<MT,true>& A, const VT3& x, const VT4& y )
    {
       const size_t M( (~A).rows() );
@@ -880,24 +876,26 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    template< typename MT     // Type of the left-hand side target matrix
            , typename VT3    // Type of the left-hand side vector operand
            , typename VT4 >  // Type of the right-hand side vector operand
-   static inline EnableIf_< UseVectorizedKernel<MT,VT3,VT4> >
+   static inline typename EnableIf< UseVectorizedKernel<MT,VT3,VT4> >::Type
       selectAssignKernel( DenseMatrix<MT,true>& A, const VT3& x, const VT4& y )
    {
-      constexpr bool remainder( !IsPadded<MT>::value || !IsPadded<VT3>::value );
+      typedef IntrinsicTrait<ElementType>  IT;
 
       const size_t M( (~A).rows() );
       const size_t N( (~A).columns() );
 
-      const size_t ipos( remainder ? ( M & size_t(-SIMDSIZE) ) : M );
-      BLAZE_INTERNAL_ASSERT( !remainder || ( M - ( M % SIMDSIZE ) ) == ipos, "Invalid end calculation" );
+      const bool remainder( !IsPadded<MT>::value || !IsPadded<VT3>::value );
+
+      const size_t ipos( remainder ? ( M & size_t(-IT::size) ) : M );
+      BLAZE_INTERNAL_ASSERT( !remainder || ( M - ( M % IT::size ) ) == ipos, "Invalid end calculation" );
 
       for( size_t j=0UL; j<N; ++j )
       {
-         const SIMDType y1( set( y[j] ) );
+         const IntrinsicType y1( set( y[j] ) );
 
          size_t i( 0UL );
 
-         for( ; i<ipos; i+=SIMDSIZE ) {
+         for( ; i<ipos; i+=IT::size ) {
             (~A).store( i, j, x.load(i) * y1 );
          }
          for( ; remainder && i<M; ++i ) {
@@ -926,14 +924,14 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    {
       BLAZE_FUNCTION_TRACE;
 
-      typedef IfTrue_< SO, OppositeType, ResultType >  TmpType;
+      typedef typename SelectType< SO, OppositeType, ResultType >::Type  TmpType;
 
       BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( OppositeType );
       BLAZE_CONSTRAINT_MUST_BE_ROW_MAJOR_MATRIX_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_COLUMN_MAJOR_MATRIX_TYPE( OppositeType );
       BLAZE_CONSTRAINT_MATRICES_MUST_HAVE_SAME_STORAGE_ORDER( MT, TmpType );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<TmpType> );
+      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( typename TmpType::CompositeType );
 
       BLAZE_INTERNAL_ASSERT( (~lhs).rows()    == rhs.rows()   , "Invalid number of rows"    );
       BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
@@ -960,7 +958,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    // in case either of the two operands requires an intermediate evaluation.
    */
    template< typename MT >  // Type of the target dense matrix
-   friend inline EnableIf_< UseAssign<MT> >
+   friend inline typename EnableIf< UseAssign<MT> >::Type
       addAssign( DenseMatrix<MT,false>& lhs, const DVecTDVecMultExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -998,7 +996,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    template< typename MT     // Type of the left-hand side target matrix
            , typename VT3    // Type of the left-hand side vector operand
            , typename VT4 >  // Type of the right-hand side vector operand
-   static inline EnableIf_< UseDefaultKernel<MT,VT3,VT4> >
+   static inline typename EnableIf< UseDefaultKernel<MT,VT3,VT4> >::Type
       selectAddAssignKernel( DenseMatrix<MT,false>& A, const VT3& x, const VT4& y )
    {
       const size_t M( (~A).rows() );
@@ -1037,24 +1035,26 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    template< typename MT     // Type of the left-hand side target matrix
            , typename VT3    // Type of the left-hand side vector operand
            , typename VT4 >  // Type of the right-hand side vector operand
-   static inline EnableIf_< UseVectorizedKernel<MT,VT3,VT4> >
+   static inline typename EnableIf< UseVectorizedKernel<MT,VT3,VT4> >::Type
       selectAddAssignKernel( DenseMatrix<MT,false>& A, const VT3& x, const VT4& y )
    {
-      constexpr bool remainder( !IsPadded<MT>::value || !IsPadded<VT4>::value );
+      typedef IntrinsicTrait<ElementType>  IT;
 
       const size_t M( (~A).rows() );
       const size_t N( (~A).columns() );
 
-      const size_t jpos( remainder ? ( N & size_t(-SIMDSIZE) ) : N );
-      BLAZE_INTERNAL_ASSERT( !remainder || ( N - ( N % SIMDSIZE ) ) == jpos, "Invalid end calculation" );
+      const bool remainder( !IsPadded<MT>::value || !IsPadded<VT4>::value );
+
+      const size_t jpos( remainder ? ( N & size_t(-IT::size) ) : N );
+      BLAZE_INTERNAL_ASSERT( !remainder || ( N - ( N % IT::size ) ) == jpos, "Invalid end calculation" );
 
       for( size_t i=0UL; i<M; ++i )
       {
-         const SIMDType x1( set( x[i] ) );
+         const IntrinsicType x1( set( x[i] ) );
 
          size_t j( 0UL );
 
-         for( ; j<jpos; j+=SIMDSIZE ) {
+         for( ; j<jpos; j+=IT::size ) {
             (~A).store( i, j, (~A).load(i,j) + x1 * y.load(j) );
          }
          for( ; remainder && j<N; ++j ) {
@@ -1118,7 +1118,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    template< typename MT     // Type of the left-hand side target matrix
            , typename VT3    // Type of the left-hand side vector operand
            , typename VT4 >  // Type of the right-hand side vector operand
-   static inline EnableIf_< UseDefaultKernel<MT,VT3,VT4> >
+   static inline typename EnableIf< UseDefaultKernel<MT,VT3,VT4> >::Type
       selectAddAssignKernel( DenseMatrix<MT,true>& A, const VT3& x, const VT4& y )
    {
       const size_t M( (~A).rows() );
@@ -1157,24 +1157,26 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    template< typename MT     // Type of the left-hand side target matrix
            , typename VT3    // Type of the left-hand side vector operand
            , typename VT4 >  // Type of the right-hand side vector operand
-   static inline EnableIf_< UseVectorizedKernel<MT,VT3,VT4> >
+   static inline typename EnableIf< UseVectorizedKernel<MT,VT3,VT4> >::Type
       selectAddAssignKernel( DenseMatrix<MT,true>& A, const VT3& x, const VT4& y )
    {
-      constexpr bool remainder( !IsPadded<MT>::value || !IsPadded<VT3>::value );
+      typedef IntrinsicTrait<ElementType>  IT;
 
       const size_t M( (~A).rows() );
       const size_t N( (~A).columns() );
 
-      const size_t ipos( remainder ? ( M & size_t(-SIMDSIZE) ) : M );
-      BLAZE_INTERNAL_ASSERT( !remainder || ( M - ( M % SIMDSIZE ) ) == ipos, "Invalid end calculation" );
+      const bool remainder( !IsPadded<MT>::value || !IsPadded<VT3>::value );
+
+      const size_t ipos( remainder ? ( M & size_t(-IT::size) ) : M );
+      BLAZE_INTERNAL_ASSERT( !remainder || ( M - ( M % IT::size ) ) == ipos, "Invalid end calculation" );
 
       for( size_t j=0UL; j<N; ++j )
       {
-         const SIMDType y1( set( y[j] ) );
+         const IntrinsicType y1( set( y[j] ) );
 
          size_t i( 0UL );
 
-         for( ; i<ipos; i+=SIMDSIZE ) {
+         for( ; i<ipos; i+=IT::size ) {
             (~A).store( i, j, (~A).load(i,j) + x.load(i) * y1 );
          }
          for( ; remainder && i<M; ++i ) {
@@ -1205,7 +1207,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    // in case either of the two operands requires an intermediate evaluation.
    */
    template< typename MT >  // Type of the target dense matrix
-   friend inline EnableIf_< UseAssign<MT> >
+   friend inline typename EnableIf< UseAssign<MT> >::Type
       subAssign( DenseMatrix<MT,false>& lhs, const DVecTDVecMultExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -1243,7 +1245,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    template< typename MT     // Type of the left-hand side target matrix
            , typename VT3    // Type of the left-hand side vector operand
            , typename VT4 >  // Type of the right-hand side vector operand
-   static inline EnableIf_< UseDefaultKernel<MT,VT3,VT4> >
+   static inline typename EnableIf< UseDefaultKernel<MT,VT3,VT4> >::Type
       selectSubAssignKernel( DenseMatrix<MT,false>& A, const VT3& x, const VT4& y )
    {
       const size_t M( (~A).rows() );
@@ -1282,24 +1284,26 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    template< typename MT     // Type of the left-hand side target matrix
            , typename VT3    // Type of the left-hand side vector operand
            , typename VT4 >  // Type of the right-hand side vector operand
-   static inline EnableIf_< UseVectorizedKernel<MT,VT3,VT4> >
+   static inline typename EnableIf< UseVectorizedKernel<MT,VT3,VT4> >::Type
       selectSubAssignKernel( DenseMatrix<MT,false>& A, const VT3& x, const VT4& y )
    {
-      constexpr bool remainder( !IsPadded<MT>::value || !IsPadded<VT4>::value );
+      typedef IntrinsicTrait<ElementType>  IT;
 
       const size_t M( (~A).rows() );
       const size_t N( (~A).columns() );
 
-      const size_t jpos( remainder ? ( N & size_t(-SIMDSIZE) ) : N );
-      BLAZE_INTERNAL_ASSERT( !remainder || ( N - ( N % SIMDSIZE ) ) == jpos, "Invalid end calculation" );
+      const bool remainder( !IsPadded<MT>::value || !IsPadded<VT4>::value );
+
+      const size_t jpos( remainder ? ( N & size_t(-IT::size) ) : N );
+      BLAZE_INTERNAL_ASSERT( !remainder || ( N - ( N % IT::size ) ) == jpos, "Invalid end calculation" );
 
       for( size_t i=0UL; i<M; ++i )
       {
-         const SIMDType x1( set( x[i] ) );
+         const IntrinsicType x1( set( x[i] ) );
 
          size_t j( 0UL );
 
-         for( ; j<jpos; j+=SIMDSIZE ) {
+         for( ; j<jpos; j+=IT::size ) {
             (~A).store( i, j, (~A).load(i,j) - x1 * y.load(j) );
          }
          for( ; remainder && j<N; ++j ) {
@@ -1363,7 +1367,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    template< typename MT     // Type of the left-hand side target matrix
            , typename VT3    // Type of the left-hand side vector operand
            , typename VT4 >  // Type of the right-hand side vector operand
-   static inline EnableIf_< UseDefaultKernel<MT,VT3,VT4> >
+   static inline typename EnableIf< UseDefaultKernel<MT,VT3,VT4> >::Type
       selectSubAssignKernel( DenseMatrix<MT,true>& A, const VT3& x, const VT4& y )
    {
       const size_t M( (~A).rows() );
@@ -1402,24 +1406,26 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    template< typename MT     // Type of the left-hand side target matrix
            , typename VT3    // Type of the left-hand side vector operand
            , typename VT4 >  // Type of the right-hand side vector operand
-   static inline EnableIf_< UseVectorizedKernel<MT,VT3,VT4> >
+   static inline typename EnableIf< UseVectorizedKernel<MT,VT3,VT4> >::Type
       selectSubAssignKernel( DenseMatrix<MT,true>& A, const VT3& x, const VT4& y )
    {
-      constexpr bool remainder( !IsPadded<MT>::value || !IsPadded<VT3>::value );
+      typedef IntrinsicTrait<ElementType>  IT;
 
       const size_t M( (~A).rows() );
       const size_t N( (~A).columns() );
 
-      const size_t ipos( remainder ? ( M & size_t(-SIMDSIZE) ) : M );
-      BLAZE_INTERNAL_ASSERT( !remainder || ( M - ( M % SIMDSIZE ) ) == ipos, "Invalid end calculation" );
+      const bool remainder( !IsPadded<MT>::value || !IsPadded<VT3>::value );
+
+      const size_t ipos( remainder ? ( M & size_t(-IT::size) ) : M );
+      BLAZE_INTERNAL_ASSERT( !remainder || ( M - ( M % IT::size ) ) == ipos, "Invalid end calculation" );
 
       for( size_t j=0UL; j<N; ++j )
       {
-         const SIMDType y1( set( y[j] ) );
+         const IntrinsicType y1( set( y[j] ) );
 
          size_t i( 0UL );
 
-         for( ; i<ipos; i+=SIMDSIZE ) {
+         for( ; i<ipos; i+=IT::size ) {
             (~A).store( i, j, (~A).load(i,j) - x.load(i) * y1 );
          }
          for( ; remainder && i<M; ++i ) {
@@ -1458,7 +1464,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    */
    template< typename MT  // Type of the target dense matrix
            , bool SO >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseSMPAssign<MT> >
+   friend inline typename EnableIf< UseSMPAssign<MT> >::Type
       smpAssign( DenseMatrix<MT,SO>& lhs, const DVecTDVecMultExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -1495,19 +1501,19 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    */
    template< typename MT  // Type of the target sparse matrix
            , bool SO >    // Storage order of the target sparse matrix
-   friend inline EnableIf_< UseSMPAssign<MT> >
+   friend inline typename EnableIf< UseSMPAssign<MT> >::Type
       smpAssign( SparseMatrix<MT,SO>& lhs, const DVecTDVecMultExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
 
-      typedef IfTrue_< SO, OppositeType, ResultType >  TmpType;
+      typedef typename SelectType< SO, OppositeType, ResultType >::Type  TmpType;
 
       BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( OppositeType );
       BLAZE_CONSTRAINT_MUST_BE_ROW_MAJOR_MATRIX_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_COLUMN_MAJOR_MATRIX_TYPE( OppositeType );
       BLAZE_CONSTRAINT_MATRICES_MUST_HAVE_SAME_STORAGE_ORDER( MT, TmpType );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<TmpType> );
+      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( typename TmpType::CompositeType );
 
       BLAZE_INTERNAL_ASSERT( (~lhs).rows()    == rhs.rows()   , "Invalid number of rows"    );
       BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
@@ -1533,7 +1539,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    // in case the expression specific parallel evaluation strategy is selected.
    */
    template< typename MT >  // Type of the target dense matrix
-   friend inline EnableIf_< UseSMPAssign<MT> >
+   friend inline typename EnableIf< UseSMPAssign<MT> >::Type
       smpAddAssign( DenseMatrix<MT,false>& lhs, const DVecTDVecMultExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -1574,7 +1580,7 @@ class DVecTDVecMultExpr : public DenseMatrix< DVecTDVecMultExpr<VT1,VT2>, false 
    // in case the expression specific parallel evaluation strategy is selected.
    */
    template< typename MT >  // Type of the target dense matrix
-   friend inline EnableIf_< UseSMPAssign<MT> >
+   friend inline typename EnableIf< UseSMPAssign<MT> >::Type
       smpSubAssign( DenseMatrix<MT,false>& lhs, const DVecTDVecMultExpr& rhs )
    {
       BLAZE_FUNCTION_TRACE;
@@ -1713,7 +1719,7 @@ struct Columns< DVecTDVecMultExpr<VT1,VT2> > : public Size<VT2>
 /*! \cond BLAZE_INTERNAL */
 template< typename VT1, typename VT2 >
 struct IsAligned< DVecTDVecMultExpr<VT1,VT2> >
-   : public BoolConstant< And< IsAligned<VT1>, IsAligned<VT2> >::value >
+   : public IsTrue< And< IsAligned<VT1>, IsAligned<VT2> >::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1730,8 +1736,7 @@ struct IsAligned< DVecTDVecMultExpr<VT1,VT2> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename VT1, typename VT2 >
-struct IsPadded< DVecTDVecMultExpr<VT1,VT2> >
-   : public BoolConstant< IsPadded<VT2>::value >
+struct IsPadded< DVecTDVecMultExpr<VT1,VT2> > : public IsTrue< IsPadded<VT2>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1752,8 +1757,8 @@ struct SubmatrixExprTrait< DVecTDVecMultExpr<VT1,VT2>, AF >
 {
  public:
    //**********************************************************************************************
-   using Type = MultExprTrait_< SubvectorExprTrait_<const VT1,AF>
-                              , SubvectorExprTrait_<const VT2,AF> >;
+   typedef typename MultExprTrait< typename SubvectorExprTrait<const VT1,AF>::Type
+                                 , typename SubvectorExprTrait<const VT2,AF>::Type >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -1767,7 +1772,7 @@ struct RowExprTrait< DVecTDVecMultExpr<VT1,VT2> >
 {
  public:
    //**********************************************************************************************
-   using Type = MultExprTrait_< ReturnType_<VT1>, VT2 >;
+   typedef typename MultExprTrait< typename VT1::ReturnType, VT2 >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -1781,7 +1786,7 @@ struct ColumnExprTrait< DVecTDVecMultExpr<VT1,VT2> >
 {
  public:
    //**********************************************************************************************
-   using Type = MultExprTrait_< VT1, ReturnType_<VT2> >;
+   typedef typename MultExprTrait< VT1, typename VT2::ReturnType >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */

@@ -43,10 +43,8 @@
 #include <stdexcept>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/HermitianMatrix.h>
-#include <blaze/math/shims/Real.h>
 #include <blaze/util/Random.h>
 #include <blazetest/mathtest/creator/Default.h>
-#include <blazetest/mathtest/creator/Policies.h>
 #include <blazetest/system/Types.h>
 
 
@@ -91,11 +89,7 @@ class Creator< blaze::HermitianMatrix< blaze::CompressedMatrix<T,SO> > >
    /*!\name Operators */
    //@{
    // No explicitly declared copy assignment operator.
-
    const blaze::HermitianMatrix< blaze::CompressedMatrix<T,SO> > operator()() const;
-
-   template< typename CP >
-   const blaze::HermitianMatrix< blaze::CompressedMatrix<T,SO> > operator()( const CP& policy ) const;
    //@}
    //**********************************************************************************************
 
@@ -176,38 +170,9 @@ template< typename T  // Element type of the compressed matrix
 inline const blaze::HermitianMatrix< blaze::CompressedMatrix<T,SO> >
    Creator< blaze::HermitianMatrix< blaze::CompressedMatrix<T,SO> > >::operator()() const
 {
-   return (*this)( Default() );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Returns a randomly created Hermitian compressed matrix.
-//
-// \param policy The creation policy for the elements of fundamental data type.
-// \return The randomly generated Hermitian compressed matrix.
-*/
-template< typename T     // Element type of the compressed matrix
-        , bool SO >      // Storage order of the compressed matrix
-template< typename CP >  // Creation policy
-inline const blaze::HermitianMatrix< blaze::CompressedMatrix<T,SO> >
-   Creator< blaze::HermitianMatrix< blaze::CompressedMatrix<T,SO> > >::operator()( const CP& policy ) const
-{
-   using blaze::real;
-
    blaze::HermitianMatrix< blaze::CompressedMatrix<T,SO> > matrix( n_, nonzeros_ );
-
    while( matrix.nonZeros() < nonzeros_ )
-   {
-      const size_t row   ( blaze::rand<size_t>( 0UL, n_-1UL ) );
-      const size_t column( blaze::rand<size_t>( 0UL, n_-1UL ) );
-
-      if( row == column )
-         matrix(row,column) = real( ec_( policy ) );
-      else
-         matrix(row,column) = ec_( policy );
-   }
-
+      matrix( blaze::rand<size_t>(0,n_-1), blaze::rand<size_t>(0,n_-1) ) = ec_();
    return matrix;
 }
 //*************************************************************************************************

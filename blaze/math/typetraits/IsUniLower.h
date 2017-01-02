@@ -58,10 +58,9 @@ namespace blaze {
 //
 // This type trait tests whether or not the given template parameter is a lower unitriangular
 // matrix type (i.e. a matrix type that is guaranteed to be lower unitriangular at compile time).
-// In case the type is a lower unitriangular matrix type, the \a value member constant is set
-// to \a true, the nested type definition \a Type is \a TrueType, and the class derives from
-// \a TrueType. Otherwise \a value is set to \a false, \a Type is \a FalseType, and the class
-// derives from \a FalseType.
+// In case the type is a lower unitriangular matrix type, the \a value member enumeration is set
+// to 1, the nested type definition \a Type is \a TrueType, and the class derives from \a TrueType.
+// Otherwise \a value is set to 0, \a Type is \a FalseType, and the class derives from \a FalseType.
 
    \code
    using blaze::rowMajor;
@@ -84,7 +83,15 @@ namespace blaze {
 */
 template< typename T >
 struct IsUniLower : public FalseType
-{};
+{
+ public:
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   enum { value = 0 };
+   typedef FalseType  Type;
+   /*! \endcond */
+   //**********************************************************************************************
+};
 //*************************************************************************************************
 
 
@@ -94,8 +101,14 @@ struct IsUniLower : public FalseType
 // \ingroup math_type_traits
 */
 template< typename T >
-struct IsUniLower< const T > : public IsUniLower<T>
-{};
+struct IsUniLower< const T > : public IsUniLower<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = IsUniLower<T>::value };
+   typedef typename IsUniLower<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -106,8 +119,14 @@ struct IsUniLower< const T > : public IsUniLower<T>
 // \ingroup math_type_traits
 */
 template< typename T >
-struct IsUniLower< volatile T > : public IsUniLower<T>
-{};
+struct IsUniLower< volatile T > : public IsUniLower<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = IsUniLower<T>::value };
+   typedef typename IsUniLower<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -118,8 +137,14 @@ struct IsUniLower< volatile T > : public IsUniLower<T>
 // \ingroup math_type_traits
 */
 template< typename T >
-struct IsUniLower< const volatile T > : public IsUniLower<T>
-{};
+struct IsUniLower< const volatile T > : public IsUniLower<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = IsUniLower<T>::value };
+   typedef typename IsUniLower<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 

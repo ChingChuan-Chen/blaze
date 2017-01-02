@@ -48,10 +48,11 @@
 #include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/Decay.h>
 #include <blaze/util/typetraits/IsConst.h>
 #include <blaze/util/typetraits/IsReference.h>
 #include <blaze/util/typetraits/IsVolatile.h>
+#include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -80,43 +81,24 @@ struct SMatTSMatMultExprTrait
  private:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Tmp = If< And< IsSparseMatrix<MT1>, IsRowMajorMatrix<MT1>
-                      , IsSparseMatrix<MT2>, IsColumnMajorMatrix<MT2> >
-                 , SMatTSMatMultExpr<MT1,MT2>
-                 , INVALID_TYPE >;
+   typedef If< And< IsSparseMatrix<MT1>, IsRowMajorMatrix<MT1>
+                  , IsSparseMatrix<MT2>, IsColumnMajorMatrix<MT2> >
+             , SMatTSMatMultExpr<MT1,MT2>, INVALID_TYPE >  Tmp;
+
+   typedef typename RemoveReference< typename RemoveCV<MT1>::Type >::Type  Type1;
+   typedef typename RemoveReference< typename RemoveCV<MT2>::Type >::Type  Type2;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = typename If_< Or< IsConst<MT1>, IsVolatile<MT1>, IsReference<MT1>
-                                , IsConst<MT2>, IsVolatile<MT2>, IsReference<MT2> >
-                            , SMatTSMatMultExprTrait< Decay_<MT1>, Decay_<MT2> >
-                            , Tmp >::Type;
+   typedef typename If< Or< IsConst<MT1>, IsVolatile<MT1>, IsReference<MT1>
+                          , IsConst<MT2>, IsVolatile<MT2>, IsReference<MT2> >
+                      , SMatTSMatMultExprTrait<Type1,Type2>, Tmp >::Type::Type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the SMatTSMatMultExprTrait class template.
-// \ingroup math_traits
-//
-// The SMatTSMatMultExprTrait_ alias declaration provides a convenient shortcut to access the
-// nested \a Type of the SMatTSMatMultExprTrait class template. For instance, given the row-major
-// sparse matrix type \a MT1 and the column-major sparse matrix type \a MT2 the following two
-// type definitions are identical:
-
-   \code
-   using Type1 = typename SMatTSMatMultExprTrait<MT1,MT2>::Type;
-   using Type2 = SMatTSMatMultExprTrait_<MT1,MT2>;
-   \endcode
-*/
-template< typename MT1    // Type of the left-hand side row-major sparse matrix
-        , typename MT2 >  // Type of the right-hand side column-major sparse matrix
-using SMatTSMatMultExprTrait_ = typename SMatTSMatMultExprTrait<MT1,MT2>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

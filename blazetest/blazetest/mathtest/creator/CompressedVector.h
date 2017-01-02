@@ -44,7 +44,6 @@
 #include <blaze/math/CompressedVector.h>
 #include <blaze/util/Random.h>
 #include <blazetest/mathtest/creator/Default.h>
-#include <blazetest/mathtest/creator/Policies.h>
 #include <blazetest/system/Types.h>
 
 
@@ -89,11 +88,7 @@ class Creator< blaze::CompressedVector<T,TF> >
    /*!\name Operators */
    //@{
    // No explicitly declared copy assignment operator.
-
    const blaze::CompressedVector<T,TF> operator()() const;
-
-   template< typename CP >
-   const blaze::CompressedVector<T,TF> operator()( const CP& policy ) const;
    //@}
    //**********************************************************************************************
 
@@ -175,26 +170,9 @@ template< typename T  // Element type of the N-dimensional compressed vector
         , bool TF >   // Transpose flag of the N-dimensional compressed vector
 inline const blaze::CompressedVector<T,TF> Creator< blaze::CompressedVector<T,TF> >::operator()() const
 {
-   return (*this)( Default() );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Returns a randomly created N-dimensional compressed vector.
-//
-// \param policy The creation policy for the elements of fundamental data type.
-// \return The randomly generated N-dimensional compressed vector.
-*/
-template< typename T     // Element type of the N-dimensional compressed vector
-        , bool TF >      // Transpose flag of the N-dimensional compressed vector
-template< typename CP >  // Creation policy
-inline const blaze::CompressedVector<T,TF>
-   Creator< blaze::CompressedVector<T,TF> >::operator()( const CP& policy ) const
-{
    blaze::CompressedVector<T,TF> vector( size_ );
    while( vector.nonZeros() < nonzeros_ )
-      vector[blaze::rand<size_t>(0UL,size_-1UL)] = ec_( policy );
+      vector[blaze::rand<size_t>(0,size_-1)] = ec_();
    return vector;
 }
 //*************************************************************************************************

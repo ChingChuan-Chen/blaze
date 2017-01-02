@@ -39,16 +39,16 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <memory>
-#include <blaze/math/Column.h>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/CustomMatrix.h>
+#include <blaze/math/DenseColumn.h>
+#include <blaze/math/DenseRow.h>
+#include <blaze/math/DenseSubmatrix.h>
 #include <blaze/math/HybridMatrix.h>
-#include <blaze/math/Row.h>
 #include <blaze/math/StaticMatrix.h>
 #include <blaze/math/StaticVector.h>
-#include <blaze/math/Submatrix.h>
 #include <blaze/util/policies/ArrayDelete.h>
+#include <blaze/util/UniqueArray.h>
 #include <blazetest/mathtest/hermitianmatrix/DenseComplexTest.h>
 
 
@@ -183,137 +183,6 @@ void DenseComplexTest::testConstructors()
 
 
    //=====================================================================================
-   // Row-major list initialization
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Row-major HermitianMatrix initializer list constructor (complete list)";
-
-      const HT herm{ { cplx(1, 0), cplx(2, 2), cplx(3,-3) },
-                     { cplx(2,-2), cplx(4, 0), cplx(0, 5) },
-                     { cplx(3, 3), cplx(0,-5), cplx(6, 0) } };
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 9UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,1) != cplx(2, 2) || herm(0,2) != cplx(3,-3) ||
-          herm(1,0) != cplx(2,-2) || herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(0, 5) ||
-          herm(2,0) != cplx(3, 3) || herm(2,1) != cplx(0,-5) || herm(2,2) != cplx(6, 0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (2, 2) (3,-3) )\n"
-                                     "( (2,-2) (4, 0) (0, 5) )\n"
-                                     "( (3, 3) (0,-5) (6, 0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Row-major HermitianMatrix initializer list constructor (incomplete list)";
-
-      const HT herm{ { cplx(1, 0), cplx(2, 2), cplx(3,-3) },
-                     { cplx(2,-2), cplx(4, 0) },
-                     { cplx(3, 3), cplx(0, 0), cplx(6, 0) } };
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,1) != cplx(2, 2) || herm(0,2) != cplx(3,-3) ||
-          herm(1,0) != cplx(2,-2) || herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(0, 0) ||
-          herm(2,0) != cplx(3, 3) || herm(2,1) != cplx(0, 0) || herm(2,2) != cplx(6, 0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (2, 2) (3,-3) )\n"
-                                     "( (2,-2) (4, 0) (0, 0) )\n"
-                                     "( (3, 3) (0, 0) (6, 0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major array initialization
-   //=====================================================================================
-
-   // Dynamic array initialization constructor
-   {
-      test_ = "Row-major HermitianMatrix dynamic array initialization constructor";
-
-      std::unique_ptr<cplx[]> array( new cplx[9] );
-      array[0] = cplx(1, 0);
-      array[1] = cplx(2, 2);
-      array[2] = cplx(3,-3);
-      array[3] = cplx(2,-2);
-      array[4] = cplx(4, 0);
-      array[5] = cplx(0, 5);
-      array[6] = cplx(3, 3);
-      array[7] = cplx(0,-5);
-      array[8] = cplx(6, 0);
-      const HT herm( 3UL, array.get() );
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 9UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,1) != cplx(2, 2) || herm(0,2) != cplx(3,-3) ||
-          herm(1,0) != cplx(2,-2) || herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(0, 5) ||
-          herm(2,0) != cplx(3, 3) || herm(2,1) != cplx(0,-5) || herm(2,2) != cplx(6, 0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (2, 2) (3,-3) )\n"
-                                     "( (2,-2) (4, 0) (0, 5) )\n"
-                                     "( (3, 3) (0,-5) (6, 0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Static array initialization constructor
-   {
-      test_ = "Row-major HermitianMatrix static array initialization constructor";
-
-      const cplx array[3][3] = { { cplx(1, 0), cplx(2, 2), cplx(3,-3) },
-                                 { cplx(2,-2), cplx(4, 0), cplx(0, 5) },
-                                 { cplx(3, 3), cplx(0,-5), cplx(6, 0) } };
-      const HT herm( array );
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 9UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,1) != cplx(2, 2) || herm(0,2) != cplx(3,-3) ||
-          herm(1,0) != cplx(2,-2) || herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(0, 5) ||
-          herm(2,0) != cplx(3, 3) || herm(2,1) != cplx(0,-5) || herm(2,2) != cplx(6, 0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (2, 2) (3,-3) )\n"
-                                     "( (2,-2) (4, 0) (0, 5) )\n"
-                                     "( (3, 3) (0,-5) (6, 0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major custom matrix constructors
    //=====================================================================================
 
@@ -326,7 +195,7 @@ void DenseComplexTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<cplx,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<cplx[]> array( new cplx[5UL] );
+      blaze::UniqueArray<cplx> array( new cplx[5UL] );
       array[1] = cplx(1, 0);
       array[2] = cplx(2, 1);
       array[3] = cplx(2,-1);
@@ -359,7 +228,7 @@ void DenseComplexTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<cplx,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<cplx[]> array( new cplx[11UL] );
+      blaze::UniqueArray<cplx> array( new cplx[11UL] );
       array[1] = cplx(1, 0);
       array[2] = cplx(2, 1);
       array[6] = cplx(2,-1);
@@ -392,7 +261,7 @@ void DenseComplexTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<cplx,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<cplx[]> array( new cplx[4UL] );
+      blaze::UniqueArray<cplx> array( new cplx[4UL] );
       array[0] = cplx(1, 0);
       array[1] = cplx(2, 1);
       array[2] = cplx(2,-1);
@@ -425,7 +294,7 @@ void DenseComplexTest::testConstructors()
       using blaze::rowMajor;
 
       typedef blaze::CustomMatrix<cplx,unaligned,unpadded,rowMajor>  UnalignedUnpadded;
-      std::unique_ptr<cplx[]> array( new cplx[10UL] );
+      blaze::UniqueArray<cplx> array( new cplx[10UL] );
       array[0] = cplx(1, 0);
       array[1] = cplx(2, 1);
       array[5] = cplx(2,-1);
@@ -478,56 +347,6 @@ void DenseComplexTest::testConstructors()
       herm1(2,2) = cplx( 3, 0);
 
       const HT herm2( herm1 );
-
-      checkRows    ( herm2, 3UL );
-      checkColumns ( herm2, 3UL );
-      checkCapacity( herm2, 9UL );
-      checkNonZeros( herm2, 7UL );
-
-      if( herm2(0,0) != cplx( 1, 0) || herm2(0,1) != cplx(-4,-1) || herm2(0,2) != cplx(7,3) ||
-          herm2(1,0) != cplx(-4, 1) || herm2(1,1) != cplx( 2, 0) || herm2(1,2) != cplx(0,0) ||
-          herm2(2,0) != cplx( 7,-3) || herm2(2,1) != cplx( 0, 0) || herm2(2,2) != cplx(3,0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm2 << "\n"
-             << "   Expected result:\n( ( 1, 0) (-4,-1) (7,3) )\n"
-                                     "( (-4, 1) ( 2, 0) (0,0) )\n"
-                                     "( ( 7,-3) ( 0, 0) (3,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Row-major HermitianMatrix move constructor (0x0)";
-
-      HT herm1;
-      HT herm2( std::move( herm1 ) );
-
-      checkRows    ( herm2, 0UL );
-      checkColumns ( herm2, 0UL );
-      checkNonZeros( herm2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Row-major HermitianMatrix move constructor (3x3)";
-
-      HT herm1( 3UL );
-      herm1(0,0) = cplx( 1, 0);
-      herm1(0,1) = cplx(-4,-1);
-      herm1(0,2) = cplx( 7, 3);
-      herm1(1,1) = cplx( 2, 0);
-      herm1(2,2) = cplx( 3, 0);
-
-      HT herm2( std::move( herm1 ) );
 
       checkRows    ( herm2, 3UL );
       checkColumns ( herm2, 3UL );
@@ -761,137 +580,6 @@ void DenseComplexTest::testConstructors()
 
 
    //=====================================================================================
-   // Column-major list initialization
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Column-major HermitianMatrix initializer list constructor (complete list)";
-
-      const OHT herm{ { cplx(1, 0), cplx(2, 2), cplx(3,-3) },
-                      { cplx(2,-2), cplx(4, 0), cplx(0, 5) },
-                      { cplx(3, 3), cplx(0,-5), cplx(6, 0) } };
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 9UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,1) != cplx(2, 2) || herm(0,2) != cplx(3,-3) ||
-          herm(1,0) != cplx(2,-2) || herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(0, 5) ||
-          herm(2,0) != cplx(3, 3) || herm(2,1) != cplx(0,-5) || herm(2,2) != cplx(6, 0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (2, 2) (3,-3) )\n"
-                                     "( (2,-2) (4, 0) (0, 5) )\n"
-                                     "( (3, 3) (0,-5) (6, 0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Column-major HermitianMatrix initializer list constructor (incomplete list)";
-
-      const OHT herm{ { cplx(1, 0), cplx(2, 2), cplx(3,-3) },
-                      { cplx(2,-2), cplx(4, 0) },
-                      { cplx(3, 3), cplx(0, 0), cplx(6, 0) } };
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,1) != cplx(2, 2) || herm(0,2) != cplx(3,-3) ||
-          herm(1,0) != cplx(2,-2) || herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(0, 0) ||
-          herm(2,0) != cplx(3, 3) || herm(2,1) != cplx(0, 0) || herm(2,2) != cplx(6, 0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (2, 2) (3,-3) )\n"
-                                     "( (2,-2) (4, 0) (0, 0) )\n"
-                                     "( (3, 3) (0, 0) (6, 0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major array initialization
-   //=====================================================================================
-
-   // Dynamic array initialization constructor
-   {
-      test_ = "Column-major HermitianMatrix dynamic array initialization constructor";
-
-      std::unique_ptr<cplx[]> array( new cplx[9] );
-      array[0] = cplx(1, 0);
-      array[1] = cplx(2,-2);
-      array[2] = cplx(3, 3);
-      array[3] = cplx(2, 2);
-      array[4] = cplx(4, 0);
-      array[5] = cplx(0,-5);
-      array[6] = cplx(3,-3);
-      array[7] = cplx(0, 5);
-      array[8] = cplx(6, 0);
-      const OHT herm( 3UL, array.get() );
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 9UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,1) != cplx(2, 2) || herm(0,2) != cplx(3,-3) ||
-          herm(1,0) != cplx(2,-2) || herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(0, 5) ||
-          herm(2,0) != cplx(3, 3) || herm(2,1) != cplx(0,-5) || herm(2,2) != cplx(6, 0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (2, 2) (3,-3) )\n"
-                                     "( (2,-2) (4, 0) (0, 5) )\n"
-                                     "( (3, 3) (0,-5) (6, 0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Static array initialization constructor
-   {
-      test_ = "Column-major HermitianMatrix static array initialization constructor";
-
-      const cplx array[3][3] = { { cplx(1, 0), cplx(2, 2), cplx(3,-3) },
-                                 { cplx(2,-2), cplx(4, 0), cplx(0, 5) },
-                                 { cplx(3, 3), cplx(0,-5), cplx(6, 0) } };
-      const OHT herm( array );
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 9UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,1) != cplx(2, 2) || herm(0,2) != cplx(3,-3) ||
-          herm(1,0) != cplx(2,-2) || herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(0, 5) ||
-          herm(2,0) != cplx(3, 3) || herm(2,1) != cplx(0,-5) || herm(2,2) != cplx(6, 0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (2, 2) (3,-3) )\n"
-                                     "( (2,-2) (4, 0) (0, 5) )\n"
-                                     "( (3, 3) (0,-5) (6, 0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major custom matrix constructors
    //=====================================================================================
 
@@ -904,7 +592,7 @@ void DenseComplexTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<cplx,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<cplx[]> array( new cplx[5UL] );
+      blaze::UniqueArray<cplx> array( new cplx[5UL] );
       array[1] = cplx(1, 0);
       array[2] = cplx(2,-1);
       array[3] = cplx(2, 1);
@@ -937,7 +625,7 @@ void DenseComplexTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<cplx,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<cplx[]> array( new cplx[11UL] );
+      blaze::UniqueArray<cplx> array( new cplx[11UL] );
       array[1] = cplx(1, 0);
       array[2] = cplx(2,-1);
       array[6] = cplx(2, 1);
@@ -970,7 +658,7 @@ void DenseComplexTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<cplx,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<cplx[]> array( new cplx[4UL] );
+      blaze::UniqueArray<cplx> array( new cplx[4UL] );
       array[0] = cplx(1, 0);
       array[1] = cplx(2,-1);
       array[2] = cplx(2, 1);
@@ -1003,7 +691,7 @@ void DenseComplexTest::testConstructors()
       using blaze::columnMajor;
 
       typedef blaze::CustomMatrix<cplx,unaligned,unpadded,columnMajor>  UnalignedUnpadded;
-      std::unique_ptr<cplx[]> array( new cplx[10UL] );
+      blaze::UniqueArray<cplx> array( new cplx[10UL] );
       array[0] = cplx(1, 0);
       array[1] = cplx(2,-1);
       array[5] = cplx(2, 1);
@@ -1056,56 +744,6 @@ void DenseComplexTest::testConstructors()
       herm1(2,2) = cplx( 3, 0);
 
       const OHT herm2( herm1 );
-
-      checkRows    ( herm2, 3UL );
-      checkColumns ( herm2, 3UL );
-      checkCapacity( herm2, 9UL );
-      checkNonZeros( herm2, 7UL );
-
-      if( herm2(0,0) != cplx( 1, 0) || herm2(0,1) != cplx(-4,-1) || herm2(0,2) != cplx(7,3) ||
-          herm2(1,0) != cplx(-4, 1) || herm2(1,1) != cplx( 2, 0) || herm2(1,2) != cplx(0,0) ||
-          herm2(2,0) != cplx( 7,-3) || herm2(2,1) != cplx( 0, 0) || herm2(2,2) != cplx(3,0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm2 << "\n"
-             << "   Expected result:\n( ( 1, 0) (-4,-1) (7,3) )\n"
-                                     "( (-4, 1) ( 2, 0) (0,0) )\n"
-                                     "( ( 7,-3) ( 0, 0) (3,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Column-major HermitianMatrix move constructor (0x0)";
-
-      OHT herm1;
-      OHT herm2( std::move( herm1 ) );
-
-      checkRows    ( herm2, 0UL );
-      checkColumns ( herm2, 0UL );
-      checkNonZeros( herm2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Column-major HermitianMatrix move constructor (3x3)";
-
-      OHT herm1( 3UL );
-      herm1(0,0) = cplx( 1, 0);
-      herm1(0,1) = cplx(-4,-1);
-      herm1(0,2) = cplx( 7, 3);
-      herm1(1,1) = cplx( 2, 0);
-      herm1(2,2) = cplx( 3, 0);
-
-      OHT herm2( std::move( herm1 ) );
 
       checkRows    ( herm2, 3UL );
       checkColumns ( herm2, 3UL );
@@ -1285,113 +923,6 @@ void DenseComplexTest::testConstructors()
 void DenseComplexTest::testAssignment()
 {
    //=====================================================================================
-   // Row-major list assignment
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Row-major HermitianMatrix initializer list assignment (complete list)";
-
-      HT herm;
-      herm = { { cplx(1, 0), cplx(2, 2), cplx(3,-3) },
-               { cplx(2,-2), cplx(4, 0), cplx(0, 5) },
-               { cplx(3, 3), cplx(0,-5), cplx(6, 0) } };
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 9UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 3UL );
-      checkNonZeros( herm, 2UL, 3UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,1) != cplx(2, 2) || herm(0,2) != cplx(3,-3) ||
-          herm(1,0) != cplx(2,-2) || herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(0, 5) ||
-          herm(2,0) != cplx(3, 3) || herm(2,1) != cplx(0,-5) || herm(2,2) != cplx(6, 0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (2, 2) (3,-3) )\n"
-                                     "( (2,-2) (4, 0) (0, 5) )\n"
-                                     "( (3, 3) (0,-5) (6, 0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Row-major HermitianMatrix initializer list assignment (incomplete list)";
-
-      HT herm;
-      herm = { { cplx(1, 0), cplx(2, 2), cplx(3,-3) },
-               { cplx(2,-2), cplx(4, 0) },
-               { cplx(3, 3), cplx(0, 0), cplx(6, 0) } };
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 2UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,1) != cplx(2, 2) || herm(0,2) != cplx(3,-3) ||
-          herm(1,0) != cplx(2,-2) || herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(0, 0) ||
-          herm(2,0) != cplx(3, 3) || herm(2,1) != cplx(0, 0) || herm(2,2) != cplx(6, 0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (2, 2) (3,-3) )\n"
-                                     "( (2,-2) (4, 0) (0, 0) )\n"
-                                     "( (3, 3) (0, 0) (6, 0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major array assignment
-   //=====================================================================================
-
-   // Array assignment
-   {
-      test_ = "Row-major HermitianMatrix array assignment";
-
-      const cplx array[3][3] = { { cplx(1, 0), cplx(2, 2), cplx(3,-3) },
-                                 { cplx(2,-2), cplx(4, 0), cplx(0, 5) },
-                                 { cplx(3, 3), cplx(0,-5), cplx(6, 0) } };
-      HT herm;
-      herm = array;
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 9UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 3UL );
-      checkNonZeros( herm, 2UL, 3UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,1) != cplx(2, 2) || herm(0,2) != cplx(3,-3) ||
-          herm(1,0) != cplx(2,-2) || herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(0, 5) ||
-          herm(2,0) != cplx(3, 3) || herm(2,1) != cplx(0,-5) || herm(2,2) != cplx(6, 0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (2, 2) (3,-3) )\n"
-                                     "( (2,-2) (4, 0) (0, 5) )\n"
-                                     "( (3, 3) (0,-5) (6, 0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Row-major copy assignment
    //=====================================================================================
 
@@ -1421,57 +952,6 @@ void DenseComplexTest::testAssignment()
 
       HT herm2;
       herm2 = herm1;
-
-      checkRows    ( herm2, 3UL );
-      checkColumns ( herm2, 3UL );
-      checkNonZeros( herm2, 7UL );
-
-      if( herm2(0,0) != cplx( 1, 0) || herm2(0,1) != cplx(-4,-1) || herm2(0,2) != cplx(7,3) ||
-          herm2(1,0) != cplx(-4, 1) || herm2(1,1) != cplx( 2, 0) || herm2(1,2) != cplx(0,0) ||
-          herm2(2,0) != cplx( 7,-3) || herm2(2,1) != cplx( 0, 0) || herm2(2,2) != cplx(3,0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm2 << "\n"
-             << "   Expected result:\n( ( 1, 0) (-4,-1) (7,3) )\n"
-                                     "( (-4, 1) ( 2, 0) (0,0) )\n"
-                                     "( ( 7,-3) ( 0, 0) (3,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Row-major HermitianMatrix move assignment (0x0)";
-
-      HT herm1, herm2;
-
-      herm2 = std::move( herm1 );
-
-      checkRows    ( herm2, 0UL );
-      checkColumns ( herm2, 0UL );
-      checkNonZeros( herm2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Row-major HermitianMatrix move assignment (3x3)";
-
-      HT herm1( 3UL );
-      herm1(0,0) = cplx( 1, 0);
-      herm1(0,1) = cplx(-4,-1);
-      herm1(0,2) = cplx( 7, 3);
-      herm1(1,1) = cplx( 2, 0);
-      herm1(2,2) = cplx( 3, 0);
-
-      HT herm2;
-      herm2 = std::move( herm1 );
 
       checkRows    ( herm2, 3UL );
       checkColumns ( herm2, 3UL );
@@ -2034,113 +1514,6 @@ void DenseComplexTest::testAssignment()
 
 
    //=====================================================================================
-   // Column-major list assignment
-   //=====================================================================================
-
-   // Complete initializer list
-   {
-      test_ = "Column-major HermitianMatrix initializer list assignment (complete list)";
-
-      OHT herm;
-      herm = { { cplx(1, 0), cplx(2, 2), cplx(3,-3) },
-               { cplx(2,-2), cplx(4, 0), cplx(0, 5) },
-               { cplx(3, 3), cplx(0,-5), cplx(6, 0) } };
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 9UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 3UL );
-      checkNonZeros( herm, 2UL, 3UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,1) != cplx(2, 2) || herm(0,2) != cplx(3,-3) ||
-          herm(1,0) != cplx(2,-2) || herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(0, 5) ||
-          herm(2,0) != cplx(3, 3) || herm(2,1) != cplx(0,-5) || herm(2,2) != cplx(6, 0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (2, 2) (3,-3) )\n"
-                                     "( (2,-2) (4, 0) (0, 5) )\n"
-                                     "( (3, 3) (0,-5) (6, 0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   // Incomplete initializer list
-   {
-      test_ = "Column-major HermitianMatrix initializer list assignment (incomplete list)";
-
-      OHT herm;
-      herm = { { cplx(1, 0), cplx(2, 2), cplx(3,-3) },
-               { cplx(2,-2), cplx(4, 0) },
-               { cplx(3, 3), cplx(0, 0), cplx(6, 0) } };
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 7UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 2UL );
-      checkNonZeros( herm, 2UL, 2UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,1) != cplx(2, 2) || herm(0,2) != cplx(3,-3) ||
-          herm(1,0) != cplx(2,-2) || herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(0, 0) ||
-          herm(2,0) != cplx(3, 3) || herm(2,1) != cplx(0, 0) || herm(2,2) != cplx(6, 0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (2, 2) (3,-3) )\n"
-                                     "( (2,-2) (4, 0) (0, 0) )\n"
-                                     "( (3, 3) (0, 0) (6, 0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major array assignment
-   //=====================================================================================
-
-   // Array assignment
-   {
-      test_ = "Column-major HermitianMatrix array assignment";
-
-      const cplx array[3][3] = { { cplx(1, 0), cplx(2, 2), cplx(3,-3) },
-                                 { cplx(2,-2), cplx(4, 0), cplx(0, 5) },
-                                 { cplx(3, 3), cplx(0,-5), cplx(6, 0) } };
-      OHT herm;
-      herm = array;
-
-      checkRows    ( herm, 3UL );
-      checkColumns ( herm, 3UL );
-      checkCapacity( herm, 9UL );
-      checkNonZeros( herm, 9UL );
-      checkNonZeros( herm, 0UL, 3UL );
-      checkNonZeros( herm, 1UL, 3UL );
-      checkNonZeros( herm, 2UL, 3UL );
-
-      if( herm(0,0) != cplx(1, 0) || herm(0,1) != cplx(2, 2) || herm(0,2) != cplx(3,-3) ||
-          herm(1,0) != cplx(2,-2) || herm(1,1) != cplx(4, 0) || herm(1,2) != cplx(0, 5) ||
-          herm(2,0) != cplx(3, 3) || herm(2,1) != cplx(0,-5) || herm(2,2) != cplx(6, 0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm << "\n"
-             << "   Expected result:\n( (1, 0) (2, 2) (3,-3) )\n"
-                                     "( (2,-2) (4, 0) (0, 5) )\n"
-                                     "( (3, 3) (0,-5) (6, 0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major copy assignment
    //=====================================================================================
 
@@ -2170,57 +1543,6 @@ void DenseComplexTest::testAssignment()
 
       OHT herm2;
       herm2 = herm1;
-
-      checkRows    ( herm2, 3UL );
-      checkColumns ( herm2, 3UL );
-      checkNonZeros( herm2, 7UL );
-
-      if( herm2(0,0) != cplx( 1, 0) || herm2(0,1) != cplx(-4,-1) || herm2(0,2) != cplx(7,3) ||
-          herm2(1,0) != cplx(-4, 1) || herm2(1,1) != cplx( 2, 0) || herm2(1,2) != cplx(0,0) ||
-          herm2(2,0) != cplx( 7,-3) || herm2(2,1) != cplx( 0, 0) || herm2(2,2) != cplx(3,0) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << herm2 << "\n"
-             << "   Expected result:\n( ( 1, 0) (-4,-1) (7,3) )\n"
-                                     "( (-4, 1) ( 2, 0) (0,0) )\n"
-                                     "( ( 7,-3) ( 0, 0) (3,0) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Column-major HermitianMatrix move assignment (0x0)";
-
-      OHT herm1, herm2;
-
-      herm2 = std::move( herm1 );
-
-      checkRows    ( herm2, 0UL );
-      checkColumns ( herm2, 0UL );
-      checkNonZeros( herm2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Column-major HermitianMatrix move assignment (3x3)";
-
-      OHT herm1( 3UL );
-      herm1(0,0) = cplx( 1, 0);
-      herm1(0,1) = cplx(-4,-1);
-      herm1(0,2) = cplx( 7, 3);
-      herm1(1,1) = cplx( 2, 0);
-      herm1(2,2) = cplx( 3, 0);
-
-      OHT herm2;
-      herm2 = std::move( herm1 );
 
       checkRows    ( herm2, 3UL );
       checkColumns ( herm2, 3UL );
@@ -9687,7 +9009,7 @@ void DenseComplexTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function";
 
-      typedef blaze::Submatrix<HT>  SMT;
+      typedef blaze::DenseSubmatrix<HT>  SMT;
 
       HT herm( 3UL );
       herm(0,0) = cplx( 1, 0);
@@ -9785,7 +9107,7 @@ void DenseComplexTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function";
 
-      typedef blaze::Submatrix<OHT>  SMT;
+      typedef blaze::DenseSubmatrix<OHT>  SMT;
 
       OHT herm( 3UL );
       herm(0,0) = cplx( 1, 0);
@@ -9896,7 +9218,7 @@ void DenseComplexTest::testRow()
    {
       test_ = "Row-major row() function";
 
-      typedef blaze::Row<HT>  RT;
+      typedef blaze::DenseRow<HT>  RT;
 
       HT herm( 3UL );
       herm(0,0) = cplx( 1, 0);
@@ -9990,7 +9312,7 @@ void DenseComplexTest::testRow()
    {
       test_ = "Column-major row() function";
 
-      typedef blaze::Row<OHT>  RT;
+      typedef blaze::DenseRow<OHT>  RT;
 
       OHT herm( 3UL );
       herm(0,0) = cplx( 1, 0);
@@ -10097,7 +9419,7 @@ void DenseComplexTest::testColumn()
    {
       test_ = "Row-major column() function";
 
-      typedef blaze::Column<HT>  CT;
+      typedef blaze::DenseColumn<HT>  CT;
 
       HT herm( 3UL );
       herm(0,0) = cplx( 1, 0);
@@ -10191,7 +9513,7 @@ void DenseComplexTest::testColumn()
    {
       test_ = "Column-major column() function";
 
-      typedef blaze::Column<OHT>  CT;
+      typedef blaze::DenseColumn<OHT>  CT;
 
       OHT herm( 3UL );
       herm(0,0) = cplx( 1, 0);

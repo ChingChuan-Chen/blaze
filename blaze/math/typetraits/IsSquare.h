@@ -58,10 +58,9 @@ namespace blaze {
 //
 // This type trait tests whether or not the given template parameter is a square matrix type
 // (i.e. a matrix type that is guaranteed to be square at compile time). In case the type is
-// a square matrix type, the \a value member constant is set to \a true, the nested type
-// definition \a Type is \a TrueType, and the class derives from \a TrueType. Otherwise
-// \a value is set to \a false, \a Type is \a FalseType, and the class derives from
-// \a FalseType.
+// a square matrix type, the \a value member enumeration is set to 1, the nested type definition
+// \a Type is \a TrueType, and the class derives from \a TrueType. Otherwise \a value is set
+// to 0, \a Type is \a FalseType, and the class derives from \a FalseType.
 
    \code
    using blaze::rowMajor;
@@ -86,7 +85,15 @@ namespace blaze {
 */
 template< typename T >
 struct IsSquare : public FalseType
-{};
+{
+ public:
+   //**********************************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   enum { value = 0 };
+   typedef FalseType  Type;
+   /*! \endcond */
+   //**********************************************************************************************
+};
 //*************************************************************************************************
 
 
@@ -96,8 +103,14 @@ struct IsSquare : public FalseType
 // \ingroup math_type_traits
 */
 template< typename T >
-struct IsSquare< const T > : public IsSquare<T>
-{};
+struct IsSquare< const T > : public IsSquare<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = IsSquare<T>::value };
+   typedef typename IsSquare<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -108,8 +121,14 @@ struct IsSquare< const T > : public IsSquare<T>
 // \ingroup math_type_traits
 */
 template< typename T >
-struct IsSquare< volatile T > : public IsSquare<T>
-{};
+struct IsSquare< volatile T > : public IsSquare<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = IsSquare<T>::value };
+   typedef typename IsSquare<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 
@@ -120,8 +139,14 @@ struct IsSquare< volatile T > : public IsSquare<T>
 // \ingroup math_type_traits
 */
 template< typename T >
-struct IsSquare< const volatile T > : public IsSquare<T>
-{};
+struct IsSquare< const volatile T > : public IsSquare<T>::Type
+{
+ public:
+   //**********************************************************************************************
+   enum { value = IsSquare<T>::value };
+   typedef typename IsSquare<T>::Type  Type;
+   //**********************************************************************************************
+};
 /*! \endcond */
 //*************************************************************************************************
 

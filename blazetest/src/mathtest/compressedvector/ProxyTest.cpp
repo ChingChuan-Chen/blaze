@@ -76,6 +76,7 @@ ProxyTest::ProxyTest()
    testSet();
    testInsert();
    testAppend();
+   testErase();
    testResize();
    testExtend();
    testReserve();
@@ -84,7 +85,6 @@ ProxyTest::ProxyTest()
    testCTranspose();
    testInvert();
    testSwap();
-   testErase();
    testFind();
    testLowerBound();
    testUpperBound();
@@ -140,77 +140,6 @@ void ProxyTest::testAssignment()
              << " Details:\n"
              << "   Result:\n" << vec[1] << "\n"
              << "   Expected result:\n( 4 4 4 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // List assignment
-   //=====================================================================================
-
-   {
-      test_ = "VectorAccessProxy 1D initializer list assignment";
-
-      DVV vec( 3UL, 1UL );
-      vec[1] = DV( 3UL, 2 );
-
-      vec[1] = { 1, -2, 3 };
-
-      checkSize    ( vec, 3UL );
-      checkCapacity( vec, 1UL );
-      checkNonZeros( vec, 1UL );
-
-      checkSize    ( vec[0], 0UL );
-      checkSize    ( vec[1], 3UL );
-      checkCapacity( vec[1], 3UL );
-      checkNonZeros( vec[1], 3UL );
-      checkSize    ( vec[2], 0UL );
-
-      if( vec[1][0] != 1 || vec[1][1] != -2 || vec[1][2] != 3 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << vec[1] << "\n"
-             << "   Expected result:\n( 1 -2 3 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      test_ = "VectorAccessProxy 2D initializer list assignment";
-
-      using blaze::initializer_list;
-
-      DMV vec( 3UL, 1UL );
-      vec[1] = DM( 3UL, 3UL, 2 );
-
-      initializer_list< initializer_list<int> > list = { { 1, -2, 3 }, { -2, 4, -6 }, { 3, -6, 9 } };
-      vec[1] = list;
-
-      checkSize    ( vec, 3UL );
-      checkCapacity( vec, 1UL );
-      checkNonZeros( vec, 1UL );
-
-      checkRows    ( vec[0], 0UL );
-      checkColumns ( vec[0], 0UL );
-      checkRows    ( vec[1], 3UL );
-      checkColumns ( vec[1], 3UL );
-      checkCapacity( vec[1], 9UL );
-      checkNonZeros( vec[1], 9UL );
-      checkRows    ( vec[2], 0UL );
-      checkColumns ( vec[2], 0UL );
-
-      if( vec[1](0,0) !=  1 || vec[1](0,1) != -2 || vec[1](0,2) !=  3 ||
-          vec[1](1,0) != -2 || vec[1](1,1) !=  4 || vec[1](1,2) != -6 ||
-          vec[1](2,0) !=  3 || vec[1](2,1) != -6 || vec[1](2,2) !=  9 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << vec[1] << "\n"
-             << "   Expected result:\n(  1 -2  3 )\n( -2  4 -6 )\n(  3 -6  9 )\n";
          throw std::runtime_error( oss.str() );
       }
    }
@@ -377,7 +306,7 @@ void ProxyTest::testAddAssign()
    //=====================================================================================
 
    {
-      test_ = "VectorAccessProxy dense vector addition assignment";
+      test_ = "VectorAccessProxy dense vector assignment";
 
       DV tmp( 3UL );
       tmp[0] = 1;
@@ -415,7 +344,7 @@ void ProxyTest::testAddAssign()
    //=====================================================================================
 
    {
-      test_ = "VectorAccessProxy sparse vector addition assignment";
+      test_ = "VectorAccessProxy sparse vector assignment";
 
       SV tmp( 3UL );
       tmp[1] = 2;
@@ -460,11 +389,11 @@ void ProxyTest::testAddAssign()
 void ProxyTest::testSubAssign()
 {
    //=====================================================================================
-   // Dense vector subtraction assignment
+   // Dense vector addition assignment
    //=====================================================================================
 
    {
-      test_ = "VectorAccessProxy dense vector subtraction assignment";
+      test_ = "VectorAccessProxy dense vector assignment";
 
       DV tmp( 3UL );
       tmp[0] = 1;
@@ -498,11 +427,11 @@ void ProxyTest::testSubAssign()
 
 
    //=====================================================================================
-   // Sparse vector subtraction assignment
+   // Sparse vector addition assignment
    //=====================================================================================
 
    {
-      test_ = "VectorAccessProxy sparse vector subtraction assignment";
+      test_ = "VectorAccessProxy sparse vector assignment";
 
       SV tmp( 3UL );
       tmp[1] = 2;
@@ -547,11 +476,11 @@ void ProxyTest::testSubAssign()
 void ProxyTest::testMultAssign()
 {
    //=====================================================================================
-   // Dense vector multiplication assignment
+   // Dense vector addition assignment
    //=====================================================================================
 
    {
-      test_ = "VectorAccessProxy dense vector multiplication assignment";
+      test_ = "VectorAccessProxy dense vector assignment";
 
       DV tmp( 3UL );
       tmp[0] = 1;
@@ -585,11 +514,11 @@ void ProxyTest::testMultAssign()
 
 
    //=====================================================================================
-   // Sparse vector multiplication assignment
+   // Sparse vector addition assignment
    //=====================================================================================
 
    {
-      test_ = "VectorAccessProxy sparse vector multiplication assignment";
+      test_ = "VectorAccessProxy sparse vector assignment";
 
       SV tmp( 3UL );
       tmp[1] = 2;
@@ -615,57 +544,6 @@ void ProxyTest::testMultAssign()
              << " Details:\n"
              << "   Result:\n" << vec[1] << "\n"
              << "   Expected result:\n( 0 4 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Test of the VectorAccessProxy division assignment operators.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the division assignment operators of the VectorAccessProxy
-// class template. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void ProxyTest::testDivAssign()
-{
-   //=====================================================================================
-   // Dense vector division assignment
-   //=====================================================================================
-
-   {
-      test_ = "VectorAccessProxy dense vector division assignment";
-
-      DV tmp( 3UL );
-      tmp[0] = 1;
-      tmp[1] = 2;
-      tmp[2] = 3;
-      DVV vec( 3UL, 1UL );
-      vec[1] =  tmp;
-
-      vec[1] /= tmp;
-
-      checkSize    ( vec, 3UL );
-      checkCapacity( vec, 1UL );
-      checkNonZeros( vec, 1UL );
-
-      checkSize    ( vec[0], 0UL );
-      checkSize    ( vec[1], 3UL );
-      checkCapacity( vec[1], 3UL );
-      checkNonZeros( vec[1], 3UL );
-      checkSize    ( vec[2], 0UL );
-
-      if( vec[1][0] != 1 || vec[1][1] != 1 || vec[1][2] != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Assignment failed\n"
-             << " Details:\n"
-             << "   Result:\n" << vec[1] << "\n"
-             << "   Expected result:\n( 1 1 1 )\n";
          throw std::runtime_error( oss.str() );
       }
    }
@@ -1379,6 +1257,147 @@ void ProxyTest::testAppend()
 
 
 //*************************************************************************************************
+/*!\brief Test of the \c erase() member functions of the VectorAccessProxy class template.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c erase() member functions of the VectorAccessProxy
+// class template. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void ProxyTest::testErase()
+{
+   //=====================================================================================
+   // Vector elements
+   //=====================================================================================
+
+   {
+      test_ = "VectorAccessProxy::erase( size_t )";
+
+      SVV vec( 3UL, 1UL );
+      vec[1] = SV( 3UL, 1UL );
+      vec[1].insert( 1UL, 5 );
+      vec[1].erase( 1UL );
+
+      checkSize    ( vec, 3UL );
+      checkCapacity( vec, 1UL );
+      checkNonZeros( vec, 1UL );
+
+      checkSize    ( vec[0], 0UL );
+      checkSize    ( vec[1], 3UL );
+      checkNonZeros( vec[1], 0UL );
+      checkSize    ( vec[2], 0UL );
+   }
+
+   {
+      test_ = "VectorAccessProxy::erase( Iterator )";
+
+      SVV vec( 3UL, 1UL );
+      vec[1] = SV( 3UL, 1UL );
+      vec[1].erase( vec[1].insert( 1UL, 5 ) );
+
+      checkSize    ( vec, 3UL );
+      checkCapacity( vec, 1UL );
+      checkNonZeros( vec, 1UL );
+
+      checkSize    ( vec[0], 0UL );
+      checkSize    ( vec[1], 3UL );
+      checkNonZeros( vec[1], 0UL );
+      checkSize    ( vec[2], 0UL );
+   }
+
+   {
+      test_ = "VectorAccessProxy::erase( Iterator, Iterator )";
+
+      SVV vec( 3UL, 1UL );
+      vec[1] = SV( 3UL, 1UL );
+      vec[1].insert( 0UL, 1 );
+      vec[1].insert( 1UL, 2 );
+      vec[1].insert( 2UL, 3 );
+      vec[1].erase( begin( vec[1] ), end( vec[1] ) );
+
+      checkSize    ( vec, 3UL );
+      checkCapacity( vec, 1UL );
+      checkNonZeros( vec, 1UL );
+
+      checkSize    ( vec[0], 0UL );
+      checkSize    ( vec[1], 3UL );
+      checkNonZeros( vec[1], 0UL );
+      checkSize    ( vec[2], 0UL );
+   }
+
+
+   //=====================================================================================
+   // Matrix elements
+   //=====================================================================================
+
+   {
+      test_ = "VectorAccessProxy::erase( size_t, size_t )";
+
+      SMV vec( 3UL, 1UL );
+      vec[1] = SM( 2UL, 2UL, 1UL );
+      vec[1].insert( 0UL, 1UL, 5 );
+      vec[1].erase( 0UL, 1UL );
+
+      checkSize    ( vec, 3UL );
+      checkCapacity( vec, 1UL );
+      checkNonZeros( vec, 1UL );
+
+      checkRows    ( vec[0], 0UL );
+      checkColumns ( vec[0], 0UL );
+      checkRows    ( vec[1], 2UL );
+      checkColumns ( vec[1], 2UL );
+      checkNonZeros( vec[1], 0UL );
+      checkRows    ( vec[2], 0UL );
+      checkColumns ( vec[2], 0UL );
+   }
+
+   {
+      test_ = "VectorAccessProxy::erase( size_t, Iterator )";
+
+      SMV vec( 3UL, 1UL );
+      vec[1] = SM( 2UL, 2UL, 1UL );
+      vec[1].erase( 0UL, vec[1].insert( 0UL, 1UL, 5 ) );
+
+      checkSize    ( vec, 3UL );
+      checkCapacity( vec, 1UL );
+      checkNonZeros( vec, 1UL );
+
+      checkRows    ( vec[0], 0UL );
+      checkColumns ( vec[0], 0UL );
+      checkRows    ( vec[1], 2UL );
+      checkColumns ( vec[1], 2UL );
+      checkNonZeros( vec[1], 0UL );
+      checkRows    ( vec[2], 0UL );
+      checkColumns ( vec[2], 0UL );
+   }
+
+   {
+      test_ = "VectorAccessProxy::erase( size_t, Iterator, Iterator )";
+
+      SMV vec( 3UL, 1UL );
+      vec[1] = SM( 2UL, 2UL, 1UL );
+      vec[1].insert( 0UL, 0UL, 1 );
+      vec[1].insert( 0UL, 1UL, 2 );
+      vec[1].erase( 0UL, begin( vec[1], 0UL ), end( vec[1], 0UL ) );
+
+      checkSize    ( vec, 3UL );
+      checkCapacity( vec, 1UL );
+      checkNonZeros( vec, 1UL );
+
+      checkRows    ( vec[0], 0UL );
+      checkColumns ( vec[0], 0UL );
+      checkRows    ( vec[1], 2UL );
+      checkColumns ( vec[1], 2UL );
+      checkNonZeros( vec[1], 0UL );
+      checkRows    ( vec[2], 0UL );
+      checkColumns ( vec[2], 0UL );
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Test of the \c resize() member functions of the VectorAccessProxy class template.
 //
 // \return void
@@ -1966,226 +1985,6 @@ void ProxyTest::testSwap()
       checkSize    ( tmp   , 2UL );
       checkCapacity( tmp   , 2UL );
       checkNonZeros( tmp   , 2UL );
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Test of the \c erase() member functions of the VectorAccessProxy class template.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c erase() member functions of the VectorAccessProxy
-// class template. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void ProxyTest::testErase()
-{
-   //=====================================================================================
-   // Vector elements
-   //=====================================================================================
-
-   {
-      test_ = "VectorAccessProxy::erase( size_t )";
-
-      SVV vec( 3UL, 1UL );
-      vec[1] = SV( 3UL, 1UL );
-      vec[1].insert( 1UL, 5 );
-      vec[1].erase( 1UL );
-
-      checkSize    ( vec, 3UL );
-      checkCapacity( vec, 1UL );
-      checkNonZeros( vec, 1UL );
-
-      checkSize    ( vec[0], 0UL );
-      checkSize    ( vec[1], 3UL );
-      checkNonZeros( vec[1], 0UL );
-      checkSize    ( vec[2], 0UL );
-   }
-
-   {
-      test_ = "VectorAccessProxy::erase( Iterator )";
-
-      SVV vec( 3UL, 1UL );
-      vec[1] = SV( 3UL, 1UL );
-      vec[1].erase( vec[1].insert( 1UL, 5 ) );
-
-      checkSize    ( vec, 3UL );
-      checkCapacity( vec, 1UL );
-      checkNonZeros( vec, 1UL );
-
-      checkSize    ( vec[0], 0UL );
-      checkSize    ( vec[1], 3UL );
-      checkNonZeros( vec[1], 0UL );
-      checkSize    ( vec[2], 0UL );
-   }
-
-   {
-      test_ = "VectorAccessProxy::erase( Iterator, Iterator )";
-
-      SVV vec( 3UL, 1UL );
-      vec[1] = SV( 3UL, 1UL );
-      vec[1].insert( 0UL, 1 );
-      vec[1].insert( 1UL, 2 );
-      vec[1].insert( 2UL, 3 );
-      vec[1].erase( begin( vec[1] ), end( vec[1] ) );
-
-      checkSize    ( vec, 3UL );
-      checkCapacity( vec, 1UL );
-      checkNonZeros( vec, 1UL );
-
-      checkSize    ( vec[0], 0UL );
-      checkSize    ( vec[1], 3UL );
-      checkNonZeros( vec[1], 0UL );
-      checkSize    ( vec[2], 0UL );
-   }
-
-   {
-      test_ = "VectorAccessProxy::erase( Predicate )";
-
-      SVV vec( 3UL, 1UL );
-      vec[1] = SV( 3UL, 1UL );
-      vec[1].insert( 1UL, 5 );
-      vec[1].erase( []( int value ){ return value == 5; } );
-
-      checkSize    ( vec, 3UL );
-      checkCapacity( vec, 1UL );
-      checkNonZeros( vec, 1UL );
-
-      checkSize    ( vec[0], 0UL );
-      checkSize    ( vec[1], 3UL );
-      checkNonZeros( vec[1], 0UL );
-      checkSize    ( vec[2], 0UL );
-   }
-
-   {
-      test_ = "VectorAccessProxy::erase( Iterator, Iterator, Predicate )";
-
-      SVV vec( 3UL, 1UL );
-      vec[1] = SV( 3UL, 1UL );
-      vec[1].insert( 1UL, 5 );
-      vec[1].erase( begin( vec[1] ), end( vec[1] ), []( int value ){ return value == 5; } );
-
-      checkSize    ( vec, 3UL );
-      checkCapacity( vec, 1UL );
-      checkNonZeros( vec, 1UL );
-
-      checkSize    ( vec[0], 0UL );
-      checkSize    ( vec[1], 3UL );
-      checkNonZeros( vec[1], 0UL );
-      checkSize    ( vec[2], 0UL );
-   }
-
-
-   //=====================================================================================
-   // Matrix elements
-   //=====================================================================================
-
-   {
-      test_ = "VectorAccessProxy::erase( size_t, size_t )";
-
-      SMV vec( 3UL, 1UL );
-      vec[1] = SM( 2UL, 2UL, 1UL );
-      vec[1].insert( 0UL, 1UL, 5 );
-      vec[1].erase( 0UL, 1UL );
-
-      checkSize    ( vec, 3UL );
-      checkCapacity( vec, 1UL );
-      checkNonZeros( vec, 1UL );
-
-      checkRows    ( vec[0], 0UL );
-      checkColumns ( vec[0], 0UL );
-      checkRows    ( vec[1], 2UL );
-      checkColumns ( vec[1], 2UL );
-      checkNonZeros( vec[1], 0UL );
-      checkRows    ( vec[2], 0UL );
-      checkColumns ( vec[2], 0UL );
-   }
-
-   {
-      test_ = "VectorAccessProxy::erase( size_t, Iterator )";
-
-      SMV vec( 3UL, 1UL );
-      vec[1] = SM( 2UL, 2UL, 1UL );
-      vec[1].erase( 0UL, vec[1].insert( 0UL, 1UL, 5 ) );
-
-      checkSize    ( vec, 3UL );
-      checkCapacity( vec, 1UL );
-      checkNonZeros( vec, 1UL );
-
-      checkRows    ( vec[0], 0UL );
-      checkColumns ( vec[0], 0UL );
-      checkRows    ( vec[1], 2UL );
-      checkColumns ( vec[1], 2UL );
-      checkNonZeros( vec[1], 0UL );
-      checkRows    ( vec[2], 0UL );
-      checkColumns ( vec[2], 0UL );
-   }
-
-   {
-      test_ = "VectorAccessProxy::erase( size_t, Iterator, Iterator )";
-
-      SMV vec( 3UL, 1UL );
-      vec[1] = SM( 2UL, 2UL, 1UL );
-      vec[1].insert( 0UL, 0UL, 1 );
-      vec[1].insert( 0UL, 1UL, 2 );
-      vec[1].erase( 0UL, begin( vec[1], 0UL ), end( vec[1], 0UL ) );
-
-      checkSize    ( vec, 3UL );
-      checkCapacity( vec, 1UL );
-      checkNonZeros( vec, 1UL );
-
-      checkRows    ( vec[0], 0UL );
-      checkColumns ( vec[0], 0UL );
-      checkRows    ( vec[1], 2UL );
-      checkColumns ( vec[1], 2UL );
-      checkNonZeros( vec[1], 0UL );
-      checkRows    ( vec[2], 0UL );
-      checkColumns ( vec[2], 0UL );
-   }
-
-   {
-      test_ = "VectorAccessProxy::erase( Predicate )";
-
-      SMV vec( 3UL, 1UL );
-      vec[1] = SM( 2UL, 2UL, 1UL );
-      vec[1].insert( 0UL, 1UL, 5 );
-      vec[1].erase( []( int value ){ return value == 5; } );
-
-      checkSize    ( vec, 3UL );
-      checkCapacity( vec, 1UL );
-      checkNonZeros( vec, 1UL );
-
-      checkRows    ( vec[0], 0UL );
-      checkColumns ( vec[0], 0UL );
-      checkRows    ( vec[1], 2UL );
-      checkColumns ( vec[1], 2UL );
-      checkNonZeros( vec[1], 0UL );
-      checkRows    ( vec[2], 0UL );
-      checkColumns ( vec[2], 0UL );
-   }
-
-   {
-      test_ = "VectorAccessProxy::erase( size_t, Iterator, Iterator, Predicate )";
-
-      SMV vec( 3UL, 1UL );
-      vec[1] = SM( 2UL, 2UL, 1UL );
-      vec[1].insert( 0UL, 1UL, 5 );
-      vec[1].erase( 0UL, begin( vec[1], 0UL ), end( vec[1], 0UL ),
-                    []( int value ){ return value == 5; } );
-
-      checkSize    ( vec, 3UL );
-      checkCapacity( vec, 1UL );
-      checkNonZeros( vec, 1UL );
-
-      checkRows    ( vec[0], 0UL );
-      checkColumns ( vec[0], 0UL );
-      checkRows    ( vec[1], 2UL );
-      checkColumns ( vec[1], 2UL );
-      checkNonZeros( vec[1], 0UL );
-      checkRows    ( vec[2], 0UL );
-      checkColumns ( vec[2], 0UL );
    }
 }
 //*************************************************************************************************

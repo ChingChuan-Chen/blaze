@@ -46,9 +46,11 @@
 #include <cstdlib>
 #include <new>
 #include <blaze/util/Assert.h>
+#include <blaze/util/Byte.h>
 #include <blaze/util/DisableIf.h>
 #include <blaze/util/EnableIf.h>
 #include <blaze/util/Exception.h>
+#include <blaze/util/Null.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/typetraits/AlignmentOf.h>
 #include <blaze/util/typetraits/IsBuiltin.h>
@@ -76,20 +78,20 @@ namespace blaze {
 // restrictions. For that purpose it uses the according system-specific memory allocation
 // functions.
 */
-inline byte_t* allocate_backend( size_t size, size_t alignment )
+inline byte* allocate_backend( size_t size, size_t alignment )
 {
-   void* raw( nullptr );
+   void* raw( NULL );
 
 #if defined(_MSC_VER)
    raw = _aligned_malloc( size, alignment );
-   if( raw == nullptr ) {
+   if( raw == NULL ) {
 #else
    if( posix_memalign( &raw, alignment, size ) ) {
 #endif
       BLAZE_THROW_BAD_ALLOC;
    }
 
-   return reinterpret_cast<byte_t*>( raw );
+   return reinterpret_cast<byte*>( raw );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -106,7 +108,7 @@ inline byte_t* allocate_backend( size_t size, size_t alignment )
 // This function deallocates the given memory that was previously allocated via the allocate()
 // function. For that purpose it uses the according system-specific memory deallocation functions.
 */
-inline void deallocate_backend( const void* address ) noexcept
+inline void deallocate_backend( const void* address )
 {
 #if defined(_MSC_VER)
    _aligned_free( const_cast<void*>( address ) );
@@ -147,7 +149,7 @@ inline void deallocate_backend( const void* address ) noexcept
    \endcode
 */
 template< typename T >
-EnableIf_< IsBuiltin<T>, T* > allocate( size_t size )
+typename EnableIf< IsBuiltin<T>, T* >::Type allocate( size_t size )
 {
    const size_t alignment( AlignmentOf<T>::value );
 
@@ -176,7 +178,7 @@ EnableIf_< IsBuiltin<T>, T* > allocate( size_t size )
 // constructed are destroyed in reverse order and the allocated memory is deallocated again.
 */
 template< typename T >
-DisableIf_< IsBuiltin<T>, T* > allocate( size_t size )
+typename DisableIf< IsBuiltin<T>, T* >::Type allocate( size_t size )
 {
    const size_t alignment ( AlignmentOf<T>::value );
    const size_t headersize( ( sizeof(size_t) < alignment ) ? ( alignment ) : ( sizeof( size_t ) ) );
@@ -186,7 +188,7 @@ DisableIf_< IsBuiltin<T>, T* > allocate( size_t size )
 
    if( alignment >= 8UL )
    {
-      byte_t* const raw( allocate_backend( size*sizeof(T)+headersize, alignment ) );
+      byte* const raw( allocate_backend( size*sizeof(T)+headersize, alignment ) );
 
       *reinterpret_cast<size_t*>( raw ) = size;
 
@@ -222,9 +224,9 @@ DisableIf_< IsBuiltin<T>, T* > allocate( size_t size )
 // function.
 */
 template< typename T >
-EnableIf_< IsBuiltin<T> > deallocate( T* address ) noexcept
+typename EnableIf< IsBuiltin<T> >::Type deallocate( T* address )
 {
-   if( address == nullptr )
+   if( address == NULL )
       return;
 
    const size_t alignment( AlignmentOf<T>::value );
@@ -248,9 +250,9 @@ EnableIf_< IsBuiltin<T> > deallocate( T* address ) noexcept
 // function.
 */
 template< typename T >
-DisableIf_< IsBuiltin<T> > deallocate( T* address )
+typename DisableIf< IsBuiltin<T> >::Type deallocate( T* address )
 {
-   if( address == nullptr )
+   if( address == NULL )
       return;
 
    const size_t alignment ( AlignmentOf<T>::value );
@@ -261,7 +263,7 @@ DisableIf_< IsBuiltin<T> > deallocate( T* address )
 
    if( alignment >= 8UL )
    {
-      const byte_t* const raw = reinterpret_cast<byte_t*>( address ) - headersize;
+      const byte* const raw = reinterpret_cast<byte*>( address ) - headersize;
 
       const size_t size( *reinterpret_cast<const size_t*>( raw ) );
       for( size_t i=0UL; i<size; ++i )

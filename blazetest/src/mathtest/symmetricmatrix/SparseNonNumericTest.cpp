@@ -39,10 +39,10 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <blaze/math/Column.h>
-#include <blaze/math/Row.h>
+#include <blaze/math/SparseColumn.h>
+#include <blaze/math/SparseRow.h>
+#include <blaze/math/SparseSubmatrix.h>
 #include <blaze/math/StaticMatrix.h>
-#include <blaze/math/Submatrix.h>
 #include <blaze/util/Complex.h>
 #include <blazetest/mathtest/symmetricmatrix/SparseNonNumericTest.h>
 
@@ -80,13 +80,13 @@ SparseNonNumericTest::SparseNonNumericTest()
    testSet();
    testInsert();
    testAppend();
+   testErase();
    testResize();
    testReserve();
    testTrim();
    testTranspose();
    testCTranspose();
    testSwap();
-   testErase();
    testFind();
    testLowerBound();
    testUpperBound();
@@ -177,56 +177,6 @@ void SparseNonNumericTest::testConstructors()
       sym1(2,2) = vec(  3 );
 
       const ST sym2( sym1 );
-
-      checkRows    ( sym2, 3UL );
-      checkColumns ( sym2, 3UL );
-      checkCapacity( sym2, 7UL );
-      checkNonZeros( sym2, 7UL );
-
-      if( sym2(0,0) != vec(  1 ) || sym2(0,1) != vec( -4 )  || sym2(0,2) != vec( 7 )   ||
-          sym2(1,0) != vec( -4 ) || sym2(1,1) != vec(  2 )  || !isDefault( sym2(1,2) ) ||
-          sym2(2,0) != vec(  7 ) || !isDefault( sym2(2,1) ) || sym2(2,2) != vec( 3 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym2 << "\n"
-             << "   Expected result:\n( (  1 ) ( -4 ) ( 7 ) )\n"
-                                     "( ( -4 ) (  2 ) ( 0 ) )\n"
-                                     "( (  7 ) (  0 ) ( 3 ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Row-major SymmetricMatrix move constructor (0x0)";
-
-      ST sym1;
-      ST sym2( std::move( sym1 ) );
-
-      checkRows    ( sym2, 0UL );
-      checkColumns ( sym2, 0UL );
-      checkNonZeros( sym2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Row-major SymmetricMatrix move constructor (3x3)";
-
-      ST sym1( 3UL );
-      sym1(0,0) = vec(  1 );
-      sym1(0,1) = vec( -4 );
-      sym1(0,2) = vec(  7 );
-      sym1(1,1) = vec(  2 );
-      sym1(2,2) = vec(  3 );
-
-      ST sym2( std::move( sym1 ) );
 
       checkRows    ( sym2, 3UL );
       checkColumns ( sym2, 3UL );
@@ -443,56 +393,6 @@ void SparseNonNumericTest::testConstructors()
 
 
    //=====================================================================================
-   // Column-major move constructor
-   //=====================================================================================
-
-   // Move constructor (0x0)
-   {
-      test_ = "Column-major SymmetricMatrix move constructor (0x0)";
-
-      OST sym1;
-      OST sym2( std::move( sym1 ) );
-
-      checkRows    ( sym2, 0UL );
-      checkColumns ( sym2, 0UL );
-      checkNonZeros( sym2, 0UL );
-   }
-
-   // Move constructor (3x3)
-   {
-      test_ = "Column-major SymmetricMatrix move constructor (3x3)";
-
-      OST sym1( 3UL );
-      sym1(0,0) = vec(  1 );
-      sym1(0,1) = vec( -4 );
-      sym1(0,2) = vec(  7 );
-      sym1(1,1) = vec(  2 );
-      sym1(2,2) = vec(  3 );
-
-      OST sym2( std::move( sym1 ) );
-
-      checkRows    ( sym2, 3UL );
-      checkColumns ( sym2, 3UL );
-      checkCapacity( sym2, 7UL );
-      checkNonZeros( sym2, 7UL );
-
-      if( sym2(0,0) != vec(  1 ) || sym2(0,1) != vec( -4 )  || sym2(0,2) != vec( 7 )   ||
-          sym2(1,0) != vec( -4 ) || sym2(1,1) != vec(  2 )  || !isDefault( sym2(1,2) ) ||
-          sym2(2,0) != vec(  7 ) || !isDefault( sym2(2,1) ) || sym2(2,2) != vec( 3 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym2 << "\n"
-             << "   Expected result:\n( (  1 ) ( -4 ) ( 7 ) )\n"
-                                     "( ( -4 ) (  2 ) (   ) )\n"
-                                     "( (  7 ) (    ) ( 3 ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
    // Column-major conversion constructor
    //=====================================================================================
 
@@ -646,57 +546,6 @@ void SparseNonNumericTest::testAssignment()
 
       ST sym2;
       sym2 = sym1;
-
-      checkRows    ( sym2, 3UL );
-      checkColumns ( sym2, 3UL );
-      checkNonZeros( sym2, 7UL );
-
-      if( sym2(0,0) != vec(  1 ) || sym2(0,1) != vec( -4 )  || sym2(0,2) != vec( 7 )   ||
-          sym2(1,0) != vec( -4 ) || sym2(1,1) != vec(  2 )  || !isDefault( sym2(1,2) ) ||
-          sym2(2,0) != vec(  7 ) || !isDefault( sym2(2,1) ) || sym2(2,2) != vec( 3 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym2 << "\n"
-             << "   Expected result:\n( (  1 ) ( -4 ) ( 7 ) )\n"
-                                     "( ( -4 ) (  2 ) (   ) )\n"
-                                     "( (  7 ) (    ) ( 3 ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Row-major SymmetricMatrix move assignment (0x0)";
-
-      ST sym1, sym2;
-
-      sym2 = std::move( sym1 );
-
-      checkRows    ( sym2, 0UL );
-      checkColumns ( sym2, 0UL );
-      checkNonZeros( sym2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Row-major SymmetricMatrix move assignment (3x3)";
-
-      ST sym1( 3UL );
-      sym1(0,0) = vec(  1 );
-      sym1(0,1) = vec( -4 );
-      sym1(0,2) = vec(  7 );
-      sym1(1,1) = vec(  2 );
-      sym1(2,2) = vec(  3 );
-
-      ST sym2;
-      sym2 = std::move( sym1 );
 
       checkRows    ( sym2, 3UL );
       checkColumns ( sym2, 3UL );
@@ -1295,57 +1144,6 @@ void SparseNonNumericTest::testAssignment()
 
       OST sym2;
       sym2 = sym1;
-
-      checkRows    ( sym2, 3UL );
-      checkColumns ( sym2, 3UL );
-      checkNonZeros( sym2, 7UL );
-
-      if( sym2(0,0) != vec(  1 ) || sym2(0,1) != vec( -4 )  || sym2(0,2) != vec( 7 )   ||
-          sym2(1,0) != vec( -4 ) || sym2(1,1) != vec(  2 )  || !isDefault( sym2(1,2) ) ||
-          sym2(2,0) != vec(  7 ) || !isDefault( sym2(2,1) ) || sym2(2,2) != vec( 3 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Construction failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym2 << "\n"
-             << "   Expected result:\n( (  1 ) ( -4 ) ( 7 ) )\n"
-                                     "( ( -4 ) (  2 ) (   ) )\n"
-                                     "( (  7 ) (    ) ( 3 ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major move assignment
-   //=====================================================================================
-
-   // Move assignment (0x0)
-   {
-      test_ = "Column-major SymmetricMatrix move assignment (0x0)";
-
-      OST sym1, sym2;
-
-      sym2 = std::move( sym1 );
-
-      checkRows    ( sym2, 0UL );
-      checkColumns ( sym2, 0UL );
-      checkNonZeros( sym2, 0UL );
-   }
-
-   // Move assignment (3x3)
-   {
-      test_ = "Column-major SymmetricMatrix move assignment (3x3)";
-
-      OST sym1( 3UL );
-      sym1(0,0) = vec(  1 );
-      sym1(0,1) = vec( -4 );
-      sym1(0,2) = vec(  7 );
-      sym1(1,1) = vec(  2 );
-      sym1(2,2) = vec(  3 );
-
-      OST sym2;
-      sym2 = std::move( sym1 );
 
       checkRows    ( sym2, 3UL );
       checkColumns ( sym2, 3UL );
@@ -6964,6 +6762,1157 @@ void SparseNonNumericTest::testAppend()
 
 
 //*************************************************************************************************
+/*!\brief Test of the \c erase() member function of the SymmetricMatrix specialization.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c erase() member function of the SymmetricMatrix
+// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void SparseNonNumericTest::testErase()
+{
+   //=====================================================================================
+   // Row-major index-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Row-major SymmetricMatrix::erase( size_t, size_t )";
+
+      // Initialization check
+      ST sym( 4UL );
+      sym(0,0) = vec( 1 );
+      sym(0,2) = vec( 2 );
+      sym(0,3) = vec( 3 );
+      sym(1,1) = vec( 4 );
+      sym(1,2) = vec( 5 );
+      sym(2,2) = vec( 6 );
+      sym(2,3) = vec( 7 );
+
+      checkRows    ( sym,  4UL );
+      checkColumns ( sym,  4UL );
+      checkCapacity( sym, 11UL );
+      checkNonZeros( sym, 11UL );
+      checkNonZeros( sym, 0UL, 3UL );
+      checkNonZeros( sym, 1UL, 2UL );
+      checkNonZeros( sym, 2UL, 4UL );
+      checkNonZeros( sym, 3UL, 2UL );
+
+      if( sym(0,0) != vec( 1 ) || sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
+          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sym << "\n"
+             << "   Expected result:\n( ( 1 ) (   ) ( 2 ) ( 3 ) )\n"
+                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
+                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
+                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (0,0)
+      sym.erase( 0UL, 0UL );
+
+      checkRows    ( sym,  4UL );
+      checkColumns ( sym,  4UL );
+      checkCapacity( sym, 11UL );
+      checkNonZeros( sym, 10UL );
+      checkNonZeros( sym, 0UL, 2UL );
+      checkNonZeros( sym, 1UL, 2UL );
+      checkNonZeros( sym, 2UL, 4UL );
+      checkNonZeros( sym, 3UL, 2UL );
+
+      if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
+          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a non-zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sym << "\n"
+             << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
+                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
+                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
+                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (1,2)
+      sym.erase( 1UL, 2UL );
+
+      checkRows    ( sym,  4UL );
+      checkColumns ( sym,  4UL );
+      checkCapacity( sym, 11UL );
+      checkNonZeros( sym,  8UL );
+      checkNonZeros( sym, 0UL, 2UL );
+      checkNonZeros( sym, 1UL, 1UL );
+      checkNonZeros( sym, 2UL, 3UL );
+      checkNonZeros( sym, 3UL, 2UL );
+
+      if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+          sym(1,1) != vec( 4 ) ||
+          sym(2,0) != vec( 2 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a non-zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sym << "\n"
+             << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
+                                     "( (   ) ( 4 ) (   ) (   ) )\n"
+                                     "( ( 2 ) (   ) ( 6 ) ( 7 ) )\n"
+                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (0,2)
+      sym.erase( 0UL, 2UL );
+
+      checkRows    ( sym,  4UL );
+      checkColumns ( sym,  4UL );
+      checkCapacity( sym, 11UL );
+      checkNonZeros( sym,  6UL );
+      checkNonZeros( sym, 0UL, 1UL );
+      checkNonZeros( sym, 1UL, 1UL );
+      checkNonZeros( sym, 2UL, 2UL );
+      checkNonZeros( sym, 3UL, 2UL );
+
+      if( sym(0,3) != vec( 3 ) ||
+          sym(1,1) != vec( 4 ) ||
+          sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a non-zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sym << "\n"
+             << "   Expected result:\n( (   ) (   ) (   ) ( 3 ) )\n"
+                                     "( (   ) ( 4 ) (   ) (   ) )\n"
+                                     "( (   ) (   ) ( 6 ) ( 7 ) )\n"
+                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Trying to erase a zero element
+      sym.erase( 0UL, 1UL );
+
+      checkRows    ( sym,  4UL );
+      checkColumns ( sym,  4UL );
+      checkCapacity( sym, 11UL );
+      checkNonZeros( sym,  6UL );
+      checkNonZeros( sym, 0UL, 1UL );
+      checkNonZeros( sym, 1UL, 1UL );
+      checkNonZeros( sym, 2UL, 2UL );
+      checkNonZeros( sym, 3UL, 2UL );
+
+      if( sym(0,3) != vec( 3 ) ||
+          sym(1,1) != vec( 4 ) ||
+          sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sym << "\n"
+             << "   Expected result:\n( (   ) (   ) (   ) ( 3 ) )\n"
+                                     "( (   ) ( 4 ) (   ) (   ) )\n"
+                                     "( (   ) (   ) ( 6 ) ( 7 ) )\n"
+                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Row-major iterator-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Row-major SymmetricMatrix::erase( size_t, Iterator )";
+
+      typedef ST::Iterator  Iterator;
+
+      // Initialization check
+      ST sym( 4UL );
+      sym(0,0) = vec( 1 );
+      sym(0,2) = vec( 2 );
+      sym(0,3) = vec( 3 );
+      sym(1,1) = vec( 4 );
+      sym(1,2) = vec( 5 );
+      sym(2,2) = vec( 6 );
+      sym(2,3) = vec( 7 );
+
+      checkRows    ( sym,  4UL );
+      checkColumns ( sym,  4UL );
+      checkCapacity( sym, 11UL );
+      checkNonZeros( sym, 11UL );
+      checkNonZeros( sym, 0UL, 3UL );
+      checkNonZeros( sym, 1UL, 2UL );
+      checkNonZeros( sym, 2UL, 4UL );
+      checkNonZeros( sym, 3UL, 2UL );
+
+      if( sym(0,0) != vec( 1 ) || sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
+          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sym << "\n"
+             << "   Expected result:\n( ( 1 ) (   ) ( 2 ) ( 3 ) )\n"
+                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
+                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
+                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (0,0)
+      {
+         Iterator pos = sym.erase( 0UL, sym.find( 0UL, 0UL ) );
+
+         checkRows    ( sym,  4UL );
+         checkColumns ( sym,  4UL );
+         checkCapacity( sym, 11UL );
+         checkNonZeros( sym, 10UL );
+         checkNonZeros( sym, 0UL, 2UL );
+         checkNonZeros( sym, 1UL, 2UL );
+         checkNonZeros( sym, 2UL, 4UL );
+         checkNonZeros( sym, 3UL, 2UL );
+
+         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+             sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
+             sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a non-zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sym << "\n"
+                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
+                                        "( (   ) ( 4 ) ( 5 ) (   ) )\n"
+                                        "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
+                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != vec( 2 ) || pos->index() != 2 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: ( 2 )\n"
+                << "   Expected index: 2\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element at (1,2)
+      {
+         Iterator pos = sym.erase( 1UL, sym.find( 1UL, 2UL ) );
+
+         checkRows    ( sym,  4UL );
+         checkColumns ( sym,  4UL );
+         checkCapacity( sym, 11UL );
+         checkNonZeros( sym,  8UL );
+         checkNonZeros( sym, 0UL, 2UL );
+         checkNonZeros( sym, 1UL, 1UL );
+         checkNonZeros( sym, 2UL, 3UL );
+         checkNonZeros( sym, 3UL, 2UL );
+
+         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+             sym(1,1) != vec( 4 ) ||
+             sym(2,0) != vec( 2 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a non-zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sym << "\n"
+                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
+                                        "( (   ) ( 4 ) (   ) (   ) )\n"
+                                        "( ( 2 ) (   ) ( 6 ) ( 7 ) )\n"
+                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != sym.end( 1UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element at (0,2)
+      {
+         Iterator pos = sym.erase( 0UL, sym.find( 0UL, 2UL ) );
+
+         checkRows    ( sym,  4UL );
+         checkColumns ( sym,  4UL );
+         checkCapacity( sym, 11UL );
+         checkNonZeros( sym,  6UL );
+         checkNonZeros( sym, 0UL, 1UL );
+         checkNonZeros( sym, 1UL, 1UL );
+         checkNonZeros( sym, 2UL, 2UL );
+         checkNonZeros( sym, 3UL, 2UL );
+
+         if( sym(0,3) != vec( 3 ) ||
+             sym(1,1) != vec( 4 ) ||
+             sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a non-zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sym << "\n"
+                << "   Expected result:\n( (   ) (   ) (   ) ( 3 ) )\n"
+                                        "( (   ) ( 4 ) (   ) (   ) )\n"
+                                        "( (   ) (   ) ( 6 ) ( 7 ) )\n"
+                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != vec( 3 ) || pos->index() != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: ( 3 )\n"
+                << "   Expected index: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Trying to erase a zero element
+      {
+         Iterator pos = sym.erase( 0UL, sym.find( 0UL, 1UL ) );
+
+         checkRows    ( sym,  4UL );
+         checkColumns ( sym,  4UL );
+         checkCapacity( sym, 11UL );
+         checkNonZeros( sym,  6UL );
+         checkNonZeros( sym, 0UL, 1UL );
+         checkNonZeros( sym, 1UL, 1UL );
+         checkNonZeros( sym, 2UL, 2UL );
+         checkNonZeros( sym, 3UL, 2UL );
+
+         if( sym(0,3) != vec( 3 ) ||
+             sym(1,1) != vec( 4 ) ||
+             sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sym << "\n"
+                << "   Expected result:\n( (   ) (   ) (   ) ( 3 ) )\n"
+                                        "( (   ) ( 4 ) (   ) (   ) )\n"
+                                        "( (   ) (   ) ( 6 ) ( 7 ) )\n"
+                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != sym.end( 0UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+
+   //=====================================================================================
+   // Row-major iterator-range-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Row-major SymmetricMatrix::erase( size_t, Iterator, Iterator )";
+
+      typedef ST::Iterator  Iterator;
+
+      // Initialization check
+      ST sym( 4UL );
+      sym(0,0) = vec( 1 );
+      sym(0,2) = vec( 2 );
+      sym(0,3) = vec( 3 );
+      sym(1,1) = vec( 4 );
+      sym(1,2) = vec( 5 );
+      sym(2,2) = vec( 6 );
+      sym(2,3) = vec( 7 );
+
+      checkRows    ( sym,  4UL );
+      checkColumns ( sym,  4UL );
+      checkCapacity( sym, 11UL );
+      checkNonZeros( sym, 11UL );
+      checkNonZeros( sym, 0UL, 3UL );
+      checkNonZeros( sym, 1UL, 2UL );
+      checkNonZeros( sym, 2UL, 4UL );
+      checkNonZeros( sym, 3UL, 2UL );
+
+      if( sym(0,0) != vec( 1 ) || sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
+          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sym << "\n"
+             << "   Expected result:\n( ( 1 ) (   ) ( 2 ) ( 3 ) )\n"
+                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
+                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
+                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element from (0,0) to (0,2)
+      {
+         Iterator pos = sym.erase( 0UL, sym.find( 0UL, 0UL ), sym.find( 0UL, 2UL ) );
+
+         checkRows    ( sym,  4UL );
+         checkColumns ( sym,  4UL );
+         checkCapacity( sym, 11UL );
+         checkNonZeros( sym, 10UL );
+         checkNonZeros( sym, 0UL, 2UL );
+         checkNonZeros( sym, 1UL, 2UL );
+         checkNonZeros( sym, 2UL, 4UL );
+         checkNonZeros( sym, 3UL, 2UL );
+
+         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+             sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
+             sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a single-element range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sym << "\n"
+                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
+                                        "( (   ) ( 4 ) ( 5 ) (   ) )\n"
+                                        "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
+                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != vec( 2 ) || pos->index() != 2 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: ( 2 )\n"
+                << "   Expected index: 2\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element from (2,1) to (2,3)
+      {
+         Iterator pos = sym.erase( 2UL, sym.find( 2UL, 1UL ), sym.find( 2UL, 3UL ) );
+
+         checkRows    ( sym,  4UL );
+         checkColumns ( sym,  4UL );
+         checkCapacity( sym, 11UL );
+         checkNonZeros( sym,  7UL );
+         checkNonZeros( sym, 0UL, 2UL );
+         checkNonZeros( sym, 1UL, 1UL );
+         checkNonZeros( sym, 2UL, 2UL );
+         checkNonZeros( sym, 3UL, 2UL );
+
+         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+             sym(1,1) != vec( 4 ) ||
+             sym(2,0) != vec( 2 ) || sym(2,3) != vec( 7 ) ||
+             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a single-element range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sym << "\n"
+                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
+                                        "( (   ) ( 4 ) (   ) (   ) )\n"
+                                        "( ( 2 ) (   ) (   ) ( 7 ) )\n"
+                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != vec( 7 ) || pos->index() != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: ( 7 )\n"
+                << "   Expected index: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element from (3,2) to the row end
+      {
+         Iterator pos = sym.erase( 3UL, sym.find( 3UL, 2UL ), sym.end( 3UL ) );
+
+         checkRows    ( sym,  4UL );
+         checkColumns ( sym,  4UL );
+         checkCapacity( sym, 11UL );
+         checkNonZeros( sym,  5UL );
+         checkNonZeros( sym, 0UL, 2UL );
+         checkNonZeros( sym, 1UL, 1UL );
+         checkNonZeros( sym, 2UL, 1UL );
+         checkNonZeros( sym, 3UL, 1UL );
+
+         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+             sym(1,1) != vec( 4 ) ||
+             sym(2,0) != vec( 2 ) ||
+             sym(3,0) != vec( 3 ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a single-element range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sym << "\n"
+                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
+                                        "( (   ) ( 4 ) (   ) (   ) )\n"
+                                        "( ( 2 ) (   ) (   ) (   ) )\n"
+                                        "( ( 3 ) (   ) (   ) (   ) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != sym.end( 3UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Trying to erase an empty range
+      {
+         Iterator pos = sym.erase( 2UL, sym.find( 2UL, 0UL ), sym.find( 2UL, 0UL ) );
+
+         checkRows    ( sym,  4UL );
+         checkColumns ( sym,  4UL );
+         checkCapacity( sym, 11UL );
+         checkNonZeros( sym,  5UL );
+         checkNonZeros( sym, 0UL, 2UL );
+         checkNonZeros( sym, 1UL, 1UL );
+         checkNonZeros( sym, 2UL, 1UL );
+         checkNonZeros( sym, 3UL, 1UL );
+
+         if( sym(0,2) != 2 || sym(0,3) != 3 ||
+             sym(1,1) != 4 ||
+             sym(2,0) != 2 ||
+             sym(3,0) != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing an empty range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sym << "\n"
+                << "   Expected result:\n( 0 0 2 3 )\n( 0 4 0 0 )\n( 2 0 0 0 )\n( 3 0 0 0 )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != sym.find( 2UL, 0UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major index-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Column-major SymmetricMatrix::erase( size_t, size_t )";
+
+      // Initialization check
+      OST sym( 4UL );
+      sym(0,0) = vec( 1 );
+      sym(0,2) = vec( 2 );
+      sym(0,3) = vec( 3 );
+      sym(1,1) = vec( 4 );
+      sym(1,2) = vec( 5 );
+      sym(2,2) = vec( 6 );
+      sym(2,3) = vec( 7 );
+
+      checkRows    ( sym,  4UL );
+      checkColumns ( sym,  4UL );
+      checkCapacity( sym, 11UL );
+      checkNonZeros( sym, 11UL );
+      checkNonZeros( sym, 0UL, 3UL );
+      checkNonZeros( sym, 1UL, 2UL );
+      checkNonZeros( sym, 2UL, 4UL );
+      checkNonZeros( sym, 3UL, 2UL );
+
+      if( sym(0,0) != vec( 1 ) || sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
+          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sym << "\n"
+             << "   Expected result:\n( ( 1 ) (   ) ( 2 ) ( 3 ) )\n"
+                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
+                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
+                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (0,0)
+      sym.erase( 0UL, 0UL );
+
+      checkRows    ( sym,  4UL );
+      checkColumns ( sym,  4UL );
+      checkCapacity( sym, 11UL );
+      checkNonZeros( sym, 10UL );
+      checkNonZeros( sym, 0UL, 2UL );
+      checkNonZeros( sym, 1UL, 2UL );
+      checkNonZeros( sym, 2UL, 4UL );
+      checkNonZeros( sym, 3UL, 2UL );
+
+      if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
+          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a non-zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sym << "\n"
+             << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
+                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
+                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
+                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (2,1)
+      sym.erase( 2UL, 1UL );
+
+      checkRows    ( sym,  4UL );
+      checkColumns ( sym,  4UL );
+      checkCapacity( sym, 11UL );
+      checkNonZeros( sym,  8UL );
+      checkNonZeros( sym, 0UL, 2UL );
+      checkNonZeros( sym, 1UL, 1UL );
+      checkNonZeros( sym, 2UL, 3UL );
+      checkNonZeros( sym, 3UL, 2UL );
+
+      if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+          sym(1,1) != vec( 4 ) ||
+          sym(2,0) != vec( 2 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a non-zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sym << "\n"
+             << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
+                                     "( (   ) ( 4 ) (   ) (   ) )\n"
+                                     "( ( 2 ) (   ) ( 6 ) ( 7 ) )\n"
+                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (2,0)
+      sym.erase( 2UL, 0UL );
+
+      checkRows    ( sym,  4UL );
+      checkColumns ( sym,  4UL );
+      checkCapacity( sym, 11UL );
+      checkNonZeros( sym,  6UL );
+      checkNonZeros( sym, 0UL, 1UL );
+      checkNonZeros( sym, 1UL, 1UL );
+      checkNonZeros( sym, 2UL, 2UL );
+      checkNonZeros( sym, 3UL, 2UL );
+
+      if( sym(0,3) != vec( 3 ) ||
+          sym(1,1) != vec( 4 ) ||
+          sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a non-zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sym << "\n"
+             << "   Expected result:\n( (   ) (   ) (   ) ( 3 ) )\n"
+                                     "( (   ) ( 4 ) (   ) (   ) )\n"
+                                     "( (   ) (   ) ( 6 ) ( 7 ) )\n"
+                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Trying to erase a zero element
+      sym.erase( 1UL, 0UL );
+
+      checkRows    ( sym,  4UL );
+      checkColumns ( sym,  4UL );
+      checkCapacity( sym, 11UL );
+      checkNonZeros( sym,  6UL );
+      checkNonZeros( sym, 0UL, 1UL );
+      checkNonZeros( sym, 1UL, 1UL );
+      checkNonZeros( sym, 2UL, 2UL );
+      checkNonZeros( sym, 3UL, 2UL );
+
+      if( sym(0,3) != vec( 3 ) ||
+          sym(1,1) != vec( 4 ) ||
+          sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Erasing a zero element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sym << "\n"
+             << "   Expected result:\n( (   ) (   ) (   ) ( 3 ) )\n"
+                                     "( (   ) ( 4 ) (   ) (   ) )\n"
+                                     "( (   ) (   ) ( 6 ) ( 7 ) )\n"
+                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major iterator-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Column-major SymmetricMatrix::erase( size_t, Iterator )";
+
+      typedef OST::Iterator  Iterator;
+
+      // Initialization check
+      OST sym( 4UL );
+      sym(0,0) = vec( 1 );
+      sym(0,2) = vec( 2 );
+      sym(0,3) = vec( 3 );
+      sym(1,1) = vec( 4 );
+      sym(1,2) = vec( 5 );
+      sym(2,2) = vec( 6 );
+      sym(2,3) = vec( 7 );
+
+      checkRows    ( sym,  4UL );
+      checkColumns ( sym,  4UL );
+      checkCapacity( sym, 11UL );
+      checkNonZeros( sym, 11UL );
+      checkNonZeros( sym, 0UL, 3UL );
+      checkNonZeros( sym, 1UL, 2UL );
+      checkNonZeros( sym, 2UL, 4UL );
+      checkNonZeros( sym, 3UL, 2UL );
+
+      if( sym(0,0) != vec( 1 ) || sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
+          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sym << "\n"
+             << "   Expected result:\n( ( 1 ) (   ) ( 2 ) ( 3 ) )\n"
+                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
+                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
+                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element at (0,0)
+      {
+         Iterator pos = sym.erase( 0UL, sym.find( 0UL, 0UL ) );
+
+         checkRows    ( sym,  4UL );
+         checkColumns ( sym,  4UL );
+         checkCapacity( sym, 11UL );
+         checkNonZeros( sym, 10UL );
+         checkNonZeros( sym, 0UL, 2UL );
+         checkNonZeros( sym, 1UL, 2UL );
+         checkNonZeros( sym, 2UL, 4UL );
+         checkNonZeros( sym, 3UL, 2UL );
+
+         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+             sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
+             sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a non-zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sym << "\n"
+                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
+                                        "( (   ) ( 4 ) ( 5 ) (   ) )\n"
+                                        "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
+                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != vec( 2 ) || pos->index() != 2 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: ( 2 )\n"
+                << "   Expected index: 2\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element at (2,1)
+      {
+         Iterator pos = sym.erase( 1UL, sym.find( 2UL, 1UL ) );
+
+         checkRows    ( sym,  4UL );
+         checkColumns ( sym,  4UL );
+         checkCapacity( sym, 11UL );
+         checkNonZeros( sym,  8UL );
+         checkNonZeros( sym, 0UL, 2UL );
+         checkNonZeros( sym, 1UL, 1UL );
+         checkNonZeros( sym, 2UL, 3UL );
+         checkNonZeros( sym, 3UL, 2UL );
+
+         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+             sym(1,1) != vec( 4 ) ||
+             sym(2,0) != vec( 2 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a non-zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sym << "\n"
+                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
+                                        "( (   ) ( 4 ) (   ) (   ) )\n"
+                                        "( ( 2 ) (   ) ( 6 ) ( 7 ) )\n"
+                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != sym.end( 1UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element at (2,0)
+      {
+         Iterator pos = sym.erase( 0UL, sym.find( 2UL, 0UL ) );
+
+         checkRows    ( sym,  4UL );
+         checkColumns ( sym,  4UL );
+         checkCapacity( sym, 11UL );
+         checkNonZeros( sym,  6UL );
+         checkNonZeros( sym, 0UL, 1UL );
+         checkNonZeros( sym, 1UL, 1UL );
+         checkNonZeros( sym, 2UL, 2UL );
+         checkNonZeros( sym, 3UL, 2UL );
+
+         if( sym(0,3) != vec( 3 ) ||
+             sym(1,1) != vec( 4 ) ||
+             sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a non-zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sym << "\n"
+                << "   Expected result:\n( (   ) (   ) (   ) ( 3 ) )\n"
+                                        "( (   ) ( 4 ) (   ) (   ) )\n"
+                                        "( (   ) (   ) ( 6 ) ( 7 ) )\n"
+                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != vec( 3 ) || pos->index() != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: ( 3 )\n"
+                << "   Expected index: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Trying to erase a zero element
+      {
+         Iterator pos = sym.erase( 0UL, sym.find( 1UL, 0UL ) );
+
+         checkRows    ( sym,  4UL );
+         checkColumns ( sym,  4UL );
+         checkCapacity( sym, 11UL );
+         checkNonZeros( sym,  6UL );
+         checkNonZeros( sym, 0UL, 1UL );
+         checkNonZeros( sym, 1UL, 1UL );
+         checkNonZeros( sym, 2UL, 2UL );
+         checkNonZeros( sym, 3UL, 2UL );
+
+         if( sym(0,3) != vec( 3 ) ||
+             sym(1,1) != vec( 4 ) ||
+             sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a zero element failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sym << "\n"
+                << "   Expected result:\n( (   ) (   ) (   ) ( 3 ) )\n"
+                                        "( (   ) ( 4 ) (   ) (   ) )\n"
+                                        "( (   ) (   ) ( 6 ) ( 7 ) )\n"
+                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != sym.end( 0UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major iterator-range-based erase function
+   //=====================================================================================
+
+   {
+      test_ = "Column-major SymmetricMatrix::erase( size_t, Iterator, Iterator )";
+
+      typedef OST::Iterator  Iterator;
+
+      // Initialization check
+      OST sym( 4UL );
+      sym(0,0) = vec( 1 );
+      sym(0,2) = vec( 2 );
+      sym(0,3) = vec( 3 );
+      sym(1,1) = vec( 4 );
+      sym(1,2) = vec( 5 );
+      sym(2,2) = vec( 6 );
+      sym(2,3) = vec( 7 );
+
+      checkRows    ( sym,  4UL );
+      checkColumns ( sym,  4UL );
+      checkCapacity( sym, 11UL );
+      checkNonZeros( sym, 11UL );
+      checkNonZeros( sym, 0UL, 3UL );
+      checkNonZeros( sym, 1UL, 2UL );
+      checkNonZeros( sym, 2UL, 4UL );
+      checkNonZeros( sym, 3UL, 2UL );
+
+      if( sym(0,0) != vec( 1 ) || sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
+          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Initialization failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sym << "\n"
+             << "   Expected result:\n( ( 1 ) (   ) ( 2 ) ( 3 ) )\n"
+                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
+                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
+                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      // Erasing the element from (0,0) to (2,0)
+      {
+         Iterator pos = sym.erase( 0UL, sym.find( 0UL, 0UL ), sym.find( 2UL, 0UL ) );
+
+         checkRows    ( sym,  4UL );
+         checkColumns ( sym,  4UL );
+         checkCapacity( sym, 11UL );
+         checkNonZeros( sym, 10UL );
+         checkNonZeros( sym, 0UL, 2UL );
+         checkNonZeros( sym, 1UL, 2UL );
+         checkNonZeros( sym, 2UL, 4UL );
+         checkNonZeros( sym, 3UL, 2UL );
+
+         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+             sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
+             sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
+             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a single-element range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sym << "\n"
+                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
+                                        "( (   ) ( 4 ) ( 5 ) (   ) )\n"
+                                        "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
+                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != vec( 2 ) || pos->index() != 2 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: ( 2 )\n"
+                << "   Expected index: 2\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element from (1,2) to (3,2)
+      {
+         Iterator pos = sym.erase( 2UL, sym.find( 1UL, 2UL ), sym.find( 3UL, 2UL ) );
+
+         checkRows    ( sym,  4UL );
+         checkColumns ( sym,  4UL );
+         checkCapacity( sym, 11UL );
+         checkNonZeros( sym,  7UL );
+         checkNonZeros( sym, 0UL, 2UL );
+         checkNonZeros( sym, 1UL, 1UL );
+         checkNonZeros( sym, 2UL, 2UL );
+         checkNonZeros( sym, 3UL, 2UL );
+
+         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+             sym(1,1) != vec( 4 ) ||
+             sym(2,0) != vec( 2 ) || sym(2,3) != vec( 7 ) ||
+             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a single-element range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sym << "\n"
+                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
+                                        "( (   ) ( 4 ) (   ) (   ) )\n"
+                                        "( ( 2 ) (   ) (   ) ( 7 ) )\n"
+                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos->value() != vec( 7 ) || pos->index() != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Value: " << pos->value() << "\n"
+                << "   Index: " << pos->index() << "\n"
+                << "   Expected value: ( 7 )\n"
+                << "   Expected index: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Erasing the element from (2,3) to the column end
+      {
+         Iterator pos = sym.erase( 3UL, sym.find( 2UL, 3UL ), sym.end( 3UL ) );
+
+         checkRows    ( sym,  4UL );
+         checkColumns ( sym,  4UL );
+         checkCapacity( sym, 11UL );
+         checkNonZeros( sym,  5UL );
+         checkNonZeros( sym, 0UL, 2UL );
+         checkNonZeros( sym, 1UL, 1UL );
+         checkNonZeros( sym, 2UL, 1UL );
+         checkNonZeros( sym, 3UL, 1UL );
+
+         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
+             sym(1,1) != vec( 4 ) ||
+             sym(2,0) != vec( 2 ) ||
+             sym(3,0) != vec( 3 ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing a single-element range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sym << "\n"
+                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
+                                        "( (   ) ( 4 ) (   ) (   ) )\n"
+                                        "( ( 2 ) (   ) (   ) (   ) )\n"
+                                        "( ( 3 ) (   ) (   ) (   ) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != sym.end( 3UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Trying to erase an empty range
+      {
+         Iterator pos = sym.erase( 2UL, sym.find( 0UL, 2UL ), sym.find( 0UL, 2UL ) );
+
+         checkRows    ( sym,  4UL );
+         checkColumns ( sym,  4UL );
+         checkCapacity( sym, 11UL );
+         checkNonZeros( sym,  5UL );
+         checkNonZeros( sym, 0UL, 2UL );
+         checkNonZeros( sym, 1UL, 1UL );
+         checkNonZeros( sym, 2UL, 1UL );
+         checkNonZeros( sym, 3UL, 1UL );
+
+         if( sym(0,2) != 2 || sym(0,3) != 3 ||
+             sym(1,1) != 4 ||
+             sym(2,0) != 2 ||
+             sym(3,0) != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Erasing an empty range failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sym << "\n"
+                << "   Expected result:\n( 0 0 2 3 )\n( 0 4 0 0 )\n( 2 0 0 0 )\n( 3 0 0 0 )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( pos != sym.find( 0UL, 2UL ) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid iterator returned\n"
+                << " Details:\n"
+                << "   Expected result: the end() iterator\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Test of the \c resize() member function of the SymmetricMatrix specialization.
 //
 // \return void
@@ -7880,1559 +8829,6 @@ void SparseNonNumericTest::testSwap()
              << "   Result:\n" << sym2 << "\n"
              << "   Expected result:\n( ( 1 ) ( 2 ) )\n"
                                      "( ( 2 ) ( 3 ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Test of the \c erase() member function of the SymmetricMatrix specialization.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c erase() member function of the SymmetricMatrix
-// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void SparseNonNumericTest::testErase()
-{
-   //=====================================================================================
-   // Row-major index-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Row-major SymmetricMatrix::erase( size_t, size_t )";
-
-      // Initialization check
-      ST sym( 4UL );
-      sym(0,0) = vec( 1 );
-      sym(0,2) = vec( 2 );
-      sym(0,3) = vec( 3 );
-      sym(1,1) = vec( 4 );
-      sym(1,2) = vec( 5 );
-      sym(2,2) = vec( 6 );
-      sym(2,3) = vec( 7 );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym, 11UL );
-      checkNonZeros( sym, 0UL, 3UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 4UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,0) != vec( 1 ) || sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( ( 1 ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (0,0)
-      sym.erase( 0UL, 0UL );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym, 10UL );
-      checkNonZeros( sym, 0UL, 2UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 4UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a non-zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (1,2)
-      sym.erase( 1UL, 2UL );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym,  8UL );
-      checkNonZeros( sym, 0UL, 2UL );
-      checkNonZeros( sym, 1UL, 1UL );
-      checkNonZeros( sym, 2UL, 3UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a non-zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) (   ) (   ) )\n"
-                                     "( ( 2 ) (   ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (0,2)
-      sym.erase( 0UL, 2UL );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym,  6UL );
-      checkNonZeros( sym, 0UL, 1UL );
-      checkNonZeros( sym, 1UL, 1UL );
-      checkNonZeros( sym, 2UL, 2UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) ||
-          sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a non-zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( (   ) (   ) (   ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) (   ) (   ) )\n"
-                                     "( (   ) (   ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase a zero element
-      sym.erase( 0UL, 1UL );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym,  6UL );
-      checkNonZeros( sym, 0UL, 1UL );
-      checkNonZeros( sym, 1UL, 1UL );
-      checkNonZeros( sym, 2UL, 2UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) ||
-          sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( (   ) (   ) (   ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) (   ) (   ) )\n"
-                                     "( (   ) (   ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major iterator-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Row-major SymmetricMatrix::erase( size_t, Iterator )";
-
-      typedef ST::Iterator  Iterator;
-
-      // Initialization check
-      ST sym( 4UL );
-      sym(0,0) = vec( 1 );
-      sym(0,2) = vec( 2 );
-      sym(0,3) = vec( 3 );
-      sym(1,1) = vec( 4 );
-      sym(1,2) = vec( 5 );
-      sym(2,2) = vec( 6 );
-      sym(2,3) = vec( 7 );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym, 11UL );
-      checkNonZeros( sym, 0UL, 3UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 4UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,0) != vec( 1 ) || sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( ( 1 ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (0,0)
-      {
-         Iterator pos = sym.erase( 0UL, sym.find( 0UL, 0UL ) );
-
-         checkRows    ( sym,  4UL );
-         checkColumns ( sym,  4UL );
-         checkCapacity( sym, 11UL );
-         checkNonZeros( sym, 10UL );
-         checkNonZeros( sym, 0UL, 2UL );
-         checkNonZeros( sym, 1UL, 2UL );
-         checkNonZeros( sym, 2UL, 4UL );
-         checkNonZeros( sym, 3UL, 2UL );
-
-         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-             sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-             sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a non-zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << sym << "\n"
-                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                        "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                        "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
-                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != vec( 2 ) || pos->index() != 2 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: ( 2 )\n"
-                << "   Expected index: 2\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element at (1,2)
-      {
-         Iterator pos = sym.erase( 1UL, sym.find( 1UL, 2UL ) );
-
-         checkRows    ( sym,  4UL );
-         checkColumns ( sym,  4UL );
-         checkCapacity( sym, 11UL );
-         checkNonZeros( sym,  8UL );
-         checkNonZeros( sym, 0UL, 2UL );
-         checkNonZeros( sym, 1UL, 1UL );
-         checkNonZeros( sym, 2UL, 3UL );
-         checkNonZeros( sym, 3UL, 2UL );
-
-         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-             sym(1,1) != vec( 4 ) ||
-             sym(2,0) != vec( 2 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a non-zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << sym << "\n"
-                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                        "( (   ) ( 4 ) (   ) (   ) )\n"
-                                        "( ( 2 ) (   ) ( 6 ) ( 7 ) )\n"
-                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != sym.end( 1UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element at (0,2)
-      {
-         Iterator pos = sym.erase( 0UL, sym.find( 0UL, 2UL ) );
-
-         checkRows    ( sym,  4UL );
-         checkColumns ( sym,  4UL );
-         checkCapacity( sym, 11UL );
-         checkNonZeros( sym,  6UL );
-         checkNonZeros( sym, 0UL, 1UL );
-         checkNonZeros( sym, 1UL, 1UL );
-         checkNonZeros( sym, 2UL, 2UL );
-         checkNonZeros( sym, 3UL, 2UL );
-
-         if( sym(0,3) != vec( 3 ) ||
-             sym(1,1) != vec( 4 ) ||
-             sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a non-zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << sym << "\n"
-                << "   Expected result:\n( (   ) (   ) (   ) ( 3 ) )\n"
-                                        "( (   ) ( 4 ) (   ) (   ) )\n"
-                                        "( (   ) (   ) ( 6 ) ( 7 ) )\n"
-                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != vec( 3 ) || pos->index() != 3 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: ( 3 )\n"
-                << "   Expected index: 3\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Trying to erase a zero element
-      {
-         Iterator pos = sym.erase( 0UL, sym.find( 0UL, 1UL ) );
-
-         checkRows    ( sym,  4UL );
-         checkColumns ( sym,  4UL );
-         checkCapacity( sym, 11UL );
-         checkNonZeros( sym,  6UL );
-         checkNonZeros( sym, 0UL, 1UL );
-         checkNonZeros( sym, 1UL, 1UL );
-         checkNonZeros( sym, 2UL, 2UL );
-         checkNonZeros( sym, 3UL, 2UL );
-
-         if( sym(0,3) != vec( 3 ) ||
-             sym(1,1) != vec( 4 ) ||
-             sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << sym << "\n"
-                << "   Expected result:\n( (   ) (   ) (   ) ( 3 ) )\n"
-                                        "( (   ) ( 4 ) (   ) (   ) )\n"
-                                        "( (   ) (   ) ( 6 ) ( 7 ) )\n"
-                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != sym.end( 0UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major iterator-range-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Row-major SymmetricMatrix::erase( size_t, Iterator, Iterator )";
-
-      typedef ST::Iterator  Iterator;
-
-      // Initialization check
-      ST sym( 4UL );
-      sym(0,0) = vec( 1 );
-      sym(0,2) = vec( 2 );
-      sym(0,3) = vec( 3 );
-      sym(1,1) = vec( 4 );
-      sym(1,2) = vec( 5 );
-      sym(2,2) = vec( 6 );
-      sym(2,3) = vec( 7 );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym, 11UL );
-      checkNonZeros( sym, 0UL, 3UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 4UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,0) != vec( 1 ) || sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( ( 1 ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element from (0,0) to (0,2)
-      {
-         Iterator pos = sym.erase( 0UL, sym.find( 0UL, 0UL ), sym.find( 0UL, 2UL ) );
-
-         checkRows    ( sym,  4UL );
-         checkColumns ( sym,  4UL );
-         checkCapacity( sym, 11UL );
-         checkNonZeros( sym, 10UL );
-         checkNonZeros( sym, 0UL, 2UL );
-         checkNonZeros( sym, 1UL, 2UL );
-         checkNonZeros( sym, 2UL, 4UL );
-         checkNonZeros( sym, 3UL, 2UL );
-
-         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-             sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-             sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a single-element range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << sym << "\n"
-                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                        "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                        "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
-                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != vec( 2 ) || pos->index() != 2 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: ( 2 )\n"
-                << "   Expected index: 2\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element from (2,1) to (2,3)
-      {
-         Iterator pos = sym.erase( 2UL, sym.find( 2UL, 1UL ), sym.find( 2UL, 3UL ) );
-
-         checkRows    ( sym,  4UL );
-         checkColumns ( sym,  4UL );
-         checkCapacity( sym, 11UL );
-         checkNonZeros( sym,  7UL );
-         checkNonZeros( sym, 0UL, 2UL );
-         checkNonZeros( sym, 1UL, 1UL );
-         checkNonZeros( sym, 2UL, 2UL );
-         checkNonZeros( sym, 3UL, 2UL );
-
-         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-             sym(1,1) != vec( 4 ) ||
-             sym(2,0) != vec( 2 ) || sym(2,3) != vec( 7 ) ||
-             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a single-element range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << sym << "\n"
-                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                        "( (   ) ( 4 ) (   ) (   ) )\n"
-                                        "( ( 2 ) (   ) (   ) ( 7 ) )\n"
-                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != vec( 7 ) || pos->index() != 3 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: ( 7 )\n"
-                << "   Expected index: 3\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element from (3,2) to the row end
-      {
-         Iterator pos = sym.erase( 3UL, sym.find( 3UL, 2UL ), sym.end( 3UL ) );
-
-         checkRows    ( sym,  4UL );
-         checkColumns ( sym,  4UL );
-         checkCapacity( sym, 11UL );
-         checkNonZeros( sym,  5UL );
-         checkNonZeros( sym, 0UL, 2UL );
-         checkNonZeros( sym, 1UL, 1UL );
-         checkNonZeros( sym, 2UL, 1UL );
-         checkNonZeros( sym, 3UL, 1UL );
-
-         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-             sym(1,1) != vec( 4 ) ||
-             sym(2,0) != vec( 2 ) ||
-             sym(3,0) != vec( 3 ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a single-element range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << sym << "\n"
-                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                        "( (   ) ( 4 ) (   ) (   ) )\n"
-                                        "( ( 2 ) (   ) (   ) (   ) )\n"
-                                        "( ( 3 ) (   ) (   ) (   ) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != sym.end( 3UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Trying to erase an empty range
-      {
-         Iterator pos = sym.erase( 2UL, sym.find( 2UL, 0UL ), sym.find( 2UL, 0UL ) );
-
-         checkRows    ( sym,  4UL );
-         checkColumns ( sym,  4UL );
-         checkCapacity( sym, 11UL );
-         checkNonZeros( sym,  5UL );
-         checkNonZeros( sym, 0UL, 2UL );
-         checkNonZeros( sym, 1UL, 1UL );
-         checkNonZeros( sym, 2UL, 1UL );
-         checkNonZeros( sym, 3UL, 1UL );
-
-         if( sym(0,2) != 2 || sym(0,3) != 3 ||
-             sym(1,1) != 4 ||
-             sym(2,0) != 2 ||
-             sym(3,0) != 3 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing an empty range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << sym << "\n"
-                << "   Expected result:\n( 0 0 2 3 )\n( 0 4 0 0 )\n( 2 0 0 0 )\n( 3 0 0 0 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != sym.find( 2UL, 0UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major erase function with predicate
-   //=====================================================================================
-
-   {
-      test_ = "Row-major SymmetricMatrix::erase( Predicate )";
-
-      // Initialization check
-      ST sym( 4UL );
-      sym(0,0) = vec( 1 );
-      sym(0,2) = vec( 2 );
-      sym(0,3) = vec( 3 );
-      sym(1,1) = vec( 4 );
-      sym(1,2) = vec( 5 );
-      sym(2,2) = vec( 6 );
-      sym(2,3) = vec( 7 );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym, 11UL );
-      checkNonZeros( sym, 0UL, 3UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 4UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,0) != vec( 1 ) || sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( ( 1 ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing a selection of elements
-      sym.erase( []( const VT& v ){ return v[0] == 1 || v[0] == 5 || v[0] == 6; } );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym,  7UL );
-      checkNonZeros( sym, 0UL, 2UL );
-      checkNonZeros( sym, 1UL, 1UL );
-      checkNonZeros( sym, 2UL, 2UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) (   ) (   ) )\n"
-                                     "( ( 2 ) (   ) (   ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase all elements with the value 1
-      sym.erase( []( const VT& v ){ return v[0] == 1; } );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym,  7UL );
-      checkNonZeros( sym, 0UL, 2UL );
-      checkNonZeros( sym, 1UL, 1UL );
-      checkNonZeros( sym, 2UL, 2UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing all elements with the value 1 failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) (   ) (   ) )\n"
-                                     "( ( 2 ) (   ) (   ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major iterator-range-based erase function with predicate
-   //=====================================================================================
-
-   {
-      test_ = "Row-major SymmetricMatrix::erase( size_t, Iterator, Iterator, Predicate )";
-
-      // Initialization check
-      ST sym( 4UL );
-      sym(0,0) = vec( 1 );
-      sym(0,2) = vec( 2 );
-      sym(0,3) = vec( 3 );
-      sym(1,1) = vec( 4 );
-      sym(1,2) = vec( 5 );
-      sym(2,2) = vec( 6 );
-      sym(2,3) = vec( 7 );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym, 11UL );
-      checkNonZeros( sym, 0UL, 3UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 4UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,0) != vec( 1 ) || sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( ( 1 ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing a selection of elements
-      sym.erase( 2UL, sym.begin( 2UL ), sym.find( 2UL, 3UL ),
-                 []( const VT& v ){ return v[0] == 2 || v[0] == 6; } );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym,  8UL );
-      checkNonZeros( sym, 0UL, 2UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 2UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,0) != vec( 1 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-          sym(2,1) != vec( 5 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( ( 1 ) (   ) (   ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                     "( (   ) ( 5 ) (   ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase from an empty range
-      sym.erase( 1UL, sym.begin( 1UL ), sym.begin( 1UL ), []( const VT& ){ return true; } );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym,  8UL );
-      checkNonZeros( sym, 0UL, 2UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 2UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,0) != vec( 1 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-          sym(2,1) != vec( 5 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing from an empty range failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( ( 1 ) (   ) (   ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                     "( (   ) ( 5 ) (   ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major index-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Column-major SymmetricMatrix::erase( size_t, size_t )";
-
-      // Initialization check
-      OST sym( 4UL );
-      sym(0,0) = vec( 1 );
-      sym(0,2) = vec( 2 );
-      sym(0,3) = vec( 3 );
-      sym(1,1) = vec( 4 );
-      sym(1,2) = vec( 5 );
-      sym(2,2) = vec( 6 );
-      sym(2,3) = vec( 7 );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym, 11UL );
-      checkNonZeros( sym, 0UL, 3UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 4UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,0) != vec( 1 ) || sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( ( 1 ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (0,0)
-      sym.erase( 0UL, 0UL );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym, 10UL );
-      checkNonZeros( sym, 0UL, 2UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 4UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a non-zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (2,1)
-      sym.erase( 2UL, 1UL );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym,  8UL );
-      checkNonZeros( sym, 0UL, 2UL );
-      checkNonZeros( sym, 1UL, 1UL );
-      checkNonZeros( sym, 2UL, 3UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a non-zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) (   ) (   ) )\n"
-                                     "( ( 2 ) (   ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (2,0)
-      sym.erase( 2UL, 0UL );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym,  6UL );
-      checkNonZeros( sym, 0UL, 1UL );
-      checkNonZeros( sym, 1UL, 1UL );
-      checkNonZeros( sym, 2UL, 2UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) ||
-          sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a non-zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( (   ) (   ) (   ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) (   ) (   ) )\n"
-                                     "( (   ) (   ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase a zero element
-      sym.erase( 1UL, 0UL );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym,  6UL );
-      checkNonZeros( sym, 0UL, 1UL );
-      checkNonZeros( sym, 1UL, 1UL );
-      checkNonZeros( sym, 2UL, 2UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) ||
-          sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a zero element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( (   ) (   ) (   ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) (   ) (   ) )\n"
-                                     "( (   ) (   ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major iterator-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Column-major SymmetricMatrix::erase( size_t, Iterator )";
-
-      typedef OST::Iterator  Iterator;
-
-      // Initialization check
-      OST sym( 4UL );
-      sym(0,0) = vec( 1 );
-      sym(0,2) = vec( 2 );
-      sym(0,3) = vec( 3 );
-      sym(1,1) = vec( 4 );
-      sym(1,2) = vec( 5 );
-      sym(2,2) = vec( 6 );
-      sym(2,3) = vec( 7 );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym, 11UL );
-      checkNonZeros( sym, 0UL, 3UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 4UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,0) != vec( 1 ) || sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( ( 1 ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element at (0,0)
-      {
-         Iterator pos = sym.erase( 0UL, sym.find( 0UL, 0UL ) );
-
-         checkRows    ( sym,  4UL );
-         checkColumns ( sym,  4UL );
-         checkCapacity( sym, 11UL );
-         checkNonZeros( sym, 10UL );
-         checkNonZeros( sym, 0UL, 2UL );
-         checkNonZeros( sym, 1UL, 2UL );
-         checkNonZeros( sym, 2UL, 4UL );
-         checkNonZeros( sym, 3UL, 2UL );
-
-         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-             sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-             sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a non-zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << sym << "\n"
-                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                        "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                        "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
-                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != vec( 2 ) || pos->index() != 2 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: ( 2 )\n"
-                << "   Expected index: 2\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element at (2,1)
-      {
-         Iterator pos = sym.erase( 1UL, sym.find( 2UL, 1UL ) );
-
-         checkRows    ( sym,  4UL );
-         checkColumns ( sym,  4UL );
-         checkCapacity( sym, 11UL );
-         checkNonZeros( sym,  8UL );
-         checkNonZeros( sym, 0UL, 2UL );
-         checkNonZeros( sym, 1UL, 1UL );
-         checkNonZeros( sym, 2UL, 3UL );
-         checkNonZeros( sym, 3UL, 2UL );
-
-         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-             sym(1,1) != vec( 4 ) ||
-             sym(2,0) != vec( 2 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a non-zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << sym << "\n"
-                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                        "( (   ) ( 4 ) (   ) (   ) )\n"
-                                        "( ( 2 ) (   ) ( 6 ) ( 7 ) )\n"
-                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != sym.end( 1UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element at (2,0)
-      {
-         Iterator pos = sym.erase( 0UL, sym.find( 2UL, 0UL ) );
-
-         checkRows    ( sym,  4UL );
-         checkColumns ( sym,  4UL );
-         checkCapacity( sym, 11UL );
-         checkNonZeros( sym,  6UL );
-         checkNonZeros( sym, 0UL, 1UL );
-         checkNonZeros( sym, 1UL, 1UL );
-         checkNonZeros( sym, 2UL, 2UL );
-         checkNonZeros( sym, 3UL, 2UL );
-
-         if( sym(0,3) != vec( 3 ) ||
-             sym(1,1) != vec( 4 ) ||
-             sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a non-zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << sym << "\n"
-                << "   Expected result:\n( (   ) (   ) (   ) ( 3 ) )\n"
-                                        "( (   ) ( 4 ) (   ) (   ) )\n"
-                                        "( (   ) (   ) ( 6 ) ( 7 ) )\n"
-                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != vec( 3 ) || pos->index() != 3 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: ( 3 )\n"
-                << "   Expected index: 3\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Trying to erase a zero element
-      {
-         Iterator pos = sym.erase( 0UL, sym.find( 1UL, 0UL ) );
-
-         checkRows    ( sym,  4UL );
-         checkColumns ( sym,  4UL );
-         checkCapacity( sym, 11UL );
-         checkNonZeros( sym,  6UL );
-         checkNonZeros( sym, 0UL, 1UL );
-         checkNonZeros( sym, 1UL, 1UL );
-         checkNonZeros( sym, 2UL, 2UL );
-         checkNonZeros( sym, 3UL, 2UL );
-
-         if( sym(0,3) != vec( 3 ) ||
-             sym(1,1) != vec( 4 ) ||
-             sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a zero element failed\n"
-                << " Details:\n"
-                << "   Result:\n" << sym << "\n"
-                << "   Expected result:\n( (   ) (   ) (   ) ( 3 ) )\n"
-                                        "( (   ) ( 4 ) (   ) (   ) )\n"
-                                        "( (   ) (   ) ( 6 ) ( 7 ) )\n"
-                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != sym.end( 0UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major iterator-range-based erase function
-   //=====================================================================================
-
-   {
-      test_ = "Column-major SymmetricMatrix::erase( size_t, Iterator, Iterator )";
-
-      typedef OST::Iterator  Iterator;
-
-      // Initialization check
-      OST sym( 4UL );
-      sym(0,0) = vec( 1 );
-      sym(0,2) = vec( 2 );
-      sym(0,3) = vec( 3 );
-      sym(1,1) = vec( 4 );
-      sym(1,2) = vec( 5 );
-      sym(2,2) = vec( 6 );
-      sym(2,3) = vec( 7 );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym, 11UL );
-      checkNonZeros( sym, 0UL, 3UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 4UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,0) != vec( 1 ) || sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( ( 1 ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing the element from (0,0) to (2,0)
-      {
-         Iterator pos = sym.erase( 0UL, sym.find( 0UL, 0UL ), sym.find( 2UL, 0UL ) );
-
-         checkRows    ( sym,  4UL );
-         checkColumns ( sym,  4UL );
-         checkCapacity( sym, 11UL );
-         checkNonZeros( sym, 10UL );
-         checkNonZeros( sym, 0UL, 2UL );
-         checkNonZeros( sym, 1UL, 2UL );
-         checkNonZeros( sym, 2UL, 4UL );
-         checkNonZeros( sym, 3UL, 2UL );
-
-         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-             sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-             sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a single-element range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << sym << "\n"
-                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                        "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                        "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
-                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != vec( 2 ) || pos->index() != 2 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: ( 2 )\n"
-                << "   Expected index: 2\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element from (1,2) to (3,2)
-      {
-         Iterator pos = sym.erase( 2UL, sym.find( 1UL, 2UL ), sym.find( 3UL, 2UL ) );
-
-         checkRows    ( sym,  4UL );
-         checkColumns ( sym,  4UL );
-         checkCapacity( sym, 11UL );
-         checkNonZeros( sym,  7UL );
-         checkNonZeros( sym, 0UL, 2UL );
-         checkNonZeros( sym, 1UL, 1UL );
-         checkNonZeros( sym, 2UL, 2UL );
-         checkNonZeros( sym, 3UL, 2UL );
-
-         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-             sym(1,1) != vec( 4 ) ||
-             sym(2,0) != vec( 2 ) || sym(2,3) != vec( 7 ) ||
-             sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a single-element range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << sym << "\n"
-                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                        "( (   ) ( 4 ) (   ) (   ) )\n"
-                                        "( ( 2 ) (   ) (   ) ( 7 ) )\n"
-                                        "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos->value() != vec( 7 ) || pos->index() != 3 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Value: " << pos->value() << "\n"
-                << "   Index: " << pos->index() << "\n"
-                << "   Expected value: ( 7 )\n"
-                << "   Expected index: 3\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Erasing the element from (2,3) to the column end
-      {
-         Iterator pos = sym.erase( 3UL, sym.find( 2UL, 3UL ), sym.end( 3UL ) );
-
-         checkRows    ( sym,  4UL );
-         checkColumns ( sym,  4UL );
-         checkCapacity( sym, 11UL );
-         checkNonZeros( sym,  5UL );
-         checkNonZeros( sym, 0UL, 2UL );
-         checkNonZeros( sym, 1UL, 1UL );
-         checkNonZeros( sym, 2UL, 1UL );
-         checkNonZeros( sym, 3UL, 1UL );
-
-         if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-             sym(1,1) != vec( 4 ) ||
-             sym(2,0) != vec( 2 ) ||
-             sym(3,0) != vec( 3 ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing a single-element range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << sym << "\n"
-                << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                        "( (   ) ( 4 ) (   ) (   ) )\n"
-                                        "( ( 2 ) (   ) (   ) (   ) )\n"
-                                        "( ( 3 ) (   ) (   ) (   ) )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != sym.end( 3UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-
-      // Trying to erase an empty range
-      {
-         Iterator pos = sym.erase( 2UL, sym.find( 0UL, 2UL ), sym.find( 0UL, 2UL ) );
-
-         checkRows    ( sym,  4UL );
-         checkColumns ( sym,  4UL );
-         checkCapacity( sym, 11UL );
-         checkNonZeros( sym,  5UL );
-         checkNonZeros( sym, 0UL, 2UL );
-         checkNonZeros( sym, 1UL, 1UL );
-         checkNonZeros( sym, 2UL, 1UL );
-         checkNonZeros( sym, 3UL, 1UL );
-
-         if( sym(0,2) != 2 || sym(0,3) != 3 ||
-             sym(1,1) != 4 ||
-             sym(2,0) != 2 ||
-             sym(3,0) != 3 ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Erasing an empty range failed\n"
-                << " Details:\n"
-                << "   Result:\n" << sym << "\n"
-                << "   Expected result:\n( 0 0 2 3 )\n( 0 4 0 0 )\n( 2 0 0 0 )\n( 3 0 0 0 )\n";
-            throw std::runtime_error( oss.str() );
-         }
-
-         if( pos != sym.find( 0UL, 2UL ) ) {
-            std::ostringstream oss;
-            oss << " Test: " << test_ << "\n"
-                << " Error: Invalid iterator returned\n"
-                << " Details:\n"
-                << "   Expected result: the end() iterator\n";
-            throw std::runtime_error( oss.str() );
-         }
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major erase function with predicate
-   //=====================================================================================
-
-   {
-      test_ = "Column-major SymmetricMatrix::erase( Predicate )";
-
-      // Initialization check
-      OST sym( 4UL );
-      sym(0,0) = vec( 1 );
-      sym(0,2) = vec( 2 );
-      sym(0,3) = vec( 3 );
-      sym(1,1) = vec( 4 );
-      sym(1,2) = vec( 5 );
-      sym(2,2) = vec( 6 );
-      sym(2,3) = vec( 7 );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym, 11UL );
-      checkNonZeros( sym, 0UL, 3UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 4UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,0) != vec( 1 ) || sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( ( 1 ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing a selection of elements
-      sym.erase( []( const VT& v ){ return v[0] == 1 || v[0] == 5 || v[0] == 6; } );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym,  7UL );
-      checkNonZeros( sym, 0UL, 2UL );
-      checkNonZeros( sym, 1UL, 1UL );
-      checkNonZeros( sym, 2UL, 2UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) (   ) (   ) )\n"
-                                     "( ( 2 ) (   ) (   ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase all elements with the value 1
-      sym.erase( []( const VT& v ){ return v[0] == 1; } );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym,  7UL );
-      checkNonZeros( sym, 0UL, 2UL );
-      checkNonZeros( sym, 1UL, 1UL );
-      checkNonZeros( sym, 2UL, 2UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing all elements with the value 1 failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( (   ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) (   ) (   ) )\n"
-                                     "( ( 2 ) (   ) (   ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major iterator-range-based erase function with predicate
-   //=====================================================================================
-
-   {
-      test_ = "Column-major SymmetricMatrix::erase( size_t, Iterator, Iterator, Predicate )";
-
-      // Initialization check
-      OST sym( 4UL );
-      sym(0,0) = vec( 1 );
-      sym(0,2) = vec( 2 );
-      sym(0,3) = vec( 3 );
-      sym(1,1) = vec( 4 );
-      sym(1,2) = vec( 5 );
-      sym(2,2) = vec( 6 );
-      sym(2,3) = vec( 7 );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym, 11UL );
-      checkNonZeros( sym, 0UL, 3UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 4UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,0) != vec( 1 ) || sym(0,2) != vec( 2 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-          sym(2,0) != vec( 2 ) || sym(2,1) != vec( 5 ) || sym(2,2) != vec( 6 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Initialization failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( ( 1 ) (   ) ( 2 ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                     "( ( 2 ) ( 5 ) ( 6 ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Erasing a selection of elements
-      sym.erase( 2UL, sym.begin( 2UL ), sym.find( 3UL, 2UL ),
-                 []( const VT& v ){ return v[0] == 2 || v[0] == 6; } );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym,  8UL );
-      checkNonZeros( sym, 0UL, 2UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 2UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,0) != vec( 1 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-          sym(2,1) != vec( 5 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing a selection of elements failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( ( 1 ) (   ) (   ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                     "( (   ) ( 5 ) (   ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
-         throw std::runtime_error( oss.str() );
-      }
-
-      // Trying to erase from an empty range
-      sym.erase( 1UL, sym.begin( 1UL ), sym.begin( 1UL ), []( const VT& ){ return true; } );
-
-      checkRows    ( sym,  4UL );
-      checkColumns ( sym,  4UL );
-      checkCapacity( sym, 11UL );
-      checkNonZeros( sym,  8UL );
-      checkNonZeros( sym, 0UL, 2UL );
-      checkNonZeros( sym, 1UL, 2UL );
-      checkNonZeros( sym, 2UL, 2UL );
-      checkNonZeros( sym, 3UL, 2UL );
-
-      if( sym(0,0) != vec( 1 ) || sym(0,3) != vec( 3 ) ||
-          sym(1,1) != vec( 4 ) || sym(1,2) != vec( 5 ) ||
-          sym(2,1) != vec( 5 ) || sym(2,3) != vec( 7 ) ||
-          sym(3,0) != vec( 3 ) || sym(3,2) != vec( 7 ) ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Erasing from an empty range failed\n"
-             << " Details:\n"
-             << "   Result:\n" << sym << "\n"
-             << "   Expected result:\n( ( 1 ) (   ) (   ) ( 3 ) )\n"
-                                     "( (   ) ( 4 ) ( 5 ) (   ) )\n"
-                                     "( (   ) ( 5 ) (   ) ( 7 ) )\n"
-                                     "( ( 3 ) (   ) ( 7 ) (   ) )\n";
          throw std::runtime_error( oss.str() );
       }
    }
@@ -10484,7 +9880,7 @@ void SparseNonNumericTest::testSubmatrix()
    {
       test_ = "Row-major submatrix() function";
 
-      typedef blaze::Submatrix<ST>  SMT;
+      typedef blaze::SparseSubmatrix<ST>  SMT;
 
       ST sym( 3UL );
       sym(0,0) = vec(  1 );
@@ -10581,7 +9977,7 @@ void SparseNonNumericTest::testSubmatrix()
    {
       test_ = "Column-major submatrix() function";
 
-      typedef blaze::Submatrix<OST>  SMT;
+      typedef blaze::SparseSubmatrix<OST>  SMT;
 
       OST sym( 3UL );
       sym(0,0) = vec(  1 );
@@ -10691,7 +10087,7 @@ void SparseNonNumericTest::testRow()
    {
       test_ = "Row-major row() function";
 
-      typedef blaze::Row<ST>  RT;
+      typedef blaze::SparseRow<ST>  RT;
 
       ST sym( 3UL );
       sym(0,0) = vec(  1 );
@@ -10785,7 +10181,7 @@ void SparseNonNumericTest::testRow()
    {
       test_ = "Column-major row() function";
 
-      typedef blaze::Row<OST>  RT;
+      typedef blaze::SparseRow<OST>  RT;
 
       OST sym( 3UL );
       sym(0,0) = vec(  1 );
@@ -10892,7 +10288,7 @@ void SparseNonNumericTest::testColumn()
    {
       test_ = "Row-major column() function";
 
-      typedef blaze::Column<ST>  CT;
+      typedef blaze::SparseColumn<ST>  CT;
 
       ST sym( 3UL );
       sym(0,0) = vec(  1 );
@@ -10986,7 +10382,7 @@ void SparseNonNumericTest::testColumn()
    {
       test_ = "Column-major column() function";
 
-      typedef blaze::Column<OST>  CT;
+      typedef blaze::SparseColumn<OST>  CT;
 
       OST sym( 3UL );
       sym(0,0) = vec(  1 );

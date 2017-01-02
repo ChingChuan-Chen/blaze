@@ -208,16 +208,16 @@ namespace blaze {
    A.erase( 0, 2 );  // Erasing the upper element (0,2)
 
    // Construction from an upper dense matrix
-   StaticMatrix<double,3UL,3UL> B( { { 3.0,  8.0, -2.0 },
-                                     { 0.0,  0.0, -1.0 },
-                                     { 0.0,  0.0,  4.0 } } );
+   StaticMatrix<double,3UL,3UL> B( 3.0,  8.0, -2.0,
+                                   0.0,  0.0, -1.0,
+                                   0.0,  0.0,  4.0 );
 
    UpperMatrix< DynamicMatrix<double,rowMajor> > C( B );  // OK
 
    // Assignment of a non-upper dense matrix
-   StaticMatrix<double,3UL,3UL> D( { {  3.0,  8.0, -2.0 },
-                                     {  0.0,  0.0, -1.0 },
-                                     { -2.0,  0.0,  4.0 } } );
+   StaticMatrix<double,3UL,3UL> D(  3.0,  8.0, -2.0,
+                                    0.0,  0.0, -1.0,
+                                   -2.0,  0.0,  4.0 );
 
    C = D;  // Throws an exception; upper matrix invariant would be violated!
    \endcode
@@ -411,23 +411,19 @@ namespace blaze {
    UpperMatrix< HybridMatrix<float,3UL,3UL,rowMajor> > E;
    UpperMatrix< StaticMatrix<float,3UL,3UL,columnMajor> > F;
 
-   E = A + B;     // Matrix addition and assignment to a row-major upper matrix (includes runtime check)
-   F = C - D;     // Matrix subtraction and assignment to a column-major upper matrix (only compile time check)
-   F = A * D;     // Matrix multiplication between a dense and a sparse matrix (includes runtime check)
+   E = A + B;     // Matrix addition and assignment to a row-major upper matrix
+   F = C - D;     // Matrix subtraction and assignment to a column-major upper matrix
+   F = A * D;     // Matrix multiplication between a dense and a sparse matrix
 
    C *= 2.0;      // In-place scaling of matrix C
-   E  = 2.0 * B;  // Scaling of matrix B (includes runtime check)
-   F  = C * 2.0;  // Scaling of matrix C (only compile time check)
+   E  = 2.0 * B;  // Scaling of matrix B
+   F  = C * 2.0;  // Scaling of matrix C
 
-   E += A - B;    // Addition assignment (includes runtime check)
-   F -= C + D;    // Subtraction assignment (only compile time check)
-   F *= A * D;    // Multiplication assignment (includes runtime check)
+   E += A - B;    // Addition assignment
+   F -= C + D;    // Subtraction assignment
+   F *= A * D;    // Multiplication assignment
    \endcode
 
-// Note that it is possible to assign any kind of matrix to an upper matrix. In case the matrix
-// to be assigned is not upper at compile time, a runtime check is performed.
-//
-//
 // \n \section uppermatrix_block_structured Block-Structured Upper Matrices
 //
 // It is also possible to use block-structured upper matrices:
@@ -445,9 +441,9 @@ namespace blaze {
 // elements in the lower part of the matrix:
 
    \code
-   const StaticMatrix<int,3UL,3UL> B( { { 1, -4,  5 },
-                                        { 6,  8, -3 },
-                                        { 2, -1,  2 } } )
+   const StaticMatrix<int,3UL,3UL> B( 1, -4,  5,
+                                      6,  8, -3,
+                                      2, -1,  2 )
 
    A.insert( 2, 4, B );  // Inserting the elements (2,4)
    A(4,2)(1,1) = -5;     // Invalid manipulation of lower matrix element; Results in an exception

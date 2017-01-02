@@ -44,7 +44,6 @@
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/util/Random.h>
 #include <blazetest/mathtest/creator/Default.h>
-#include <blazetest/mathtest/creator/Policies.h>
 #include <blazetest/system/Types.h>
 
 
@@ -87,11 +86,7 @@ class Creator< blaze::CompressedMatrix<T,SO> >
    /*!\name Operators */
    //@{
    // No explicitly declared copy assignment operator.
-
    const blaze::CompressedMatrix<T,SO> operator()() const;
-
-   template< typename CP >
-   const blaze::CompressedMatrix<T,SO> operator()( const CP& policy ) const;
    //@}
    //**********************************************************************************************
 
@@ -176,29 +171,11 @@ inline Creator< blaze::CompressedMatrix<T,SO> >::Creator( size_t m, size_t n, si
 */
 template< typename T  // Element type of the compressed matrix
         , bool SO >   // Storage order of the compressed matrix
-inline const blaze::CompressedMatrix<T,SO>
-   Creator< blaze::CompressedMatrix<T,SO> >::operator()() const
-{
-   return (*this)( Default() );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Returns a randomly created compressed matrix.
-//
-// \param policy The creation policy for the elements of fundamental data type.
-// \return The randomly generated compressed matrix.
-*/
-template< typename T     // Element type of the compressed matrix
-        , bool SO >      // Storage order of the compressed matrix
-template< typename CP >  // Creation policy
-inline const blaze::CompressedMatrix<T,SO>
-   Creator< blaze::CompressedMatrix<T,SO> >::operator()( const CP& policy ) const
+inline const blaze::CompressedMatrix<T,SO> Creator< blaze::CompressedMatrix<T,SO> >::operator()() const
 {
    blaze::CompressedMatrix<T,SO> matrix( m_, n_, nonzeros_ );
    while( matrix.nonZeros() < nonzeros_ )
-      matrix( blaze::rand<size_t>(0UL,m_-1UL), blaze::rand<size_t>(0UL,n_-1UL) ) = ec_( policy );
+      matrix( blaze::rand<size_t>(0,m_-1), blaze::rand<size_t>(0,n_-1) ) = ec_();
    return matrix;
 }
 //*************************************************************************************************

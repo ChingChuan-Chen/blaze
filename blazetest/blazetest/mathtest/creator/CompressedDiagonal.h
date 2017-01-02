@@ -45,7 +45,6 @@
 #include <blaze/math/DiagonalMatrix.h>
 #include <blaze/util/Random.h>
 #include <blazetest/mathtest/creator/Default.h>
-#include <blazetest/mathtest/creator/Policies.h>
 #include <blazetest/system/Types.h>
 
 
@@ -90,11 +89,7 @@ class Creator< blaze::DiagonalMatrix< blaze::CompressedMatrix<T,SO> > >
    /*!\name Operators */
    //@{
    // No explicitly declared copy assignment operator.
-
    const blaze::DiagonalMatrix< blaze::CompressedMatrix<T,SO> > operator()() const;
-
-   template< typename CP >
-   const blaze::DiagonalMatrix< blaze::CompressedMatrix<T,SO> > operator()( const CP& policy ) const;
    //@}
    //**********************************************************************************************
 
@@ -175,28 +170,11 @@ template< typename T  // Element type of the compressed matrix
 inline const blaze::DiagonalMatrix< blaze::CompressedMatrix<T,SO> >
    Creator< blaze::DiagonalMatrix< blaze::CompressedMatrix<T,SO> > >::operator()() const
 {
-   return (*this)( Default() );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Returns a randomly created diagonal compressed matrix.
-//
-// \param policy The creation policy for the elements of fundamental data type.
-// \return The randomly generated diagonal compressed matrix.
-*/
-template< typename T     // Element type of the compressed matrix
-        , bool SO >      // Storage order of the compressed matrix
-template< typename CP >  // Creation policy
-inline const blaze::DiagonalMatrix< blaze::CompressedMatrix<T,SO> >
-   Creator< blaze::DiagonalMatrix< blaze::CompressedMatrix<T,SO> > >::operator()( const CP& policy ) const
-{
    blaze::DiagonalMatrix< blaze::CompressedMatrix<T,SO> > matrix( n_, nonzeros_ );
 
    while( matrix.nonZeros() < nonzeros_ ) {
       const size_t i( blaze::rand<size_t>( 0UL, n_-1UL ) );
-      matrix(i,i) = ec_( policy );
+      matrix(i,i) = ec_();
    }
 
    return matrix;

@@ -40,10 +40,8 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/DenseMatrix.h>
 #include <blaze/math/constraints/StorageOrder.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/Computation.h>
 #include <blaze/math/expressions/DenseMatrix.h>
 #include <blaze/math/expressions/Forward.h>
@@ -53,8 +51,6 @@
 #include <blaze/math/traits/TDMatInvExprTrait.h>
 #include <blaze/math/typetraits/Columns.h>
 #include <blaze/math/typetraits/IsColumnMajorMatrix.h>
-#include <blaze/math/typetraits/IsDenseMatrix.h>
-#include <blaze/math/typetraits/IsDiagonal.h>
 #include <blaze/math/typetraits/IsExpression.h>
 #include <blaze/math/typetraits/IsHermitian.h>
 #include <blaze/math/typetraits/IsLower.h>
@@ -66,12 +62,12 @@
 #include <blaze/math/typetraits/Rows.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/constraints/Reference.h>
-#include <blaze/util/IntegralConstant.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/InvalidType.h>
 #include <blaze/util/logging/FunctionTrace.h>
-#include <blaze/util/mpl/And.h>
-#include <blaze/util/mpl/If.h>
+#include <blaze/util/SelectType.h>
 #include <blaze/util/Types.h>
+#include <blaze/util/valuetraits/IsTrue.h>
 
 
 namespace blaze {
@@ -96,32 +92,32 @@ class DMatInvExpr : public DenseMatrix< DMatInvExpr<MT,SO>, SO >
 {
  private:
    //**Type definitions****************************************************************************
-   typedef ResultType_<MT>     RT;  //!< Result type of the dense matrix expression.
-   typedef CompositeType_<MT>  CT;  //!< Composite type of the dense matrix expression.
+   typedef typename MT::ResultType     RT;  //!< Result type of the dense matrix expression.
+   typedef typename MT::CompositeType  CT;  //!< Composite type of the dense matrix expression.
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
-   typedef DMatInvExpr<MT,SO>  This;           //!< Type of this DMatInvExpr instance.
-   typedef ResultType_<MT>     ResultType;     //!< Result type for expression template evaluations.
-   typedef OppositeType_<MT>   OppositeType;   //!< Result type with opposite storage order for expression template evaluations.
-   typedef TransposeType_<MT>  TransposeType;  //!< Transpose type for expression template evaluations.
-   typedef ElementType_<MT>    ElementType;    //!< Resulting element type.
-   typedef ReturnType_<MT>     ReturnType;     //!< Return type for expression template evaluations.
+   typedef DMatInvExpr<MT,SO>          This;           //!< Type of this DMatInvExpr instance.
+   typedef typename MT::ResultType     ResultType;     //!< Result type for expression template evaluations.
+   typedef typename MT::OppositeType   OppositeType;   //!< Result type with opposite storage order for expression template evaluations.
+   typedef typename MT::TransposeType  TransposeType;  //!< Transpose type for expression template evaluations.
+   typedef typename MT::ElementType    ElementType;    //!< Resulting element type.
+   typedef typename MT::ReturnType     ReturnType;     //!< Return type for expression template evaluations.
 
    //! Data type for composite expression templates.
    typedef const ResultType  CompositeType;
 
    //! Composite data type of the dense matrix expression.
-   typedef If_< IsExpression<MT>, const MT, const MT& >  Operand;
+   typedef typename SelectType< IsExpression<MT>::value, const MT, const MT& >::Type  Operand;
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template evaluation strategy.
-   enum : bool { simdEnabled = false };
+   enum { vectorizable = 0 };
 
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = false };
+   enum { smpAssignable = 0 };
    //**********************************************************************************************
 
    //**Constructor*********************************************************************************
@@ -129,7 +125,7 @@ class DMatInvExpr : public DenseMatrix< DMatInvExpr<MT,SO>, SO >
    //
    // \param dm The dense matrix operand of the inversion expression.
    */
-   explicit inline DMatInvExpr( const MT& dm ) noexcept
+   explicit inline DMatInvExpr( const MT& dm )
       : dm_( dm )  // Dense matrix of the inversion expression
    {}
    //**********************************************************************************************
@@ -139,7 +135,7 @@ class DMatInvExpr : public DenseMatrix< DMatInvExpr<MT,SO>, SO >
    //
    // \return The number of rows of the matrix.
    */
-   inline size_t rows() const noexcept {
+   inline size_t rows() const {
       return dm_.columns();
    }
    //**********************************************************************************************
@@ -149,7 +145,7 @@ class DMatInvExpr : public DenseMatrix< DMatInvExpr<MT,SO>, SO >
    //
    // \return The number of columns of the matrix.
    */
-   inline size_t columns() const noexcept {
+   inline size_t columns() const {
       return dm_.rows();
    }
    //**********************************************************************************************
@@ -159,7 +155,7 @@ class DMatInvExpr : public DenseMatrix< DMatInvExpr<MT,SO>, SO >
    //
    // \return The dense matrix operand.
    */
-   inline Operand operand() const noexcept {
+   inline Operand operand() const {
       return dm_;
    }
    //**********************************************************************************************
@@ -171,7 +167,7 @@ class DMatInvExpr : public DenseMatrix< DMatInvExpr<MT,SO>, SO >
    // \return \a true in case the expression can alias, \a false otherwise.
    */
    template< typename T >
-   inline bool canAlias( const T* alias ) const noexcept {
+   inline bool canAlias( const T* alias ) const {
       return dm_.isAliased( alias );
    }
    //**********************************************************************************************
@@ -183,7 +179,7 @@ class DMatInvExpr : public DenseMatrix< DMatInvExpr<MT,SO>, SO >
    // \return \a true in case an alias effect is detected, \a false otherwise.
    */
    template< typename T >
-   inline bool isAliased( const T* alias ) const noexcept {
+   inline bool isAliased( const T* alias ) const {
       return dm_.isAliased( alias );
    }
    //**********************************************************************************************
@@ -191,25 +187,6 @@ class DMatInvExpr : public DenseMatrix< DMatInvExpr<MT,SO>, SO >
  private:
    //**Member variables****************************************************************************
    Operand dm_;  //!< Dense matrix of the inversion expression.
-   //**********************************************************************************************
-
-   //**********************************************************************************************
-   /*! \cond BLAZE_INTERNAL */
-   /*!\brief Returns the proper inversion flag for the given matrix type \a MT.
-   //
-   // \return The proper inversion flag for the matrix type \a MT.
-   */
-   static constexpr InversionFlag getInversionFlag() noexcept {
-      if     ( IsDiagonal<MT>::value  ) return asDiagonal;
-      else if( IsUniUpper<MT>::value  ) return asUniUpper;
-      else if( IsUpper<MT>::value     ) return asUpper;
-      else if( IsUniLower<MT>::value  ) return asUniLower;
-      else if( IsLower<MT>::value     ) return asLower;
-      else if( IsHermitian<MT>::value ) return asHermitian;
-      else if( IsSymmetric<MT>::value ) return asSymmetric;
-      else                              return asGeneral;
-   }
-   /*! \endcond */
    //**********************************************************************************************
 
    //**Assignment to dense matrices****************************************************************
@@ -233,11 +210,8 @@ class DMatInvExpr : public DenseMatrix< DMatInvExpr<MT,SO>, SO >
       BLAZE_INTERNAL_ASSERT( (~lhs).rows()    == rhs.rows()   , "Invalid number of rows"    );
       BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
 
-      if( !isSame( ~lhs, rhs.dm_ ) ) {
-         assign( ~lhs, rhs.dm_ );
-      }
-
-      invert< DMatInvExpr::getInversionFlag() >( ~lhs );
+      assign( ~lhs, rhs.dm_ );
+      invert( ~lhs );
    }
    /*! \endcond */
    //**********************************************************************************************
@@ -260,14 +234,14 @@ class DMatInvExpr : public DenseMatrix< DMatInvExpr<MT,SO>, SO >
    {
       BLAZE_FUNCTION_TRACE;
 
-      typedef IfTrue_< SO == SO2, ResultType, OppositeType >  TmpType;
+      typedef typename SelectType< SO == SO2, ResultType, OppositeType >::Type  TmpType;
 
       BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( OppositeType );
       BLAZE_CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER( ResultType, SO );
       BLAZE_CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER( OppositeType, !SO );
       BLAZE_CONSTRAINT_MATRICES_MUST_HAVE_SAME_STORAGE_ORDER( MT2, TmpType );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<TmpType> );
+      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( typename TmpType::CompositeType );
 
       BLAZE_INTERNAL_ASSERT( (~lhs).rows()    == rhs.rows()   , "Invalid number of rows"    );
       BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
@@ -496,8 +470,7 @@ struct Columns< DMatInvExpr<MT,SO> > : public Columns<MT>
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, bool SO >
-struct IsSymmetric< DMatInvExpr<MT,SO> >
-   : public BoolConstant< IsSymmetric<MT>::value >
+struct IsSymmetric< DMatInvExpr<MT,SO> > : public IsTrue< IsSymmetric<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -514,8 +487,7 @@ struct IsSymmetric< DMatInvExpr<MT,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, bool SO >
-struct IsHermitian< DMatInvExpr<MT,SO> >
-   : public BoolConstant< IsHermitian<MT>::value >
+struct IsHermitian< DMatInvExpr<MT,SO> > : public IsTrue< IsHermitian<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -532,8 +504,7 @@ struct IsHermitian< DMatInvExpr<MT,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, bool SO >
-struct IsLower< DMatInvExpr<MT,SO> >
-   : public BoolConstant< IsLower<MT>::value >
+struct IsLower< DMatInvExpr<MT,SO> > : public IsTrue< IsUpper<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -550,8 +521,7 @@ struct IsLower< DMatInvExpr<MT,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, bool SO >
-struct IsUniLower< DMatInvExpr<MT,SO> >
-   : public BoolConstant< IsUniLower<MT>::value >
+struct IsUniLower< DMatInvExpr<MT,SO> > : public IsTrue< IsUniUpper<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -568,8 +538,7 @@ struct IsUniLower< DMatInvExpr<MT,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, bool SO >
-struct IsUpper< DMatInvExpr<MT,SO> >
-   : public BoolConstant< IsUpper<MT>::value >
+struct IsUpper< DMatInvExpr<MT,SO> > : public IsTrue< IsLower<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -586,8 +555,7 @@ struct IsUpper< DMatInvExpr<MT,SO> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, bool SO >
-struct IsUniUpper< DMatInvExpr<MT,SO> >
-   : public BoolConstant< IsUniUpper<MT>::value >
+struct IsUniUpper< DMatInvExpr<MT,SO> > : public IsTrue< IsUniLower<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -608,9 +576,9 @@ struct DMatInvExprTrait< DMatInvExpr<MT,false> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsRowMajorMatrix<MT> >
-                   , Operand_< DMatInvExpr<MT,false> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT>::value && IsRowMajorMatrix<MT>::value
+                              , typename DMatInvExpr<MT,false>::Operand
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -624,9 +592,9 @@ struct TDMatInvExprTrait< DMatInvExpr<MT,true> >
 {
  public:
    //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsColumnMajorMatrix<MT> >
-                   , Operand_< DMatInvExpr<MT,true> >
-                   , INVALID_TYPE >;
+   typedef typename SelectType< IsDenseMatrix<MT>::value && IsColumnMajorMatrix<MT>::value
+                              , typename DMatInvExpr<MT,true>::Operand
+                              , INVALID_TYPE >::Type  Type;
    //**********************************************************************************************
 };
 /*! \endcond */

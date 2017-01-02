@@ -42,11 +42,10 @@
 
 #include <blaze/math/dense/StaticVector.h>
 #include <blaze/math/CompressedMatrix.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/sparse/CompressedVector.h>
 #include <blaze/math/SparseVector.h>
 #include <blaze/system/Precision.h>
-#include <blaze/util/Indices.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/Random.h>
 
 
@@ -221,7 +220,12 @@ inline void Rand< CompressedVector<Type,TF> >::randomize( CompressedVector<Type,
 
    const size_t nonzeros( rand<size_t>( 1UL, std::ceil( 0.5*size ) ) );
 
-   randomize( vector, nonzeros );
+   vector.reset();
+   vector.reserve( nonzeros );
+
+   while( vector.nonZeros() < nonzeros ) {
+      vector[ rand<size_t>( 0UL, size-1UL ) ] = rand<Type>();
+   }
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -251,10 +255,8 @@ inline void Rand< CompressedVector<Type,TF> >::randomize( CompressedVector<Type,
    vector.reset();
    vector.reserve( nonzeros );
 
-   const Indices indices( 0UL, vector.size()-1UL, nonzeros );
-
-   for( size_t index : indices ) {
-      vector.append( index, rand<Type>() );
+   while( vector.nonZeros() < nonzeros ) {
+      vector[ rand<size_t>( 0UL, size-1UL ) ] = rand<Type>();
    }
 }
 /*! \endcond */
@@ -282,7 +284,12 @@ inline void Rand< CompressedVector<Type,TF> >::randomize( CompressedVector<Type,
 
    const size_t nonzeros( rand<size_t>( 1UL, std::ceil( 0.5*size ) ) );
 
-   randomize( vector, nonzeros, min, max );
+   vector.reset();
+   vector.reserve( nonzeros );
+
+   while( vector.nonZeros() < nonzeros ) {
+      vector[ rand<size_t>( 0UL, size-1UL ) ] = rand<Type>( min, max );
+   }
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -316,13 +323,43 @@ inline void Rand< CompressedVector<Type,TF> >::randomize( CompressedVector<Type,
    vector.reset();
    vector.reserve( nonzeros );
 
-   const Indices indices( 0UL, vector.size()-1UL, nonzeros );
-
-   for( size_t index : indices ) {
-      vector.append( index, rand<Type>( min, max ) );
+   while( vector.nonZeros() < nonzeros ) {
+      vector[ rand<size_t>( 0UL, size-1UL ) ] = rand<Type>( min, max );
    }
 }
 /*! \endcond */
+//*************************************************************************************************
+
+
+
+
+//=================================================================================================
+//
+//  TYPE DEFINITIONS
+//
+//=================================================================================================
+
+//*************************************************************************************************
+/*!\brief Compressed single precision vector.
+// \ingroup compressed_vector
+*/
+typedef CompressedVector<float,false>  CVecNf;
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Compressed double precision vector.
+// \ingroup compressed_vector
+*/
+typedef CompressedVector<double,false>  CVecNd;
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Compressed vector with system-specific precision.
+// \ingroup compressed_vector
+*/
+typedef CompressedVector<real_t,false>  CVecN;
 //*************************************************************************************************
 
 } // namespace blaze

@@ -41,6 +41,7 @@
 //*************************************************************************************************
 
 #include <iterator>
+#include <blaze/util/Null.h>
 
 
 namespace blaze {
@@ -200,7 +201,7 @@ class PtrIterator
 */
 template< typename Type >
 inline PtrIterator<Type>::PtrIterator()
-   : it_( nullptr )  // Pointer to the current memory location
+   : it_(NULL)  // Pointer to the current memory location
 {}
 //*************************************************************************************************
 
@@ -212,7 +213,7 @@ inline PtrIterator<Type>::PtrIterator()
 */
 template< typename Type >
 inline PtrIterator<Type>::PtrIterator( const IteratorType& it )
-   : it_( it )  // Pointer to the current memory location
+   : it_(it)  // Pointer to the current memory location
 {}
 //*************************************************************************************************
 

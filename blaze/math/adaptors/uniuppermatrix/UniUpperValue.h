@@ -40,16 +40,15 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/Expression.h>
 #include <blaze/math/constraints/Hermitian.h>
 #include <blaze/math/constraints/Lower.h>
 #include <blaze/math/constraints/SparseMatrix.h>
 #include <blaze/math/constraints/Symmetric.h>
 #include <blaze/math/constraints/Upper.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/proxy/Proxy.h>
 #include <blaze/math/shims/Clear.h>
+#include <blaze/math/shims/Conjugate.h>
 #include <blaze/math/shims/Invert.h>
 #include <blaze/math/shims/IsDefault.h>
 #include <blaze/math/shims/IsNaN.h>
@@ -57,11 +56,14 @@
 #include <blaze/math/shims/IsReal.h>
 #include <blaze/math/shims/IsZero.h>
 #include <blaze/math/shims/Reset.h>
+#include <blaze/math/traits/ConjExprTrait.h>
+#include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blaze/util/constraints/Const.h>
 #include <blaze/util/constraints/Numeric.h>
 #include <blaze/util/constraints/Pointer.h>
 #include <blaze/util/constraints/Reference.h>
 #include <blaze/util/constraints/Volatile.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/InvalidType.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/Types.h>
@@ -125,12 +127,12 @@ class UniUpperValue : public Proxy< UniUpperValue<MT> >
 
  public:
    //**Type definitions****************************************************************************
-   typedef ElementType_<MT>  RepresentedType;   //!< Type of the represented matrix element.
+   typedef typename MT::ElementType  RepresentedType;   //!< Type of the represented matrix element.
 
    //! Value type of the represented complex element.
-   typedef typename If_< IsComplex<RepresentedType>
-                       , ComplexType<RepresentedType>
-                       , BuiltinType<RepresentedType> >::Type  ValueType;
+   typedef typename If< IsComplex<RepresentedType>
+                      , ComplexType<RepresentedType>
+                      , BuiltinType<RepresentedType> >::Type::Type  ValueType;
 
    typedef ValueType  value_type;  //!< Value type of the represented complex element.
    //**********************************************************************************************
@@ -161,15 +163,15 @@ class UniUpperValue : public Proxy< UniUpperValue<MT> >
    inline void clear () const;
    inline void invert() const;
 
-   inline RepresentedType get() const noexcept;
-   inline bool            isRestricted() const noexcept;
+   inline RepresentedType get() const;
+   inline bool            isRestricted() const;
    //@}
    //**********************************************************************************************
 
    //**Conversion operator*************************************************************************
    /*!\name Conversion operator */
    //@{
-   inline operator RepresentedType() const noexcept;
+   inline operator RepresentedType() const;
    //@}
    //**********************************************************************************************
 
@@ -435,7 +437,7 @@ inline void UniUpperValue<MT>::invert() const
 // \return Copy of the represented value.
 */
 template< typename MT >  // Type of the adapted matrix
-inline typename UniUpperValue<MT>::RepresentedType UniUpperValue<MT>::get() const noexcept
+inline typename UniUpperValue<MT>::RepresentedType UniUpperValue<MT>::get() const
 {
    return *value_;
 }
@@ -448,7 +450,7 @@ inline typename UniUpperValue<MT>::RepresentedType UniUpperValue<MT>::get() cons
 // \return \a true in case access to the matrix element is restricted, \a false if not.
 */
 template< typename MT >  // Type of the adapted matrix
-inline bool UniUpperValue<MT>::isRestricted() const noexcept
+inline bool UniUpperValue<MT>::isRestricted() const
 {
    return diagonal_;
 }
@@ -469,7 +471,7 @@ inline bool UniUpperValue<MT>::isRestricted() const noexcept
 // \return Copy of the represented value.
 */
 template< typename MT >  // Type of the adapted matrix
-inline UniUpperValue<MT>::operator RepresentedType() const noexcept
+inline UniUpperValue<MT>::operator RepresentedType() const
 {
    return *value_;
 }
@@ -572,6 +574,10 @@ inline void UniUpperValue<MT>::imag( ValueType value ) const
 /*!\name UniUpperValue global functions */
 //@{
 template< typename MT >
+inline typename ConjExprTrait< typename UniUpperValue<MT>::RepresentedType >::Type
+   conj( const UniUpperValue<MT>& value );
+
+template< typename MT >
 inline void reset( const UniUpperValue<MT>& value );
 
 template< typename MT >
@@ -595,6 +601,28 @@ inline bool isOne( const UniUpperValue<MT>& value );
 template< typename MT >
 inline bool isnan( const UniUpperValue<MT>& value );
 //@}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Computing the complex conjugate of the uniupper value.
+// \ingroup uniupper_matrix
+//
+// \param value The given uniupper value.
+// \return The complex conjugate of the uniupper value.
+//
+// This function computes the complex conjugate of the uniupper value. In case the value
+// represents a vector- or matrix-like data structure the function returns an expression
+// representing the complex conjugate of the vector/matrix.
+*/
+template< typename MT >
+inline typename ConjExprTrait< typename UniUpperValue<MT>::RepresentedType >::Type
+   conj( const UniUpperValue<MT>& value )
+{
+   using blaze::conj;
+
+   return conj( (~value).get() );
+}
 //*************************************************************************************************
 
 

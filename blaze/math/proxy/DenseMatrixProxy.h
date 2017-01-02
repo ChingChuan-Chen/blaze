@@ -40,9 +40,7 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/DenseMatrix.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/DenseMatrix.h>
 #include <blaze/math/shims/Clear.h>
 #include <blaze/math/shims/Reset.h>
@@ -50,8 +48,8 @@
 #include <blaze/math/typetraits/IsResizable.h>
 #include <blaze/math/typetraits/IsSquare.h>
 #include <blaze/system/Inline.h>
-#include <blaze/util/DisableIf.h>
 #include <blaze/util/EnableIf.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/Unused.h>
 
@@ -78,33 +76,32 @@ class DenseMatrixProxy : public DenseMatrix< PT, IsColumnMajorMatrix<MT>::value 
 {
  public:
    //**Type definitions****************************************************************************
-   typedef ResultType_<MT>      ResultType;      //!< Result type for expression template evaluations.
-   typedef OppositeType_<MT>    OppositeType;    //!< Result type with opposite storage order for expression template evaluations.
-   typedef TransposeType_<MT>   TransposeType;   //!< Transpose type for expression template evaluations.
-   typedef ElementType_<MT>     ElementType;     //!< Type of the matrix elements.
-   typedef ReturnType_<MT>      ReturnType;      //!< Return type for expression template evaluations.
-   typedef CompositeType_<MT>   CompositeType;   //!< Data type for composite expression templates.
-   typedef Reference_<MT>       Reference;       //!< Reference to a non-constant matrix value.
-   typedef ConstReference_<MT>  ConstReference;  //!< Reference to a constant matrix value.
-   typedef Pointer_<MT>         Pointer;         //!< Pointer to a non-constant matrix value.
-   typedef ConstPointer_<MT>    ConstPointer;    //!< Pointer to a constant matrix value.
-   typedef Iterator_<MT>        Iterator;        //!< Iterator over non-constant elements.
-   typedef ConstIterator_<MT>   ConstIterator;   //!< Iterator over constant elements.
+   typedef typename MT::ResultType      ResultType;      //!< Result type for expression template evaluations.
+   typedef typename MT::OppositeType    OppositeType;    //!< Result type with opposite storage order for expression template evaluations.
+   typedef typename MT::TransposeType   TransposeType;   //!< Transpose type for expression template evaluations.
+   typedef typename MT::ElementType     ElementType;     //!< Type of the matrix elements.
+   typedef typename MT::ReturnType      ReturnType;      //!< Return type for expression template evaluations.
+   typedef typename MT::CompositeType   CompositeType;   //!< Data type for composite expression templates.
+   typedef typename MT::Reference       Reference;       //!< Reference to a non-constant matrix value.
+   typedef typename MT::ConstReference  ConstReference;  //!< Reference to a constant matrix value.
+   typedef typename MT::Pointer         Pointer;         //!< Pointer to a non-constant matrix value.
+   typedef typename MT::ConstPointer    ConstPointer;    //!< Pointer to a constant matrix value.
+   typedef typename MT::Iterator        Iterator;        //!< Iterator over non-constant elements.
+   typedef typename MT::ConstIterator   ConstIterator;   //!< Iterator over constant elements.
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
-   //! Compilation flag for SIMD optimization.
-   enum : bool { simdEnabled = MT::simdEnabled };
+   //! Compilation flag for intrinsic optimization.
+   enum { vectorizable = MT::vectorizable };
 
    //! Compilation flag for SMP assignments.
-   enum : bool { smpAssignable = MT::smpAssignable };
+   enum { smpAssignable = MT::smpAssignable };
    //**********************************************************************************************
 
    //**Data access functions***********************************************************************
    /*!\name Data access functions */
    //@{
    inline Reference operator()( size_t i, size_t j ) const;
-   inline Reference at( size_t i, size_t j ) const;
 
    inline Pointer       data  () const;
    inline Pointer       data  ( size_t i ) const;
@@ -162,7 +159,6 @@ class DenseMatrixProxy : public DenseMatrix< PT, IsColumnMajorMatrix<MT>::value 
 // \param i Access index for the row. The index has to be in the range \f$[0..M-1]\f$.
 // \param j Access index for the column. The index has to be in the range \f$[0..N-1]\f$.
 // \return Reference to the accessed value.
-// \exception std::invalid_argument Invalid access to restricted element.
 */
 template< typename PT    // Type of the proxy
         , typename MT >  // Type of the dense matrix
@@ -179,36 +175,9 @@ inline typename DenseMatrixProxy<PT,MT>::Reference
 
 
 //*************************************************************************************************
-/*!\brief Checked access to the matrix elements.
-//
-// \param i Access index for the row. The index has to be in the range \f$[0..M-1]\f$.
-// \param j Access index for the column. The index has to be in the range \f$[0..N-1]\f$.
-// \return Reference to the accessed value.
-// \exception std::invalid_argument Invalid access to restricted element.
-// \exception std::out_of_range Invalid matrix access index.
-//
-// In contrast to the subscript operator this function always performs a check of the given
-// access indices.
-*/
-template< typename PT    // Type of the proxy
-        , typename MT >  // Type of the dense matrix
-inline typename DenseMatrixProxy<PT,MT>::Reference
-   DenseMatrixProxy<PT,MT>::at( size_t i, size_t j ) const
-{
-   if( (~*this).isRestricted() ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid access to restricted element" );
-   }
-
-   return (~*this).get().at(i,j);
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
 /*!\brief Low-level data access to matrix elements.
 //
 // \return Pointer to the internal element storage.
-// \exception std::invalid_argument Invalid access to restricted element.
 //
 // This function returns a pointer to the internal storage of the dense matrix. Note that you can
 // NOT assume that all matrix elements lie adjacent to each other! The matrix may use techniques
@@ -233,7 +202,6 @@ inline typename DenseMatrixProxy<PT,MT>::Pointer DenseMatrixProxy<PT,MT>::data()
 /*!\brief Low-level data access to matrix elements of row/column \a i.
 //
 // \return Pointer to the internal element storage.
-// \exception std::invalid_argument Invalid access to restricted element.
 //
 // This function returns a pointer to the internal storage for the elements in row/column \a i.
 */
@@ -255,7 +223,6 @@ inline typename DenseMatrixProxy<PT,MT>::Pointer DenseMatrixProxy<PT,MT>::data( 
 //
 // \param i The row/column index.
 // \return Iterator to the first element of row/column \a i.
-// \exception std::invalid_argument Invalid access to restricted element.
 //
 // This function returns a row/column iterator to the first element of row/column \a i. In case
 // the storage order is set to \a rowMajor the function returns an iterator to the first element
@@ -302,7 +269,6 @@ inline typename DenseMatrixProxy<PT,MT>::ConstIterator
 //
 // \param i The row/column index.
 // \return Iterator just past the last element of row/column \a i.
-// \exception std::invalid_argument Invalid access to restricted element.
 //
 // This function returns an row/column iterator just past the last element of row/column \a i.
 // In case the storage order is set to \a rowMajor the function returns an iterator just past
@@ -532,7 +498,6 @@ inline void DenseMatrixProxy<PT,MT>::clear() const
 // \param n The new number of columns of the matrix.
 // \param preserve \a true if the old values of the matrix should be preserved, \a false if not.
 // \return void
-// \exception std::invalid_argument Invalid access to restricted element.
 //
 // This function resizes the matrix using the given size to \f$ m \times n \f$. Depending on
 // the type of the matrix, during this operation new dynamic memory may be allocated in case
@@ -562,7 +527,6 @@ inline void DenseMatrixProxy<PT,MT>::resize( size_t m, size_t n, bool preserve )
 // \param n Number of additional columns.
 // \param preserve \a true if the old values of the matrix should be preserved, \a false if not.
 // \return void
-// \exception std::invalid_argument Invalid access to restricted element.
 //
 // This function increases the matrix size by \a m rows and \a n columns. Depending on the type
 // of the matrix, during this operation new dynamic memory may be allocated in case the capacity
@@ -589,7 +553,6 @@ inline void DenseMatrixProxy<PT,MT>::extend( size_t m, size_t n, bool preserve )
 //
 // \param n The new minimum capacity of the matrix.
 // \return void
-// \exception std::invalid_argument Invalid access to restricted element.
 //
 // This function increases the capacity of the dense matrix to at least \a n elements. The
 // current values of the matrix elements are preserved.
@@ -611,7 +574,6 @@ inline void DenseMatrixProxy<PT,MT>::reserve( size_t n ) const
 /*!\brief In-place transpose of the represented matrix.
 //
 // \return Reference to the transposed matrix.
-// \exception std::invalid_argument Invalid access to restricted element.
 */
 template< typename PT    // Type of the proxy
         , typename MT >  // Type of the dense matrix
@@ -630,7 +592,6 @@ inline void DenseMatrixProxy<PT,MT>::transpose() const
 /*!\brief In-place conjugate transpose of the represented matrix.
 //
 // \return Reference to the transposed matrix.
-// \exception std::invalid_argument Invalid access to restricted element.
 */
 template< typename PT    // Type of the proxy
         , typename MT >  // Type of the dense matrix
@@ -650,7 +611,6 @@ inline void DenseMatrixProxy<PT,MT>::ctranspose() const
 //
 // \param scalar The scalar value for the matrix scaling.
 // \return void
-// \exception std::invalid_argument Invalid access to restricted element.
 */
 template< typename PT       // Type of the proxy
         , typename MT >     // Type of the dense matrix
@@ -947,7 +907,7 @@ BLAZE_ALWAYS_INLINE size_t nonZeros( const DenseMatrixProxy<PT,MT>& proxy, size_
 */
 template< typename PT    // Type of the proxy
         , typename MT >  // Type of the dense matrix
-BLAZE_ALWAYS_INLINE DisableIf_< IsResizable<MT> >
+BLAZE_ALWAYS_INLINE typename DisableIf< IsResizable<MT> >::Type
    resize_backend( const DenseMatrixProxy<PT,MT>& proxy, size_t m, size_t n, bool preserve )
 {
    UNUSED_PARAMETER( preserve );
@@ -975,7 +935,7 @@ BLAZE_ALWAYS_INLINE DisableIf_< IsResizable<MT> >
 */
 template< typename PT    // Type of the proxy
         , typename MT >  // Type of the dense matrix
-BLAZE_ALWAYS_INLINE EnableIf_< And< IsResizable<MT>, Not< IsSquare<MT> > > >
+BLAZE_ALWAYS_INLINE typename EnableIf< And< IsResizable<MT>, Not< IsSquare<MT> > > >::Type
    resize_backend( const DenseMatrixProxy<PT,MT>& proxy, size_t m, size_t n, bool preserve )
 {
    proxy.resize( m, n, preserve );
@@ -1000,7 +960,7 @@ BLAZE_ALWAYS_INLINE EnableIf_< And< IsResizable<MT>, Not< IsSquare<MT> > > >
 */
 template< typename PT    // Type of the proxy
         , typename MT >  // Type of the dense matrix
-BLAZE_ALWAYS_INLINE EnableIf_< And< IsResizable<MT>, IsSquare<MT> > >
+BLAZE_ALWAYS_INLINE typename EnableIf< And< IsResizable<MT>, IsSquare<MT> > >::Type
    resize_backend( const DenseMatrixProxy<PT,MT>& proxy, size_t m, size_t n, bool preserve )
 {
    if( m != n ) {

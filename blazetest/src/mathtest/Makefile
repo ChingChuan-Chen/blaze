@@ -35,7 +35,7 @@
 # Build rules
 default: all
 
-all: functions simd blas lapack typetraits \
+all: functions intrinsics lapack typetraits \
      densevector sparsevector densematrix sparsematrix \
      staticvector hybridvector dynamicvector customvector compressedvector \
      staticmatrix hybridmatrix dynamicmatrix custommatrix compressedmatrix \
@@ -43,14 +43,15 @@ all: functions simd blas lapack typetraits \
      lowermatrix unilowermatrix strictlylowermatrix \
      uppermatrix uniuppermatrix strictlyuppermatrix \
      diagonalmatrix \
-     subvector submatrix row column \
+     densesubvector sparsesubvector \
+     densesubmatrix sparsesubmatrix \
+     denserow densecolumn sparserow sparsecolumn \
      dvecdvecadd dvecsvecadd svecdvecadd svecsvecadd \
      dvecdvecsub dvecsvecsub svecdvecsub svecsvecsub \
      dvecdvecmult dvecsvecmult svecdvecmult svecsvecmult \
      dvecdveccross dvecsveccross svecdveccross svecsveccross \
      tdvecdvecmult tdvecsvecmult tsvecdvecmult tsvecsvecmult \
      dvectdvecmult dvectsvecmult svectdvecmult svectsvecmult \
-     dvecdvecdiv svecdvecdiv \
      dmatdvecmult dmatsvecmult smatdvecmult smatsvecmult \
      tdvecdmatmult tsvecdmatmult tdvecsmatmult tsvecsmatmult \
      dmatdmatadd dmatsmatadd smatdmatadd smatsmatadd \
@@ -63,7 +64,7 @@ essential: all
 
 single: all
 
-noop: functions simd blas lapack typetraits \
+noop: functions intrinsics lapack typetraits \
       densevector sparsevector densematrix sparsematrix \
       staticvector hybridvector dynamicvector customvector compressedvector \
       staticmatrix hybridmatrix dynamicmatrix custommatrix compressedmatrix \
@@ -71,7 +72,9 @@ noop: functions simd blas lapack typetraits \
       lowermatrix unilowermatrix strictlylowermatrix \
       uppermatrix uniuppermatrix strictlyuppermatrix \
       diagonalmatrix \
-      subvector submatrix row column \
+      densesubvector sparsesubvector \
+      densesubmatrix sparsesubmatrix \
+      denserow densecolumn sparserow sparsecolumn \
       determinant decomposition inversion \
       vectorserializer matrixserializer
 
@@ -82,15 +85,10 @@ functions:
 	@echo "Building the mathematical functions operation tests..."
 	@$(MAKE) --no-print-directory -C ./functions $(MAKECMDGOALS)
 
-simd:
+intrinsics:
 	@echo
-	@echo "Building the SIMD operation tests..."
-	@$(MAKE) --no-print-directory -C ./simd $(MAKECMDGOALS)
-
-blas:
-	@echo
-	@echo "Building the BLAS operation tests..."
-	@$(MAKE) --no-print-directory -C ./blas $(MAKECMDGOALS)
+	@echo "Building the intrinsics operation tests..."
+	@$(MAKE) --no-print-directory -C ./intrinsics $(MAKECMDGOALS)
 
 lapack:
 	@echo
@@ -217,25 +215,45 @@ diagonalmatrix:
 	@echo "Building the DiagonalMatrix tests..."
 	@$(MAKE) --no-print-directory -C ./diagonalmatrix $(MAKECMDGOALS)
 
-subvector:
+densesubvector:
 	@echo
-	@echo "Building the Subvector tests..."
-	@$(MAKE) --no-print-directory -C ./subvector $(MAKECMDGOALS)
+	@echo "Building the DenseSubvector tests..."
+	@$(MAKE) --no-print-directory -C ./densesubvector $(MAKECMDGOALS)
 
-submatrix:
+sparsesubvector:
 	@echo
-	@echo "Building the Submatrix tests..."
-	@$(MAKE) --no-print-directory -C ./submatrix $(MAKECMDGOALS)
+	@echo "Building the SparseSubvector tests..."
+	@$(MAKE) --no-print-directory -C ./sparsesubvector $(MAKECMDGOALS)
 
-row:
+densesubmatrix:
 	@echo
-	@echo "Building the Row tests..."
-	@$(MAKE) --no-print-directory -C ./row $(MAKECMDGOALS)
+	@echo "Building the DenseSubmatrix tests..."
+	@$(MAKE) --no-print-directory -C ./densesubmatrix $(MAKECMDGOALS)
 
-column:
+sparsesubmatrix:
 	@echo
-	@echo "Building the Column tests..."
-	@$(MAKE) --no-print-directory -C ./column $(MAKECMDGOALS)
+	@echo "Building the SparseSubmatrix tests..."
+	@$(MAKE) --no-print-directory -C ./sparsesubmatrix $(MAKECMDGOALS)
+
+denserow:
+	@echo
+	@echo "Building the DenseRow tests..."
+	@$(MAKE) --no-print-directory -C ./denserow $(MAKECMDGOALS)
+
+densecolumn:
+	@echo
+	@echo "Building the DenseColumn tests..."
+	@$(MAKE) --no-print-directory -C ./densecolumn $(MAKECMDGOALS)
+
+sparserow:
+	@echo
+	@echo "Building the SparseRow tests..."
+	@$(MAKE) --no-print-directory -C ./sparserow $(MAKECMDGOALS)
+
+sparsecolumn:
+	@echo
+	@echo "Building the SparseColumn tests..."
+	@$(MAKE) --no-print-directory -C ./sparsecolumn $(MAKECMDGOALS)
 
 dvecdvecadd:
 	@echo
@@ -356,16 +374,6 @@ svectsvecmult:
 	@echo
 	@echo "Building the sparse vector/sparse vector outer product tests..."
 	@$(MAKE) --no-print-directory -C ./svectsvecmult $(MAKECMDGOALS)
-
-dvecdvecdiv:
-	@echo
-	@echo "Building the dense vector/dense vector division tests..."
-	@$(MAKE) --no-print-directory -C ./dvecdvecdiv $(MAKECMDGOALS)
-
-svecdvecdiv:
-	@echo
-	@echo "Building the sparse vector/dense vector division tests..."
-	@$(MAKE) --no-print-directory -C ./svecdvecdiv $(MAKECMDGOALS)
 
 dmatdvecmult:
 	@echo
@@ -496,8 +504,7 @@ matrixserializer:
 # Cleanup
 clean:
 	@$(MAKE) --no-print-directory -C ./functions clean
-	@$(MAKE) --no-print-directory -C ./simd clean
-	@$(MAKE) --no-print-directory -C ./blas clean
+	@$(MAKE) --no-print-directory -C ./intrinsics clean
 	@$(MAKE) --no-print-directory -C ./lapack clean
 	@$(MAKE) --no-print-directory -C ./typetraits clean
 	@$(MAKE) --no-print-directory -C ./densevector clean
@@ -523,10 +530,14 @@ clean:
 	@$(MAKE) --no-print-directory -C ./uniuppermatrix clean
 	@$(MAKE) --no-print-directory -C ./strictlyuppermatrix clean
 	@$(MAKE) --no-print-directory -C ./diagonalmatrix clean
-	@$(MAKE) --no-print-directory -C ./subvector clean
-	@$(MAKE) --no-print-directory -C ./submatrix clean
-	@$(MAKE) --no-print-directory -C ./row clean
-	@$(MAKE) --no-print-directory -C ./column clean
+	@$(MAKE) --no-print-directory -C ./densesubvector clean
+	@$(MAKE) --no-print-directory -C ./sparsesubvector clean
+	@$(MAKE) --no-print-directory -C ./densesubmatrix clean
+	@$(MAKE) --no-print-directory -C ./sparsesubmatrix clean
+	@$(MAKE) --no-print-directory -C ./denserow clean
+	@$(MAKE) --no-print-directory -C ./densecolumn clean
+	@$(MAKE) --no-print-directory -C ./sparserow clean
+	@$(MAKE) --no-print-directory -C ./sparsecolumn clean
 	@$(MAKE) --no-print-directory -C ./dvecdvecadd clean
 	@$(MAKE) --no-print-directory -C ./dvecsvecadd clean
 	@$(MAKE) --no-print-directory -C ./svecdvecadd clean
@@ -551,8 +562,6 @@ clean:
 	@$(MAKE) --no-print-directory -C ./dvectsvecmult clean
 	@$(MAKE) --no-print-directory -C ./svectdvecmult clean
 	@$(MAKE) --no-print-directory -C ./svectsvecmult clean
-	@$(MAKE) --no-print-directory -C ./dvecdvecdiv clean
-	@$(MAKE) --no-print-directory -C ./svecdvecdiv clean
 	@$(MAKE) --no-print-directory -C ./dmatdvecmult clean
 	@$(MAKE) --no-print-directory -C ./dmatsvecmult clean
 	@$(MAKE) --no-print-directory -C ./smatdvecmult clean
@@ -583,7 +592,7 @@ clean:
 
 # Setting the independent commands
 .PHONY: default all essential single noop clean \
-        functions simd blas lapack typetraits \
+        functions intrinsics lapack typetraits \
         densevector sparsevector densematrix sparsematrix \
         staticvector hybridvector dynamicvector customvector compressedvector \
         staticmatrix hybridmatrix dynamicmatrix custommatrix compressedmatrix \
@@ -591,14 +600,15 @@ clean:
         lowermatrix unilowermatrix strictlylowermatrix \
         uppermatrix uniuppermatrix strictlyuppermatrix \
         diagonalmatrix \
-        subvector submatrix row column \
+        densesubvector sparsesubvector \
+        densesubmatrix sparsesubmatrix \
+        denserow densecolumn sparserow sparsecolumn \
         dvecdvecadd dvecsvecadd svecdvecadd svecsvecadd \
         dvecdvecsub dvecsvecsub svecdvecsub svecsvecsub \
         dvecdvecmult dvecsvecmult svecdvecmult svecsvecmult \
         dvecdveccross dvecsveccross svecdveccross svecsveccross \
         tdvecdvecmult tdvecsvecmult tsvecdvecmult tsvecsvecmult \
         dvectdvecmult dvectsvecmult svectdvecmult svectsvecmult \
-        dvecdvecdiv svecdvecdiv \
         dmatdvecmult dmatsvecmult smatdvecmult smatsvecmult \
         tdvecdmatmult tsvecdmatmult tdvecsmatmult tsvecsmatmult \
         dmatdmatadd dmatsmatadd smatdmatadd smatsmatadd \

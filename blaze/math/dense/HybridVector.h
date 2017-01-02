@@ -32,39 +32,29 @@
 //*************************************************************************************************
 
 #include <algorithm>
-#include <utility>
-#include <blaze/math/Aliases.h>
 #include <blaze/math/AlignmentFlag.h>
 #include <blaze/math/dense/DenseIterator.h>
-#include <blaze/math/Exception.h>
 #include <blaze/math/expressions/DenseVector.h>
 #include <blaze/math/expressions/SparseVector.h>
 #include <blaze/math/Forward.h>
 #include <blaze/math/Functions.h>
-#include <blaze/math/InitializerList.h>
+#include <blaze/math/Intrinsics.h>
 #include <blaze/math/shims/Clear.h>
 #include <blaze/math/shims/IsDefault.h>
 #include <blaze/math/shims/Serial.h>
-#include <blaze/math/SIMD.h>
 #include <blaze/math/traits/AddTrait.h>
 #include <blaze/math/traits/CrossTrait.h>
 #include <blaze/math/traits/DivTrait.h>
+#include <blaze/math/traits/MathTrait.h>
 #include <blaze/math/traits/MultTrait.h>
 #include <blaze/math/traits/SubTrait.h>
 #include <blaze/math/traits/SubvectorTrait.h>
 #include <blaze/math/typetraits/HasConstDataAccess.h>
 #include <blaze/math/typetraits/HasMutableDataAccess.h>
-#include <blaze/math/typetraits/HasSIMDAdd.h>
-#include <blaze/math/typetraits/HasSIMDDiv.h>
-#include <blaze/math/typetraits/HasSIMDMult.h>
-#include <blaze/math/typetraits/HasSIMDSub.h>
-#include <blaze/math/typetraits/HighType.h>
 #include <blaze/math/typetraits/IsAligned.h>
 #include <blaze/math/typetraits/IsPadded.h>
 #include <blaze/math/typetraits/IsResizable.h>
-#include <blaze/math/typetraits/IsSIMDCombinable.h>
 #include <blaze/math/typetraits/IsSparseVector.h>
-#include <blaze/math/typetraits/LowType.h>
 #include <blaze/system/Inline.h>
 #include <blaze/system/Optimizations.h>
 #include <blaze/system/TransposeFlag.h>
@@ -78,15 +68,18 @@
 #include <blaze/util/constraints/Volatile.h>
 #include <blaze/util/DisableIf.h>
 #include <blaze/util/EnableIf.h>
-#include <blaze/util/IntegralConstant.h>
+#include <blaze/util/Exception.h>
 #include <blaze/util/Memory.h>
+#include <blaze/util/mpl/NextMultiple.h>
+#include <blaze/util/mpl/SizeT.h>
 #include <blaze/util/StaticAssert.h>
 #include <blaze/util/Template.h>
-#include <blaze/util/TrueType.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/typetraits/IsNumeric.h>
+#include <blaze/util/typetraits/IsSame.h>
 #include <blaze/util/typetraits/IsVectorizable.h>
 #include <blaze/util/Unused.h>
+#include <blaze/util/valuetraits/IsTrue.h>
 
 
 namespace blaze {
@@ -172,14 +165,23 @@ template< typename Type                     // Data type of the vector
         , bool TF = defaultTransposeFlag >  // Transpose flag
 class HybridVector : public DenseVector< HybridVector<Type,N,TF>, TF >
 {
+ private:
+   //**Type definitions****************************************************************************
+   typedef IntrinsicTrait<Type>  IT;  //!< Intrinsic trait for the vector element type.
+   //**********************************************************************************************
+
+   //**********************************************************************************************
+   //! Alignment adjustment
+   static const size_t NN = ( usePadding )?( NextMultiple< SizeT<N>, SizeT<IT::size> >::value ):( N );
+   //**********************************************************************************************
+
  public:
    //**Type definitions****************************************************************************
    typedef HybridVector<Type,N,TF>   This;           //!< Type of this HybridVector instance.
-   typedef DenseVector<This,TF>      BaseType;       //!< Base type of this HybridVector instance.
    typedef This                      ResultType;     //!< Result type for expression template evaluations.
    typedef HybridVector<Type,N,!TF>  TransposeType;  //!< Transpose type for expression template evaluations.
    typedef Type                      ElementType;    //!< Type of the vector elements.
-   typedef SIMDTrait_<ElementType>   SIMDType;       //!< SIMD type of the vector elements.
+   typedef typename IT::Type         IntrinsicType;  //!< Intrinsic type of the vector elements.
    typedef const Type&               ReturnType;     //!< Return type for expression template evaluations.
    typedef const HybridVector&       CompositeType;  //!< Data type for composite expression templates.
 
@@ -202,30 +204,27 @@ class HybridVector : public DenseVector< HybridVector<Type,N,TF>, TF >
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
-   //! Compilation flag for SIMD optimization.
-   /*! The \a simdEnabled compilation flag indicates whether expressions the vector is involved
-       in can be optimized via SIMD operations. In case the element type of the vector is a
-       vectorizable data type, the \a simdEnabled compilation flag is set to \a true, otherwise
-       it is set to \a false. */
-   enum : bool { simdEnabled = IsVectorizable<Type>::value };
+   //! Compilation flag for intrinsic optimization.
+   /*! The \a vectorizable compilation flag indicates whether expressions the vector is involved
+       in can be optimized via intrinsics. In case the element type of the vector is a vectorizable
+       data type, the \a vectorizable compilation flag is set to \a true, otherwise it is set to
+       \a false. */
+   enum { vectorizable = IsVectorizable<Type>::value };
 
    //! Compilation flag for SMP assignments.
    /*! The \a smpAssignable compilation flag indicates whether the vector can be used in SMP
        (shared memory parallel) assignments (both on the left-hand and right-hand side of the
        assignment). */
-   enum : bool { smpAssignable = false };
+   enum { smpAssignable = 0 };
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
    /*!\name Constructors */
    //@{
-   explicit inline HybridVector();
-   explicit inline HybridVector( size_t n );
-   explicit inline HybridVector( size_t n, const Type& init );
-   explicit inline HybridVector( initializer_list<Type> list );
-
-   template< typename Other >
-   explicit inline HybridVector( size_t n, const Other* array );
+                              explicit inline HybridVector();
+                              explicit inline HybridVector( size_t n );
+                              explicit inline HybridVector( size_t n, const Type& init );
+   template< typename Other > explicit inline HybridVector( size_t n, const Other* array );
 
    template< typename Other, size_t M >
    explicit inline HybridVector( const Other (&array)[M] );
@@ -242,57 +241,56 @@ class HybridVector : public DenseVector< HybridVector<Type,N,TF>, TF >
    //**Data access functions***********************************************************************
    /*!\name Data access functions */
    //@{
-   inline Reference      operator[]( size_t index ) noexcept;
-   inline ConstReference operator[]( size_t index ) const noexcept;
+   inline Reference      operator[]( size_t index );
+   inline ConstReference operator[]( size_t index ) const;
    inline Reference      at( size_t index );
    inline ConstReference at( size_t index ) const;
-   inline Pointer        data  () noexcept;
-   inline ConstPointer   data  () const noexcept;
-   inline Iterator       begin () noexcept;
-   inline ConstIterator  begin () const noexcept;
-   inline ConstIterator  cbegin() const noexcept;
-   inline Iterator       end   () noexcept;
-   inline ConstIterator  end   () const noexcept;
-   inline ConstIterator  cend  () const noexcept;
+   inline Pointer        data  ();
+   inline ConstPointer   data  () const;
+   inline Iterator       begin ();
+   inline ConstIterator  begin () const;
+   inline ConstIterator  cbegin() const;
+   inline Iterator       end   ();
+   inline ConstIterator  end   () const;
+   inline ConstIterator  cend  () const;
    //@}
    //**********************************************************************************************
 
    //**Assignment operators************************************************************************
    /*!\name Assignment operators */
    //@{
-   inline HybridVector& operator=( const Type& rhs );
-   inline HybridVector& operator=( initializer_list<Type> list );
-
    template< typename Other, size_t M >
    inline HybridVector& operator=( const Other (&array)[M] );
 
-                           inline HybridVector& operator= ( const HybridVector&  rhs );
+                           inline HybridVector& operator= ( const Type& rhs );
+                           inline HybridVector& operator= ( const HybridVector& rhs );
    template< typename VT > inline HybridVector& operator= ( const Vector<VT,TF>& rhs );
    template< typename VT > inline HybridVector& operator+=( const Vector<VT,TF>& rhs );
    template< typename VT > inline HybridVector& operator-=( const Vector<VT,TF>& rhs );
    template< typename VT > inline HybridVector& operator*=( const Vector<VT,TF>& rhs );
-   template< typename VT > inline HybridVector& operator/=( const DenseVector<VT,TF>& rhs );
 
    template< typename Other >
-   inline EnableIf_<IsNumeric<Other>, HybridVector >& operator*=( Other rhs );
+   inline typename EnableIf< IsNumeric<Other>, HybridVector >::Type&
+      operator*=( Other rhs );
 
    template< typename Other >
-   inline EnableIf_<IsNumeric<Other>, HybridVector >& operator/=( Other rhs );
+   inline typename EnableIf< IsNumeric<Other>, HybridVector >::Type&
+      operator/=( Other rhs );
    //@}
    //**********************************************************************************************
 
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-                              inline size_t        size() const noexcept;
-                              inline size_t        capacity() const noexcept;
+                              inline size_t        size() const;
+                              inline size_t        capacity() const;
                               inline size_t        nonZeros() const;
                               inline void          reset();
                               inline void          clear();
                               inline void          resize( size_t n, bool preserve=true );
                               inline void          extend( size_t n, bool preserve=true );
    template< typename Other > inline HybridVector& scale( const Other& scalar );
-                              inline void          swap( HybridVector& v ) noexcept;
+                              inline void          swap( HybridVector& v ) /* throw() */;
    //@}
    //**********************************************************************************************
 
@@ -317,9 +315,9 @@ class HybridVector : public DenseVector< HybridVector<Type,N,TF>, TF >
    //! Helper structure for the explicit application of the SFINAE principle.
    template< typename VT >
    struct VectorizedAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && VT::simdEnabled &&
-                            IsSIMDCombinable< Type, ElementType_<VT> >::value };
+      enum { value = useOptimizedKernels &&
+                     vectorizable && VT::vectorizable &&
+                     IsSame<Type,typename VT::ElementType>::value };
    };
    /*! \endcond */
    //**********************************************************************************************
@@ -329,10 +327,10 @@ class HybridVector : public DenseVector< HybridVector<Type,N,TF>, TF >
    //! Helper structure for the explicit application of the SFINAE principle.
    template< typename VT >
    struct VectorizedAddAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && VT::simdEnabled &&
-                            IsSIMDCombinable< Type, ElementType_<VT> >::value &&
-                            HasSIMDAdd< Type, ElementType_<VT> >::value };
+      enum { value = useOptimizedKernels &&
+                     vectorizable && VT::vectorizable &&
+                     IsSame<Type,typename VT::ElementType>::value &&
+                     IntrinsicTrait<Type>::addition };
    };
    /*! \endcond */
    //**********************************************************************************************
@@ -342,10 +340,10 @@ class HybridVector : public DenseVector< HybridVector<Type,N,TF>, TF >
    //! Helper structure for the explicit application of the SFINAE principle.
    template< typename VT >
    struct VectorizedSubAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && VT::simdEnabled &&
-                            IsSIMDCombinable< Type, ElementType_<VT> >::value &&
-                            HasSIMDSub< Type, ElementType_<VT> >::value };
+      enum { value = useOptimizedKernels &&
+                     vectorizable && VT::vectorizable &&
+                     IsSame<Type,typename VT::ElementType>::value &&
+                     IntrinsicTrait<Type>::subtraction };
    };
    /*! \endcond */
    //**********************************************************************************************
@@ -355,103 +353,75 @@ class HybridVector : public DenseVector< HybridVector<Type,N,TF>, TF >
    //! Helper structure for the explicit application of the SFINAE principle.
    template< typename VT >
    struct VectorizedMultAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && VT::simdEnabled &&
-                            IsSIMDCombinable< Type, ElementType_<VT> >::value &&
-                            HasSIMDMult< Type, ElementType_<VT> >::value };
+      enum { value = useOptimizedKernels &&
+                     vectorizable && VT::vectorizable &&
+                     IsSame<Type,typename VT::ElementType>::value &&
+                     IntrinsicTrait<Type>::multiplication };
    };
    /*! \endcond */
-   //**********************************************************************************************
-
-   //**********************************************************************************************
-   /*! \cond BLAZE_INTERNAL */
-   //! Helper structure for the explicit application of the SFINAE principle.
-   template< typename VT >
-   struct VectorizedDivAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && VT::simdEnabled &&
-                            IsSIMDCombinable< Type, ElementType_<VT> >::value &&
-                            HasSIMDDiv< Type, ElementType_<VT> >::value };
-   };
-   /*! \endcond */
-   //**********************************************************************************************
-
-   //**********************************************************************************************
-   //! The number of elements packed within a single SIMD element.
-   enum : size_t { SIMDSIZE = SIMDTrait<ElementType>::size };
    //**********************************************************************************************
 
  public:
-   //**Debugging functions*************************************************************************
-   /*!\name Debugging functions */
-   //@{
-   inline bool isIntact() const noexcept;
-   //@}
-   //**********************************************************************************************
-
    //**Expression template evaluation functions****************************************************
    /*!\name Expression template evaluation functions */
    //@{
-   template< typename Other > inline bool canAlias ( const Other* alias ) const noexcept;
-   template< typename Other > inline bool isAliased( const Other* alias ) const noexcept;
+   template< typename Other > inline bool canAlias ( const Other* alias ) const;
+   template< typename Other > inline bool isAliased( const Other* alias ) const;
 
-   inline bool isAligned() const noexcept;
+   inline bool isAligned() const;
 
-   BLAZE_ALWAYS_INLINE SIMDType load ( size_t index ) const noexcept;
-   BLAZE_ALWAYS_INLINE SIMDType loada( size_t index ) const noexcept;
-   BLAZE_ALWAYS_INLINE SIMDType loadu( size_t index ) const noexcept;
+   BLAZE_ALWAYS_INLINE IntrinsicType load ( size_t index ) const;
+   BLAZE_ALWAYS_INLINE IntrinsicType loada( size_t index ) const;
+   BLAZE_ALWAYS_INLINE IntrinsicType loadu( size_t index ) const;
 
-   BLAZE_ALWAYS_INLINE void store ( size_t index, const SIMDType& value ) noexcept;
-   BLAZE_ALWAYS_INLINE void storea( size_t index, const SIMDType& value ) noexcept;
-   BLAZE_ALWAYS_INLINE void storeu( size_t index, const SIMDType& value ) noexcept;
-   BLAZE_ALWAYS_INLINE void stream( size_t index, const SIMDType& value ) noexcept;
-
-   template< typename VT >
-   inline DisableIf_<VectorizedAssign<VT> > assign( const DenseVector<VT,TF>& rhs );
+   BLAZE_ALWAYS_INLINE void store ( size_t index, const IntrinsicType& value );
+   BLAZE_ALWAYS_INLINE void storea( size_t index, const IntrinsicType& value );
+   BLAZE_ALWAYS_INLINE void storeu( size_t index, const IntrinsicType& value );
+   BLAZE_ALWAYS_INLINE void stream( size_t index, const IntrinsicType& value );
 
    template< typename VT >
-   inline EnableIf_<VectorizedAssign<VT> > assign( const DenseVector<VT,TF>& rhs );
+   inline typename DisableIf< VectorizedAssign<VT> >::Type
+      assign( const DenseVector<VT,TF>& rhs );
+
+   template< typename VT >
+   inline typename EnableIf< VectorizedAssign<VT> >::Type
+      assign( const DenseVector<VT,TF>& rhs );
 
    template< typename VT > inline void assign( const SparseVector<VT,TF>& rhs );
 
    template< typename VT >
-   inline DisableIf_<VectorizedAddAssign<VT> > addAssign( const DenseVector<VT,TF>& rhs );
+   inline typename DisableIf< VectorizedAddAssign<VT> >::Type
+      addAssign( const DenseVector<VT,TF>& rhs );
 
    template< typename VT >
-   inline EnableIf_<VectorizedAddAssign<VT> > addAssign( const DenseVector<VT,TF>& rhs );
+   inline typename EnableIf< VectorizedAddAssign<VT> >::Type
+      addAssign( const DenseVector<VT,TF>& rhs );
 
    template< typename VT > inline void addAssign( const SparseVector<VT,TF>& rhs );
 
    template< typename VT >
-   inline DisableIf_<VectorizedSubAssign<VT> > subAssign( const DenseVector<VT,TF>& rhs );
+   inline typename DisableIf< VectorizedSubAssign<VT> >::Type
+      subAssign( const DenseVector<VT,TF>& rhs );
 
    template< typename VT >
-   inline EnableIf_<VectorizedSubAssign<VT> > subAssign( const DenseVector<VT,TF>& rhs );
+   inline typename EnableIf< VectorizedSubAssign<VT> >::Type
+      subAssign( const DenseVector<VT,TF>& rhs );
 
    template< typename VT > inline void subAssign( const SparseVector<VT,TF>& rhs );
 
    template< typename VT >
-   inline DisableIf_<VectorizedMultAssign<VT> > multAssign( const DenseVector<VT,TF>& rhs );
+   inline typename DisableIf< VectorizedMultAssign<VT> >::Type
+      multAssign( const DenseVector<VT,TF>& rhs );
 
    template< typename VT >
-   inline EnableIf_<VectorizedMultAssign<VT> > multAssign( const DenseVector<VT,TF>& rhs );
+   inline typename EnableIf< VectorizedMultAssign<VT> >::Type
+      multAssign( const DenseVector<VT,TF>& rhs );
 
    template< typename VT > inline void multAssign( const SparseVector<VT,TF>& rhs );
-
-   template< typename VT >
-   inline DisableIf_<VectorizedDivAssign<VT> > divAssign( const DenseVector<VT,TF>& rhs );
-
-   template< typename VT >
-   inline EnableIf_<VectorizedDivAssign<VT> > divAssign( const DenseVector<VT,TF>& rhs );
    //@}
    //**********************************************************************************************
 
  private:
-   //**********************************************************************************************
-   //! Alignment adjustment.
-   enum : size_t { NN = ( usePadding )?( nextMultiple( N, SIMDSIZE ) ):( N ) };
-   //**********************************************************************************************
-
    //**Member variables****************************************************************************
    /*!\name Member variables */
    //@{
@@ -471,7 +441,7 @@ class HybridVector : public DenseVector< HybridVector<Type,N,TF>, TF >
    BLAZE_CONSTRAINT_MUST_NOT_BE_REFERENCE_TYPE( Type );
    BLAZE_CONSTRAINT_MUST_NOT_BE_CONST         ( Type );
    BLAZE_CONSTRAINT_MUST_NOT_BE_VOLATILE      ( Type );
-   BLAZE_STATIC_ASSERT( !usePadding || NN % SIMDSIZE == 0UL );
+   BLAZE_STATIC_ASSERT( !usePadding || NN % IT::size == 0UL );
    BLAZE_STATIC_ASSERT( NN >= N );
    /*! \endcond */
    //**********************************************************************************************
@@ -505,8 +475,6 @@ inline HybridVector<Type,N,TF>::HybridVector()
       for( size_t i=0UL; i<NN; ++i )
          v_[i] = Type();
    }
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Invariant violation detected" );
 }
 //*************************************************************************************************
 
@@ -538,8 +506,6 @@ inline HybridVector<Type,N,TF>::HybridVector( size_t n )
       for( size_t i=0UL; i<NN; ++i )
          v_[i] = Type();
    }
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Invariant violation detected" );
 }
 //*************************************************************************************************
 
@@ -575,46 +541,6 @@ inline HybridVector<Type,N,TF>::HybridVector( size_t n, const Type& init )
       for( size_t i=n; i<NN; ++i )
          v_[i] = Type();
    }
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Invariant violation detected" );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief List initialization of all vector elements.
-//
-// \param list The initializer list.
-// \exception std::invalid_argument Invalid setup of hybrid vector.
-//
-// This constructor provides the option to explicitly initialize the elements of the vector by
-// means of an initializer list:
-
-   \code
-   blaze::HybridVector<double,6UL> v1{ 4.2, 6.3, -1.2 };
-   \endcode
-
-// The vector is sized according to the size of the initializer list and all its elements are
-// initialized by the values of the given initializer list. In case the size of the given list
-// exceeds the maximum size of the hybrid vector (i.e. is larger than \a N), a
-// \a std::invalid_argument exception is thrown.
-*/
-template< typename Type  // Data type of the vector
-        , size_t N       // Number of elements
-        , bool TF >      // Transpose flag
-inline HybridVector<Type,N,TF>::HybridVector( initializer_list<Type> list )
-   : v_   ()               // The statically allocated vector elements
-   , size_( list.size() )  // The current size/dimension of the vector
-{
-   BLAZE_STATIC_ASSERT( IsVectorizable<Type>::value || NN == N );
-
-   if( size_ > N ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid setup of hybrid vector" );
-   }
-
-   std::fill( std::copy( list.begin(), list.end(), v_.data() ), v_.data()+NN, Type() );
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Invariant violation detected" );
 }
 //*************************************************************************************************
 
@@ -638,7 +564,7 @@ inline HybridVector<Type,N,TF>::HybridVector( initializer_list<Type> list )
 
 // The vector is sized according to the size of the array and initialized with the values from
 // the given array. In case the size of the given array exceeds the maximum size of the hybrid
-// vector (i.e. is larger than \a N), a \a std::invalid_argument exception is thrown.\n
+// vector (i.e. is larger than N), a \a std::invalid_argument exception is thrown.\n
 // Note that it is expected that the given \a array has at least \a n elements. Providing an
 // array with less elements results in undefined behavior!
 */
@@ -663,8 +589,6 @@ inline HybridVector<Type,N,TF>::HybridVector( size_t n, const Other* array )
       for( size_t i=n; i<NN; ++i )
          v_[i] = Type();
    }
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Invariant violation detected" );
 }
 //*************************************************************************************************
 
@@ -706,8 +630,6 @@ inline HybridVector<Type,N,TF>::HybridVector( const Other (&array)[M] )
       for( size_t i=M; i<NN; ++i )
          v_[i] = Type();
    }
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Invariant violation detected" );
 }
 //*************************************************************************************************
 
@@ -735,8 +657,6 @@ inline HybridVector<Type,N,TF>::HybridVector( const HybridVector& v )
       for( size_t i=size_; i<NN; ++i )
          v_[i] = Type();
    }
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Invariant violation detected" );
 }
 //*************************************************************************************************
 
@@ -748,8 +668,8 @@ inline HybridVector<Type,N,TF>::HybridVector( const HybridVector& v )
 // \exception std::invalid_argument Invalid setup of hybrid vector.
 //
 // This constructor initializes the hybrid vector from the given vector. In case the size of
-// the given vector exceeds the maximum size of the hybrid vector (i.e. is larger than \a N),
-// a \a std::invalid_argument exception is thrown.
+// the given vector exceeds the maximum size of the hybrid vector (i.e. is larger than N), a
+// \a std::invalid_argument exception is thrown.
 */
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
@@ -773,8 +693,6 @@ inline HybridVector<Type,N,TF>::HybridVector( const Vector<VT,TF>& v )
    }
 
    assign( *this, ~v );
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Invariant violation detected" );
 }
 //*************************************************************************************************
 
@@ -800,7 +718,7 @@ template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
 inline typename HybridVector<Type,N,TF>::Reference
-   HybridVector<Type,N,TF>::operator[]( size_t index ) noexcept
+   HybridVector<Type,N,TF>::operator[]( size_t index )
 {
    BLAZE_USER_ASSERT( index < size_, "Invalid vector access index" );
    return v_[index];
@@ -821,7 +739,7 @@ template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
 inline typename HybridVector<Type,N,TF>::ConstReference
-   HybridVector<Type,N,TF>::operator[]( size_t index ) const noexcept
+   HybridVector<Type,N,TF>::operator[]( size_t index ) const
 {
    BLAZE_USER_ASSERT( index < size_, "Invalid vector access index" );
    return v_[index];
@@ -887,7 +805,7 @@ inline typename HybridVector<Type,N,TF>::ConstReference
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-inline typename HybridVector<Type,N,TF>::Pointer HybridVector<Type,N,TF>::data() noexcept
+inline typename HybridVector<Type,N,TF>::Pointer HybridVector<Type,N,TF>::data()
 {
    return v_;
 }
@@ -904,7 +822,7 @@ inline typename HybridVector<Type,N,TF>::Pointer HybridVector<Type,N,TF>::data()
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-inline typename HybridVector<Type,N,TF>::ConstPointer HybridVector<Type,N,TF>::data() const noexcept
+inline typename HybridVector<Type,N,TF>::ConstPointer HybridVector<Type,N,TF>::data() const
 {
    return v_;
 }
@@ -919,7 +837,7 @@ inline typename HybridVector<Type,N,TF>::ConstPointer HybridVector<Type,N,TF>::d
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-inline typename HybridVector<Type,N,TF>::Iterator HybridVector<Type,N,TF>::begin() noexcept
+inline typename HybridVector<Type,N,TF>::Iterator HybridVector<Type,N,TF>::begin()
 {
    return Iterator( v_ );
 }
@@ -934,7 +852,7 @@ inline typename HybridVector<Type,N,TF>::Iterator HybridVector<Type,N,TF>::begin
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-inline typename HybridVector<Type,N,TF>::ConstIterator HybridVector<Type,N,TF>::begin() const noexcept
+inline typename HybridVector<Type,N,TF>::ConstIterator HybridVector<Type,N,TF>::begin() const
 {
    return ConstIterator( v_ );
 }
@@ -949,7 +867,7 @@ inline typename HybridVector<Type,N,TF>::ConstIterator HybridVector<Type,N,TF>::
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-inline typename HybridVector<Type,N,TF>::ConstIterator HybridVector<Type,N,TF>::cbegin() const noexcept
+inline typename HybridVector<Type,N,TF>::ConstIterator HybridVector<Type,N,TF>::cbegin() const
 {
    return ConstIterator( v_ );
 }
@@ -964,7 +882,7 @@ inline typename HybridVector<Type,N,TF>::ConstIterator HybridVector<Type,N,TF>::
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-inline typename HybridVector<Type,N,TF>::Iterator HybridVector<Type,N,TF>::end() noexcept
+inline typename HybridVector<Type,N,TF>::Iterator HybridVector<Type,N,TF>::end()
 {
    BLAZE_INTERNAL_ASSERT( size_ <= N, "Invalid size detected" );
    return Iterator( v_ + size_ );
@@ -980,7 +898,7 @@ inline typename HybridVector<Type,N,TF>::Iterator HybridVector<Type,N,TF>::end()
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-inline typename HybridVector<Type,N,TF>::ConstIterator HybridVector<Type,N,TF>::end() const noexcept
+inline typename HybridVector<Type,N,TF>::ConstIterator HybridVector<Type,N,TF>::end() const
 {
    BLAZE_INTERNAL_ASSERT( size_ <= N, "Invalid size detected" );
    return ConstIterator( v_ + size_ );
@@ -996,7 +914,7 @@ inline typename HybridVector<Type,N,TF>::ConstIterator HybridVector<Type,N,TF>::
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-inline typename HybridVector<Type,N,TF>::ConstIterator HybridVector<Type,N,TF>::cend() const noexcept
+inline typename HybridVector<Type,N,TF>::ConstIterator HybridVector<Type,N,TF>::cend() const
 {
    BLAZE_INTERNAL_ASSERT( size_ <= N, "Invalid size detected" );
    return ConstIterator( v_ + size_ );
@@ -1011,62 +929,6 @@ inline typename HybridVector<Type,N,TF>::ConstIterator HybridVector<Type,N,TF>::
 //  ASSIGNMENT OPERATORS
 //
 //=================================================================================================
-
-//*************************************************************************************************
-/*!\brief Homogenous assignment to all vector elements.
-//
-// \param rhs Scalar value to be assigned to all vector elements.
-// \return Reference to the assigned vector.
-*/
-template< typename Type  // Data type of the vector
-        , size_t N       // Number of elements
-        , bool TF >      // Transpose flag
-inline HybridVector<Type,N,TF>& HybridVector<Type,N,TF>::operator=( const Type& rhs )
-{
-   BLAZE_INTERNAL_ASSERT( size_ <= N, "Invalid size detected" );
-
-   for( size_t i=0UL; i<size_; ++i )
-      v_[i] = rhs;
-   return *this;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief List assignment to all vector elements.
-//
-// \param list The initializer list.
-// \exception Invalid assignment to hybrid vector.
-//
-// This assignment operator offers the option to directly assign to all elements of the vector
-// by means of an initializer list:
-
-   \code
-   blaze::HybridVector<double,6UL> v;
-   v = { 4.2, 6.3, -1.2 };
-   \endcode
-
-// The vector is resized according to the size of the initializer list and all its elements are
-// assigned the values from the given initializer list. In case the size of the given list exceeds
-// the maximum size of the hybrid vector (i.e. is larger than \a N), a \a std::invalid_argument
-// exception is thrown.
-*/
-template< typename Type  // Data type of the vector
-        , size_t N       // Number of elements
-        , bool TF >      // Transpose flag
-inline HybridVector<Type,N,TF>& HybridVector<Type,N,TF>::operator=( initializer_list<Type> list )
-{
-   if( list.size() > N ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to hybrid vector" );
-   }
-
-   resize( list.size(), false );
-   std::copy( list.begin(), list.end(), v_.data() );
-
-   return *this;
-}
-//*************************************************************************************************
-
 
 //*************************************************************************************************
 /*!\brief Array assignment to all vector elements.
@@ -1096,11 +958,31 @@ inline HybridVector<Type,N,TF>& HybridVector<Type,N,TF>::operator=( const Other 
 {
    BLAZE_STATIC_ASSERT( M <= N );
 
-   resize( M, false );
+   resize( M );
 
    for( size_t i=0UL; i<M; ++i )
       v_[i] = array[i];
 
+   return *this;
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Homogenous assignment to all vector elements.
+//
+// \param rhs Scalar value to be assigned to all vector elements.
+// \return Reference to the assigned vector.
+*/
+template< typename Type  // Data type of the vector
+        , size_t N       // Number of elements
+        , bool TF >      // Transpose flag
+inline HybridVector<Type,N,TF>& HybridVector<Type,N,TF>::operator=( const Type& rhs )
+{
+   BLAZE_INTERNAL_ASSERT( size_ <= N, "Invalid size detected" );
+
+   for( size_t i=0UL; i<size_; ++i )
+      v_[i] = rhs;
    return *this;
 }
 //*************************************************************************************************
@@ -1126,8 +1008,6 @@ inline HybridVector<Type,N,TF>& HybridVector<Type,N,TF>::operator=( const Hybrid
    resize( rhs.size() );
    assign( *this, ~rhs );
 
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Invariant violation detected" );
-
    return *this;
 }
 //*************************************************************************************************
@@ -1141,7 +1021,7 @@ inline HybridVector<Type,N,TF>& HybridVector<Type,N,TF>::operator=( const Hybrid
 // \exception std::invalid_argument Invalid assignment to hybrid vector.
 //
 // This constructor initializes the vector as a copy of the given vector. In case the size
-// of the given vector is larger than \a N, a \a std::invalid_argument exception is thrown.
+// of the given vector is larger than N, a \a std::invalid_argument exception is thrown.
 */
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
@@ -1160,13 +1040,11 @@ inline HybridVector<Type,N,TF>& HybridVector<Type,N,TF>::operator=( const Vector
       swap( tmp );
    }
    else {
-      resize( (~rhs).size(), false );
+      resize( (~rhs).size() );
       if( IsSparseVector<VT>::value )
          reset();
       assign( *this, ~rhs );
    }
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Invariant violation detected" );
 
    return *this;
 }
@@ -1196,14 +1074,12 @@ inline HybridVector<Type,N,TF>& HybridVector<Type,N,TF>::operator+=( const Vecto
    }
 
    if( (~rhs).canAlias( this ) ) {
-      const ResultType_<VT> tmp( ~rhs );
+      typename VT::ResultType tmp( ~rhs );
       addAssign( *this, tmp );
    }
    else {
       addAssign( *this, ~rhs );
    }
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Invariant violation detected" );
 
    return *this;
 }
@@ -1233,14 +1109,12 @@ inline HybridVector<Type,N,TF>& HybridVector<Type,N,TF>::operator-=( const Vecto
    }
 
    if( (~rhs).canAlias( this ) ) {
-      const ResultType_<VT> tmp( ~rhs );
+      typename VT::ResultType tmp( ~rhs );
       subAssign( *this, tmp );
    }
    else {
       subAssign( *this, ~rhs );
    }
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Invariant violation detected" );
 
    return *this;
 }
@@ -1278,45 +1152,6 @@ inline HybridVector<Type,N,TF>& HybridVector<Type,N,TF>::operator*=( const Vecto
       multAssign( *this, ~rhs );
    }
 
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Invariant violation detected" );
-
-   return *this;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Division assignment operator for the division of a dense vector (\f$ \vec{a}/=\vec{b} \f$).
-//
-// \param rhs The right-hand side dense vector divisor.
-// \return Reference to the vector.
-// \exception std::invalid_argument Vector sizes do not match.
-//
-// In case the current sizes of the two vectors don't match, a \a std::invalid_argument exception
-// is thrown.
-*/
-template< typename Type  // Data type of the vector
-        , size_t N       // Number of elements
-        , bool TF >      // Transpose flag
-template< typename VT >  // Type of the right-hand side vector
-inline HybridVector<Type,N,TF>& HybridVector<Type,N,TF>::operator/=( const DenseVector<VT,TF>& rhs )
-{
-   using blaze::divAssign;
-
-   if( (~rhs).size() != size_ ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
-   }
-
-   if( (~rhs).canAlias( this ) ) {
-      const HybridVector tmp( *this / (~rhs) );
-      this->operator=( tmp );
-   }
-   else {
-      divAssign( *this, ~rhs );
-   }
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Invariant violation detected" );
-
    return *this;
 }
 //*************************************************************************************************
@@ -1333,15 +1168,12 @@ template< typename Type     // Data type of the vector
         , size_t N          // Number of elements
         , bool TF >         // Transpose flag
 template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_<IsNumeric<Other>, HybridVector<Type,N,TF> >&
+inline typename EnableIf< IsNumeric<Other>, HybridVector<Type,N,TF> >::Type&
    HybridVector<Type,N,TF>::operator*=( Other rhs )
 {
    using blaze::assign;
 
    assign( *this, (*this) * rhs );
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Invariant violation detected" );
-
    return *this;
 }
 //*************************************************************************************************
@@ -1354,13 +1186,13 @@ inline EnableIf_<IsNumeric<Other>, HybridVector<Type,N,TF> >&
 // \param rhs The right-hand side scalar value for the division.
 // \return Reference to the vector.
 //
-// \note A division by zero is only checked by an user assert.
+// \note: A division by zero is only checked by an user assert.
 */
 template< typename Type     // Data type of the vector
         , size_t N          // Number of elements
         , bool TF >         // Transpose flag
 template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_<IsNumeric<Other>, HybridVector<Type,N,TF> >&
+inline typename EnableIf< IsNumeric<Other>, HybridVector<Type,N,TF> >::Type&
    HybridVector<Type,N,TF>::operator/=( Other rhs )
 {
    using blaze::assign;
@@ -1368,9 +1200,6 @@ inline EnableIf_<IsNumeric<Other>, HybridVector<Type,N,TF> >&
    BLAZE_USER_ASSERT( rhs != Other(0), "Division by zero detected" );
 
    assign( *this, (*this) / rhs );
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Invariant violation detected" );
-
    return *this;
 }
 //*************************************************************************************************
@@ -1392,7 +1221,7 @@ inline EnableIf_<IsNumeric<Other>, HybridVector<Type,N,TF> >&
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-inline size_t HybridVector<Type,N,TF>::size() const noexcept
+inline size_t HybridVector<Type,N,TF>::size() const
 {
    return size_;
 }
@@ -1407,7 +1236,7 @@ inline size_t HybridVector<Type,N,TF>::size() const noexcept
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-inline size_t HybridVector<Type,N,TF>::capacity() const noexcept
+inline size_t HybridVector<Type,N,TF>::capacity() const
 {
    return NN;
 }
@@ -1574,11 +1403,12 @@ inline HybridVector<Type,N,TF>& HybridVector<Type,N,TF>::scale( const Other& sca
 //
 // \param v The vector to be swapped.
 // \return void
+// \exception no-throw guarantee.
 */
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-inline void HybridVector<Type,N,TF>::swap( HybridVector& v ) noexcept
+inline void HybridVector<Type,N,TF>::swap( HybridVector& v ) /* throw() */
 {
    using std::swap;
 
@@ -1760,43 +1590,6 @@ inline void HybridVector<Type,N,TF>::operator delete[]( void* ptr, const std::no
 
 //=================================================================================================
 //
-//  DEBUGGING FUNCTIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*!\brief Returns whether the invariants of the hybrid vector are intact.
-//
-// \return \a true in case the hybrid vector's invariants are intact, \a false otherwise.
-//
-// This function checks whether the invariants of the hybrid vector are intact, i.e. if its
-// state is valid. In case the invariants are intact, the function returns \a true, else it
-// will return \a false.
-*/
-template< typename Type  // Data type of the vector
-        , size_t N       // Number of elements
-        , bool TF >      // Transpose flag
-inline bool HybridVector<Type,N,TF>::isIntact() const noexcept
-{
-   if( size_ > N )
-      return false;
-
-   if( IsNumeric<Type>::value ) {
-      for( size_t i=size_; i<NN; ++i ) {
-         if( v_[i] != Type() )
-            return false;
-      }
-   }
-
-   return true;
-}
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
 //  EXPRESSION TEMPLATE EVALUATION FUNCTIONS
 //
 //=================================================================================================
@@ -1815,7 +1608,7 @@ template< typename Type     // Data type of the vector
         , size_t N          // Number of elements
         , bool TF >         // Transpose flag
 template< typename Other >  // Data type of the foreign expression
-inline bool HybridVector<Type,N,TF>::canAlias( const Other* alias ) const noexcept
+inline bool HybridVector<Type,N,TF>::canAlias( const Other* alias ) const
 {
    return static_cast<const void*>( this ) == static_cast<const void*>( alias );
 }
@@ -1836,7 +1629,7 @@ template< typename Type     // Data type of the vector
         , size_t N          // Number of elements
         , bool TF >         // Transpose flag
 template< typename Other >  // Data type of the foreign expression
-inline bool HybridVector<Type,N,TF>::isAliased( const Other* alias ) const noexcept
+inline bool HybridVector<Type,N,TF>::isAliased( const Other* alias ) const
 {
    return static_cast<const void*>( this ) == static_cast<const void*>( alias );
 }
@@ -1855,7 +1648,7 @@ inline bool HybridVector<Type,N,TF>::isAliased( const Other* alias ) const noexc
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-inline bool HybridVector<Type,N,TF>::isAligned() const noexcept
+inline bool HybridVector<Type,N,TF>::isAligned() const
 {
    return true;
 }
@@ -1863,22 +1656,23 @@ inline bool HybridVector<Type,N,TF>::isAligned() const noexcept
 
 
 //*************************************************************************************************
-/*!\brief Load of a SIMD element of the vector.
+/*!\brief Load of an intrinsic element of the vector.
 //
 // \param index Access index. The index must be smaller than the number of vector elements.
-// \return The loaded SIMD element.
+// \return The loaded intrinsic element.
 //
-// This function performs a load of a specific SIMD element of the dense vector. The index
-// must be smaller than the number of vector elements and it must be a multiple of the number
-// of values inside the SIMD element. This function must \b NOT be called explicitly! It is
-// used internally for the performance optimized evaluation of expression templates. Calling
-// this function explicitly might result in erroneous results and/or in compilation errors.
+// This function performs a load of a specific intrinsic element of the dense vector. The
+// index must be smaller than the number of vector elements and it must be a multiple of
+// the number of values inside the intrinsic element. This function must \b NOT be called
+// explicitly! It is used internally for the performance optimized evaluation of expression
+// templates. Calling this function explicitly might result in erroneous results and/or in
+// compilation errors.
 */
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-BLAZE_ALWAYS_INLINE typename HybridVector<Type,N,TF>::SIMDType
-   HybridVector<Type,N,TF>::load( size_t index ) const noexcept
+BLAZE_ALWAYS_INLINE typename HybridVector<Type,N,TF>::IntrinsicType
+   HybridVector<Type,N,TF>::load( size_t index ) const
 {
    return loada( index );
 }
@@ -1886,31 +1680,31 @@ BLAZE_ALWAYS_INLINE typename HybridVector<Type,N,TF>::SIMDType
 
 
 //*************************************************************************************************
-/*!\brief Aligned load of a SIMD element of the vector.
+/*!\brief Aligned load of an intrinsic element of the vector.
 //
 // \param index Access index. The index must be smaller than the number of vector elements.
-// \return The loaded SIMD element.
+// \return The loaded intrinsic element.
 //
-// This function performs an aligned load of a specific SIMD element of the dense vector. The
-// index must be smaller than the number of vector elements and it must be a multiple of the
-// number of values inside the SIMD element. This function must \b NOT be called explicitly!
-// It is used internally for the performance optimized evaluation of expression templates.
-// Calling this function explicitly might result in erroneous results and/or in compilation
-// errors.
+// This function performs an aligned load of a specific intrinsic element of the dense vector.
+// The index must be smaller than the number of vector elements and it must be a multiple of
+// the number of values inside the intrinsic element. This function must \b NOT be called
+// explicitly! It is used internally for the performance optimized evaluation of expression
+// templates. Calling this function explicitly might result in erroneous results and/or in
+// compilation errors.
 */
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-BLAZE_ALWAYS_INLINE typename HybridVector<Type,N,TF>::SIMDType
-   HybridVector<Type,N,TF>::loada( size_t index ) const noexcept
+BLAZE_ALWAYS_INLINE typename HybridVector<Type,N,TF>::IntrinsicType
+   HybridVector<Type,N,TF>::loada( size_t index ) const
 {
    using blaze::loada;
 
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
 
    BLAZE_INTERNAL_ASSERT( index < size_, "Invalid vector access index" );
-   BLAZE_INTERNAL_ASSERT( index + SIMDSIZE <= NN, "Invalid vector access index" );
-   BLAZE_INTERNAL_ASSERT( index % SIMDSIZE == 0UL, "Invalid vector access index" );
+   BLAZE_INTERNAL_ASSERT( index + IT::size <= NN, "Invalid vector access index" );
+   BLAZE_INTERNAL_ASSERT( index % IT::size == 0UL, "Invalid vector access index" );
    BLAZE_INTERNAL_ASSERT( checkAlignment( &v_[index] ), "Invalid alignment detected" );
 
    return loada( &v_[index] );
@@ -1919,30 +1713,30 @@ BLAZE_ALWAYS_INLINE typename HybridVector<Type,N,TF>::SIMDType
 
 
 //*************************************************************************************************
-/*!\brief Unaligned load of a SIMD element of the vector.
+/*!\brief Unaligned load of an intrinsic element of the vector.
 //
 // \param index Access index. The index must be smaller than the number of vector elements.
-// \return The loaded SIMD element.
+// \return The loaded intrinsic element.
 //
-// This function performs an unaligned load of a specific SIMD element of the dense vector. The
-// index must be smaller than the number of vector elements and it must be a multiple of the
-// number of values inside the SIMD element. This function must \b NOT be called explicitly!
-// It is used internally for the performance optimized evaluation of expression templates.
-// Calling this function explicitly might result in erroneous results and/or in compilation
-// errors.
+// This function performs an unaligned load of a specific intrinsic element of the dense vector.
+// The index must be smaller than the number of vector elements and it must be a multiple of
+// the number of values inside the intrinsic element. This function must \b NOT be called
+// explicitly! It is used internally for the performance optimized evaluation of expression
+// templates. Calling this function explicitly might result in erroneous results and/or in
+// compilation errors.
 */
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-BLAZE_ALWAYS_INLINE typename HybridVector<Type,N,TF>::SIMDType
-   HybridVector<Type,N,TF>::loadu( size_t index ) const noexcept
+BLAZE_ALWAYS_INLINE typename HybridVector<Type,N,TF>::IntrinsicType
+   HybridVector<Type,N,TF>::loadu( size_t index ) const
 {
    using blaze::loadu;
 
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
 
    BLAZE_INTERNAL_ASSERT( index < size_, "Invalid vector access index" );
-   BLAZE_INTERNAL_ASSERT( index + SIMDSIZE <= NN, "Invalid vector access index" );
+   BLAZE_INTERNAL_ASSERT( index + IT::size <= NN, "Invalid vector access index" );
 
    return loadu( &v_[index] );
 }
@@ -1950,23 +1744,23 @@ BLAZE_ALWAYS_INLINE typename HybridVector<Type,N,TF>::SIMDType
 
 
 //*************************************************************************************************
-/*!\brief Store of a SIMD element of the vector.
+/*!\brief Store of an intrinsic element of the vector.
 //
 // \param index Access index. The index must be smaller than the number of vector elements.
-// \param value The SIMD element to be stored.
+// \param value The intrinsic element to be stored.
 // \return void
 //
-// This function performs a store of a specific SIMD element of the dense vector. The index
-// must be smaller than the number of vector elements and it must be a multiple of the number
-// of values inside the SIMD element. This function must \b NOT be called explicitly! It is
-// used internally for the performance optimized evaluation of expression templates. Calling
-// this function explicitly might result in erroneous results and/or in compilation errors.
+// This function performs a store of a specific intrinsic element of the dense vector. The
+// index must be smaller than the number of vector elements and it must be a multiple of
+// the number of values inside the intrinsic element. This function must \b NOT be called
+// explicitly! It is used internally for the performance optimized evaluation of expression
+// templates. Calling this function explicitly might result in erroneous results and/or in
+// compilation errors.
 */
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-BLAZE_ALWAYS_INLINE void
-   HybridVector<Type,N,TF>::store( size_t index, const SIMDType& value ) noexcept
+BLAZE_ALWAYS_INLINE void HybridVector<Type,N,TF>::store( size_t index, const IntrinsicType& value )
 {
    storea( index, value );
 }
@@ -1974,31 +1768,31 @@ BLAZE_ALWAYS_INLINE void
 
 
 //*************************************************************************************************
-/*!\brief Aligned store of a SIMD element of the vector.
+/*!\brief Aligned store of an intrinsic element of the vector.
 //
 // \param index Access index. The index must be smaller than the number of vector elements.
-// \param value The SIMD element to be stored.
+// \param value The intrinsic element to be stored.
 // \return void
 //
-// This function performs an aligned store of a specific SIMD element of the dense vector. The
-// index must be smaller than the number of vector elements and it must be a multiple of the
-// number of values inside the SIMD element. This function must \b NOT be called explicitly! It
-// is used internally for the performance optimized evaluation of expression templates. Calling
-// this function explicitly might result in erroneous results and/or in compilation errors.
+// This function performs an aligned store of a specific intrinsic element of the dense vector.
+// The index must be smaller than the number of vector elements and it must be a multiple of
+// the number of values inside the intrinsic element. This function must \b NOT be called
+// explicitly! It is used internally for the performance optimized evaluation of expression
+// templates. Calling this function explicitly might result in erroneous results and/or in
+// compilation errors.
 */
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-BLAZE_ALWAYS_INLINE void
-   HybridVector<Type,N,TF>::storea( size_t index, const SIMDType& value ) noexcept
+BLAZE_ALWAYS_INLINE void HybridVector<Type,N,TF>::storea( size_t index, const IntrinsicType& value )
 {
    using blaze::storea;
 
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
 
    BLAZE_INTERNAL_ASSERT( index < size_, "Invalid vector access index" );
-   BLAZE_INTERNAL_ASSERT( index + SIMDSIZE <= NN, "Invalid vector access index" );
-   BLAZE_INTERNAL_ASSERT( index % SIMDSIZE == 0UL, "Invalid vector access index" );
+   BLAZE_INTERNAL_ASSERT( index + IT::size <= NN, "Invalid vector access index" );
+   BLAZE_INTERNAL_ASSERT( index % IT::size == 0UL, "Invalid vector access index" );
    BLAZE_INTERNAL_ASSERT( checkAlignment( &v_[index] ), "Invalid alignment detected" );
 
    storea( &v_[index], value );
@@ -2007,30 +1801,30 @@ BLAZE_ALWAYS_INLINE void
 
 
 //*************************************************************************************************
-/*!\brief Unaligned store of a SIMD element of the vector.
+/*!\brief Unaligned store of an intrinsic element of the vector.
 //
 // \param index Access index. The index must be smaller than the number of vector elements.
-// \param value The SIMD element to be stored.
+// \param value The intrinsic element to be stored.
 // \return void
 //
-// This function performs an unaligned store of a specific SIMD element of the dense vector.
+// This function performs an unaligned store of a specific intrinsic element of the dense vector.
 // The index must be smaller than the number of vector elements and it must be a multiple of the
-// number of values inside the SIMD element. This function must \b NOT be called explicitly! It
-// is used internally for the performance optimized evaluation of expression templates. Calling
-// this function explicitly might result in erroneous results and/or in compilation errors.
+// number of values inside the intrinsic element. This function must \b NOT be called explicitly!
+// It is used internally for the performance optimized evaluation of expression templates.
+// Calling this function explicitly might result in erroneous results and/or in compilation
+// errors.
 */
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-BLAZE_ALWAYS_INLINE void
-   HybridVector<Type,N,TF>::storeu( size_t index, const SIMDType& value ) noexcept
+BLAZE_ALWAYS_INLINE void HybridVector<Type,N,TF>::storeu( size_t index, const IntrinsicType& value )
 {
    using blaze::storeu;
 
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
 
    BLAZE_INTERNAL_ASSERT( index < size_, "Invalid vector access index" );
-   BLAZE_INTERNAL_ASSERT( index + SIMDSIZE <= NN, "Invalid vector access index" );
+   BLAZE_INTERNAL_ASSERT( index + IT::size <= NN, "Invalid vector access index" );
 
    storeu( &v_[index], value );
 }
@@ -2038,32 +1832,31 @@ BLAZE_ALWAYS_INLINE void
 
 
 //*************************************************************************************************
-/*!\brief Aligned, non-temporal store of a SIMD element of the vector.
+/*!\brief Aligned, non-temporal store of an intrinsic element of the vector.
 //
 // \param index Access index. The index must be smaller than the number of vector elements.
-// \param value The SIMD element to be stored.
+// \param value The intrinsic element to be stored.
 // \return void
 //
-// This function performs an aligned, non-temporal store of a specific SIMD element of the
-// dense vector. The index must be smaller than the number of vector elements and it must be
-// a multiple of the number of values inside the SIMD element. This function must \b NOT be
-// called explicitly! It is used internally for the performance optimized evaluation of
-// expression templates. Calling this function explicitly might result in erroneous results
+// This function performs an aligned, non-temporal store of a specific intrinsic element of
+// the dense vector. The index must be smaller than the number of vector elements and it must
+// be a multiple of the number of values inside the intrinsic element. This function must
+// \b NOT be called explicitly! It is used internally for the performance optimized evaluation
+// of expression templates. Calling this function explicitly might result in erroneous results
 // and/or in compilation errors.
 */
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-BLAZE_ALWAYS_INLINE void
-   HybridVector<Type,N,TF>::stream( size_t index, const SIMDType& value ) noexcept
+BLAZE_ALWAYS_INLINE void HybridVector<Type,N,TF>::stream( size_t index, const IntrinsicType& value )
 {
    using blaze::stream;
 
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
 
    BLAZE_INTERNAL_ASSERT( index < size_, "Invalid vector access index" );
-   BLAZE_INTERNAL_ASSERT( index + SIMDSIZE <= NN, "Invalid vector access index" );
-   BLAZE_INTERNAL_ASSERT( index % SIMDSIZE == 0UL, "Invalid vector access index" );
+   BLAZE_INTERNAL_ASSERT( index + IT::size <= NN, "Invalid vector access index" );
+   BLAZE_INTERNAL_ASSERT( index % IT::size == 0UL, "Invalid vector access index" );
    BLAZE_INTERNAL_ASSERT( checkAlignment( &v_[index] ), "Invalid alignment detected" );
 
    stream( &v_[index], value );
@@ -2086,7 +1879,7 @@ template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
 template< typename VT >  // Type of the right-hand side dense vector
-inline DisableIf_<typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedAssign<VT> >
+inline typename DisableIf< typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedAssign<VT> >::Type
    HybridVector<Type,N,TF>::assign( const DenseVector<VT,TF>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( (~rhs).size() == size_, "Invalid vector sizes" );
@@ -2098,7 +1891,7 @@ inline DisableIf_<typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedAss
 
 
 //*************************************************************************************************
-/*!\brief SIMD optimized implementation of the assignment of a dense vector.
+/*!\brief Intrinsic optimized implementation of the assignment of a dense vector.
 //
 // \param rhs The right-hand side dense vector to be assigned.
 // \return void
@@ -2112,21 +1905,21 @@ template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
 template< typename VT >  // Type of the right-hand side dense vector
-inline EnableIf_<typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedAssign<VT> >
+inline typename EnableIf< typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedAssign<VT> >::Type
    HybridVector<Type,N,TF>::assign( const DenseVector<VT,TF>& rhs )
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
 
    BLAZE_INTERNAL_ASSERT( (~rhs).size() == size_, "Invalid vector sizes" );
 
-   constexpr bool remainder( !usePadding || !IsPadded<VT>::value );
+   const bool remainder( !usePadding || !IsPadded<VT>::value );
 
-   const size_t ipos( ( remainder )?( size_ & size_t(-SIMDSIZE) ):( size_ ) );
-   BLAZE_INTERNAL_ASSERT( !remainder || ( size_ - ( size_ % (SIMDSIZE) ) ) == ipos, "Invalid end calculation" );
+   const size_t ipos( ( remainder )?( size_ & size_t(-IT::size) ):( size_ ) );
+   BLAZE_INTERNAL_ASSERT( !remainder || ( size_ - ( size_ % (IT::size) ) ) == ipos, "Invalid end calculation" );
 
    size_t i( 0UL );
 
-   for( ; i<ipos; i+=SIMDSIZE ) {
+   for( ; i<ipos; i+=IT::size ) {
       store( i, (~rhs).load(i) );
    }
    for( ; remainder && i<size_; ++i ) {
@@ -2155,7 +1948,7 @@ inline void HybridVector<Type,N,TF>::assign( const SparseVector<VT,TF>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( (~rhs).size() == size_, "Invalid vector sizes" );
 
-   for( ConstIterator_<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
+   for( typename VT::ConstIterator element=(~rhs).begin(); element!=(~rhs).end(); ++element )
       v_[element->index()] = element->value();
 }
 //*************************************************************************************************
@@ -2176,7 +1969,7 @@ template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
 template< typename VT >  // Type of the right-hand side dense vector
-inline DisableIf_<typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedAddAssign<VT> >
+inline typename DisableIf< typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedAddAssign<VT> >::Type
    HybridVector<Type,N,TF>::addAssign( const DenseVector<VT,TF>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( (~rhs).size() == size_, "Invalid vector sizes" );
@@ -2188,7 +1981,7 @@ inline DisableIf_<typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedAdd
 
 
 //*************************************************************************************************
-/*!\brief SIMD optimized implementation of the addition assignment of a dense vector.
+/*!\brief Intrinsic optimized implementation of the addition assignment of a dense vector.
 //
 // \param rhs The right-hand side dense vector to be added.
 // \return void
@@ -2202,21 +1995,21 @@ template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
 template< typename VT >  // Type of the right-hand side dense vector
-inline EnableIf_<typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedAddAssign<VT> >
+inline typename EnableIf< typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedAddAssign<VT> >::Type
    HybridVector<Type,N,TF>::addAssign( const DenseVector<VT,TF>& rhs )
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
 
    BLAZE_INTERNAL_ASSERT( (~rhs).size() == size_, "Invalid vector sizes" );
 
-   constexpr bool remainder( !usePadding || !IsPadded<VT>::value );
+   const bool remainder( !usePadding || !IsPadded<VT>::value );
 
-   const size_t ipos( ( remainder )?( size_ & size_t(-SIMDSIZE) ):( size_ ) );
-   BLAZE_INTERNAL_ASSERT( !remainder || ( size_ - ( size_ % (SIMDSIZE) ) ) == ipos, "Invalid end calculation" );
+   const size_t ipos( ( remainder )?( size_ & size_t(-IT::size) ):( size_ ) );
+   BLAZE_INTERNAL_ASSERT( !remainder || ( size_ - ( size_ % (IT::size) ) ) == ipos, "Invalid end calculation" );
 
    size_t i( 0UL );
 
-   for( ; i<ipos; i+=SIMDSIZE ) {
+   for( ; i<ipos; i+=IT::size ) {
       store( i, load(i) + (~rhs).load(i) );
    }
    for( ; remainder && i<size_; ++i ) {
@@ -2245,7 +2038,7 @@ inline void HybridVector<Type,N,TF>::addAssign( const SparseVector<VT,TF>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( (~rhs).size() == size_, "Invalid vector sizes" );
 
-   for( ConstIterator_<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
+   for( typename VT::ConstIterator element=(~rhs).begin(); element!=(~rhs).end(); ++element )
       v_[element->index()] += element->value();
 }
 //*************************************************************************************************
@@ -2266,7 +2059,7 @@ template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
 template< typename VT >  // Type of the right-hand side dense vector
-inline DisableIf_<typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedSubAssign<VT> >
+inline typename DisableIf< typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedSubAssign<VT> >::Type
    HybridVector<Type,N,TF>::subAssign( const DenseVector<VT,TF>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( (~rhs).size() == size_, "Invalid vector sizes" );
@@ -2278,7 +2071,7 @@ inline DisableIf_<typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedSub
 
 
 //*************************************************************************************************
-/*!\brief SIMD optimized implementation of the subtraction assignment of a dense vector.
+/*!\brief Intrinsic optimized implementation of the subtraction assignment of a dense vector.
 //
 // \param rhs The right-hand side dense vector to be subtracted.
 // \return void
@@ -2292,21 +2085,21 @@ template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
 template< typename VT >  // Type of the right-hand side dense vector
-inline EnableIf_<typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedSubAssign<VT> >
+inline typename EnableIf< typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedSubAssign<VT> >::Type
    HybridVector<Type,N,TF>::subAssign( const DenseVector<VT,TF>& rhs )
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
 
    BLAZE_INTERNAL_ASSERT( (~rhs).size() == size_, "Invalid vector sizes" );
 
-   constexpr bool remainder( !usePadding || !IsPadded<VT>::value );
+   const bool remainder( !usePadding || !IsPadded<VT>::value );
 
-   const size_t ipos( ( remainder )?( size_ & size_t(-SIMDSIZE) ):( size_ ) );
-   BLAZE_INTERNAL_ASSERT( !remainder || ( size_ - ( size_ % (SIMDSIZE) ) ) == ipos, "Invalid end calculation" );
+   const size_t ipos( ( remainder )?( size_ & size_t(-IT::size) ):( size_ ) );
+   BLAZE_INTERNAL_ASSERT( !remainder || ( size_ - ( size_ % (IT::size) ) ) == ipos, "Invalid end calculation" );
 
    size_t i( 0UL );
 
-   for( ; i<ipos; i+=SIMDSIZE ) {
+   for( ; i<ipos; i+=IT::size ) {
       store( i, load(i) - (~rhs).load(i) );
    }
    for( ; remainder && i<size_; ++i ) {
@@ -2335,7 +2128,7 @@ inline void HybridVector<Type,N,TF>::subAssign( const SparseVector<VT,TF>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( (~rhs).size() == size_, "Invalid vector sizes" );
 
-   for( ConstIterator_<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
+   for( typename VT::ConstIterator element=(~rhs).begin(); element!=(~rhs).end(); ++element )
       v_[element->index()] -= element->value();
 }
 //*************************************************************************************************
@@ -2356,7 +2149,7 @@ template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
 template< typename VT >  // Type of the right-hand side dense vector
-inline DisableIf_<typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedMultAssign<VT> >
+inline typename DisableIf< typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedMultAssign<VT> >::Type
    HybridVector<Type,N,TF>::multAssign( const DenseVector<VT,TF>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( (~rhs).size() == size_, "Invalid vector sizes" );
@@ -2368,7 +2161,7 @@ inline DisableIf_<typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedMul
 
 
 //*************************************************************************************************
-/*!\brief SIMD optimized implementation of the multiplication assignment of a dense vector.
+/*!\brief Intrinsic optimized implementation of the multiplication assignment of a dense vector.
 //
 // \param rhs The right-hand side dense vector to be multiplied.
 // \return void
@@ -2382,21 +2175,21 @@ template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
 template< typename VT >  // Type of the right-hand side dense vector
-inline EnableIf_<typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedMultAssign<VT> >
+inline typename EnableIf< typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedMultAssign<VT> >::Type
    HybridVector<Type,N,TF>::multAssign( const DenseVector<VT,TF>& rhs )
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
 
    BLAZE_INTERNAL_ASSERT( (~rhs).size() == size_, "Invalid vector sizes" );
 
-   constexpr bool remainder( !usePadding || !IsPadded<VT>::value );
+   const bool remainder( !usePadding || !IsPadded<VT>::value );
 
-   const size_t ipos( ( remainder )?( size_ & size_t(-SIMDSIZE) ):( size_ ) );
-   BLAZE_INTERNAL_ASSERT( !remainder || ( size_ - ( size_ % (SIMDSIZE) ) ) == ipos, "Invalid end calculation" );
+   const size_t ipos( ( remainder )?( size_ & size_t(-IT::size) ):( size_ ) );
+   BLAZE_INTERNAL_ASSERT( !remainder || ( size_ - ( size_ % (IT::size) ) ) == ipos, "Invalid end calculation" );
 
    size_t i( 0UL );
 
-   for( ; i<ipos; i+=SIMDSIZE ) {
+   for( ; i<ipos; i+=IT::size ) {
       store( i, load(i) * (~rhs).load(i) );
    }
    for( ; remainder && i<size_; ++i ) {
@@ -2429,71 +2222,8 @@ inline void HybridVector<Type,N,TF>::multAssign( const SparseVector<VT,TF>& rhs 
 
    reset();
 
-   for( ConstIterator_<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
+   for( typename VT::ConstIterator element=(~rhs).begin(); element!=(~rhs).end(); ++element )
       v_[element->index()] = tmp[element->index()] * element->value();
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Default implementation of the division assignment of a dense vector.
-//
-// \param rhs The right-hand side dense vector divisor.
-// \return void
-//
-// This function must \b NOT be called explicitly! It is used internally for the performance
-// optimized evaluation of expression templates. Calling this function explicitly might result
-// in erroneous results and/or in compilation errors. Instead of using this function use the
-// assignment operator.
-*/
-template< typename Type  // Data type of the vector
-        , size_t N       // Number of elements
-        , bool TF >      // Transpose flag
-template< typename VT >  // Type of the right-hand side dense vector
-inline DisableIf_<typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedDivAssign<VT> >
-   HybridVector<Type,N,TF>::divAssign( const DenseVector<VT,TF>& rhs )
-{
-   BLAZE_INTERNAL_ASSERT( (~rhs).size() == size_, "Invalid vector sizes" );
-
-   for( size_t i=0UL; i<size_; ++i )
-      v_[i] /= (~rhs)[i];
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief SIMD optimized implementation of the division assignment of a dense vector.
-//
-// \param rhs The right-hand side dense vector divisor.
-// \return void
-//
-// This function must \b NOT be called explicitly! It is used internally for the performance
-// optimized evaluation of expression templates. Calling this function explicitly might result
-// in erroneous results and/or in compilation errors. Instead of using this function use the
-// assignment operator.
-*/
-template< typename Type  // Data type of the vector
-        , size_t N       // Number of elements
-        , bool TF >      // Transpose flag
-template< typename VT >  // Type of the right-hand side dense vector
-inline EnableIf_<typename HybridVector<Type,N,TF>::BLAZE_TEMPLATE VectorizedDivAssign<VT> >
-   HybridVector<Type,N,TF>::divAssign( const DenseVector<VT,TF>& rhs )
-{
-   BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( Type );
-
-   BLAZE_INTERNAL_ASSERT( (~rhs).size() == size_, "Invalid vector sizes" );
-
-   const size_t ipos( size_ & size_t(-SIMDSIZE) );
-   BLAZE_INTERNAL_ASSERT( ( size_ - ( size_ % (SIMDSIZE) ) ) == ipos, "Invalid end calculation" );
-
-   size_t i( 0UL );
-
-   for( ; i<ipos; i+=SIMDSIZE ) {
-      store( i, load(i) / (~rhs).load(i) );
-   }
-   for( ; i<size_; ++i ) {
-      v_[i] /= (~rhs)[i];
-   }
 }
 //*************************************************************************************************
 
@@ -2553,7 +2283,10 @@ template< typename Type, size_t N, bool TF >
 inline bool isIntact( const HybridVector<Type,N,TF>& v );
 
 template< typename Type, size_t N, bool TF >
-inline void swap( HybridVector<Type,N,TF>& a, HybridVector<Type,N,TF>& b ) noexcept;
+inline void swap( HybridVector<Type,N,TF>& a, HybridVector<Type,N,TF>& b ) /* throw() */;
+
+template< typename Type, size_t N, bool TF >
+inline void move( HybridVector<Type,N,TF>& dst, HybridVector<Type,N,TF>& src ) /* throw() */;
 //@}
 //*************************************************************************************************
 
@@ -2642,7 +2375,7 @@ template< typename Type  // Data type of the vector
         , bool TF >      // Transpose flag
 inline bool isIntact( const HybridVector<Type,N,TF>& v )
 {
-   return v.isIntact();
+   return ( v.size() <= N );
 }
 //*************************************************************************************************
 
@@ -2654,13 +2387,33 @@ inline bool isIntact( const HybridVector<Type,N,TF>& v )
 // \param a The first vector to be swapped.
 // \param b The second vector to be swapped.
 // \return void
+// \exception no-throw guarantee.
 */
 template< typename Type  // Data type of the vector
         , size_t N       // Number of elements
         , bool TF >      // Transpose flag
-inline void swap( HybridVector<Type,N,TF>& a, HybridVector<Type,N,TF>& b ) noexcept
+inline void swap( HybridVector<Type,N,TF>& a, HybridVector<Type,N,TF>& b ) /* throw() */
 {
    a.swap( b );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Moving the contents of one hybrid vector to another.
+// \ingroup hybrid_vector
+//
+// \param dst The destination vector.
+// \param src The source vector.
+// \return void
+// \exception no-throw guarantee.
+*/
+template< typename Type  // Data type of the vector
+        , size_t N       // Number of elements
+        , bool TF >      // Transpose flag
+inline void move( HybridVector<Type,N,TF>& dst, HybridVector<Type,N,TF>& src ) /* throw() */
+{
+   dst = src;
 }
 //*************************************************************************************************
 
@@ -2676,7 +2429,7 @@ inline void swap( HybridVector<Type,N,TF>& a, HybridVector<Type,N,TF>& b ) noexc
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T, size_t N, bool TF >
-struct HasConstDataAccess< HybridVector<T,N,TF> > : public TrueType
+struct HasConstDataAccess< HybridVector<T,N,TF> > : public IsTrue<true>
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -2693,7 +2446,7 @@ struct HasConstDataAccess< HybridVector<T,N,TF> > : public TrueType
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T, size_t N, bool TF >
-struct HasMutableDataAccess< HybridVector<T,N,TF> > : public TrueType
+struct HasMutableDataAccess< HybridVector<T,N,TF> > : public IsTrue<true>
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -2710,7 +2463,7 @@ struct HasMutableDataAccess< HybridVector<T,N,TF> > : public TrueType
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T, size_t N, bool TF >
-struct IsAligned< HybridVector<T,N,TF> > : public TrueType
+struct IsAligned< HybridVector<T,N,TF> > : public IsTrue<true>
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -2727,7 +2480,7 @@ struct IsAligned< HybridVector<T,N,TF> > : public TrueType
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T, size_t N, bool TF >
-struct IsPadded< HybridVector<T,N,TF> > : public BoolConstant<usePadding>
+struct IsPadded< HybridVector<T,N,TF> > : public IsTrue<usePadding>
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -2744,7 +2497,7 @@ struct IsPadded< HybridVector<T,N,TF> > : public BoolConstant<usePadding>
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T, size_t N, bool TF >
-struct IsResizable< HybridVector<T,N,TF> > : public TrueType
+struct IsResizable< HybridVector<T,N,TF> > : public IsTrue<true>
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -2763,19 +2516,19 @@ struct IsResizable< HybridVector<T,N,TF> > : public TrueType
 template< typename T1, size_t M, bool TF, typename T2, size_t N >
 struct AddTrait< HybridVector<T1,M,TF>, StaticVector<T2,N,TF> >
 {
-   using Type = StaticVector< AddTrait_<T1,T2>, N, TF >;
+   typedef StaticVector< typename AddTrait<T1,T2>::Type, N, TF >  Type;
 };
 
 template< typename T1, size_t M, bool TF, typename T2, size_t N >
 struct AddTrait< StaticVector<T1,M,TF>, HybridVector<T2,N,TF> >
 {
-   using Type = StaticVector< AddTrait_<T1,T2>, M, TF >;
+   typedef StaticVector< typename AddTrait<T1,T2>::Type, M, TF >  Type;
 };
 
 template< typename T1, size_t M, bool TF, typename T2, size_t N >
 struct AddTrait< HybridVector<T1,M,TF>, HybridVector<T2,N,TF> >
 {
-   using Type = HybridVector< AddTrait_<T1,T2>, ( M < N )?( M ):( N ), TF >;
+   typedef HybridVector< typename AddTrait<T1,T2>::Type, ( M < N )?( M ):( N ), TF >  Type;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -2794,19 +2547,19 @@ struct AddTrait< HybridVector<T1,M,TF>, HybridVector<T2,N,TF> >
 template< typename T1, size_t M, bool TF, typename T2, size_t N >
 struct SubTrait< HybridVector<T1,M,TF>, StaticVector<T2,N,TF> >
 {
-   using Type = StaticVector< SubTrait_<T1,T2>, N, TF >;
+   typedef StaticVector< typename SubTrait<T1,T2>::Type, N, TF >  Type;
 };
 
 template< typename T1, size_t M, bool TF, typename T2, size_t N >
 struct SubTrait< StaticVector<T1,M,TF>, HybridVector<T2,N,TF> >
 {
-   using Type = StaticVector< SubTrait_<T1,T2>, M, TF >;
+   typedef StaticVector< typename SubTrait<T1,T2>::Type, M, TF >  Type;
 };
 
 template< typename T1, size_t M, bool TF, typename T2, size_t N >
 struct SubTrait< HybridVector<T1,M,TF>, HybridVector<T2,N,TF> >
 {
-   using Type = HybridVector< SubTrait_<T1,T2>, ( M < N )?( M ):( N ), TF >;
+   typedef HybridVector< typename SubTrait<T1,T2>::Type, ( M < N )?( M ):( N ), TF >  Type;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -2823,69 +2576,69 @@ struct SubTrait< HybridVector<T1,M,TF>, HybridVector<T2,N,TF> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T1, size_t N, bool TF, typename T2 >
-struct MultTrait< HybridVector<T1,N,TF>, T2, EnableIf_<IsNumeric<T2> > >
+struct MultTrait< HybridVector<T1,N,TF>, T2, typename EnableIf< IsNumeric<T2> >::Type >
 {
-   using Type = HybridVector< MultTrait_<T1,T2>, N, TF >;
+   typedef HybridVector< typename MultTrait<T1,T2>::Type, N, TF >  Type;
 };
 
 template< typename T1, typename T2, size_t N, bool TF >
-struct MultTrait< T1, HybridVector<T2,N,TF>, EnableIf_<IsNumeric<T1> > >
+struct MultTrait< T1, HybridVector<T2,N,TF>, typename EnableIf< IsNumeric<T1> >::Type >
 {
-   using Type = HybridVector< MultTrait_<T1,T2>, N, TF >;
+   typedef HybridVector< typename MultTrait<T1,T2>::Type, N, TF >  Type;
 };
 
 template< typename T1, size_t M, bool TF, typename T2, size_t N >
 struct MultTrait< HybridVector<T1,M,TF>, StaticVector<T2,N,TF> >
 {
-   using Type = StaticVector< MultTrait_<T1,T2>, N, TF >;
+   typedef StaticVector< typename MultTrait<T1,T2>::Type, N, TF >  Type;
 };
 
 template< typename T1, size_t M, typename T2, size_t N >
 struct MultTrait< HybridVector<T1,M,false>, StaticVector<T2,N,true> >
 {
-   using Type = DynamicMatrix< MultTrait_<T1,T2>, false >;
+   typedef DynamicMatrix< typename MultTrait<T1,T2>::Type, false >  Type;
 };
 
 template< typename T1, size_t M, typename T2, size_t N >
 struct MultTrait< HybridVector<T1,M,true>, StaticVector<T2,N,false> >
 {
-   using Type = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  Type;
 };
 
 template< typename T1, size_t M, bool TF, typename T2, size_t N >
 struct MultTrait< StaticVector<T1,M,TF>, HybridVector<T2,N,TF> >
 {
-   using Type = StaticVector< MultTrait_<T1,T2>, M, TF >;
+   typedef StaticVector< typename MultTrait<T1,T2>::Type, M, TF >  Type;
 };
 
 template< typename T1, size_t M, typename T2, size_t N >
 struct MultTrait< StaticVector<T1,M,false>, HybridVector<T2,N,true> >
 {
-   using Type = DynamicMatrix< MultTrait_<T1,T2>, false >;
+   typedef DynamicMatrix< typename MultTrait<T1,T2>::Type, false >  Type;
 };
 
 template< typename T1, size_t M, typename T2, size_t N >
 struct MultTrait< StaticVector<T1,M,true>, HybridVector<T2,N,false> >
 {
-   using Type = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  Type;
 };
 
 template< typename T1, size_t M, bool TF, typename T2, size_t N >
 struct MultTrait< HybridVector<T1,M,TF>, HybridVector<T2,N,TF> >
 {
-   using Type = HybridVector< MultTrait_<T1,T2>, ( M < N )?( M ):( N ), TF >;
+   typedef HybridVector< typename MultTrait<T1,T2>::Type, ( M < N )?( M ):( N ), TF >  Type;
 };
 
 template< typename T1, size_t M, typename T2, size_t N >
 struct MultTrait< HybridVector<T1,M,false>, HybridVector<T2,N,true> >
 {
-   using Type = DynamicMatrix< MultTrait_<T1,T2>, false >;
+   typedef DynamicMatrix< typename MultTrait<T1,T2>::Type, false >  Type;
 };
 
 template< typename T1, size_t M, typename T2, size_t N >
 struct MultTrait< HybridVector<T1,M,true>, HybridVector<T2,N,false> >
 {
-   using Type = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  Type;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -2901,34 +2654,34 @@ struct MultTrait< HybridVector<T1,M,true>, HybridVector<T2,N,false> >
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-template< typename T1, size_t N, bool TF, typename T2 >
-struct CrossTrait< HybridVector<T1,N,TF>, StaticVector<T2,3UL,TF> >
+template< typename T1, size_t N, typename T2 >
+struct CrossTrait< HybridVector<T1,N,false>, StaticVector<T2,3UL,false> >
 {
  private:
-   using T = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  T;
 
  public:
-   using Type = StaticVector< SubTrait_<T,T>, 3UL, TF >;
+   typedef StaticVector< typename SubTrait<T,T>::Type, 3UL, false >  Type;
 };
 
-template< typename T1, bool TF, typename T2, size_t N >
-struct CrossTrait< StaticVector<T1,3UL,TF>, HybridVector<T2,N,TF> >
+template< typename T1, typename T2, size_t N >
+struct CrossTrait< StaticVector<T1,3UL,false>, HybridVector<T2,N,false> >
 {
  private:
-   using T = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  T;
 
  public:
-   using Type = StaticVector< SubTrait_<T,T>, 3UL, TF >;
+   typedef StaticVector< typename SubTrait<T,T>::Type, 3UL, false >  Type;
 };
 
-template< typename T1, size_t M, bool TF, typename T2, size_t N >
-struct CrossTrait< HybridVector<T1,M,TF>, HybridVector<T2,N,TF> >
+template< typename T1, size_t M, typename T2, size_t N >
+struct CrossTrait< HybridVector<T1,M,false>, HybridVector<T2,N,false> >
 {
  private:
-   using T = MultTrait_<T1,T2>;
+   typedef typename MultTrait<T1,T2>::Type  T;
 
  public:
-   using Type = StaticVector< SubTrait_<T,T>, 3UL, TF >;
+   typedef StaticVector< typename SubTrait<T,T>::Type, 3UL, false >  Type;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -2945,27 +2698,9 @@ struct CrossTrait< HybridVector<T1,M,TF>, HybridVector<T2,N,TF> >
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T1, size_t N, bool TF, typename T2 >
-struct DivTrait< HybridVector<T1,N,TF>, T2, EnableIf_<IsNumeric<T2> > >
+struct DivTrait< HybridVector<T1,N,TF>, T2, typename EnableIf< IsNumeric<T2> >::Type >
 {
-   using Type = HybridVector< DivTrait_<T1,T2>, N, TF >;
-};
-
-template< typename T1, size_t M, bool TF, typename T2, size_t N >
-struct DivTrait< HybridVector<T1,M,TF>, StaticVector<T2,N,TF> >
-{
-   using Type = StaticVector< DivTrait_<T1,T2>, N, TF >;
-};
-
-template< typename T1, size_t M, bool TF, typename T2, size_t N >
-struct DivTrait< StaticVector<T1,M,TF>, HybridVector<T2,N,TF> >
-{
-   using Type = StaticVector< DivTrait_<T1,T2>, M, TF >;
-};
-
-template< typename T1, size_t M, bool TF, typename T2, size_t N >
-struct DivTrait< HybridVector<T1,M,TF>, HybridVector<T2,N,TF> >
-{
-   using Type = HybridVector< DivTrait_<T1,T2>, ( M < N )?( M ):( N ), TF >;
+   typedef HybridVector< typename DivTrait<T1,T2>::Type, N, TF >  Type;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -2975,35 +2710,17 @@ struct DivTrait< HybridVector<T1,M,TF>, HybridVector<T2,N,TF> >
 
 //=================================================================================================
 //
-//  HIGHTYPE SPECIALIZATIONS
+//  MATHTRAIT SPECIALIZATIONS
 //
 //=================================================================================================
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename T1, size_t N, bool TF, typename T2 >
-struct HighType< HybridVector<T1,N,TF>, HybridVector<T2,N,TF> >
+struct MathTrait< HybridVector<T1,N,TF>, HybridVector<T2,N,TF> >
 {
-   using Type = StaticVector< typename HighType<T1,T2>::Type, N, TF >;
-};
-/*! \endcond */
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  LOWTYPE SPECIALIZATIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename T1, size_t N, bool TF, typename T2 >
-struct LowType< HybridVector<T1,N,TF>, HybridVector<T2,N,TF> >
-{
-   using Type = StaticVector< typename LowType<T1,T2>::Type, N, TF >;
+   typedef StaticVector< typename MathTrait<T1,T2>::HighType, N, TF >  HighType;
+   typedef StaticVector< typename MathTrait<T1,T2>::LowType , N, TF >  LowType;
 };
 /*! \endcond */
 //*************************************************************************************************
@@ -3022,7 +2739,7 @@ struct LowType< HybridVector<T1,N,TF>, HybridVector<T2,N,TF> >
 template< typename T1, size_t N, bool TF >
 struct SubvectorTrait< HybridVector<T1,N,TF> >
 {
-   using Type = HybridVector<T1,N,TF>;
+   typedef HybridVector<T1,N,TF>  Type;
 };
 /*! \endcond */
 //*************************************************************************************************

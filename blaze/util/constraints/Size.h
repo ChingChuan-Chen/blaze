@@ -40,6 +40,8 @@
 // Includes
 //*************************************************************************************************
 
+#include <blaze/util/constraints/ConstraintTest.h>
+#include <blaze/util/Suffix.h>
 #include <blaze/util/typetraits/HasSize.h>
 
 
@@ -52,13 +54,32 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_HAVE_SIZE_FAILED;
+template<> struct CONSTRAINT_MUST_HAVE_SIZE_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the size of a data type.
 // \ingroup constraints
 //
 // In case the type \a T doesn't have a size of \a S bytes, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_HAVE_SIZE(T,S) \
-   static_assert( ::blaze::HasSize<T,S>::value, "Invalid size detected" )
+   typedef \
+      ::blaze::CONSTRAINT_TEST< \
+         ::blaze::CONSTRAINT_MUST_HAVE_SIZE_FAILED< ::blaze::HasSize<T,S>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_HAVE_SIZE_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -71,13 +92,32 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_NOT_HAVE_SIZE_FAILED;
+template<> struct CONSTRAINT_MUST_NOT_HAVE_SIZE_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the size of a data type.
 // \ingroup constraints
 //
 // In case the type \a T has a size of \a S bytes, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_NOT_HAVE_SIZE(T,S) \
-   static_assert( !::blaze::HasSize<T,S>::value, "Invalid size detected" )
+   typedef \
+      ::blaze::CONSTRAINT_TEST< \
+         ::blaze::CONSTRAINT_MUST_NOT_HAVE_SIZE_FAILED< !::blaze::HasSize<T,S>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_NOT_HAVE_SIZE_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -90,13 +130,32 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_HAVE_1_BYTE_FAILED;
+template<> struct CONSTRAINT_MUST_HAVE_1_BYTE_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the size of a data type.
 // \ingroup constraints
 //
 // In case the type \a T doesn't have a size of exactly 1 byte, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_HAVE_1_BYTE(T) \
-   static_assert( ::blaze::Has1Byte<T>::value, "Invalid size detected" )
+   typedef \
+      ::blaze::CONSTRAINT_TEST< \
+         ::blaze::CONSTRAINT_MUST_HAVE_1_BYTE_FAILED< ::blaze::Has1Byte<T>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_HAVE_1_BYTE_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -109,13 +168,32 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_NOT_HAVE_1_BYTE_FAILED;
+template<> struct CONSTRAINT_MUST_NOT_HAVE_1_BYTE_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the size of a data type.
 // \ingroup constraints
 //
 // In case the type \a T has a size of exactly 1 byte, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_NOT_HAVE_1_BYTE(T) \
-   static_assert( !::blaze::Has1Byte<T>::value, "Invalid size detected" )
+   typedef \
+      ::blaze::CONSTRAINT_TEST< \
+         ::blaze::CONSTRAINT_MUST_NOT_HAVE_1_BYTE_FAILED< !::blaze::Has1Byte<T>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_NOT_HAVE_1_BYTE_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -128,13 +206,32 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_HAVE_2_BYTES_FAILED;
+template<> struct CONSTRAINT_MUST_HAVE_2_BYTES_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the size of a data type.
 // \ingroup constraints
 //
 // In case the type \a T doesn't have a size of exactly 2 bytes, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_HAVE_2_BYTES(T) \
-   static_assert( ::blaze::Has2Byte<T>::value, "Invalid size detected" )
+   typedef \
+      ::blaze::CONSTRAINT_TEST< \
+         ::blaze::CONSTRAINT_MUST_HAVE_2_BYTES_FAILED< ::blaze::Has2Bytes<T>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_HAVE_2_BYTES_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -147,13 +244,32 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_NOT_HAVE_2_BYTES_FAILED;
+template<> struct CONSTRAINT_MUST_NOT_HAVE_2_BYTES_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the size of a data type.
 // \ingroup constraints
 //
 // In case the type \a T has a size of exactly 2 bytes, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_NOT_HAVE_2_BYTES(T) \
-   static_assert( !::blaze::Has2Byte<T>::value, "Invalid size detected" )
+   typedef \
+      ::blaze::CONSTRAINT_TEST< \
+         ::blaze::CONSTRAINT_MUST_NOT_HAVE_2_BYTES_FAILED< !::blaze::Has2Bytes<T>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_NOT_HAVE_2_BYTES_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -166,13 +282,32 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_HAVE_4_BYTES_FAILED;
+template<> struct CONSTRAINT_MUST_HAVE_4_BYTES_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the size of a data type.
 // \ingroup constraints
 //
 // In case the type \a T doesn't have a size of exactly 4 bytes, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_HAVE_4_BYTES(T) \
-   static_assert( ::blaze::Has4Byte<T>::value, "Invalid size detected" )
+   typedef \
+      ::blaze::CONSTRAINT_TEST< \
+         ::blaze::CONSTRAINT_MUST_HAVE_4_BYTES_FAILED< ::blaze::Has4Bytes<T>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_HAVE_4_BYTES_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -185,13 +320,32 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_NOT_HAVE_4_BYTES_FAILED;
+template<> struct CONSTRAINT_MUST_NOT_HAVE_4_BYTES_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the size of a data type.
 // \ingroup constraints
 //
 // In case the type \a T has a size of exactly 4 bytes, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_NOT_HAVE_4_BYTES(T) \
-   static_assert( !::blaze::Has4Byte<T>::value, "Invalid size detected" )
+   typedef \
+      ::blaze::CONSTRAINT_TEST< \
+         ::blaze::CONSTRAINT_MUST_NOT_HAVE_4_BYTES_FAILED< !::blaze::Has4Bytes<T>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_NOT_HAVE_4_BYTES_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -203,6 +357,21 @@ namespace blaze {
 //
 //=================================================================================================
 
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_HAVE_8_BYTES_FAILED;
+template<> struct CONSTRAINT_MUST_HAVE_8_BYTES_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
 
 //*************************************************************************************************
 /*!\brief Constraint on the size of a data type.
@@ -211,7 +380,10 @@ namespace blaze {
 // In case the type \a T doesn't have a size of exactly 8 bytes, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_HAVE_8_BYTES(T) \
-   static_assert( ::blaze::Has8Byte<T>::value, "Invalid size detected" )
+   typedef \
+      ::blaze::CONSTRAINT_TEST< \
+         ::blaze::CONSTRAINT_MUST_HAVE_8_BYTES_FAILED< ::blaze::Has8Bytes<T>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_HAVE_8_BYTES_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 
@@ -224,13 +396,32 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Compile time constraint.
+// \ingroup constraints
+//
+// Helper template class for the compile time constraint enforcement. Based on the compile time
+// constant expression used for the template instantiation, either the undefined basic template
+// or the specialization is selected. If the undefined basic template is selected, a compilation
+// error is created.
+*/
+template< bool > struct CONSTRAINT_MUST_NOT_HAVE_8_BYTES_FAILED;
+template<> struct CONSTRAINT_MUST_NOT_HAVE_8_BYTES_FAILED<true> { enum { value = 1 }; };
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Constraint on the size of a data type.
 // \ingroup constraints
 //
 // In case the type \a T has a size of exactly 8 bytes, a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_NOT_HAVE_8_BYTES(T) \
-   static_assert( !::blaze::Has8Byte<T>::value, "Invalid size detected" )
+   typedef \
+      ::blaze::CONSTRAINT_TEST< \
+         ::blaze::CONSTRAINT_MUST_NOT_HAVE_8_BYTES_FAILED< !::blaze::Has8Bytes<T>::value >::value > \
+      BLAZE_JOIN( CONSTRAINT_MUST_NOT_HAVE_8_BYTES_TYPEDEF, __LINE__ )
 //*************************************************************************************************
 
 } // namespace blaze

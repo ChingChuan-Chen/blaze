@@ -44,7 +44,6 @@
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
-#include <blaze/math/Aliases.h>
 #include <blaze/math/CompressedVector.h>
 #include <blaze/math/constraints/Computation.h>
 #include <blaze/math/constraints/DenseVector.h>
@@ -52,9 +51,7 @@
 #include <blaze/math/constraints/TransposeFlag.h>
 #include <blaze/math/constraints/CrossExpr.h>
 #include <blaze/math/DynamicVector.h>
-#include <blaze/math/Functors.h>
 #include <blaze/math/shims/Equal.h>
-#include <blaze/math/shims/IsDivisor.h>
 #include <blaze/math/StaticVector.h>
 #include <blaze/math/traits/CrossExprTrait.h>
 #include <blaze/math/traits/CrossTrait.h>
@@ -94,38 +91,25 @@ template< typename VT1    // Type of the left-hand side dense vector
 class OperationTest
 {
  private:
-   //**Enumerations********************************************************************************
-   enum { TF = blaze::IsRowVector<VT1>::value };
-   //**********************************************************************************************
-
    //**Type definitions****************************************************************************
-   typedef blaze::ElementType_<VT1>  ET1;  //!< Element type 1
-   typedef blaze::ElementType_<VT2>  ET2;  //!< Element type 2
+   typedef typename VT1::ElementType  ET1;  //!< Element type 1
+   typedef typename VT2::ElementType  ET2;  //!< Element type 2
 
-   typedef blaze::TransposeType_<VT1>  TVT1;  //!< Transpose vector type 1
-   typedef blaze::TransposeType_<VT2>  TVT2;  //!< Transpose vector type 2
+   typedef typename blaze::CrossTrait<VT1,VT2>::Type  DRE;   //!< Dense result type
+   typedef typename DRE::TransposeType                TDRE;  //!< Transpose dense result type
+   typedef typename DRE::ElementType                  DET;   //!< Element type of the dense result
 
-   typedef blaze::CrossTrait_<VT1,VT2>    DRE;   //!< Dense result type
-   typedef blaze::CrossTrait_<TVT1,TVT2>  TDRE;  //!< Transpose dense result type
-   typedef blaze::ElementType_<DRE>       DET;   //!< Element type of the dense result
+   typedef blaze::CompressedVector<DET,false>  SRE;   //!< Sparse result type
+   typedef typename SRE::TransposeType         TSRE;  //!< Transpose sparse result type
+   typedef typename SRE::ElementType           SET;   //!< Element type of the sparse result
 
-   typedef blaze::CompressedVector<DET,TF>  SRE;   //!< Sparse result type
-   typedef blaze::TransposeType_<SRE>       TSRE;  //!< Transpose sparse result type
-   typedef blaze::ElementType_<SRE>         SET;   //!< Element type of the sparse result
-
-   typedef blaze::DynamicVector<ET1,TF>  RT1;  //!< Reference type 1
-   typedef blaze::DynamicVector<ET2,TF>  RT2;  //!< Reference type 2
-   typedef blaze::CrossTrait_<RT1,RT2>   RRE;  //!< Reference result type
-
-   typedef blaze::TransposeType_<RT1>     TRT1;  //!< Transpose reference type 1
-   typedef blaze::TransposeType_<RT2>     TRT2;  //!< Transpose reference type 2
-   typedef blaze::CrossTrait_<TRT1,TRT2>  TRRE;  //!< Transpose reference result type
+   typedef blaze::DynamicVector<ET1,false>            RT1;   //!< Reference type 1
+   typedef blaze::DynamicVector<ET2,false>            RT2;   //!< Reference type 2
+   typedef typename blaze::CrossTrait<RT1,RT2>::Type  RRE;   //!< Reference result type
+   typedef typename RRE::TransposeType                TRRE;  //!< Transpose reference result type
 
    //! Type of the cross product expression
-   typedef blaze::CrossExprTrait_<VT1,VT2>  VecVecCrossExprType;
-
-   //! Type of the transpose cross product expression
-   typedef blaze::CrossExprTrait_<TVT1,TVT2>  TVecTVecCrossExprType;
+   typedef typename blaze::CrossExprTrait<VT1,VT2>::Type  CrossExprType;
    //**********************************************************************************************
 
  public:
@@ -147,30 +131,27 @@ class OperationTest
    //@{
                           void testInitialStatus     ();
                           void testAssignment        ();
-                          void testEvaluation        ();
                           void testElementAccess     ();
                           void testBasicOperation    ();
                           void testNegatedOperation  ();
    template< typename T > void testScaledOperation   ( T scalar );
                           void testTransOperation    ();
-                          void testCTransOperation   ();
                           void testAbsOperation      ();
                           void testConjOperation     ();
+                          void testCTransOperation   ();
                           void testRealOperation     ();
                           void testImagOperation     ();
                           void testEvalOperation     ();
                           void testSerialOperation   ();
                           void testSubvectorOperation();
-
-   template< typename OP > void testCustomOperation( OP op, const std::string& name );
    //@}
    //**********************************************************************************************
 
    //**Error detection functions*******************************************************************
    /*!\name Error detection functions */
    //@{
-   template< typename LT, typename RT > void checkResults();
-   template< typename LT, typename RT > void checkTransposeResults();
+   void checkResults();
+   void checkTransposeResults();
    //@}
    //**********************************************************************************************
 
@@ -179,7 +160,7 @@ class OperationTest
    //@{
    void initResults();
    void initTransposeResults();
-   template< typename LT, typename RT > void convertException( const std::exception& ex );
+   void convertException( const std::exception& ex );
    //@}
    //**********************************************************************************************
 
@@ -188,17 +169,13 @@ class OperationTest
    //@{
    VT1  lhs_;      //!< The left-hand side dense vector.
    VT2  rhs_;      //!< The right-hand side sparse vector.
-   DRE  dres_;     //!< The dense vector for the result of the vector cross product.
-   SRE  sres_;     //!< The sparse vector for the result of the vector cross product.
    RT1  reflhs_;   //!< The reference left-hand side vector.
    RT2  refrhs_;   //!< The reference right-hand side vector.
+   DRE  dres_;     //!< The dense vector for the result of the vector cross product.
+   SRE  sres_;     //!< The sparse vector for the result of the vector cross product.
    RRE  refres_;   //!< The reference result.
-   TVT1 tlhs_;     //!< The transpose left-hand side vector.
-   TVT2 trhs_;     //!< The transpose right-hand side vector.
    TDRE tdres_;    //!< The dense vector for the result of the transpose vector cross product.
    TSRE tsres_;    //!< The sparse vector for the result of the transpose vector cross product.
-   TRT1 treflhs_;  //!< The reference left-hand side transpose vector.
-   TRT2 trefrhs_;  //!< The reference right-hand side transpose vector.
    TRRE trefres_;  //!< The transpose reference result.
 
    std::string test_;   //!< Label of the currently performed test.
@@ -210,50 +187,29 @@ class OperationTest
    /*! \cond BLAZE_INTERNAL */
    BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE ( VT1  );
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_VECTOR_TYPE( VT2  );
-   BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE ( TVT1 );
-   BLAZE_CONSTRAINT_MUST_BE_SPARSE_VECTOR_TYPE( TVT2 );
    BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE ( RT1  );
    BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE ( RT2  );
    BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE ( RRE  );
-   BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE ( TRT1 );
-   BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE ( TRT2 );
-   BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE ( TRRE );
    BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE ( DRE  );
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_VECTOR_TYPE( SRE  );
+   BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE ( TRRE );
    BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE ( TDRE );
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_VECTOR_TYPE( TSRE );
 
-   BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG( VT1 , VT2  );
-   BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG( VT1 , RT1  );
-   BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG( TVT1, TVT2 );
-   BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG( TVT1, TRT1 );
-   BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG( RT1 , RT2  );
-   BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG( TRT1, TRT2 );
-   BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG( VT1 , RRE  );
-   BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG( VT1 , DRE  );
-   BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG( VT1 , SRE  );
-   BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG( TVT1, TRRE );
-   BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG( TVT1, TDRE );
-   BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG( TVT1, TSRE );
+   BLAZE_CONSTRAINT_MUST_BE_COLUMN_VECTOR_TYPE( VT1  );
+   BLAZE_CONSTRAINT_MUST_BE_COLUMN_VECTOR_TYPE( VT2  );
+   BLAZE_CONSTRAINT_MUST_BE_COLUMN_VECTOR_TYPE( RT1  );
+   BLAZE_CONSTRAINT_MUST_BE_COLUMN_VECTOR_TYPE( RT2  );
+   BLAZE_CONSTRAINT_MUST_BE_COLUMN_VECTOR_TYPE( RRE  );
+   BLAZE_CONSTRAINT_MUST_BE_COLUMN_VECTOR_TYPE( DRE  );
+   BLAZE_CONSTRAINT_MUST_BE_COLUMN_VECTOR_TYPE( SRE  );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE   ( TRRE );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE   ( TDRE );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE   ( TSRE );
 
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET1, blaze::ElementType_<TVT1>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET2, blaze::ElementType_<TVT2>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_<DRE>    );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_<TDRE>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_<SRE>    );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_<SRE>    );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_<TSRE>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_<DRE>    );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( VT1, blaze::TransposeType_<TVT1> );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( VT2, blaze::TransposeType_<TVT2> );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( RT1, blaze::TransposeType_<TRT1> );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( RT2, blaze::TransposeType_<TRT2> );
+   BLAZE_CONSTRAINT_MUST_BE_CROSSEXPR_TYPE( CrossExprType );
 
-   BLAZE_CONSTRAINT_MUST_BE_CROSSEXPR_TYPE( VecVecCrossExprType   );
-   BLAZE_CONSTRAINT_MUST_BE_CROSSEXPR_TYPE( TVecTVecCrossExprType );
-
-   BLAZE_CONSTRAINT_MUST_BE_COMPUTATION_TYPE( VecVecCrossExprType   );
-   BLAZE_CONSTRAINT_MUST_BE_COMPUTATION_TYPE( TVecTVecCrossExprType );
+   BLAZE_CONSTRAINT_MUST_BE_COMPUTATION_TYPE( CrossExprType );
    /*! \endcond */
    //**********************************************************************************************
 };
@@ -278,24 +234,20 @@ class OperationTest
 template< typename VT1    // Type of the left-hand side dense vector
         , typename VT2 >  // Type of the right-hand side sparse vector
 OperationTest<VT1,VT2>::OperationTest( const Creator<VT1>& creator1, const Creator<VT2>& creator2 )
-   : lhs_( creator1() )    // The left-hand side dense vector
-   , rhs_( creator2() )    // The right-hand side sparse vector
-   , dres_()               // The dense vector for the result of the vector cross product
-   , sres_()               // The sparse vector for the result of the vector cross product
-   , reflhs_( lhs_ )       // The reference left-hand side vector
-   , refrhs_( rhs_ )       // The reference right-hand side vector
-   , refres_()             // The reference result
-   , tlhs_( trans(lhs_) )  // The transpose left-hand side vector
-   , trhs_( trans(rhs_) )  // The transpose right-hand side vector
-   , tdres_()              // The dense vector for the result of the transpose vector cross product
-   , tsres_()              // The sparse vector for the result of the transpose vector cross product
-   , treflhs_( tlhs_ )     // The reference left-hand side transpose vector
-   , trefrhs_( trhs_ )     // The reference right-hand side transpose vector
-   , trefres_()            // The transpose reference result
-   , test_()               // Label of the currently performed test
-   , error_()              // Description of the current error type
+   : lhs_( creator1() )  // The left-hand side dense vector
+   , rhs_( creator2() )  // The right-hand side sparse vector
+   , reflhs_( lhs_ )     // The reference left-hand side vector
+   , refrhs_( rhs_ )     // The reference right-hand side vector
+   , dres_()             // The dense vector for the result of the vector cross product
+   , sres_()             // The sparse vector for the result of the vector cross product
+   , refres_()           // The reference result
+   , tdres_()            // The dense vector for the result of the transpose vector cross product
+   , tsres_()            // The sparse vector for the result of the transpose vector cross product
+   , trefres_()          // The transpose reference result
+   , test_()             // Label of the currently performed test
+   , error_()            // Description of the current error type
 {
-   typedef blaze::UnderlyingNumeric_<DET>  Scalar;
+   typedef typename blaze::UnderlyingNumeric<DET>::Type  Scalar;
 
    if( lhs_.size() != 3UL ) {
       throw std::runtime_error( "Invalid size of left-hand side operand" );
@@ -307,7 +259,6 @@ OperationTest<VT1,VT2>::OperationTest( const Creator<VT1>& creator1, const Creat
 
    testInitialStatus();
    testAssignment();
-   testEvaluation();
    testElementAccess();
    testBasicOperation();
    testNegatedOperation();
@@ -317,9 +268,9 @@ OperationTest<VT1,VT2>::OperationTest( const Creator<VT1>& creator1, const Creat
    testScaledOperation( 2.0 );
    testScaledOperation( Scalar( 2 ) );
    testTransOperation();
-   testCTransOperation();
    testAbsOperation();
    testConjOperation();
+   testCTransOperation();
    testRealOperation();
    testImagOperation();
    testEvalOperation();
@@ -350,17 +301,13 @@ template< typename VT1    // Type of the left-hand side dense vector
         , typename VT2 >  // Type of the right-hand side sparse vector
 void OperationTest<VT1,VT2>::testInitialStatus()
 {
-   //=====================================================================================
-   // Performing initial tests with the given vectors
-   //=====================================================================================
-
    // Checking the size of the left-hand side operand
    if( lhs_.size() != reflhs_.size() ) {
       std::ostringstream oss;
       oss << " Test: Initial size comparison of left-hand side dense operand\n"
           << " Error: Invalid vector size\n"
           << " Details:\n"
-          << "   Sparse vector type:\n"
+          << "   Dense vector type:\n"
           << "     " << typeid( VT1 ).name() << "\n"
           << "   Detected size = " << lhs_.size() << "\n"
           << "   Expected size = " << reflhs_.size() << "\n";
@@ -373,7 +320,7 @@ void OperationTest<VT1,VT2>::testInitialStatus()
       oss << " Test: Initial size comparison of right-hand side sparse operand\n"
           << " Error: Invalid vector size\n"
           << " Details:\n"
-          << "   Dense vector type:\n"
+          << "   Sparse vector type:\n"
           << "     " << typeid( VT2 ).name() << "\n"
           << "   Detected size = " << rhs_.size() << "\n"
           << "   Expected size = " << refrhs_.size() << "\n";
@@ -386,7 +333,7 @@ void OperationTest<VT1,VT2>::testInitialStatus()
       oss << " Test: Initial test of initialization of left-hand side dense operand\n"
           << " Error: Invalid vector initialization\n"
           << " Details:\n"
-          << "   Sparse vector type:\n"
+          << "   Dense vector type:\n"
           << "     " << typeid( VT1 ).name() << "\n"
           << "   Current initialization:\n" << lhs_ << "\n"
           << "   Expected initialization:\n" << reflhs_ << "\n";
@@ -399,67 +346,10 @@ void OperationTest<VT1,VT2>::testInitialStatus()
       oss << " Test: Initial test of initialization of right-hand side sparse operand\n"
           << " Error: Invalid vector initialization\n"
           << " Details:\n"
-          << "   Dense vector type:\n"
+          << "   Sparse vector type:\n"
           << "     " << typeid( VT2 ).name() << "\n"
           << "   Current initialization:\n" << rhs_ << "\n"
           << "   Expected initialization:\n" << refrhs_ << "\n";
-      throw std::runtime_error( oss.str() );
-   }
-
-
-   //=====================================================================================
-   // Performing initial tests with the transpose types
-   //=====================================================================================
-
-   // Checking the size of the left-hand side operand
-   if( tlhs_.size() != treflhs_.size() ) {
-      std::ostringstream oss;
-      oss << " Test: Initial size comparison of transpose left-hand side dense operand\n"
-          << " Error: Invalid vector size\n"
-          << " Details:\n"
-          << "   Transpose sparse vector type:\n"
-          << "     " << typeid( TVT1 ).name() << "\n"
-          << "   Detected size = " << tlhs_.size() << "\n"
-          << "   Expected size = " << treflhs_.size() << "\n";
-      throw std::runtime_error( oss.str() );
-   }
-
-   // Checking the size of the right-hand side operand
-   if( trhs_.size() != trefrhs_.size() ) {
-      std::ostringstream oss;
-      oss << " Test: Initial size comparison of transpose right-hand side sparse operand\n"
-          << " Error: Invalid vector size\n"
-          << " Details:\n"
-          << "   Transpose dense vector type:\n"
-          << "     " << typeid( TVT2 ).name() << "\n"
-          << "   Detected size = " << trhs_.size() << "\n"
-          << "   Expected size = " << trefrhs_.size() << "\n";
-      throw std::runtime_error( oss.str() );
-   }
-
-   // Checking the initialization of the left-hand side operand
-   if( !isEqual( tlhs_, treflhs_ ) ) {
-      std::ostringstream oss;
-      oss << " Test: Initial test of initialization of transpose left-hand side dense operand\n"
-          << " Error: Invalid vector initialization\n"
-          << " Details:\n"
-          << "   Transpose sparse vector type:\n"
-          << "     " << typeid( TVT1 ).name() << "\n"
-          << "   Current initialization:\n" << tlhs_ << "\n"
-          << "   Expected initialization:\n" << treflhs_ << "\n";
-      throw std::runtime_error( oss.str() );
-   }
-
-   // Checking the initialization of the right-hand side operand
-   if( !isEqual( trhs_, trefrhs_ ) ) {
-      std::ostringstream oss;
-      oss << " Test: Initial test of initialization of transpose right-hand side sparse operand\n"
-          << " Error: Invalid vector initialization\n"
-          << " Details:\n"
-          << "   Transpose dense vector type:\n"
-          << "     " << typeid( TVT2 ).name() << "\n"
-          << "   Current initialization:\n" << trhs_ << "\n"
-          << "   Expected initialization:\n" << trefrhs_ << "\n";
       throw std::runtime_error( oss.str() );
    }
 }
@@ -479,10 +369,6 @@ template< typename VT1    // Type of the left-hand side dense vector
         , typename VT2 >  // Type of the right-hand side sparse vector
 void OperationTest<VT1,VT2>::testAssignment()
 {
-   //=====================================================================================
-   // Performing an assignment with the given vectors
-   //=====================================================================================
-
    try {
       lhs_ = reflhs_;
       rhs_ = refrhs_;
@@ -522,172 +408,6 @@ void OperationTest<VT1,VT2>::testAssignment()
           << "   Current initialization:\n" << rhs_ << "\n"
           << "   Expected initialization:\n" << refrhs_ << "\n";
       throw std::runtime_error( oss.str() );
-   }
-
-
-   //=====================================================================================
-   // Performing an assignment with the transpose types
-   //=====================================================================================
-
-   try {
-      tlhs_ = treflhs_;
-      trhs_ = trefrhs_;
-   }
-   catch( std::exception& ex ) {
-      std::ostringstream oss;
-      oss << " Test: Assignment with the transpose types\n"
-          << " Error: Failed assignment\n"
-          << " Details:\n"
-          << "   Transpose left-hand side dense vector type:\n"
-          << "     " << typeid( TVT1 ).name() << "\n"
-          << "   Transpose right-hand side sparse vector type:\n"
-          << "     " << typeid( TVT2 ).name() << "\n"
-          << "   Error message: " << ex.what() << "\n";
-      throw std::runtime_error( oss.str() );
-   }
-
-   if( !isEqual( tlhs_, treflhs_ ) ) {
-      std::ostringstream oss;
-      oss << " Test: Checking the assignment result of transpose left-hand side dense operand\n"
-          << " Error: Invalid vector initialization\n"
-          << " Details:\n"
-          << "   Transpose dense vector type:\n"
-          << "     " << typeid( TVT1 ).name() << "\n"
-          << "   Current initialization:\n" << tlhs_ << "\n"
-          << "   Expected initialization:\n" << treflhs_ << "\n";
-      throw std::runtime_error( oss.str() );
-   }
-
-   if( !isEqual( trhs_, trefrhs_ ) ) {
-      std::ostringstream oss;
-      oss << " Test: Checking the assignment result of transpose right-hand side sparse operand\n"
-          << " Error: Invalid vector initialization\n"
-          << " Details:\n"
-          << "   Transpose sparse vector type:\n"
-          << "     " << typeid( TVT2 ).name() << "\n"
-          << "   Current initialization:\n" << trhs_ << "\n"
-          << "   Expected initialization:\n" << trefrhs_ << "\n";
-      throw std::runtime_error( oss.str() );
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Testing the explicit evaluation.
-//
-// \return void
-// \exception std::runtime_error Evaluation error detected.
-//
-// This function tests the explicit evaluation. In case any error is detected, a
-// \a std::runtime_error exception is thrown.
-*/
-template< typename VT1    // Type of the left-hand side dense vector
-        , typename VT2 >  // Type of the right-hand side sparse vector
-void OperationTest<VT1,VT2>::testEvaluation()
-{
-   using blaze::IsRowVector;
-
-
-   //=====================================================================================
-   // Testing the evaluation with the given vectors
-   //=====================================================================================
-
-   {
-      const auto res   ( evaluate( lhs_    % rhs_    ) );
-      const auto refres( evaluate( reflhs_ % refrhs_ ) );
-
-      if( !isEqual( res, refres ) ) {
-         std::ostringstream oss;
-         oss << " Test: Evaluation with the given vectors\n"
-             << " Error: Failed evaluation\n"
-             << " Details:\n"
-             << "   Left-hand side dense " << ( IsRowVector<VT1>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-             << "     " << typeid( lhs_ ).name() << "\n"
-             << "   Right-hand side sparse " << ( IsRowVector<VT2>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-             << "     " << typeid( rhs_ ).name() << "\n"
-             << "   Deduced result type:\n"
-             << "     " << typeid( res ).name() << "\n"
-             << "   Deduced reference result type:\n"
-             << "     " << typeid( refres ).name() << "\n"
-             << "   Result:\n" << res << "\n"
-             << "   Expected result:\n" << refres << "\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      const auto res   ( evaluate( eval( lhs_ )    % eval( rhs_ )    ) );
-      const auto refres( evaluate( eval( reflhs_ ) % eval( refrhs_ ) ) );
-
-      if( !isEqual( res, refres ) ) {
-         std::ostringstream oss;
-         oss << " Test: Evaluation with evaluated vectors\n"
-             << " Error: Failed evaluation\n"
-             << " Details:\n"
-             << "   Left-hand side dense " << ( IsRowVector<VT1>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-             << "     " << typeid( lhs_ ).name() << "\n"
-             << "   Right-hand side sparse " << ( IsRowVector<VT2>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-             << "     " << typeid( rhs_ ).name() << "\n"
-             << "   Deduced result type:\n"
-             << "     " << typeid( res ).name() << "\n"
-             << "   Deduced reference result type:\n"
-             << "     " << typeid( refres ).name() << "\n"
-             << "   Result:\n" << res << "\n"
-             << "   Expected result:\n" << refres << "\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Testing the evaluation with the transpose types
-   //=====================================================================================
-
-   {
-      const auto res   ( evaluate( tlhs_    % trhs_    ) );
-      const auto refres( evaluate( treflhs_ % trefrhs_ ) );
-
-      if( !isEqual( res, refres ) ) {
-         std::ostringstream oss;
-         oss << " Test: Evaluation with the transpose vectors\n"
-             << " Error: Failed evaluation\n"
-             << " Details:\n"
-             << "   Left-hand side dense " << ( IsRowVector<TVT1>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-             << "     " << typeid( tlhs_ ).name() << "\n"
-             << "   Right-hand side sparse " << ( IsRowVector<TVT2>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-             << "     " << typeid( trhs_ ).name() << "\n"
-             << "   Deduced result type:\n"
-             << "     " << typeid( res ).name() << "\n"
-             << "   Deduced reference result type:\n"
-             << "     " << typeid( refres ).name() << "\n"
-             << "   Result:\n" << res << "\n"
-             << "   Expected result:\n" << refres << "\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-   {
-      const auto res   ( evaluate( eval( tlhs_ )    % eval( trhs_ )    ) );
-      const auto refres( evaluate( eval( treflhs_ ) % eval( trefrhs_ ) ) );
-
-      if( !isEqual( res, refres ) ) {
-         std::ostringstream oss;
-         oss << " Test: Evaluation with evaluated transpose vectors\n"
-             << " Error: Failed evaluation\n"
-             << " Details:\n"
-             << "   Left-hand side dense " << ( IsRowVector<TVT1>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-             << "     " << typeid( tlhs_ ).name() << "\n"
-             << "   Right-hand side sparse " << ( IsRowVector<TVT2>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-             << "     " << typeid( trhs_ ).name() << "\n"
-             << "   Deduced result type:\n"
-             << "     " << typeid( res ).name() << "\n"
-             << "   Deduced reference result type:\n"
-             << "     " << typeid( refres ).name() << "\n"
-             << "   Result:\n" << res << "\n"
-             << "   Expected result:\n" << refres << "\n";
-         throw std::runtime_error( oss.str() );
-      }
    }
 }
 //*************************************************************************************************
@@ -779,78 +499,6 @@ void OperationTest<VT1,VT2>::testElementAccess()
       throw std::runtime_error( oss.str() );
    }
    catch( std::out_of_range& ) {}
-
-
-   //=====================================================================================
-   // Testing the element access with the transpose types
-   //=====================================================================================
-
-   if( !equal( ( tlhs_ % trhs_ )[2UL], ( treflhs_ % trefrhs_ )[2UL] ) ||
-       !equal( ( tlhs_ % trhs_ ).at(2UL), ( treflhs_ % trefrhs_ ).at(2UL) ) ) {
-      std::ostringstream oss;
-      oss << " Test : Element access of transpose cross product expression\n"
-          << " Error: Unequal resulting elements at index 2 detected\n"
-          << " Details:\n"
-          << "   Transpose left-hand side dense vector type:\n"
-          << "     " << typeid( TVT1 ).name() << "\n"
-          << "   Transpose right-hand side sparse vector type:\n"
-          << "     " << typeid( TVT2 ).name() << "\n";
-      throw std::runtime_error( oss.str() );
-   }
-
-   if( !equal( ( tlhs_ % eval( trhs_ ) )[2UL], ( treflhs_ % eval( trefrhs_ ) )[2UL] ) ||
-       !equal( ( tlhs_ % eval( trhs_ ) ).at(2UL), ( treflhs_ % eval( trefrhs_ ) ).at(2UL) ) ) {
-      std::ostringstream oss;
-      oss << " Test : Element access of right evaluated transpose cross product expression\n"
-          << " Error: Unequal resulting elements at index 2 detected\n"
-          << " Details:\n"
-          << "   Transpose left-hand side dense vector type:\n"
-          << "     " << typeid( TVT1 ).name() << "\n"
-          << "   Transpose right-hand side sparse vector type:\n"
-          << "     " << typeid( TVT2 ).name() << "\n";
-      throw std::runtime_error( oss.str() );
-   }
-
-   if( !equal( ( eval( tlhs_ ) % trhs_ )[2UL], ( eval( treflhs_ ) % trefrhs_ )[2UL] ) ||
-       !equal( ( eval( tlhs_ ) % trhs_ ).at(2UL), ( eval( treflhs_ ) % trefrhs_ ).at(2UL) ) ) {
-      std::ostringstream oss;
-      oss << " Test : Element access of left evaluated transpose cross product expression\n"
-          << " Error: Unequal resulting elements at index 2 detected\n"
-          << " Details:\n"
-          << "   Transpose left-hand side dense vector type:\n"
-          << "     " << typeid( TVT1 ).name() << "\n"
-          << "   Transpose right-hand side sparse vector type:\n"
-          << "     " << typeid( TVT2 ).name() << "\n";
-      throw std::runtime_error( oss.str() );
-   }
-
-   if( !equal( ( eval( tlhs_ ) % eval( trhs_ ) )[2UL], ( eval( treflhs_ ) % eval( trefrhs_ ) )[2UL] ) ||
-       !equal( ( eval( tlhs_ ) % eval( trhs_ ) ).at(2UL), ( eval( treflhs_ ) % eval( trefrhs_ ) ).at(2UL) ) ) {
-      std::ostringstream oss;
-      oss << " Test : Element access of fully evaluated transpose cross product expression\n"
-          << " Error: Unequal resulting elements at index 2 detected\n"
-          << " Details:\n"
-          << "   Transpose left-hand side dense vector type:\n"
-          << "     " << typeid( TVT1 ).name() << "\n"
-          << "   Transpose right-hand side sparse vector type:\n"
-          << "     " << typeid( TVT2 ).name() << "\n";
-      throw std::runtime_error( oss.str() );
-   }
-
-   try {
-      ( tlhs_ % trhs_ ).at( tlhs_.size() );
-
-      std::ostringstream oss;
-      oss << " Test : Checked element access of transpose cross product expression\n"
-          << " Error: Out-of-bound access succeeded\n"
-          << " Details:\n"
-          << "   Transpose left-hand side dense vector type:\n"
-          << "     " << typeid( TVT1 ).name() << "\n"
-          << "   Transpose right-hand side sparse vector type:\n"
-          << "     " << typeid( TVT2 ).name() << "\n";
-      throw std::runtime_error( oss.str() );
-   }
-   catch( std::out_of_range& ) {}
 }
 //*************************************************************************************************
 
@@ -889,22 +537,10 @@ void OperationTest<VT1,VT2>::testBasicOperation()
             refres_ = reflhs_ % refrhs_;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   = tlhs_ % trhs_;
-            tsres_   = tlhs_ % trhs_;
-            trefres_ = treflhs_ % trefrhs_;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Cross product with evaluated vectors
@@ -919,22 +555,10 @@ void OperationTest<VT1,VT2>::testBasicOperation()
             refres_ = eval( reflhs_ ) % eval( refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   = eval( tlhs_ ) % eval( trhs_ );
-            tsres_   = eval( tlhs_ ) % eval( trhs_ );
-            trefres_ = eval( treflhs_ ) % eval( trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -954,22 +578,10 @@ void OperationTest<VT1,VT2>::testBasicOperation()
             refres_ += reflhs_ % refrhs_;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   += tlhs_ % trhs_;
-            tsres_   += tlhs_ % trhs_;
-            trefres_ += treflhs_ % trefrhs_;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Cross product with addition assignment with the given vectors
@@ -984,22 +596,10 @@ void OperationTest<VT1,VT2>::testBasicOperation()
             refres_ += eval( reflhs_ ) % eval( refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   += eval( tlhs_ ) % eval( trhs_ );
-            tsres_   += eval( tlhs_ ) % eval( trhs_ );
-            trefres_ += eval( treflhs_ ) % eval( trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -1019,22 +619,10 @@ void OperationTest<VT1,VT2>::testBasicOperation()
             refres_ -= reflhs_ % refrhs_;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   -= tlhs_ % trhs_;
-            tsres_   -= tlhs_ % trhs_;
-            trefres_ -= treflhs_ % trefrhs_;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Cross product with subtraction assignment with evaluated vectors
@@ -1049,22 +637,10 @@ void OperationTest<VT1,VT2>::testBasicOperation()
             refres_ -= eval( reflhs_ ) % eval( refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   -= eval( tlhs_ ) % eval( trhs_ );
-            tsres_   -= eval( tlhs_ ) % eval( trhs_ );
-            trefres_ -= eval( treflhs_ ) % eval( trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -1084,22 +660,10 @@ void OperationTest<VT1,VT2>::testBasicOperation()
             refres_ *= reflhs_ % refrhs_;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   *= tlhs_ % trhs_;
-            tsres_   *= tlhs_ % trhs_;
-            trefres_ *= treflhs_ % trefrhs_;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Cross product with multiplication assignment with evaluated vectors
@@ -1114,89 +678,7 @@ void OperationTest<VT1,VT2>::testBasicOperation()
             refres_ *= eval( reflhs_ ) % eval( refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
-         }
-
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   *= eval( tlhs_ ) % eval( trhs_ );
-            tsres_   *= eval( tlhs_ ) % eval( trhs_ );
-            trefres_ *= eval( treflhs_ ) % eval( trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
-      }
-
-
-      //=====================================================================================
-      // Cross product with division assignment
-      //=====================================================================================
-
-      if( blaze::isDivisor( lhs_ % rhs_ ) )
-      {
-         // Cross product with division assignment with the given vectors
-         {
-            test_  = "Cross product with division assignment with the given vectors";
-            error_ = "Failed division assignment operation";
-
-            try {
-               initResults();
-               dres_   /= lhs_ % rhs_;
-               sres_   /= lhs_ % rhs_;
-               refres_ /= reflhs_ % refrhs_;
-            }
-            catch( std::exception& ex ) {
-               convertException<VT1,VT2>( ex );
-            }
-
-            checkResults<VT1,VT2>();
-
-            try {
-               initTransposeResults();
-               tdres_   /= tlhs_ % trhs_;
-               tsres_   /= tlhs_ % trhs_;
-               trefres_ /= treflhs_ % trefrhs_;
-            }
-            catch( std::exception& ex ) {
-               convertException<TVT1,TVT2>( ex );
-            }
-
-            checkTransposeResults<TVT1,TVT2>();
-         }
-
-         // Cross product with division assignment with evaluated vectors
-         {
-            test_  = "Cross product with division assignment with evaluated vectors";
-            error_ = "Failed division assignment operation";
-
-            try {
-               initResults();
-               dres_   /= eval( lhs_ ) % eval( rhs_ );
-               sres_   /= eval( lhs_ ) % eval( rhs_ );
-               refres_ /= eval( reflhs_ ) % eval( refrhs_ );
-            }
-            catch( std::exception& ex ) {
-               convertException<VT1,VT2>( ex );
-            }
-
-            checkResults<VT1,VT2>();
-
-            try {
-               initTransposeResults();
-               tdres_   /= eval( tlhs_ ) % eval( trhs_ );
-               tsres_   /= eval( tlhs_ ) % eval( trhs_ );
-               trefres_ /= eval( treflhs_ ) % eval( trefrhs_ );
-            }
-            catch( std::exception& ex ) {
-               convertException<TVT1,TVT2>( ex );
-            }
-
-            checkTransposeResults<TVT1,TVT2>();
+            convertException( ex );
          }
       }
    }
@@ -1239,22 +721,10 @@ void OperationTest<VT1,VT2>::testNegatedOperation()
             refres_ = -( reflhs_ % refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   = -( tlhs_ % trhs_ );
-            tsres_   = -( tlhs_ % trhs_ );
-            trefres_ = -( treflhs_ % trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Negated cross product with evaluated vectors
@@ -1269,22 +739,10 @@ void OperationTest<VT1,VT2>::testNegatedOperation()
             refres_ = -( eval( reflhs_ ) % eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   = -( eval( tlhs_ ) % eval( trhs_ ) );
-            tsres_   = -( eval( tlhs_ ) % eval( trhs_ ) );
-            trefres_ = -( eval( treflhs_ ) % eval( trefrhs_ ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -1304,22 +762,10 @@ void OperationTest<VT1,VT2>::testNegatedOperation()
             refres_ += -( reflhs_ % refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   += -( tlhs_ % trhs_ );
-            tsres_   += -( tlhs_ % trhs_ );
-            trefres_ += -( treflhs_ % trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Negated cross product with addition assignment with evaluated vectors
@@ -1334,22 +780,10 @@ void OperationTest<VT1,VT2>::testNegatedOperation()
             refres_ += -( eval( reflhs_ ) % eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   += -( eval( tlhs_ ) % eval( trhs_ ) );
-            tsres_   += -( eval( tlhs_ ) % eval( trhs_ ) );
-            trefres_ += -( eval( treflhs_ ) % eval( trefrhs_ ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -1369,22 +803,10 @@ void OperationTest<VT1,VT2>::testNegatedOperation()
             refres_ -= -( reflhs_ % refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   -= -( tlhs_ % trhs_ );
-            tsres_   -= -( tlhs_ % trhs_ );
-            trefres_ -= -( treflhs_ % trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Negated cross product with subtraction assignment with evaluated vectors
@@ -1399,22 +821,10 @@ void OperationTest<VT1,VT2>::testNegatedOperation()
             refres_ -= -( eval( reflhs_ ) % eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   -= -( eval( tlhs_ ) % eval( trhs_ ) );
-            tsres_   -= -( eval( tlhs_ ) % eval( trhs_ ) );
-            trefres_ -= -( eval( treflhs_ ) % eval( trefrhs_ ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -1434,22 +844,10 @@ void OperationTest<VT1,VT2>::testNegatedOperation()
             refres_ *= -( reflhs_ % refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   *= -( tlhs_ % trhs_ );
-            tsres_   *= -( tlhs_ % trhs_ );
-            trefres_ *= -( treflhs_ % trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Negated cross product with multiplication assignment with evaluated vectors
@@ -1464,90 +862,10 @@ void OperationTest<VT1,VT2>::testNegatedOperation()
             refres_ *= -( eval( reflhs_ ) % eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   *= -( eval( tlhs_ ) % eval( trhs_ ) );
-            tsres_   *= -( eval( tlhs_ ) % eval( trhs_ ) );
-            trefres_ *= -( eval( treflhs_ ) % eval( trefrhs_ ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
-      }
-
-
-      //=====================================================================================
-      // Negated cross product with division assignment
-      //=====================================================================================
-
-      if( blaze::isDivisor( lhs_ % rhs_ ) )
-      {
-         // Negated cross product with division assignment with the given vectors
-         {
-            test_  = "Negated cross product with division assignment with the given vectors";
-            error_ = "Failed division assignment operation";
-
-            try {
-               initResults();
-               dres_   /= -( lhs_ % rhs_ );
-               sres_   /= -( lhs_ % rhs_ );
-               refres_ /= -( reflhs_ % refrhs_ );
-            }
-            catch( std::exception& ex ) {
-               convertException<VT1,VT2>( ex );
-            }
-
-            checkResults<VT1,VT2>();
-
-            try {
-               initTransposeResults();
-               tdres_   /= -( tlhs_ % trhs_ );
-               tsres_   /= -( tlhs_ % trhs_ );
-               trefres_ /= -( treflhs_ % trefrhs_ );
-            }
-            catch( std::exception& ex ) {
-               convertException<TVT1,TVT2>( ex );
-            }
-
-            checkTransposeResults<TVT1,TVT2>();
-         }
-
-         // Negated cross product with division assignment with evaluated vectors
-         {
-            test_  = "Negated cross product with division assignment with evaluated vectors";
-            error_ = "Failed division assignment operation";
-
-            try {
-               initResults();
-               dres_   /= -( eval( lhs_ ) % eval( rhs_ ) );
-               sres_   /= -( eval( lhs_ ) % eval( rhs_ ) );
-               refres_ /= -( eval( reflhs_ ) % eval( refrhs_ ) );
-            }
-            catch( std::exception& ex ) {
-               convertException<VT1,VT2>( ex );
-            }
-
-            checkResults<VT1,VT2>();
-
-            try {
-               initTransposeResults();
-               tdres_   /= -( eval( tlhs_ ) % eval( trhs_ ) );
-               tsres_   /= -( eval( tlhs_ ) % eval( trhs_ ) );
-               trefres_ /= -( eval( treflhs_ ) % eval( trefrhs_ ) );
-            }
-            catch( std::exception& ex ) {
-               convertException<TVT1,TVT2>( ex );
-            }
-
-            checkTransposeResults<TVT1,TVT2>();
-         }
+         checkResults();
       }
    }
 #endif
@@ -1608,7 +926,7 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             throw std::runtime_error( oss.str() );
          }
 
-         checkResults<VT1,VT2>();
+         checkResults();
       }
 
 
@@ -1639,7 +957,7 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             throw std::runtime_error( oss.str() );
          }
 
-         checkResults<VT1,VT2>();
+         checkResults();
       }
 
 
@@ -1670,7 +988,7 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             throw std::runtime_error( oss.str() );
          }
 
-         checkResults<VT1,VT2>();
+         checkResults();
       }
 
 
@@ -1701,7 +1019,7 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             throw std::runtime_error( oss.str() );
          }
 
-         checkResults<VT1,VT2>();
+         checkResults();
       }
 
 
@@ -1732,7 +1050,7 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             throw std::runtime_error( oss.str() );
          }
 
-         checkResults<VT1,VT2>();
+         checkResults();
       }
 
 
@@ -1752,22 +1070,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ = scalar * ( reflhs_ % refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   = scalar * ( tlhs_ % trhs_ );
-            tsres_   = scalar * ( tlhs_ % trhs_ );
-            trefres_ = scalar * ( treflhs_ % trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Scaled cross product with evaluated vectors
@@ -1782,22 +1088,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ = scalar * ( eval( reflhs_ ) % eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   = scalar * ( eval( tlhs_ ) % eval( trhs_ ) );
-            tsres_   = scalar * ( eval( tlhs_ ) % eval( trhs_ ) );
-            trefres_ = scalar * ( eval( treflhs_ ) % eval( trefrhs_ ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -1817,22 +1111,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ = ( reflhs_ % refrhs_ ) * scalar;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   = ( tlhs_ % trhs_ ) * scalar;
-            tsres_   = ( tlhs_ % trhs_ ) * scalar;
-            trefres_ = ( treflhs_ % trefrhs_ ) * scalar;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Scaled cross product with evaluated vectors
@@ -1847,22 +1129,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ = ( eval( reflhs_ ) % eval( refrhs_ ) ) * scalar;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   = ( eval( tlhs_ ) % eval( trhs_ ) ) * scalar;
-            tsres_   = ( eval( tlhs_ ) % eval( trhs_ ) ) * scalar;
-            trefres_ = ( eval( treflhs_ ) % eval( trefrhs_ ) ) * scalar;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -1882,22 +1152,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ = ( reflhs_ % refrhs_ ) / scalar;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   = ( tlhs_ % trhs_ ) / scalar;
-            tsres_   = ( tlhs_ % trhs_ ) / scalar;
-            trefres_ = ( treflhs_ % trefrhs_ ) / scalar;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Scaled cross product with evaluated vectors
@@ -1912,22 +1170,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ = ( eval( reflhs_ ) % eval( refrhs_ ) ) / scalar;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   = ( eval( tlhs_ ) % eval( trhs_ ) ) / scalar;
-            tsres_   = ( eval( tlhs_ ) % eval( trhs_ ) ) / scalar;
-            trefres_ = ( eval( treflhs_ ) % eval( trefrhs_ ) ) / scalar;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -1947,22 +1193,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ += scalar * ( reflhs_ % refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   += scalar * ( tlhs_ % trhs_ );
-            tsres_   += scalar * ( tlhs_ % trhs_ );
-            trefres_ += scalar * ( treflhs_ % trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Scaled cross product with addition assignment with evaluated vectors
@@ -1977,22 +1211,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ += scalar * ( eval( reflhs_ ) % eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   += scalar * ( eval( tlhs_ ) % eval( trhs_ ) );
-            tsres_   += scalar * ( eval( tlhs_ ) % eval( trhs_ ) );
-            trefres_ += scalar * ( eval( treflhs_ ) % eval( trefrhs_ ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -2012,22 +1234,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ += ( reflhs_ % refrhs_ ) * scalar;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   += ( tlhs_ % trhs_ ) * scalar;
-            tsres_   += ( tlhs_ % trhs_ ) * scalar;
-            trefres_ += ( treflhs_ % trefrhs_ ) * scalar;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Scaled cross product with addition assignment with evaluated vectors
@@ -2042,22 +1252,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ += ( eval( reflhs_ ) % eval( refrhs_ ) ) * scalar;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   += ( eval( tlhs_ ) % eval( trhs_ ) ) * scalar;
-            tsres_   += ( eval( tlhs_ ) % eval( trhs_ ) ) * scalar;
-            trefres_ += ( eval( treflhs_ ) % eval( trefrhs_ ) ) * scalar;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -2077,22 +1275,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ += ( reflhs_ % refrhs_ ) / scalar;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   += ( tlhs_ % trhs_ ) / scalar;
-            tsres_   += ( tlhs_ % trhs_ ) / scalar;
-            trefres_ += ( treflhs_ % trefrhs_ ) / scalar;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Scaled cross product with addition assignment with evaluated vectors
@@ -2107,22 +1293,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ += ( eval( reflhs_ ) % eval( refrhs_ ) ) / scalar;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   += ( eval( tlhs_ ) % eval( trhs_ ) ) / scalar;
-            tsres_   += ( eval( tlhs_ ) % eval( trhs_ ) ) / scalar;
-            trefres_ += ( eval( treflhs_ ) % eval( trefrhs_ ) ) / scalar;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -2142,22 +1316,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ -= scalar * ( reflhs_ % refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   -= scalar * ( tlhs_ % trhs_ );
-            tsres_   -= scalar * ( tlhs_ % trhs_ );
-            trefres_ -= scalar * ( treflhs_ % trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Scaled cross product with subtraction assignment with evaluated vectors
@@ -2172,22 +1334,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ -= scalar * ( eval( reflhs_ ) % eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   -= scalar * ( eval( tlhs_ ) % eval( trhs_ ) );
-            tsres_   -= scalar * ( eval( tlhs_ ) % eval( trhs_ ) );
-            trefres_ -= scalar * ( eval( treflhs_ ) % eval( trefrhs_ ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -2207,22 +1357,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ -= ( reflhs_ % refrhs_ ) * scalar;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   -= ( tlhs_ % trhs_ ) * scalar;
-            tsres_   -= ( tlhs_ % trhs_ ) * scalar;
-            trefres_ -= ( treflhs_ % trefrhs_ ) * scalar;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Scaled cross product with subtraction assignment with evaluated vectors
@@ -2237,22 +1375,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ -= ( eval( reflhs_ ) % eval( refrhs_ ) ) * scalar;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   -= ( eval( tlhs_ ) % eval( trhs_ ) ) * scalar;
-            tsres_   -= ( eval( tlhs_ ) % eval( trhs_ ) ) * scalar;
-            trefres_ -= ( eval( treflhs_ ) % eval( trefrhs_ ) ) * scalar;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -2272,22 +1398,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ -= ( reflhs_ % refrhs_ ) / scalar;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   -= ( tlhs_ % trhs_ ) / scalar;
-            tsres_   -= ( tlhs_ % trhs_ ) / scalar;
-            trefres_ -= ( treflhs_ % trefrhs_ ) / scalar;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Scaled cross product with subtraction assignment with evaluated vectors
@@ -2302,22 +1416,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ -= ( eval( reflhs_ ) % eval( refrhs_ ) ) / scalar;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   -= ( eval( tlhs_ ) % eval( trhs_ ) ) / scalar;
-            tsres_   -= ( eval( tlhs_ ) % eval( trhs_ ) ) / scalar;
-            trefres_ -= ( eval( treflhs_ ) % eval( trefrhs_ ) ) / scalar;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -2337,22 +1439,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ *= scalar * ( reflhs_ % refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   *= scalar * ( tlhs_ % trhs_ );
-            tsres_   *= scalar * ( tlhs_ % trhs_ );
-            trefres_ *= scalar * ( treflhs_ % trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Scaled cross product with multiplication assignment with evaluated vectors
@@ -2367,22 +1457,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ *= scalar * ( eval( reflhs_ ) % eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   *= scalar * ( eval( tlhs_ ) % eval( trhs_ ) );
-            tsres_   *= scalar * ( eval( tlhs_ ) % eval( trhs_ ) );
-            trefres_ *= scalar * ( eval( treflhs_ ) % eval( trefrhs_ ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -2402,22 +1480,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ *= ( reflhs_ % refrhs_ ) * scalar;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   *= ( tlhs_ % trhs_ ) * scalar;
-            tsres_   *= ( tlhs_ % trhs_ ) * scalar;
-            trefres_ *= ( treflhs_ % trefrhs_ ) * scalar;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Scaled cross product with multiplication assignment with evaluated vectors
@@ -2432,22 +1498,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ *= ( eval( reflhs_ ) % eval( refrhs_ ) ) * scalar;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   *= ( eval( tlhs_ ) % eval( trhs_ ) ) * scalar;
-            tsres_   *= ( eval( tlhs_ ) % eval( trhs_ ) ) * scalar;
-            trefres_ *= ( eval( treflhs_ ) % eval( trefrhs_ ) ) * scalar;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -2467,22 +1521,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ *= ( reflhs_ % refrhs_ ) / scalar;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   *= ( tlhs_ % trhs_ ) / scalar;
-            tsres_   *= ( tlhs_ % trhs_ ) / scalar;
-            trefres_ *= ( treflhs_ % trefrhs_ ) / scalar;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Scaled cross product with multiplication assignment with evaluated vectors
@@ -2497,226 +1539,10 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             refres_ *= ( eval( reflhs_ ) % eval( refrhs_ ) ) / scalar;
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   *= ( eval( tlhs_ ) % eval( trhs_ ) ) / scalar;
-            tsres_   *= ( eval( tlhs_ ) % eval( trhs_ ) ) / scalar;
-            trefres_ *= ( eval( treflhs_ ) % eval( trefrhs_ ) ) / scalar;
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
-      }
-
-
-      //=====================================================================================
-      // Scaled cross product with division assignment (s*OP)
-      //=====================================================================================
-
-      if( blaze::isDivisor( lhs_ % rhs_ ) )
-      {
-         // Scaled cross product with division assignment with the given vectors
-         {
-            test_  = "Scaled cross product with division assignment with the given vectors (s*OP)";
-            error_ = "Failed division assignment operation";
-
-            try {
-               initResults();
-               dres_   /= scalar * ( lhs_ % rhs_ );
-               sres_   /= scalar * ( lhs_ % rhs_ );
-               refres_ /= scalar * ( reflhs_ % refrhs_ );
-            }
-            catch( std::exception& ex ) {
-               convertException<VT1,VT2>( ex );
-            }
-
-            checkResults<VT1,VT2>();
-
-            try {
-               initTransposeResults();
-               tdres_   /= scalar * ( tlhs_ % trhs_ );
-               tsres_   /= scalar * ( tlhs_ % trhs_ );
-               trefres_ /= scalar * ( treflhs_ % trefrhs_ );
-            }
-            catch( std::exception& ex ) {
-               convertException<TVT1,TVT2>( ex );
-            }
-
-            checkTransposeResults<TVT1,TVT2>();
-         }
-
-         // Scaled cross product with division assignment with evaluated vectors
-         {
-            test_  = "Scaled cross product with division assignment with evaluated vectors (s*OP)";
-            error_ = "Failed division assignment operation";
-
-            try {
-               initResults();
-               dres_   /= scalar * ( eval( lhs_ ) % eval( rhs_ ) );
-               sres_   /= scalar * ( eval( lhs_ ) % eval( rhs_ ) );
-               refres_ /= scalar * ( eval( reflhs_ ) % eval( refrhs_ ) );
-            }
-            catch( std::exception& ex ) {
-               convertException<VT1,VT2>( ex );
-            }
-
-            checkResults<VT1,VT2>();
-
-            try {
-               initTransposeResults();
-               tdres_   /= scalar * ( eval( tlhs_ ) % eval( trhs_ ) );
-               tsres_   /= scalar * ( eval( tlhs_ ) % eval( trhs_ ) );
-               trefres_ /= scalar * ( eval( treflhs_ ) % eval( trefrhs_ ) );
-            }
-            catch( std::exception& ex ) {
-               convertException<TVT1,TVT2>( ex );
-            }
-
-            checkTransposeResults<TVT1,TVT2>();
-         }
-      }
-
-
-      //=====================================================================================
-      // Scaled cross product with division assignment (OP*s)
-      //=====================================================================================
-
-      if( blaze::isDivisor( lhs_ % rhs_ ) )
-      {
-         // Scaled cross product with division assignment with the given vectors
-         {
-            test_  = "Scaled cross product with division assignment with the given vectors (OP*s)";
-            error_ = "Failed division assignment operation";
-
-            try {
-               initResults();
-               dres_   /= ( lhs_ % rhs_ ) * scalar;
-               sres_   /= ( lhs_ % rhs_ ) * scalar;
-               refres_ /= ( reflhs_ % refrhs_ ) * scalar;
-            }
-            catch( std::exception& ex ) {
-               convertException<VT1,VT2>( ex );
-            }
-
-            checkResults<VT1,VT2>();
-
-            try {
-               initTransposeResults();
-               tdres_   /= ( tlhs_ % trhs_ ) * scalar;
-               tsres_   /= ( tlhs_ % trhs_ ) * scalar;
-               trefres_ /= ( treflhs_ % trefrhs_ ) * scalar;
-            }
-            catch( std::exception& ex ) {
-               convertException<TVT1,TVT2>( ex );
-            }
-
-            checkTransposeResults<TVT1,TVT2>();
-         }
-
-         // Scaled cross product with division assignment with evaluated vectors
-         {
-            test_  = "Scaled cross product with division assignment with evaluated vectors (OP*s)";
-            error_ = "Failed division assignment operation";
-
-            try {
-               initResults();
-               dres_   /= ( eval( lhs_ ) % eval( rhs_ ) ) * scalar;
-               sres_   /= ( eval( lhs_ ) % eval( rhs_ ) ) * scalar;
-               refres_ /= ( eval( reflhs_ ) % eval( refrhs_ ) ) * scalar;
-            }
-            catch( std::exception& ex ) {
-               convertException<VT1,VT2>( ex );
-            }
-
-            checkResults<VT1,VT2>();
-
-            try {
-               initTransposeResults();
-               tdres_   /= ( eval( tlhs_ ) % eval( trhs_ ) ) * scalar;
-               tsres_   /= ( eval( tlhs_ ) % eval( trhs_ ) ) * scalar;
-               trefres_ /= ( eval( treflhs_ ) % eval( trefrhs_ ) ) * scalar;
-            }
-            catch( std::exception& ex ) {
-               convertException<TVT1,TVT2>( ex );
-            }
-
-            checkTransposeResults<TVT1,TVT2>();
-         }
-      }
-
-
-      //=====================================================================================
-      // Scaled cross product with division assignment (OP/s)
-      //=====================================================================================
-
-      if( blaze::isDivisor( ( lhs_ % rhs_ ) / scalar ) )
-      {
-         // Scaled cross product with division assignment with the given vectors
-         {
-            test_  = "Scaled cross product with division assignment with the given vectors (OP/s)";
-            error_ = "Failed division assignment operation";
-
-            try {
-               initResults();
-               dres_   /= ( lhs_ % rhs_ ) / scalar;
-               sres_   /= ( lhs_ % rhs_ ) / scalar;
-               refres_ /= ( reflhs_ % refrhs_ ) / scalar;
-            }
-            catch( std::exception& ex ) {
-               convertException<VT1,VT2>( ex );
-            }
-
-            checkResults<VT1,VT2>();
-
-            try {
-               initTransposeResults();
-               tdres_   /= ( tlhs_ % trhs_ ) / scalar;
-               tsres_   /= ( tlhs_ % trhs_ ) / scalar;
-               trefres_ /= ( treflhs_ % trefrhs_ ) / scalar;
-            }
-            catch( std::exception& ex ) {
-               convertException<TVT1,TVT2>( ex );
-            }
-
-            checkTransposeResults<TVT1,TVT2>();
-         }
-
-         // Scaled cross product with division assignment with evaluated vectors
-         {
-            test_  = "Scaled cross product with division assignment with evaluated vectors (OP/s)";
-            error_ = "Failed division assignment operation";
-
-            try {
-               initResults();
-               dres_   /= ( eval( lhs_ ) % eval( rhs_ ) ) / scalar;
-               sres_   /= ( eval( lhs_ ) % eval( rhs_ ) ) / scalar;
-               refres_ /= ( eval( reflhs_ ) % eval( refrhs_ ) ) / scalar;
-            }
-            catch( std::exception& ex ) {
-               convertException<VT1,VT2>( ex );
-            }
-
-            checkResults<VT1,VT2>();
-
-            try {
-               initTransposeResults();
-               tdres_   /= ( eval( tlhs_ ) % eval( trhs_ ) ) / scalar;
-               tsres_   /= ( eval( tlhs_ ) % eval( trhs_ ) ) / scalar;
-               trefres_ /= ( eval( treflhs_ ) % eval( trefrhs_ ) ) / scalar;
-            }
-            catch( std::exception& ex ) {
-               convertException<TVT1,TVT2>( ex );
-            }
-
-            checkTransposeResults<TVT1,TVT2>();
-         }
+         checkResults();
       }
    }
 #endif
@@ -2758,22 +1584,10 @@ void OperationTest<VT1,VT2>::testTransOperation()
             trefres_ = trans( reflhs_ % refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkTransposeResults<VT1,VT2>();
-
-         try {
-            initResults();
-            dres_   = trans( tlhs_ % trhs_ );
-            sres_   = trans( tlhs_ % trhs_ );
-            refres_ = trans( treflhs_ % trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkResults<TVT1,TVT2>();
+         checkTransposeResults();
       }
 
       // Transpose cross product with evaluated vectors
@@ -2788,22 +1602,10 @@ void OperationTest<VT1,VT2>::testTransOperation()
             trefres_ = trans( eval( reflhs_ ) % eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkTransposeResults<VT1,VT2>();
-
-         try {
-            initResults();
-            dres_   = trans( eval( tlhs_ ) % eval( trhs_ ) );
-            sres_   = trans( eval( tlhs_ ) % eval( trhs_ ) );
-            refres_ = trans( eval( treflhs_ ) % eval( trefrhs_ ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkResults<TVT1,TVT2>();
+         checkTransposeResults();
       }
 
 
@@ -2823,22 +1625,10 @@ void OperationTest<VT1,VT2>::testTransOperation()
             trefres_ += trans( reflhs_ % refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkTransposeResults<VT1,VT2>();
-
-         try {
-            initResults();
-            dres_   += trans( tlhs_ % trhs_ );
-            sres_   += trans( tlhs_ % trhs_ );
-            refres_ += trans( treflhs_ % trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkResults<TVT1,TVT2>();
+         checkTransposeResults();
       }
 
       // Transpose cross product with addition assignment with evaluated vectors
@@ -2853,22 +1643,10 @@ void OperationTest<VT1,VT2>::testTransOperation()
             trefres_ += trans( eval( reflhs_ ) % eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkTransposeResults<VT1,VT2>();
-
-         try {
-            initResults();
-            dres_   += trans( eval( tlhs_ ) % eval( trhs_ ) );
-            sres_   += trans( eval( tlhs_ ) % eval( trhs_ ) );
-            refres_ += trans( eval( treflhs_ ) % eval( trefrhs_ ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkResults<TVT1,TVT2>();
+         checkTransposeResults();
       }
 
 
@@ -2888,22 +1666,10 @@ void OperationTest<VT1,VT2>::testTransOperation()
             trefres_ -= trans( reflhs_ % refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkTransposeResults<VT1,VT2>();
-
-         try {
-            initResults();
-            dres_   -= trans( tlhs_ % trhs_ );
-            sres_   -= trans( tlhs_ % trhs_ );
-            refres_ -= trans( treflhs_ % trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkResults<TVT1,TVT2>();
+         checkTransposeResults();
       }
 
       // Transpose cross product with subtraction assignment with evaluated vectors
@@ -2918,22 +1684,10 @@ void OperationTest<VT1,VT2>::testTransOperation()
             trefres_ -= trans( eval( reflhs_ ) % eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkTransposeResults<VT1,VT2>();
-
-         try {
-            initResults();
-            dres_   -= trans( eval( tlhs_ ) % eval( trhs_ ) );
-            sres_   -= trans( eval( tlhs_ ) % eval( trhs_ ) );
-            refres_ -= trans( eval( treflhs_ ) % eval( trefrhs_ ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkResults<TVT1,TVT2>();
+         checkTransposeResults();
       }
 
 
@@ -2953,22 +1707,10 @@ void OperationTest<VT1,VT2>::testTransOperation()
             trefres_ *= trans( reflhs_ % refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkTransposeResults<VT1,VT2>();
-
-         try {
-            initResults();
-            dres_   *= trans( tlhs_ % trhs_ );
-            sres_   *= trans( tlhs_ % trhs_ );
-            refres_ *= trans( treflhs_ % trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkResults<TVT1,TVT2>();
+         checkTransposeResults();
       }
 
       // Transpose cross product with multiplication assignment with evaluated vectors
@@ -2983,90 +1725,382 @@ void OperationTest<VT1,VT2>::testTransOperation()
             trefres_ *= trans( eval( reflhs_ ) % eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkTransposeResults<VT1,VT2>();
+         checkTransposeResults();
+      }
+   }
+#endif
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the abs dense vector/sparse vector cross product.
+//
+// \return void
+// \exception std::runtime_error Cross product error detected.
+//
+// This function tests the abs vector cross product with plain assignment, addition assignment,
+// subtraction assignment, and multiplication assignment. In case any error resulting from the
+// cross product or the subsequent assignment is detected, a \a std::runtime_error exception
+// is thrown.
+*/
+template< typename VT1    // Type of the left-hand side dense vector
+        , typename VT2 >  // Type of the right-hand side sparse vector
+void OperationTest<VT1,VT2>::testAbsOperation()
+{
+#if BLAZETEST_MATHTEST_TEST_ABS_OPERATION
+   if( BLAZETEST_MATHTEST_TEST_ABS_OPERATION > 1 )
+   {
+      //=====================================================================================
+      // Abs cross product
+      //=====================================================================================
+
+      // Abs cross product with the given vectors
+      {
+         test_  = "Abs cross product with the given vectors";
+         error_ = "Failed cross product operation";
 
          try {
             initResults();
-            dres_   *= trans( eval( tlhs_ ) % eval( trhs_ ) );
-            sres_   *= trans( eval( tlhs_ ) % eval( trhs_ ) );
-            refres_ *= trans( eval( treflhs_ ) % eval( trefrhs_ ) );
+            dres_   = abs( lhs_ % rhs_ );
+            sres_   = abs( lhs_ % rhs_ );
+            refres_ = abs( reflhs_ % refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<TVT1,TVT2>();
+         checkResults();
+      }
+
+      // Abs cross product with evaluated vectors
+      {
+         test_  = "Abs cross product with evaluated vectors";
+         error_ = "Failed cross product operation";
+
+         try {
+            initResults();
+            dres_   = abs( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   = abs( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ = abs( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
       }
 
 
       //=====================================================================================
-      // Transpose cross product with division assignment
+      // Abs cross product with addition assignment
       //=====================================================================================
 
-      if( blaze::isDivisor( lhs_ % rhs_ ) )
+      // Abs cross product with addition assignment with the given vectors
       {
-         // Transpose cross product with division assignment with the given vectors
-         {
-            test_  = "Transpose cross product with division assignment with the given vectors";
-            error_ = "Failed division assignment operation";
+         test_  = "Abs cross product with addition assignment with the given vectors";
+         error_ = "Failed addition assignment operation";
 
-            try {
-               initTransposeResults();
-               tdres_   /= trans( lhs_ % rhs_ );
-               tsres_   /= trans( lhs_ % rhs_ );
-               trefres_ /= trans( reflhs_ % refrhs_ );
-            }
-            catch( std::exception& ex ) {
-               convertException<VT1,VT2>( ex );
-            }
-
-            checkTransposeResults<VT1,VT2>();
-
-            try {
-               initResults();
-               dres_   /= trans( tlhs_ % trhs_ );
-               sres_   /= trans( tlhs_ % trhs_ );
-               refres_ /= trans( treflhs_ % trefrhs_ );
-            }
-            catch( std::exception& ex ) {
-               convertException<TVT1,TVT2>( ex );
-            }
-
-            checkResults<TVT1,TVT2>();
+         try {
+            initResults();
+            dres_   += abs( lhs_ % rhs_ );
+            sres_   += abs( lhs_ % rhs_ );
+            refres_ += abs( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
          }
 
-         // Transpose cross product with division assignment with evaluated vectors
-         {
-            test_  = "Transpose cross product with division assignment with evaluated vectors";
-            error_ = "Failed division assignment operation";
+         checkResults();
+      }
 
-            try {
-               initTransposeResults();
-               tdres_   /= trans( eval( lhs_ ) % eval( rhs_ ) );
-               tsres_   /= trans( eval( lhs_ ) % eval( rhs_ ) );
-               trefres_ /= trans( eval( reflhs_ ) % eval( refrhs_ ) );
-            }
-            catch( std::exception& ex ) {
-               convertException<VT1,VT2>( ex );
-            }
+      // Abs cross product with addition assignment with evaluated vectors
+      {
+         test_  = "Abs cross product with addition assignment with evaluated vectors";
+         error_ = "Failed addition assignment operation";
 
-            checkTransposeResults<VT1,VT2>();
-
-            try {
-               initResults();
-               dres_   /= trans( eval( tlhs_ ) % eval( trhs_ ) );
-               sres_   /= trans( eval( tlhs_ ) % eval( trhs_ ) );
-               refres_ /= trans( eval( treflhs_ ) % eval( trefrhs_ ) );
-            }
-            catch( std::exception& ex ) {
-               convertException<TVT1,TVT2>( ex );
-            }
-
-            checkResults<TVT1,TVT2>();
+         try {
+            initResults();
+            dres_   += abs( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   += abs( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ += abs( eval( reflhs_ ) % eval( refrhs_ ) );
          }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+
+      //=====================================================================================
+      // Abs cross product with subtraction assignment
+      //=====================================================================================
+
+      // Abs cross product with subtraction assignment with the given vectors
+      {
+         test_  = "Abs cross product with subtraction assignment with the given types";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= abs( lhs_ % rhs_ );
+            sres_   -= abs( lhs_ % rhs_ );
+            refres_ -= abs( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Abs cross product with subtraction assignment with evaluated vectors
+      {
+         test_  = "Abs cross product with subtraction assignment with evaluated vectors";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= abs( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   -= abs( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ -= abs( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+
+      //=====================================================================================
+      // Abs cross product with multiplication assignment
+      //=====================================================================================
+
+      // Abs cross product with multiplication assignment with the given vectors
+      {
+         test_  = "Abs cross product with multiplication assignment with the given vectors";
+         error_ = "Failed multiplication assignment operation";
+
+         try {
+            initResults();
+            dres_   *= abs( lhs_ % rhs_ );
+            sres_   *= abs( lhs_ % rhs_ );
+            refres_ *= abs( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Abs cross product with multiplication assignment with evaluated vectors
+      {
+         test_  = "Abs cross product with multiplication assignment with evaluated vectors";
+         error_ = "Failed multiplication assignment operation";
+
+         try {
+            initResults();
+            dres_   *= abs( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   *= abs( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ *= abs( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+   }
+#endif
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the conjugate dense vector/sparse vector cross product.
+//
+// \return void
+// \exception std::runtime_error Cross product error detected.
+//
+// This function tests the conjugate vector cross product with plain assignment, addition
+// assignment, subtraction assignment, and multiplication assignment. In case any error resulting
+// from the cross product or the subsequent assignment is detected, a \a std::runtime_error
+// exception is thrown.
+*/
+template< typename VT1    // Type of the left-hand side dense vector
+        , typename VT2 >  // Type of the right-hand side sparse vector
+void OperationTest<VT1,VT2>::testConjOperation()
+{
+#if BLAZETEST_MATHTEST_TEST_CONJ_OPERATION
+   if( BLAZETEST_MATHTEST_TEST_CONJ_OPERATION > 1 )
+   {
+      //=====================================================================================
+      // Conjugate cross product
+      //=====================================================================================
+
+      // Conjugate cross product with the given vectors
+      {
+         test_  = "Conjugate cross product with the given vectors";
+         error_ = "Failed cross product operation";
+
+         try {
+            initResults();
+            dres_   = conj( lhs_ % rhs_ );
+            sres_   = conj( lhs_ % rhs_ );
+            refres_ = conj( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Conjugate cross product with evaluated vectors
+      {
+         test_  = "Conjugate cross product with evaluated vectors";
+         error_ = "Failed cross product operation";
+
+         try {
+            initResults();
+            dres_   = conj( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   = conj( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ = conj( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+
+      //=====================================================================================
+      // Conjugate cross product with addition assignment
+      //=====================================================================================
+
+      // Conjugate cross product with addition assignment with the given vectors
+      {
+         test_  = "Conjugate cross product with addition assignment with the given vectors";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += conj( lhs_ % rhs_ );
+            sres_   += conj( lhs_ % rhs_ );
+            refres_ += conj( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Conjugate cross product with addition assignment with evaluated vectors
+      {
+         test_  = "Conjugate cross product with addition assignment with evaluated vectors";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += conj( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   += conj( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ += conj( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+
+      //=====================================================================================
+      // Conjugate cross product with subtraction assignment
+      //=====================================================================================
+
+      // Conjugate cross product with subtraction assignment with the given vectors
+      {
+         test_  = "Conjugate cross product with subtraction assignment with the given types";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= conj( lhs_ % rhs_ );
+            sres_   -= conj( lhs_ % rhs_ );
+            refres_ -= conj( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Conjugate cross product with subtraction assignment with evaluated vectors
+      {
+         test_  = "Conjugate cross product with subtraction assignment with evaluated vectors";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= conj( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   -= conj( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ -= conj( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+
+      //=====================================================================================
+      // Conjugate cross product with multiplication assignment
+      //=====================================================================================
+
+      // Conjugate cross product with multiplication assignment with the given vectors
+      {
+         test_  = "Conjugate cross product with multiplication assignment with the given vectors";
+         error_ = "Failed multiplication assignment operation";
+
+         try {
+            initResults();
+            dres_   *= conj( lhs_ % rhs_ );
+            sres_   *= conj( lhs_ % rhs_ );
+            refres_ *= conj( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Conjugate cross product with multiplication assignment with evaluated vectors
+      {
+         test_  = "Conjugate cross product with multiplication assignment with evaluated vectors";
+         error_ = "Failed multiplication assignment operation";
+
+         try {
+            initResults();
+            dres_   *= conj( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   *= conj( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ *= conj( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
       }
    }
 #endif
@@ -3108,22 +2142,10 @@ void OperationTest<VT1,VT2>::testCTransOperation()
             trefres_ = ctrans( reflhs_ % refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkTransposeResults<VT1,VT2>();
-
-         try {
-            initResults();
-            dres_   = ctrans( tlhs_ % trhs_ );
-            sres_   = ctrans( tlhs_ % trhs_ );
-            refres_ = ctrans( treflhs_ % trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkResults<TVT1,TVT2>();
+         checkTransposeResults();
       }
 
       // Conjugate transpose cross product with evaluated vectors
@@ -3138,22 +2160,10 @@ void OperationTest<VT1,VT2>::testCTransOperation()
             trefres_ = ctrans( eval( reflhs_ ) % eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkTransposeResults<VT1,VT2>();
-
-         try {
-            initResults();
-            dres_   = ctrans( eval( tlhs_ ) % eval( trhs_ ) );
-            sres_   = ctrans( eval( tlhs_ ) % eval( trhs_ ) );
-            refres_ = ctrans( eval( treflhs_ ) % eval( trefrhs_ ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkResults<TVT1,TVT2>();
+         checkTransposeResults();
       }
 
 
@@ -3173,22 +2183,10 @@ void OperationTest<VT1,VT2>::testCTransOperation()
             trefres_ += ctrans( reflhs_ % refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkTransposeResults<VT1,VT2>();
-
-         try {
-            initResults();
-            dres_   += ctrans( tlhs_ % trhs_ );
-            sres_   += ctrans( tlhs_ % trhs_ );
-            refres_ += ctrans( treflhs_ % trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkResults<TVT1,TVT2>();
+         checkTransposeResults();
       }
 
       // Conjugate transpose cross product with addition assignment with evaluated vectors
@@ -3203,22 +2201,10 @@ void OperationTest<VT1,VT2>::testCTransOperation()
             trefres_ += ctrans( eval( reflhs_ ) % eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkTransposeResults<VT1,VT2>();
-
-         try {
-            initResults();
-            dres_   += ctrans( eval( tlhs_ ) % eval( trhs_ ) );
-            sres_   += ctrans( eval( tlhs_ ) % eval( trhs_ ) );
-            refres_ += ctrans( eval( treflhs_ ) % eval( trefrhs_ ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkResults<TVT1,TVT2>();
+         checkTransposeResults();
       }
 
 
@@ -3238,22 +2224,10 @@ void OperationTest<VT1,VT2>::testCTransOperation()
             trefres_ -= ctrans( reflhs_ % refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkTransposeResults<VT1,VT2>();
-
-         try {
-            initResults();
-            dres_   -= ctrans( tlhs_ % trhs_ );
-            sres_   -= ctrans( tlhs_ % trhs_ );
-            refres_ -= ctrans( treflhs_ % trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkResults<TVT1,TVT2>();
+         checkTransposeResults();
       }
 
       // Conjugate transpose cross product with subtraction assignment with evaluated vectors
@@ -3268,22 +2242,10 @@ void OperationTest<VT1,VT2>::testCTransOperation()
             trefres_ -= ctrans( eval( reflhs_ ) % eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkTransposeResults<VT1,VT2>();
-
-         try {
-            initResults();
-            dres_   -= ctrans( eval( tlhs_ ) % eval( trhs_ ) );
-            sres_   -= ctrans( eval( tlhs_ ) % eval( trhs_ ) );
-            refres_ -= ctrans( eval( treflhs_ ) % eval( trefrhs_ ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkResults<TVT1,TVT2>();
+         checkTransposeResults();
       }
 
 
@@ -3303,22 +2265,10 @@ void OperationTest<VT1,VT2>::testCTransOperation()
             trefres_ *= ctrans( reflhs_ % refrhs_ );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkTransposeResults<VT1,VT2>();
-
-         try {
-            initResults();
-            dres_   *= ctrans( tlhs_ % trhs_ );
-            sres_   *= ctrans( tlhs_ % trhs_ );
-            refres_ *= ctrans( treflhs_ % trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkResults<TVT1,TVT2>();
+         checkTransposeResults();
       }
 
       // Conjugate transpose cross product with multiplication assignment with evaluated vectors
@@ -3333,141 +2283,11 @@ void OperationTest<VT1,VT2>::testCTransOperation()
             trefres_ *= ctrans( eval( reflhs_ ) % eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkTransposeResults<VT1,VT2>();
-
-         try {
-            initResults();
-            dres_   *= ctrans( eval( tlhs_ ) % eval( trhs_ ) );
-            sres_   *= ctrans( eval( tlhs_ ) % eval( trhs_ ) );
-            refres_ *= ctrans( eval( treflhs_ ) % eval( trefrhs_ ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkResults<TVT1,TVT2>();
+         checkTransposeResults();
       }
-
-
-      //=====================================================================================
-      // Conjugate transpose cross product with division assignment
-      //=====================================================================================
-
-      if( blaze::isDivisor( lhs_ % rhs_ ) )
-      {
-         // Conjugate transpose cross product with division assignment with the given vectors
-         {
-            test_  = "Conjugate transpose cross product with division assignment with the given vectors";
-            error_ = "Failed division assignment operation";
-
-            try {
-               initTransposeResults();
-               tdres_   /= ctrans( lhs_ % rhs_ );
-               tsres_   /= ctrans( lhs_ % rhs_ );
-               trefres_ /= ctrans( reflhs_ % refrhs_ );
-            }
-            catch( std::exception& ex ) {
-               convertException<VT1,VT2>( ex );
-            }
-
-            checkTransposeResults<VT1,VT2>();
-
-            try {
-               initResults();
-               dres_   /= ctrans( tlhs_ % trhs_ );
-               sres_   /= ctrans( tlhs_ % trhs_ );
-               refres_ /= ctrans( treflhs_ % trefrhs_ );
-            }
-            catch( std::exception& ex ) {
-               convertException<TVT1,TVT2>( ex );
-            }
-
-            checkResults<TVT1,TVT2>();
-         }
-
-         // Conjugate transpose cross product with division assignment with evaluated vectors
-         {
-            test_  = "Conjugate transpose cross product with division assignment with evaluated vectors";
-            error_ = "Failed division assignment operation";
-
-            try {
-               initTransposeResults();
-               tdres_   /= ctrans( eval( lhs_ ) % eval( rhs_ ) );
-               tsres_   /= ctrans( eval( lhs_ ) % eval( rhs_ ) );
-               trefres_ /= ctrans( eval( reflhs_ ) % eval( refrhs_ ) );
-            }
-            catch( std::exception& ex ) {
-               convertException<VT1,VT2>( ex );
-            }
-
-            checkTransposeResults<VT1,VT2>();
-
-            try {
-               initResults();
-               dres_   /= ctrans( eval( tlhs_ ) % eval( trhs_ ) );
-               sres_   /= ctrans( eval( tlhs_ ) % eval( trhs_ ) );
-               refres_ /= ctrans( eval( treflhs_ ) % eval( trefrhs_ ) );
-            }
-            catch( std::exception& ex ) {
-               convertException<TVT1,TVT2>( ex );
-            }
-
-            checkResults<TVT1,TVT2>();
-         }
-      }
-   }
-#endif
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Testing the abs dense vector/sparse vector cross product.
-//
-// \return void
-// \exception std::runtime_error Cross product error detected.
-//
-// This function tests the abs vector cross product with plain assignment, addition assignment,
-// subtraction assignment, and multiplication assignment. In case any error resulting from the
-// cross product or the subsequent assignment is detected, a \a std::runtime_error exception
-// is thrown.
-*/
-template< typename VT1    // Type of the left-hand side dense vector
-        , typename VT2 >  // Type of the right-hand side sparse vector
-void OperationTest<VT1,VT2>::testAbsOperation()
-{
-#if BLAZETEST_MATHTEST_TEST_ABS_OPERATION
-   if( BLAZETEST_MATHTEST_TEST_ABS_OPERATION > 1 )
-   {
-      testCustomOperation( blaze::Abs(), "abs" );
-   }
-#endif
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Testing the conjugate dense vector/sparse vector cross product.
-//
-// \return void
-// \exception std::runtime_error Cross product error detected.
-//
-// This function tests the conjugate vector cross product with plain assignment, addition
-// assignment, subtraction assignment, and multiplication assignment. In case any error resulting
-// from the cross product or the subsequent assignment is detected, a \a std::runtime_error
-// exception is thrown.
-*/
-template< typename VT1    // Type of the left-hand side dense vector
-        , typename VT2 >  // Type of the right-hand side sparse vector
-void OperationTest<VT1,VT2>::testConjOperation()
-{
-#if BLAZETEST_MATHTEST_TEST_CONJ_OPERATION
-   if( BLAZETEST_MATHTEST_TEST_CONJ_OPERATION > 1 )
-   {
-      testCustomOperation( blaze::Conj(), "conj" );
    }
 #endif
 }
@@ -3492,7 +2312,168 @@ void OperationTest<VT1,VT2>::testRealOperation()
 #if BLAZETEST_MATHTEST_TEST_REAL_OPERATION
    if( BLAZETEST_MATHTEST_TEST_REAL_OPERATION > 1 )
    {
-      testCustomOperation( blaze::Real(), "real" );
+      //=====================================================================================
+      // Real cross product
+      //=====================================================================================
+
+      // Real cross product with the given vectors
+      {
+         test_  = "Real cross product with the given vectors";
+         error_ = "Failed cross product operation";
+
+         try {
+            initResults();
+            dres_   = real( lhs_ % rhs_ );
+            sres_   = real( lhs_ % rhs_ );
+            refres_ = real( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Real cross product with evaluated vectors
+      {
+         test_  = "Real cross product with evaluated vectors";
+         error_ = "Failed cross product operation";
+
+         try {
+            initResults();
+            dres_   = real( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   = real( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ = real( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+
+      //=====================================================================================
+      // Real cross product with addition assignment
+      //=====================================================================================
+
+      // Real cross product with addition assignment with the given vectors
+      {
+         test_  = "Real cross product with addition assignment with the given vectors";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += real( lhs_ % rhs_ );
+            sres_   += real( lhs_ % rhs_ );
+            refres_ += real( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Real cross product with addition assignment with evaluated vectors
+      {
+         test_  = "Real cross product with addition assignment with evaluated vectors";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += real( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   += real( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ += real( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+
+      //=====================================================================================
+      // Real cross product with subtraction assignment
+      //=====================================================================================
+
+      // Real cross product with subtraction assignment with the given vectors
+      {
+         test_  = "Real cross product with subtraction assignment with the given types";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= real( lhs_ % rhs_ );
+            sres_   -= real( lhs_ % rhs_ );
+            refres_ -= real( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Real cross product with subtraction assignment with evaluated vectors
+      {
+         test_  = "Real cross product with subtraction assignment with evaluated vectors";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= real( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   -= real( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ -= real( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+
+      //=====================================================================================
+      // Real cross product with multiplication assignment
+      //=====================================================================================
+
+      // Real cross product with multiplication assignment with the given vectors
+      {
+         test_  = "Real cross product with multiplication assignment with the given vectors";
+         error_ = "Failed multiplication assignment operation";
+
+         try {
+            initResults();
+            dres_   *= real( lhs_ % rhs_ );
+            sres_   *= real( lhs_ % rhs_ );
+            refres_ *= real( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Real cross product with multiplication assignment with evaluated vectors
+      {
+         test_  = "Real cross product with multiplication assignment with evaluated vectors";
+         error_ = "Failed multiplication assignment operation";
+
+         try {
+            initResults();
+            dres_   *= real( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   *= real( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ *= real( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
    }
 #endif
 }
@@ -3517,7 +2498,168 @@ void OperationTest<VT1,VT2>::testImagOperation()
 #if BLAZETEST_MATHTEST_TEST_IMAG_OPERATION
    if( BLAZETEST_MATHTEST_TEST_IMAG_OPERATION > 1 )
    {
-      testCustomOperation( blaze::Imag(), "imag" );
+      //=====================================================================================
+      // Imag cross product
+      //=====================================================================================
+
+      // Imag cross product with the given vectors
+      {
+         test_  = "Imag cross product with the given vectors";
+         error_ = "Failed cross product operation";
+
+         try {
+            initResults();
+            dres_   = imag( lhs_ % rhs_ );
+            sres_   = imag( lhs_ % rhs_ );
+            refres_ = imag( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Imag cross product with evaluated vectors
+      {
+         test_  = "Imag cross product with evaluated vectors";
+         error_ = "Failed cross product operation";
+
+         try {
+            initResults();
+            dres_   = imag( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   = imag( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ = imag( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+
+      //=====================================================================================
+      // Imag cross product with addition assignment
+      //=====================================================================================
+
+      // Imag cross product with addition assignment with the given vectors
+      {
+         test_  = "Imag cross product with addition assignment with the given vectors";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += imag( lhs_ % rhs_ );
+            sres_   += imag( lhs_ % rhs_ );
+            refres_ += imag( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Imag cross product with addition assignment with evaluated vectors
+      {
+         test_  = "Imag cross product with addition assignment with evaluated vectors";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += imag( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   += imag( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ += imag( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+
+      //=====================================================================================
+      // Imag cross product with subtraction assignment
+      //=====================================================================================
+
+      // Imag cross product with subtraction assignment with the given vectors
+      {
+         test_  = "Imag cross product with subtraction assignment with the given types";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= imag( lhs_ % rhs_ );
+            sres_   -= imag( lhs_ % rhs_ );
+            refres_ -= imag( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Imag cross product with subtraction assignment with evaluated vectors
+      {
+         test_  = "Imag cross product with subtraction assignment with evaluated vectors";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= imag( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   -= imag( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ -= imag( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+
+      //=====================================================================================
+      // Imag cross product with multiplication assignment
+      //=====================================================================================
+
+      // Imag cross product with multiplication assignment with the given vectors
+      {
+         test_  = "Imag cross product with multiplication assignment with the given vectors";
+         error_ = "Failed multiplication assignment operation";
+
+         try {
+            initResults();
+            dres_   *= imag( lhs_ % rhs_ );
+            sres_   *= imag( lhs_ % rhs_ );
+            refres_ *= imag( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Imag cross product with multiplication assignment with evaluated vectors
+      {
+         test_  = "Imag cross product with multiplication assignment with evaluated vectors";
+         error_ = "Failed multiplication assignment operation";
+
+         try {
+            initResults();
+            dres_   *= imag( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   *= imag( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ *= imag( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
    }
 #endif
 }
@@ -3542,7 +2684,168 @@ void OperationTest<VT1,VT2>::testEvalOperation()
 #if BLAZETEST_MATHTEST_TEST_EVAL_OPERATION
    if( BLAZETEST_MATHTEST_TEST_EVAL_OPERATION > 1 )
    {
-      testCustomOperation( blaze::Eval(), "eval" );
+      //=====================================================================================
+      // Eval cross product
+      //=====================================================================================
+
+      // Eval cross product with the given vectors
+      {
+         test_  = "Eval cross product with the given vectors";
+         error_ = "Failed cross product operation";
+
+         try {
+            initResults();
+            dres_   = eval( lhs_ % rhs_ );
+            sres_   = eval( lhs_ % rhs_ );
+            refres_ = eval( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Eval cross product with evaluated vectors
+      {
+         test_  = "Eval cross product with evaluated vectors";
+         error_ = "Failed cross product operation";
+
+         try {
+            initResults();
+            dres_   = eval( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   = eval( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ = eval( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+
+      //=====================================================================================
+      // Eval cross product with addition assignment
+      //=====================================================================================
+
+      // Eval cross product with addition assignment with the given vectors
+      {
+         test_  = "Eval cross product with addition assignment with the given vectors";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += eval( lhs_ % rhs_ );
+            sres_   += eval( lhs_ % rhs_ );
+            refres_ += eval( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Eval cross product with addition assignment with evaluated vectors
+      {
+         test_  = "Eval cross product with addition assignment with evaluated vectors";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += eval( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   += eval( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ += eval( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+
+      //=====================================================================================
+      // Eval cross product with subtraction assignment
+      //=====================================================================================
+
+      // Eval cross product with subtraction assignment with the given vectors
+      {
+         test_  = "Eval cross product with subtraction assignment with the given types";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= eval( lhs_ % rhs_ );
+            sres_   -= eval( lhs_ % rhs_ );
+            refres_ -= eval( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Eval cross product with subtraction assignment with evaluated vectors
+      {
+         test_  = "Eval cross product with subtraction assignment with evaluated vectors";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= eval( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   -= eval( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ -= eval( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+
+      //=====================================================================================
+      // Eval cross product with multiplication assignment
+      //=====================================================================================
+
+      // Eval cross product with multiplication assignment with the given vectors
+      {
+         test_  = "Eval cross product with multiplication assignment with the given vectors";
+         error_ = "Failed multiplication assignment operation";
+
+         try {
+            initResults();
+            dres_   *= eval( lhs_ % rhs_ );
+            sres_   *= eval( lhs_ % rhs_ );
+            refres_ *= eval( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Eval cross product with multiplication assignment with evaluated vectors
+      {
+         test_  = "Eval cross product with multiplication assignment with evaluated vectors";
+         error_ = "Failed multiplication assignment operation";
+
+         try {
+            initResults();
+            dres_   *= eval( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   *= eval( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ *= eval( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
    }
 #endif
 }
@@ -3567,7 +2870,168 @@ void OperationTest<VT1,VT2>::testSerialOperation()
 #if BLAZETEST_MATHTEST_TEST_SERIAL_OPERATION
    if( BLAZETEST_MATHTEST_TEST_SERIAL_OPERATION > 1 )
    {
-      testCustomOperation( blaze::Serial(), "serial" );
+      //=====================================================================================
+      // Serial cross product
+      //=====================================================================================
+
+      // Serial cross product with the given vectors
+      {
+         test_  = "Serial cross product with the given vectors";
+         error_ = "Failed cross product operation";
+
+         try {
+            initResults();
+            dres_   = serial( lhs_ % rhs_ );
+            sres_   = serial( lhs_ % rhs_ );
+            refres_ = serial( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Serial cross product with evaluated vectors
+      {
+         test_  = "Serial cross product with evaluated vectors";
+         error_ = "Failed cross product operation";
+
+         try {
+            initResults();
+            dres_   = serial( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   = serial( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ = serial( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+
+      //=====================================================================================
+      // Serial cross product with addition assignment
+      //=====================================================================================
+
+      // Serial cross product with addition assignment with the given vectors
+      {
+         test_  = "Serial cross product with addition assignment with the given vectors";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += serial( lhs_ % rhs_ );
+            sres_   += serial( lhs_ % rhs_ );
+            refres_ += serial( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Serial cross product with addition assignment with evaluated vectors
+      {
+         test_  = "Serial cross product with addition assignment with evaluated vectors";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            dres_   += serial( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   += serial( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ += serial( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+
+      //=====================================================================================
+      // Serial cross product with subtraction assignment
+      //=====================================================================================
+
+      // Serial cross product with subtraction assignment with the given vectors
+      {
+         test_  = "Serial cross product with subtraction assignment with the given types";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= serial( lhs_ % rhs_ );
+            sres_   -= serial( lhs_ % rhs_ );
+            refres_ -= serial( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Serial cross product with subtraction assignment with evaluated vectors
+      {
+         test_  = "Serial cross product with subtraction assignment with evaluated vectors";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            dres_   -= serial( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   -= serial( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ -= serial( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+
+      //=====================================================================================
+      // Serial cross product with multiplication assignment
+      //=====================================================================================
+
+      // Serial cross product with multiplication assignment with the given vectors
+      {
+         test_  = "Serial cross product with multiplication assignment with the given vectors";
+         error_ = "Failed multiplication assignment operation";
+
+         try {
+            initResults();
+            dres_   *= serial( lhs_ % rhs_ );
+            sres_   *= serial( lhs_ % rhs_ );
+            refres_ *= serial( reflhs_ % refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
+
+      // Serial cross product with multiplication assignment with evaluated vectors
+      {
+         test_  = "Serial cross product with multiplication assignment with evaluated vectors";
+         error_ = "Failed multiplication assignment operation";
+
+         try {
+            initResults();
+            dres_   *= serial( eval( lhs_ ) % eval( rhs_ ) );
+            sres_   *= serial( eval( lhs_ ) % eval( rhs_ ) );
+            refres_ *= serial( eval( reflhs_ ) % eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException( ex );
+         }
+
+         checkResults();
+      }
    }
 #endif
 }
@@ -3610,25 +3074,10 @@ void OperationTest<VT1,VT2>::testSubvectorOperation()
             }
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            for( size_t index=0UL, size=0UL; index<lhs_.size(); index+=size ) {
-               size = blaze::rand<size_t>( 1UL, lhs_.size() - index );
-               subvector( tdres_  , index, size ) = subvector( tlhs_ % trhs_      , index, size );
-               subvector( tsres_  , index, size ) = subvector( tlhs_ % trhs_      , index, size );
-               subvector( trefres_, index, size ) = subvector( treflhs_ % trefrhs_, index, size );
-            }
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Subvector-wise cross product with evaluated vectors
@@ -3646,25 +3095,10 @@ void OperationTest<VT1,VT2>::testSubvectorOperation()
             }
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            for( size_t index=0UL, size=0UL; index<lhs_.size(); index+=size ) {
-               size = blaze::rand<size_t>( 1UL, lhs_.size() - index );
-               subvector( tdres_  , index, size ) = subvector( eval( tlhs_ ) % eval( trhs_ )      , index, size );
-               subvector( tsres_  , index, size ) = subvector( eval( tlhs_ ) % eval( trhs_ )      , index, size );
-               subvector( trefres_, index, size ) = subvector( eval( treflhs_ ) % eval( trefrhs_ ), index, size );
-            }
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -3687,25 +3121,10 @@ void OperationTest<VT1,VT2>::testSubvectorOperation()
             }
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            for( size_t index=0UL, size=0UL; index<lhs_.size(); index+=size ) {
-               size = blaze::rand<size_t>( 1UL, lhs_.size() - index );
-               subvector( tdres_  , index, size ) += subvector( tlhs_ % trhs_      , index, size );
-               subvector( tsres_  , index, size ) += subvector( tlhs_ % trhs_      , index, size );
-               subvector( trefres_, index, size ) += subvector( treflhs_ % trefrhs_, index, size );
-            }
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Subvector-wise cross product with addition assignment with evaluated vectors
@@ -3723,25 +3142,10 @@ void OperationTest<VT1,VT2>::testSubvectorOperation()
             }
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            for( size_t index=0UL, size=0UL; index<lhs_.size(); index+=size ) {
-               size = blaze::rand<size_t>( 1UL, lhs_.size() - index );
-               subvector( tdres_  , index, size ) += subvector( eval( tlhs_ ) % eval( trhs_ )      , index, size );
-               subvector( tsres_  , index, size ) += subvector( eval( tlhs_ ) % eval( trhs_ )      , index, size );
-               subvector( trefres_, index, size ) += subvector( eval( treflhs_ ) % eval( trefrhs_ ), index, size );
-            }
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -3764,25 +3168,10 @@ void OperationTest<VT1,VT2>::testSubvectorOperation()
             }
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            for( size_t index=0UL, size=0UL; index<lhs_.size(); index+=size ) {
-               size = blaze::rand<size_t>( 1UL, lhs_.size() - index );
-               subvector( tdres_  , index, size ) -= subvector( tlhs_ % trhs_      , index, size );
-               subvector( tsres_  , index, size ) -= subvector( tlhs_ % trhs_      , index, size );
-               subvector( trefres_, index, size ) -= subvector( treflhs_ % trefrhs_, index, size );
-            }
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Subvector-wise cross product with subtraction assignment with evaluated vectors
@@ -3800,25 +3189,10 @@ void OperationTest<VT1,VT2>::testSubvectorOperation()
             }
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            for( size_t index=0UL, size=0UL; index<lhs_.size(); index+=size ) {
-               size = blaze::rand<size_t>( 1UL, lhs_.size() - index );
-               subvector( tdres_  , index, size ) -= subvector( eval( tlhs_ ) % eval( trhs_ )      , index, size );
-               subvector( tsres_  , index, size ) -= subvector( eval( tlhs_ ) % eval( trhs_ )      , index, size );
-               subvector( trefres_, index, size ) -= subvector( eval( treflhs_ ) % eval( trefrhs_ ), index, size );
-            }
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
 
@@ -3841,25 +3215,10 @@ void OperationTest<VT1,VT2>::testSubvectorOperation()
             }
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            for( size_t index=0UL, size=0UL; index<lhs_.size(); index+=size ) {
-               size = blaze::rand<size_t>( 1UL, lhs_.size() - index );
-               subvector( tdres_  , index, size ) *= subvector( tlhs_ % trhs_      , index, size );
-               subvector( tsres_  , index, size ) *= subvector( tlhs_ % trhs_      , index, size );
-               subvector( trefres_, index, size ) *= subvector( treflhs_ % trefrhs_, index, size );
-            }
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
 
       // Subvector-wise cross product with multiplication assignment with evaluated vectors
@@ -3877,457 +3236,13 @@ void OperationTest<VT1,VT2>::testSubvectorOperation()
             }
          }
          catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
+            convertException( ex );
          }
 
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            for( size_t index=0UL, size=0UL; index<lhs_.size(); index+=size ) {
-               size = blaze::rand<size_t>( 1UL, lhs_.size() - index );
-               subvector( tdres_  , index, size ) *= subvector( eval( tlhs_ ) % eval( trhs_ )      , index, size );
-               subvector( tsres_  , index, size ) *= subvector( eval( tlhs_ ) % eval( trhs_ )      , index, size );
-               subvector( trefres_, index, size ) *= subvector( eval( treflhs_ ) % eval( trefrhs_ ), index, size );
-            }
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
-      }
-
-
-      //=====================================================================================
-      // Subvector-wise cross product with division assignment
-      //=====================================================================================
-
-      // Subvector-wise cross product with division assignment with the given vectors
-      {
-         test_  = "Subvector-wise cross product with division assignment with the given vectors";
-         error_ = "Failed division assignment operation";
-
-         try {
-            initResults();
-            for( size_t index=0UL, size=0UL; index<lhs_.size(); index+=size ) {
-               size = blaze::rand<size_t>( 1UL, lhs_.size() - index );
-               if( !blaze::isDivisor( subvector( lhs_ % rhs_, index, size ) ) ) continue;
-               subvector( dres_  , index, size ) /= subvector( lhs_ % rhs_      , index, size );
-               subvector( sres_  , index, size ) /= subvector( lhs_ % rhs_      , index, size );
-               subvector( refres_, index, size ) /= subvector( reflhs_ % refrhs_, index, size );
-            }
-         }
-         catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
-         }
-
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            for( size_t index=0UL, size=0UL; index<lhs_.size(); index+=size ) {
-               size = blaze::rand<size_t>( 1UL, lhs_.size() - index );
-               if( !blaze::isDivisor( subvector( tlhs_ % trhs_, index, size ) ) ) continue;
-               subvector( tdres_  , index, size ) /= subvector( tlhs_ % trhs_      , index, size );
-               subvector( tsres_  , index, size ) /= subvector( tlhs_ % trhs_      , index, size );
-               subvector( trefres_, index, size ) /= subvector( treflhs_ % trefrhs_, index, size );
-            }
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
-      }
-
-      // Subvector-wise cross product with division assignment with evaluated vectors
-      {
-         test_  = "Subvector-wise cross product with division assignment with evaluated vectors";
-         error_ = "Failed division assignment operation";
-
-         try {
-            initResults();
-            for( size_t index=0UL, size=0UL; index<lhs_.size(); index+=size ) {
-               size = blaze::rand<size_t>( 1UL, lhs_.size() - index );
-               if( !blaze::isDivisor( subvector( lhs_ % rhs_, index, size ) ) ) continue;
-               subvector( dres_  , index, size ) /= subvector( eval( lhs_ ) % eval( rhs_ )      , index, size );
-               subvector( sres_  , index, size ) /= subvector( eval( lhs_ ) % eval( rhs_ )      , index, size );
-               subvector( refres_, index, size ) /= subvector( eval( reflhs_ ) % eval( refrhs_ ), index, size );
-            }
-         }
-         catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
-         }
-
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            for( size_t index=0UL, size=0UL; index<lhs_.size(); index+=size ) {
-               size = blaze::rand<size_t>( 1UL, lhs_.size() - index );
-               if( !blaze::isDivisor( subvector( tlhs_ % trhs_, index, size ) ) ) continue;
-               subvector( tdres_  , index, size ) /= subvector( eval( tlhs_ ) % eval( trhs_ )      , index, size );
-               subvector( tsres_  , index, size ) /= subvector( eval( tlhs_ ) % eval( trhs_ )      , index, size );
-               subvector( trefres_, index, size ) /= subvector( eval( treflhs_ ) % eval( trefrhs_ ), index, size );
-            }
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
+         checkResults();
       }
    }
 #endif
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Testing the customized dense vector/sparse vector cross product.
-//
-// \param op The custom operation to be tested.
-// \param name The human-readable name of the operation.
-// \return void
-// \exception std::runtime_error Cross product error detected.
-//
-// This function tests the vector cross product with plain assignment, addition assignment,
-// subtraction assignment, and multiplication assignment in combination with a custom operation.
-// In case any error resulting from the cross product or the subsequent assignment is detected,
-// a \a std::runtime_error exception is thrown.
-*/
-template< typename VT1    // Type of the left-hand side dense vector
-        , typename VT2 >  // Type of the right-hand side sparse vector
-template< typename OP >   // Type of the custom operation
-void OperationTest<VT1,VT2>::testCustomOperation( OP op, const std::string& name )
-{
-   //=====================================================================================
-   // Customized cross product
-   //=====================================================================================
-
-   // Customized cross product with the given vectors
-   {
-      test_  = "Customized cross product with the given vectors (" + name + ")";
-      error_ = "Failed cross product operation";
-
-      try {
-         initResults();
-         dres_   = op( lhs_ % rhs_ );
-         sres_   = op( lhs_ % rhs_ );
-         refres_ = op( reflhs_ % refrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<VT1,VT2>( ex );
-      }
-
-      checkResults<VT1,VT2>();
-
-      try {
-         initTransposeResults();
-         tdres_   = op( tlhs_ % trhs_ );
-         tsres_   = op( tlhs_ % trhs_ );
-         trefres_ = op( treflhs_ % trefrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<TVT1,TVT2>( ex );
-      }
-
-      checkTransposeResults<TVT1,TVT2>();
-   }
-
-   // Customized cross product with evaluated vectors
-   {
-      test_  = "Customized cross product with evaluated vectors (" + name + ")";
-      error_ = "Failed cross product operation";
-
-      try {
-         initResults();
-         dres_   = op( eval( lhs_ ) % eval( rhs_ ) );
-         sres_   = op( eval( lhs_ ) % eval( rhs_ ) );
-         refres_ = op( eval( reflhs_ ) % eval( refrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<VT1,VT2>( ex );
-      }
-
-      checkResults<VT1,VT2>();
-
-      try {
-         initTransposeResults();
-         tdres_   = op( eval( tlhs_ ) % eval( trhs_ ) );
-         tsres_   = op( eval( tlhs_ ) % eval( trhs_ ) );
-         trefres_ = op( eval( treflhs_ ) % eval( trefrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<TVT1,TVT2>( ex );
-      }
-
-      checkTransposeResults<TVT1,TVT2>();
-   }
-
-
-   //=====================================================================================
-   // Customized cross product with addition assignment
-   //=====================================================================================
-
-   // Customized cross product with addition assignment with the given vectors
-   {
-      test_  = "Customized cross product with addition assignment with the given vectors (" + name + ")";
-      error_ = "Failed addition assignment operation";
-
-      try {
-         initResults();
-         dres_   += op( lhs_ % rhs_ );
-         sres_   += op( lhs_ % rhs_ );
-         refres_ += op( reflhs_ % refrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<VT1,VT2>( ex );
-      }
-
-      checkResults<VT1,VT2>();
-
-      try {
-         initTransposeResults();
-         tdres_   += op( tlhs_ % trhs_ );
-         tsres_   += op( tlhs_ % trhs_ );
-         trefres_ += op( treflhs_ % trefrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<TVT1,TVT2>( ex );
-      }
-
-      checkTransposeResults<TVT1,TVT2>();
-   }
-
-   // Customized cross product with addition assignment with evaluated vectors
-   {
-      test_  = "Customized cross product with addition assignment with evaluated vectors (" + name + ")";
-      error_ = "Failed addition assignment operation";
-
-      try {
-         initResults();
-         dres_   += op( eval( lhs_ ) % eval( rhs_ ) );
-         sres_   += op( eval( lhs_ ) % eval( rhs_ ) );
-         refres_ += op( eval( reflhs_ ) % eval( refrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<VT1,VT2>( ex );
-      }
-
-      checkResults<VT1,VT2>();
-
-      try {
-         initTransposeResults();
-         tdres_   += op( eval( tlhs_ ) % eval( trhs_ ) );
-         tsres_   += op( eval( tlhs_ ) % eval( trhs_ ) );
-         trefres_ += op( eval( treflhs_ ) % eval( trefrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<TVT1,TVT2>( ex );
-      }
-
-      checkTransposeResults<TVT1,TVT2>();
-   }
-
-
-   //=====================================================================================
-   // Customized cross product with subtraction assignment
-   //=====================================================================================
-
-   // Customized cross product with subtraction assignment with the given vectors
-   {
-      test_  = "Customized cross product with subtraction assignment with the given vectors (" + name + ")";
-      error_ = "Failed subtraction assignment operation";
-
-      try {
-         initResults();
-         dres_   -= op( lhs_ % rhs_ );
-         sres_   -= op( lhs_ % rhs_ );
-         refres_ -= op( reflhs_ % refrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<VT1,VT2>( ex );
-      }
-
-      checkResults<VT1,VT2>();
-
-      try {
-         initTransposeResults();
-         tdres_   -= op( tlhs_ % trhs_ );
-         tsres_   -= op( tlhs_ % trhs_ );
-         trefres_ -= op( treflhs_ % trefrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<TVT1,TVT2>( ex );
-      }
-
-      checkTransposeResults<TVT1,TVT2>();
-   }
-
-   // Customized cross product with subtraction assignment with evaluated vectors
-   {
-      test_  = "Customized cross product with subtraction assignment with evaluated vectors (" + name + ")";
-      error_ = "Failed subtraction assignment operation";
-
-      try {
-         initResults();
-         dres_   -= op( eval( lhs_ ) % eval( rhs_ ) );
-         sres_   -= op( eval( lhs_ ) % eval( rhs_ ) );
-         refres_ -= op( eval( reflhs_ ) % eval( refrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<VT1,VT2>( ex );
-      }
-
-      checkResults<VT1,VT2>();
-
-      try {
-         initTransposeResults();
-         tdres_   -= op( eval( tlhs_ ) % eval( trhs_ ) );
-         tsres_   -= op( eval( tlhs_ ) % eval( trhs_ ) );
-         trefres_ -= op( eval( treflhs_ ) % eval( trefrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<TVT1,TVT2>( ex );
-      }
-
-      checkTransposeResults<TVT1,TVT2>();
-   }
-
-
-   //=====================================================================================
-   // Customized cross product with multiplication assignment
-   //=====================================================================================
-
-   // Customized cross product with multiplication assignment with the given vectors
-   {
-      test_  = "Customized cross product with multiplication assignment with the given vectors (" + name + ")";
-      error_ = "Failed multiplication assignment operation";
-
-      try {
-         initResults();
-         dres_   *= op( lhs_ % rhs_ );
-         sres_   *= op( lhs_ % rhs_ );
-         refres_ *= op( reflhs_ % refrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<VT1,VT2>( ex );
-      }
-
-      checkResults<VT1,VT2>();
-
-      try {
-         initTransposeResults();
-         tdres_   *= op( tlhs_ % trhs_ );
-         tsres_   *= op( tlhs_ % trhs_ );
-         trefres_ *= op( treflhs_ % trefrhs_ );
-      }
-      catch( std::exception& ex ) {
-         convertException<TVT1,TVT2>( ex );
-      }
-
-      checkTransposeResults<TVT1,TVT2>();
-   }
-
-   // Customized cross product with multiplication assignment with evaluated vectors
-   {
-      test_  = "Customized cross product with multiplication assignment with evaluated vectors (" + name + ")";
-      error_ = "Failed multiplication assignment operation";
-
-      try {
-         initResults();
-         dres_   *= op( eval( lhs_ ) % eval( rhs_ ) );
-         sres_   *= op( eval( lhs_ ) % eval( rhs_ ) );
-         refres_ *= op( eval( reflhs_ ) % eval( refrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<VT1,VT2>( ex );
-      }
-
-      checkResults<VT1,VT2>();
-
-      try {
-         initTransposeResults();
-         tdres_   *= op( eval( tlhs_ ) % eval( trhs_ ) );
-         tsres_   *= op( eval( tlhs_ ) % eval( trhs_ ) );
-         trefres_ *= op( eval( treflhs_ ) % eval( trefrhs_ ) );
-      }
-      catch( std::exception& ex ) {
-         convertException<TVT1,TVT2>( ex );
-      }
-
-      checkTransposeResults<TVT1,TVT2>();
-   }
-
-
-   //=====================================================================================
-   // Customized cross product with division assignment
-   //=====================================================================================
-
-   if( blaze::isDivisor( op( lhs_ % rhs_ ) ) )
-   {
-      // Customized cross product with division assignment with the given vectors
-      {
-         test_  = "Customized cross product with division assignment with the given vectors (" + name + ")";
-         error_ = "Failed division assignment operation";
-
-         try {
-            initResults();
-            dres_   /= op( lhs_ % rhs_ );
-            sres_   /= op( lhs_ % rhs_ );
-            refres_ /= op( reflhs_ % refrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
-         }
-
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   /= op( tlhs_ % trhs_ );
-            tsres_   /= op( tlhs_ % trhs_ );
-            trefres_ /= op( treflhs_ % trefrhs_ );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
-      }
-
-      // Customized cross product with division assignment with evaluated vectors
-      {
-         test_  = "Customized cross product with division assignment with evaluated vectors (" + name + ")";
-         error_ = "Failed division assignment operation";
-
-         try {
-            initResults();
-            dres_   /= op( eval( lhs_ ) % eval( rhs_ ) );
-            sres_   /= op( eval( lhs_ ) % eval( rhs_ ) );
-            refres_ /= op( eval( reflhs_ ) % eval( refrhs_ ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<VT1,VT2>( ex );
-         }
-
-         checkResults<VT1,VT2>();
-
-         try {
-            initTransposeResults();
-            tdres_   /= op( eval( tlhs_ ) % eval( trhs_ ) );
-            tsres_   /= op( eval( tlhs_ ) % eval( trhs_ ) );
-            trefres_ /= op( eval( treflhs_ ) % eval( trefrhs_ ) );
-         }
-         catch( std::exception& ex ) {
-            convertException<TVT1,TVT2>( ex );
-         }
-
-         checkTransposeResults<TVT1,TVT2>();
-      }
-   }
 }
 //*************************************************************************************************
 
@@ -4351,22 +3266,18 @@ void OperationTest<VT1,VT2>::testCustomOperation( OP op, const std::string& name
 */
 template< typename VT1    // Type of the left-hand side dense vector
         , typename VT2 >  // Type of the right-hand side sparse vector
-template< typename LT     // Type of the left-hand side operand
-        , typename RT >   // Type of the right-hand side operand
 void OperationTest<VT1,VT2>::checkResults()
 {
-   using blaze::IsRowVector;
-
    if( !isEqual( dres_, refres_ ) ) {
       std::ostringstream oss;
       oss.precision( 20 );
       oss << " Test : " << test_ << "\n"
           << " Error: Incorrect dense result vector detected\n"
           << " Details:\n"
-          << "   Left-hand side dense " << ( IsRowVector<LT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-          << "     " << typeid( LT ).name() << "\n"
-          << "   Right-hand side sparse " << ( IsRowVector<RT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-          << "     " << typeid( RT ).name() << "\n"
+          << "   Left-hand side dense vector type:\n"
+          << "     " << typeid( VT1 ).name() << "\n"
+          << "   Right-hand side sparse vector type:\n"
+          << "     " << typeid( VT2 ).name() << "\n"
           << "   Result:\n" << dres_ << "\n"
           << "   Expected result:\n" << refres_ << "\n";
       throw std::runtime_error( oss.str() );
@@ -4378,10 +3289,10 @@ void OperationTest<VT1,VT2>::checkResults()
       oss << " Test : " << test_ << "\n"
           << " Error: Incorrect sparse result vector detected\n"
           << " Details:\n"
-          << "   Left-hand side dense " << ( IsRowVector<LT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-          << "     " << typeid( LT ).name() << "\n"
-          << "   Right-hand side sparse " << ( IsRowVector<RT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-          << "     " << typeid( RT ).name() << "\n"
+          << "   Left-hand side dense vector type:\n"
+          << "     " << typeid( VT1 ).name() << "\n"
+          << "   Right-hand side sparse vector type:\n"
+          << "     " << typeid( VT2 ).name() << "\n"
           << "   Result:\n" << sres_ << "\n"
           << "   Expected result:\n" << refres_ << "\n";
       throw std::runtime_error( oss.str() );
@@ -4402,22 +3313,18 @@ void OperationTest<VT1,VT2>::checkResults()
 */
 template< typename VT1    // Type of the left-hand side dense vector
         , typename VT2 >  // Type of the right-hand side sparse vector
-template< typename LT     // Type of the left-hand side operand
-        , typename RT >   // Type of the right-hand side operand
 void OperationTest<VT1,VT2>::checkTransposeResults()
 {
-   using blaze::IsRowVector;
-
    if( !isEqual( tdres_, trefres_ ) ) {
       std::ostringstream oss;
       oss.precision( 20 );
       oss << " Test : " << test_ << "\n"
           << " Error: Incorrect dense result vector detected\n"
           << " Details:\n"
-          << "   Left-hand side dense " << ( IsRowVector<LT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-          << "     " << typeid( LT ).name() << "\n"
-          << "   Right-hand side sparse " << ( IsRowVector<RT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-          << "     " << typeid( RT ).name() << "\n"
+          << "   Left-hand side dense vector type:\n"
+          << "     " << typeid( VT1 ).name() << "\n"
+          << "   Right-hand side sparse vector type:\n"
+          << "     " << typeid( VT2 ).name() << "\n"
           << "   Result:\n" << tdres_ << "\n"
           << "   Expected result:\n" << trefres_ << "\n";
       throw std::runtime_error( oss.str() );
@@ -4429,10 +3336,10 @@ void OperationTest<VT1,VT2>::checkTransposeResults()
       oss << " Test : " << test_ << "\n"
           << " Error: Incorrect sparse result vector detected\n"
           << " Details:\n"
-          << "   Left-hand side dense " << ( IsRowVector<LT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-          << "     " << typeid( LT ).name() << "\n"
-          << "   Right-hand side sparse " << ( IsRowVector<RT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-          << "     " << typeid( RT ).name() << "\n"
+          << "   Left-hand side dense vector type:\n"
+          << "     " << typeid( VT1 ).name() << "\n"
+          << "   Right-hand side sparse vector type:\n"
+          << "     " << typeid( VT2 ).name() << "\n"
           << "   Result:\n" << tsres_ << "\n"
           << "   Expected result:\n" << trefres_ << "\n";
       throw std::runtime_error( oss.str() );
@@ -4461,8 +3368,8 @@ template< typename VT1    // Type of the left-hand side dense vector
         , typename VT2 >  // Type of the right-hand side sparse vector
 void OperationTest<VT1,VT2>::initResults()
 {
-   const blaze::UnderlyingBuiltin_<DRE> min( randmin );
-   const blaze::UnderlyingBuiltin_<DRE> max( randmax );
+   const typename blaze::UnderlyingBuiltin<DRE>::Type min( randmin );
+   const typename blaze::UnderlyingBuiltin<DRE>::Type max( randmax );
 
    resize( dres_, 3UL );
    randomize( dres_, min, max );
@@ -4485,8 +3392,8 @@ template< typename VT1    // Type of the left-hand side dense vector
         , typename VT2 >  // Type of the right-hand side sparse vector
 void OperationTest<VT1,VT2>::initTransposeResults()
 {
-   const blaze::UnderlyingBuiltin_<TDRE> min( randmin );
-   const blaze::UnderlyingBuiltin_<TDRE> max( randmax );
+   const typename blaze::UnderlyingBuiltin<TDRE>::Type min( randmin );
+   const typename blaze::UnderlyingBuiltin<TDRE>::Type max( randmax );
 
    resize( tdres_, 3UL );
    randomize( tdres_, min, max );
@@ -4510,20 +3417,16 @@ void OperationTest<VT1,VT2>::initTransposeResults()
 */
 template< typename VT1    // Type of the left-hand side dense vector
         , typename VT2 >  // Type of the right-hand side sparse vector
-template< typename LT     // Type of the left-hand side operand
-        , typename RT >   // Type of the right-hand side operand
 void OperationTest<VT1,VT2>::convertException( const std::exception& ex )
 {
-   using blaze::IsRowVector;
-
    std::ostringstream oss;
    oss << " Test : " << test_ << "\n"
        << " Error: " << error_ << "\n"
        << " Details:\n"
-       << "   Left-hand side dense " << ( IsRowVector<LT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-       << "     " << typeid( LT ).name() << "\n"
-       << "   Right-hand side sparse " << ( IsRowVector<RT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
-       << "     " << typeid( RT ).name() << "\n"
+       << "   Left-hand side dense vector type:\n"
+       << "     " << typeid( VT1 ).name() << "\n"
+       << "   Right-hand side sparse vector type:\n"
+       << "     " << typeid( VT2 ).name() << "\n"
        << "   Error message: " << ex.what() << "\n";
    throw std::runtime_error( oss.str() );
 }
@@ -4549,7 +3452,7 @@ template< typename VT1    // Type of the left-hand side dense vector
         , typename VT2 >  // Type of the right-hand side sparse vector
 void runTest( const Creator<VT1>& creator1, const Creator<VT2>& creator2 )
 {
-   for( size_t rep=0UL; rep<repetitions; ++rep ) {
+   for( size_t rep=0; rep<repetitions; ++rep ) {
       OperationTest<VT1,VT2>( creator1, creator2 );
    }
 }

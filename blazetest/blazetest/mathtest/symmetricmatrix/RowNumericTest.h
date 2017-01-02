@@ -45,10 +45,11 @@
 #include <string>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/CompressedVector.h>
+#include <blaze/math/DenseRow.h>
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/DynamicVector.h>
 #include <blaze/math/SymmetricMatrix.h>
-#include <blaze/math/Row.h>
+#include <blaze/math/SparseRow.h>
 #include <blaze/math/traits/RowExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blazetest/system/Types.h>
@@ -159,7 +160,7 @@ class RowNumericTest
 template< typename ST >  // Type of the symmetric matrix
 void RowNumericTest::testAssignment()
 {
-   typedef blaze::RowExprTrait_<ST>  RT;
+   typedef typename blaze::RowExprTrait<ST>::Type  RT;
 
 
    //=====================================================================================
@@ -274,7 +275,7 @@ void RowNumericTest::testAssignment()
 template< typename ST >  // Type of the symmetric matrix
 void RowNumericTest::testAddAssign()
 {
-   typedef blaze::RowExprTrait_<ST>  RT;
+   typedef typename blaze::RowExprTrait<ST>::Type  RT;
 
 
    //=====================================================================================
@@ -389,7 +390,7 @@ void RowNumericTest::testAddAssign()
 template< typename ST >  // Type of the symmetric matrix
 void RowNumericTest::testSubAssign()
 {
-   typedef blaze::RowExprTrait_<ST>  RT;
+   typedef typename blaze::RowExprTrait<ST>::Type  RT;
 
 
    //=====================================================================================
@@ -504,7 +505,7 @@ void RowNumericTest::testSubAssign()
 template< typename ST >  // Type of the symmetric matrix
 void RowNumericTest::testMultAssign()
 {
-   typedef blaze::RowExprTrait_<ST>  RT;
+   typedef typename blaze::RowExprTrait<ST>::Type  RT;
 
 
    //=====================================================================================
@@ -759,7 +760,7 @@ void runTest()
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Macro for the execution of the SymmetricMatrix row numeric test.
+/*!\brief Macro for the execution of the numeric SymmetricMatrix row test.
 */
 #define RUN_SYMMETRICMATRIX_ROWNUMERIC_TEST \
    blazetest::mathtest::symmetricmatrix::runTest()

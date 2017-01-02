@@ -40,7 +40,7 @@
 // Includes
 //*************************************************************************************************
 
-#include <type_traits>
+#include <boost/type_traits/make_signed.hpp>
 
 
 namespace blaze {
@@ -55,13 +55,13 @@ namespace blaze {
 /*!\brief Compile time type conversion into a signed integral type.
 // \ingroup type_traits
 //
-// This type trait provides the feature to convert the given integral or constant type \a T to
+// This type trait provides the feature to convert the given integral or enumeration type \a T to
 // the corresponding signed integral data type with the same size and with the same cv-qualifiers.
 // Note that in case \a T is bool or a non-integral data type, a compilation error is created.
 
    \code
    enum MyEnum { ... };
-
+   
    blaze::MakeSigned<int>::Type                  // Results in 'int'
    blaze::MakeSigned<const unsigned int>::Type   // Results in 'const int'
    blaze::MakeSigned<const unsigned long>::Type  // Results in 'const long'
@@ -75,28 +75,10 @@ struct MakeSigned
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   typedef typename std::make_signed<T>::type  Type;
+   typedef typename boost::make_signed<T>::type  Type;
    /*! \endcond */
    //**********************************************************************************************
 };
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Auxiliary alias declaration for the MakeSigned type trait.
-// \ingroup type_traits
-//
-// The MakeSigned_ alias declaration provides a convenient shortcut to access the nested \a Type
-// of the MakeSigned class template. For instance, given the type \a T the following two type
-// definitions are identical:
-
-   \code
-   using Type1 = typename MakeSigned<T>::Type;
-   using Type2 = MakeSigned_<T>;
-   \endcode
-*/
-template< typename T >
-using MakeSigned_ = typename MakeSigned<T>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

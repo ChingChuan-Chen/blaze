@@ -40,9 +40,11 @@
 #include <cstdlib>
 #include <iostream>
 #include <blaze/util/valuetraits/IsEven.h>
+#include <blaze/util/valuetraits/IsFalse.h>
 #include <blaze/util/valuetraits/IsMultipleOf.h>
 #include <blaze/util/valuetraits/IsOdd.h>
 #include <blaze/util/valuetraits/IsPowerOf.h>
+#include <blaze/util/valuetraits/IsTrue.h>
 #include <blaze/util/StaticAssert.h>
 #include <blazetest/utiltest/valuetraits/OperationTest.h>
 
@@ -66,6 +68,8 @@ namespace valuetraits {
 */
 OperationTest::OperationTest()
 {
+   testIsTrue();
+   testIsFalse();
    testIsEven();
    testIsOdd();
    testIsMultipleOf();
@@ -81,6 +85,44 @@ OperationTest::OperationTest()
 //  TEST VALUE TRAITS
 //
 //=================================================================================================
+
+//*************************************************************************************************
+/*!\brief Test of the 'IsTrue' value trait.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a compile time test of the 'IsTrue' value trait. In case an error is
+// detected, a compilation error is created.
+*/
+void OperationTest::testIsTrue()
+{
+   using blaze::IsTrue;
+
+   BLAZE_STATIC_ASSERT( IsTrue<1>::value == 1 );
+   BLAZE_STATIC_ASSERT( IsTrue<0>::value == 0 );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the 'IsFalse' value trait.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a compile time test of the 'IsFalse' value trait. In case an error is
+// detected, a compilation error is created.
+*/
+void OperationTest::testIsFalse()
+{
+   using blaze::IsFalse;
+
+   BLAZE_STATIC_ASSERT( IsFalse<0>::value == 1 );
+   BLAZE_STATIC_ASSERT( IsFalse<1>::value == 0 );
+}
+//*************************************************************************************************
+
 
 //*************************************************************************************************
 /*!\brief Test of the 'IsEven' value trait.
