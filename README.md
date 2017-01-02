@@ -1,3 +1,7 @@
+This repository exported from https://bitbucket.org/blaze-lib/blaze/src
+
+THIS IS NOT AN OFFICIAL OR MAINTAINED FORK
+
 ![blaze300x150.jpg](https://bitbucket.org/blaze-lib/blaze/wiki/images/blaze300x150.jpg)
 
 **Blaze** is an open-source, high-performance C++ math library for dense and sparse arithmetic. With its state-of-the-art *Smart Expression Template* implementation **Blaze** combines the elegance and ease of use of a domain-specific language with HPC-grade performance, making it one of the most intuitive and fastest C++ math libraries available.
