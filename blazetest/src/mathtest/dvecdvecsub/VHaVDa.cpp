@@ -3,7 +3,7 @@
 //  \file src/mathtest/dvecdvecsub/VHaVDa.cpp
 //  \brief Source file for the VHaVDa dense vector/dense vector subtraction math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,10 +40,14 @@
 #include <cstdlib>
 #include <iostream>
 #include <blaze/math/DynamicVector.h>
-#include <blaze/math/StaticVector.h>
+#include <blaze/math/HybridVector.h>
 #include <blazetest/mathtest/Creator.h>
 #include <blazetest/mathtest/dvecdvecsub/OperationTest.h>
 #include <blazetest/system/MathTest.h>
+
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
 
 
 //=================================================================================================
@@ -62,12 +66,12 @@ int main()
    try
    {
       // Vector type definitions
-      typedef blaze::HybridVector<TypeA,128UL>  VHa;
-      typedef blaze::DynamicVector<TypeA>       VDa;
+      using VHa = blaze::HybridVector<TypeA,128UL>;
+      using VDa = blaze::DynamicVector<TypeA>;
 
       // Creator type definitions
-      typedef blazetest::Creator<VHa>  CVHa;
-      typedef blazetest::Creator<VDa>  CVDa;
+      using CVHa = blazetest::Creator<VHa>;
+      using CVDa = blazetest::Creator<VDa>;
 
       // Running tests with small vectors
       for( size_t i=0UL; i<=6UL; ++i ) {

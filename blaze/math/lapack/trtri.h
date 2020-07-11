@@ -3,7 +3,7 @@
 //  \file blaze/math/lapack/trtri.h
 //  \brief Header file for the LAPACK triangular matrix inversion functions (trtri)
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,17 +40,18 @@
 // Includes
 //*************************************************************************************************
 
-#include <boost/cast.hpp>
 #include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/Adaptor.h>
 #include <blaze/math/constraints/BLASCompatible.h>
 #include <blaze/math/constraints/Computation.h>
+#include <blaze/math/constraints/Contiguous.h>
 #include <blaze/math/constraints/MutableDataAccess.h>
 #include <blaze/math/Exception.h>
 #include <blaze/math/expressions/DenseMatrix.h>
 #include <blaze/math/lapack/clapack/trtri.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blaze/util/Assert.h>
+#include <blaze/util/NumericCast.h>
 
 
 namespace blaze {
@@ -65,7 +66,7 @@ namespace blaze {
 /*!\name LAPACK triangular matrix inversion functions (trtri) */
 //@{
 template< typename MT, bool SO >
-inline void trtri( DenseMatrix<MT,SO>& A, char uplo, char diag );
+void trtri( DenseMatrix<MT,SO>& A, char uplo, char diag );
 //@}
 //*************************************************************************************************
 
@@ -103,8 +104,9 @@ inline void trtri( DenseMatrix<MT,SO>& A, char uplo, char diag );
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
 // exception \a A may already have been modified.
@@ -113,12 +115,11 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void trtri( DenseMatrix<MT,SO>& A, char uplo, char diag )
 {
-   using boost::numeric_cast;
-
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_COMPUTATION_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_HAVE_MUTABLE_DATA_ACCESS( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_CONTIGUOUS_TYPE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    if( !isSquare( ~A ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid non-square matrix provided" );
@@ -132,15 +133,15 @@ inline void trtri( DenseMatrix<MT,SO>& A, char uplo, char diag )
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid diag argument provided" );
    }
 
-   int n   ( numeric_cast<int>( (~A).columns() ) );
-   int lda ( numeric_cast<int>( (~A).spacing() ) );
-   int info( 0 );
+   blas_int_t n   ( numeric_cast<blas_int_t>( (~A).columns() ) );
+   blas_int_t lda ( numeric_cast<blas_int_t>( (~A).spacing() ) );
+   blas_int_t info( 0 );
 
    if( n == 0 ) {
       return;
    }
 
-   if( IsRowMajorMatrix<MT>::value ) {
+   if( IsRowMajorMatrix_v<MT> ) {
       ( uplo == 'L' )?( uplo = 'U' ):( uplo = 'L' );
    }
 

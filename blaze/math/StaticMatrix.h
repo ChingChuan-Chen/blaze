@@ -3,7 +3,7 @@
 //  \file blaze/math/StaticMatrix.h
 //  \brief Header file for the complete StaticMatrix implementation
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -43,11 +43,12 @@
 #include <blaze/math/dense/StaticMatrix.h>
 #include <blaze/math/DenseMatrix.h>
 #include <blaze/math/HybridMatrix.h>
+#include <blaze/math/IdentityMatrix.h>
 #include <blaze/math/shims/Conjugate.h>
 #include <blaze/math/shims/Real.h>
 #include <blaze/math/StaticVector.h>
 #include <blaze/math/typetraits/UnderlyingBuiltin.h>
-#include <blaze/system/Precision.h>
+#include <blaze/math/ZeroMatrix.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/constraints/Numeric.h>
 #include <blaze/util/Random.h>
@@ -292,7 +293,7 @@ void makeHermitian( StaticMatrix<Type,M,N,SO>& matrix )
    BLAZE_STATIC_ASSERT( M == N );
    BLAZE_CONSTRAINT_MUST_BE_NUMERIC_TYPE( Type );
 
-   typedef UnderlyingBuiltin_<Type>  BT;
+   using BT = UnderlyingBuiltin_t<Type>;
 
    for( size_t i=0UL; i<N; ++i ) {
       for( size_t j=0UL; j<i; ++j ) {
@@ -330,7 +331,7 @@ void makeHermitian( StaticMatrix<Type,M,N,SO>& matrix, const Arg& min, const Arg
    BLAZE_STATIC_ASSERT( M == N );
    BLAZE_CONSTRAINT_MUST_BE_NUMERIC_TYPE( Type );
 
-   typedef UnderlyingBuiltin_<Type>  BT;
+   using BT = UnderlyingBuiltin_t<Type>;
 
    for( size_t i=0UL; i<N; ++i ) {
       for( size_t j=0UL; j<i; ++j ) {

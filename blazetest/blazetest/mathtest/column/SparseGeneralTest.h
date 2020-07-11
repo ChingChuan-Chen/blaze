@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/column/SparseGeneralTest.h
 //  \brief Header file for the Column sparse general test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -43,9 +43,9 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <blaze/math/constraints/ColumnVector.h>
 #include <blaze/math/constraints/SparseMatrix.h>
 #include <blaze/math/constraints/SparseVector.h>
-#include <blaze/math/constraints/TransposeFlag.h>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/Column.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
@@ -90,28 +90,30 @@ class SparseGeneralTest
    /*!\name Test functions */
    //@{
    void testConstructors();
-   void testAssignment  ();
-   void testAddAssign   ();
-   void testSubAssign   ();
-   void testMultAssign  ();
-   void testDivAssign   ();
-   void testScaling     ();
-   void testSubscript   ();
-   void testIterator    ();
-   void testNonZeros    ();
-   void testReset       ();
-   void testClear       ();
-   void testSet         ();
-   void testInsert      ();
-   void testAppend      ();
-   void testReserve     ();
-   void testErase       ();
-   void testFind        ();
-   void testLowerBound  ();
-   void testUpperBound  ();
-   void testIsDefault   ();
-   void testIsSame      ();
-   void testSubvector   ();
+   void testAssignment();
+   void testAddAssign();
+   void testSubAssign();
+   void testMultAssign();
+   void testDivAssign();
+   void testCrossAssign();
+   void testScaling();
+   void testSubscript();
+   void testIterator();
+   void testNonZeros();
+   void testReset();
+   void testClear();
+   void testReserve();
+   void testSet();
+   void testInsert();
+   void testAppend();
+   void testErase();
+   void testFind();
+   void testLowerBound();
+   void testUpperBound();
+   void testIsDefault();
+   void testIsSame();
+   void testSubvector();
+   void testElements();
 
    template< typename Type >
    void checkSize( const Type& column, size_t expectedSize ) const;
@@ -129,7 +131,7 @@ class SparseGeneralTest
    void checkNonZeros( const Type& object, size_t expectedNonZeros ) const;
 
    template< typename Type >
-   void checkNonZeros( const Type& column, size_t index, size_t expectedNonZeros ) const;
+   void checkNonZeros( const Type& matrix, size_t index, size_t expectedNonZeros ) const;
    //@}
    //**********************************************************************************************
 
@@ -141,10 +143,10 @@ class SparseGeneralTest
    //**********************************************************************************************
 
    //**Type definitions****************************************************************************
-   typedef blaze::CompressedMatrix<int,blaze::rowMajor>  MT;   //!< Row-major compressed matrix type
-   typedef MT::OppositeType                              OMT;  //!< Column-major compressed matrix type
-   typedef blaze::Column<MT>                             CT;   //!< Sparse column type for row-major matrices.
-   typedef blaze::Column<OMT>                            OCT;  //!< Sparse column type for column-major matrices.
+   using MT  = blaze::CompressedMatrix<int,blaze::rowMajor>;  //!< Row-major compressed matrix type
+   using OMT = MT::OppositeType;                              //!< Column-major compressed matrix type
+   using CT  = blaze::Column<MT>;                             //!< Sparse column type for row-major matrices.
+   using OCT = blaze::Column<OMT>;                            //!< Sparse column type for column-major matrices.
    //**********************************************************************************************
 
    //**Member variables****************************************************************************
@@ -252,7 +254,7 @@ void SparseGeneralTest::checkRows( const Type& matrix, size_t expectedRows ) con
 /*!\brief Checking the number of columns of the given compressed matrix.
 //
 // \param matrix The compressed matrix to be checked.
-// \param expectedRows The expected number of columns of the compressed matrix.
+// \param expectedColumns The expected number of columns of the compressed matrix.
 // \return void
 // \exception std::runtime_error Error detected.
 //

@@ -3,7 +3,7 @@
 //  \file blaze/math/typetraits/IsNumericMatrix.h
 //  \brief Header file for the IsNumericMatrix type trait
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -43,7 +43,6 @@
 #include <blaze/math/typetraits/IsMatrix.h>
 #include <blaze/math/typetraits/UnderlyingElement.h>
 #include <blaze/util/IntegralConstant.h>
-#include <blaze/util/mpl/And.h>
 #include <blaze/util/typetraits/IsNumeric.h>
 
 
@@ -66,13 +65,13 @@ namespace blaze {
 // \a FalseType, and the class derives from \a FalseType.
 
    \code
-   typedef DynamicMatrix<int>                   Type1;
-   typedef CompressedMatrix< complex<double> >  Type2;
-   typedef LowerMatrix< DynamicMatrix<float> >  Type3;
+   using Type1 = DynamicMatrix<int>;
+   using Type2 = CompressedMatrix< complex<double> >;
+   using Type3 = LowerMatrix< DynamicMatrix<float> >;
 
-   typedef double                               Type4;
-   typedef DynamicVector<int>                   Type5;
-   typedef DynamicMatrix< DynamicVector<int> >  Type6;
+   using Type4 = double;
+   using Type5 = DynamicVector<int>;
+   using Type6 = DynamicMatrix< DynamicVector<int> >;
 
    blaze::IsNumericMatrix< Type1 >::value  // Evaluates to 1
    blaze::IsNumericMatrix< Type2 >::Type   // Results in TrueType
@@ -84,8 +83,26 @@ namespace blaze {
 */
 template< typename T >
 struct IsNumericMatrix
-   : public BoolConstant< And< IsMatrix<T>, IsNumeric< UnderlyingElement_<T> > >::value >
+   : public BoolConstant< IsMatrix_v<T> && IsNumeric_v< UnderlyingElement_t<T> > >
 {};
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Auxiliary variable template for the IsNumericMatrix type trait.
+// \ingroup math_type_traits
+//
+// The IsNumericMatrix_v variable template provides a convenient shortcut to access the nested
+// \a value of the IsNumericMatrix class template. For instance, given the type \a T the
+// following two statements are identical:
+
+   \code
+   constexpr bool value1 = blaze::IsNumericMatrix<T>::value;
+   constexpr bool value2 = blaze::IsNumericMatrix_v<T>;
+   \endcode
+*/
+template< typename T >
+constexpr bool IsNumericMatrix_v = IsNumericMatrix<T>::value;
 //*************************************************************************************************
 
 } // namespace blaze

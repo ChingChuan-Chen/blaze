@@ -3,7 +3,7 @@
 //  \file blazemark/flens/init/DenseVector.h
 //  \brief Header file for the FLENS dense vector initialization functions
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -75,7 +75,7 @@ void init( ::flens::DenseVector< ::flens::Array<Type> >& v );
 template< typename Type >  // Data type of the vector
 void init( ::flens::DenseVector< ::flens::Array<Type> >& v )
 {
-   typedef typename ::flens::DenseVector< ::flens::Array<Type> >::IndexType  IndexType;
+   using IndexType = typename ::flens::DenseVector< ::flens::Array<Type> >::IndexType;
 
    for( IndexType i=v.firstIndex(); i<=v.lastIndex(); ++i ) {
       v(i) = ::blaze::rand<Type>( 0, 10 );

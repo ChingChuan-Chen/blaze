@@ -3,7 +3,7 @@
 //  \file blaze/math/lapack/orgqr.h
 //  \brief Header file for the LAPACK functions to reconstruct Q from a QR decomposition (orgqr)
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -41,17 +41,18 @@
 //*************************************************************************************************
 
 #include <memory>
-#include <boost/cast.hpp>
 #include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/Adaptor.h>
 #include <blaze/math/constraints/BLASCompatible.h>
 #include <blaze/math/constraints/Computation.h>
+#include <blaze/math/constraints/Contiguous.h>
 #include <blaze/math/constraints/MutableDataAccess.h>
 #include <blaze/math/expressions/DenseMatrix.h>
 #include <blaze/math/lapack/clapack/orglq.h>
 #include <blaze/math/lapack/clapack/orgqr.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/constraints/Builtin.h>
+#include <blaze/util/NumericCast.h>
 
 
 namespace blaze {
@@ -66,7 +67,7 @@ namespace blaze {
 /*!\name LAPACK functions to reconstruct Q from a QR decomposition (orgqr) */
 //@{
 template< typename MT, bool SO >
-inline void orgqr( DenseMatrix<MT,SO>& A, const ElementType_<MT>* tau );
+void orgqr( DenseMatrix<MT,SO>& A, const ElementType_t<MT>* tau );
 //@}
 //*************************************************************************************************
 
@@ -98,8 +99,8 @@ inline void orgqr( DenseMatrix<MT,SO>& A, const ElementType_<MT>* tau );
    geqrf( A, tau.data() );  // Performing the QR decomposition
    orgqr( A, tau.data() );  // Reconstructing the Q matrix
 
-   const int m( A.rows() );
-   const int n( A.columns() );
+   const size_t m( A.rows() );
+   const size_t n( A.columns() );
 
    DynamicMatrix<double,columnMajor> Q( submatrix( A, 0UL, 0UL, m, min(m,n) ) );
    \endcode
@@ -109,33 +110,33 @@ inline void orgqr( DenseMatrix<MT,SO>& A, const ElementType_<MT>* tau );
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 */
 template< typename MT, bool SO >
-inline void orgqr( DenseMatrix<MT,SO>& A, const ElementType_<MT>* tau )
+inline void orgqr( DenseMatrix<MT,SO>& A, const ElementType_t<MT>* tau )
 {
-   using boost::numeric_cast;
-
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_COMPUTATION_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_HAVE_MUTABLE_DATA_ACCESS( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
-   BLAZE_CONSTRAINT_MUST_BE_BUILTIN_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_CONTIGUOUS_TYPE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BUILTIN_TYPE( ElementType_t<MT> );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
-   int m   ( numeric_cast<int>( SO ? (~A).rows() : (~A).columns() ) );
-   int n   ( numeric_cast<int>( SO ? (~A).columns() : (~A).rows() ) );
-   int k   ( min( m, n ) );
-   int lda ( numeric_cast<int>( (~A).spacing() ) );
-   int info( 0 );
+   blas_int_t m   ( numeric_cast<blas_int_t>( SO ? (~A).rows() : (~A).columns() ) );
+   blas_int_t n   ( numeric_cast<blas_int_t>( SO ? (~A).columns() : (~A).rows() ) );
+   blas_int_t k   ( min( m, n ) );
+   blas_int_t lda ( numeric_cast<blas_int_t>( (~A).spacing() ) );
+   blas_int_t info( 0 );
 
    if( k == 0 ) {
       return;
    }
 
-   int lwork( k*lda );
+   blas_int_t lwork( k*lda );
    const std::unique_ptr<ET[]> work( new ET[lwork] );
 
    if( SO ) {

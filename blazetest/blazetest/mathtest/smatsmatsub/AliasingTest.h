@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/smatsmatsub/AliasingTest.h
 //  \brief Header file for the sparse matrix/sparse matrix subtraction aliasing test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -70,9 +70,9 @@ class AliasingTest
 {
  private:
    //**Type definitions****************************************************************************
-   typedef blaze::CompressedMatrix<int,blaze::rowMajor>      SMat;   //!< Row-major sparse matrix type.
-   typedef blaze::CompressedMatrix<int,blaze::columnMajor>   TSMat;  //!< Column-major sparse matrix type.
-   typedef blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor>  RMat;   //!< Result row-major matrix type.
+   using SMat  = blaze::CompressedMatrix<int,blaze::rowMajor>;      //!< Row-major sparse matrix type.
+   using TSMat = blaze::CompressedMatrix<int,blaze::columnMajor>;   //!< Column-major sparse matrix type.
+   using RMat  = blaze::StaticMatrix<int,3UL,3UL,blaze::rowMajor>;  //!< Result row-major matrix type.
    //**********************************************************************************************
 
  public:

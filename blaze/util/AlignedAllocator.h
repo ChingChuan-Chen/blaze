@@ -3,7 +3,7 @@
 //  \file blaze/util/AlignedAllocator.h
 //  \brief Header file for the AlignedAllocator implementation
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,9 +40,10 @@
 // Includes
 //*************************************************************************************************
 
+#include <blaze/util/MaybeUnused.h>
 #include <blaze/util/Memory.h>
+#include <blaze/util/Types.h>
 #include <blaze/util/typetraits/AlignmentOf.h>
-#include <blaze/util/Unused.h>
 
 
 namespace blaze {
@@ -70,22 +71,22 @@ class AlignedAllocator
 {
  public:
    //**Type definitions****************************************************************************
-   typedef Type            ValueType;        //!< Type of the allocated values.
-   typedef Type*           Pointer;          //!< Type of a pointer to the allocated values.
-   typedef const Type*     ConstPointer;     //!< Type of a pointer-to-const to the allocated values.
-   typedef Type&           Reference;        //!< Type of a reference to the allocated values.
-   typedef const Type&     ConstReference;   //!< Type of a reference-to-const to the allocated values.
-   typedef std::size_t     SizeType;         //!< Size type of the aligned allocator.
-   typedef std::ptrdiff_t  DifferenceType;   //!< Difference type of the aligned allocator.
+   using ValueType      = Type;            //!< Type of the allocated values.
+   using Pointer        = Type*;           //!< Type of a pointer to the allocated values.
+   using ConstPointer   = const Type*;     //!< Type of a pointer-to-const to the allocated values.
+   using Reference      = Type&;           //!< Type of a reference to the allocated values.
+   using ConstReference = const Type&;     //!< Type of a reference-to-const to the allocated values.
+   using SizeType       = std::size_t;     //!< Size type of the aligned allocator.
+   using DifferenceType = std::ptrdiff_t;  //!< Difference type of the aligned allocator.
 
    // STL allocator requirements
-   typedef ValueType       value_type;       //!< Type of the allocated values.
-   typedef Pointer         pointer;          //!< Type of a pointer to the allocated values.
-   typedef ConstPointer    const_pointer;    //!< Type of a pointer-to-const to the allocated values.
-   typedef Reference       reference;        //!< Type of a reference to the allocated values.
-   typedef ConstReference  const_reference;  //!< Type of a reference-to-const to the allocated values.
-   typedef SizeType        size_type;        //!< Size type of the aligned allocator.
-   typedef DifferenceType  difference_type;  //!< Difference type of the aligned allocator.
+   using value_type      = ValueType;       //!< Type of the allocated values.
+   using pointer         = Pointer;         //!< Type of a pointer to the allocated values.
+   using const_pointer   = ConstPointer;    //!< Type of a pointer-to-const to the allocated values.
+   using reference       = Reference;       //!< Type of a reference to the allocated values.
+   using const_reference = ConstReference;  //!< Type of a reference-to-const to the allocated values.
+   using size_type       = SizeType;        //!< Size type of the aligned allocator.
+   using difference_type = DifferenceType;  //!< Difference type of the aligned allocator.
    //**********************************************************************************************
 
    //**rebind class definition*********************************************************************
@@ -94,14 +95,14 @@ class AlignedAllocator
    template< typename Type2 >
    struct rebind
    {
-      typedef AlignedAllocator<Type2>  other;  //!< Type of the other allocator.
+      using other = AlignedAllocator<Type2>;  //!< Type of the other allocator.
    };
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
    /*!\name Constructors */
    //@{
-   explicit inline AlignedAllocator();
+   inline AlignedAllocator();
 
    template< typename Type2 >
    inline AlignedAllocator( const AlignedAllocator<Type2>& );
@@ -111,9 +112,9 @@ class AlignedAllocator
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-   inline constexpr size_t max_size() const noexcept;
-   inline Pointer          address( Reference x ) const noexcept;
-   inline ConstPointer     address( ConstReference x ) const noexcept;
+   constexpr size_t       max_size() const noexcept;
+   inline    Pointer      address( Reference x ) const noexcept;
+   inline    ConstPointer address( ConstReference x ) const noexcept;
    //@}
    //**********************************************************************************************
 
@@ -121,15 +122,17 @@ class AlignedAllocator
    /*!\name Allocation functions */
    //@{
    inline Pointer allocate  ( size_t numObjects, const void* localityHint = nullptr );
-   inline void    deallocate( Pointer ptr, size_t numObjects );
+   inline void    deallocate( Pointer ptr, size_t numObjects ) noexcept;
    //@}
    //**********************************************************************************************
 
    //**Construction functions**********************************************************************
    /*!\name Construction functions */
    //@{
-   inline void construct( Pointer ptr, const Type& value );
-   inline void destroy  ( Pointer ptr ) noexcept;
+   template< typename... Args >
+   inline void construct( Pointer ptr, Args&&... args );
+
+   inline void destroy( Pointer ptr ) noexcept;
    //@}
    //**********************************************************************************************
 };
@@ -162,7 +165,7 @@ template< typename Type >
 template< typename Type2 >
 inline AlignedAllocator<Type>::AlignedAllocator( const AlignedAllocator<Type2>& allocator )
 {
-   UNUSED_PARAMETER( allocator );
+   MAYBE_UNUSED( allocator );
 }
 //*************************************************************************************************
 
@@ -181,7 +184,7 @@ inline AlignedAllocator<Type>::AlignedAllocator( const AlignedAllocator<Type2>& 
 // \return The maximum number of elements that can be allocated together.
 */
 template< typename Type >
-inline constexpr size_t AlignedAllocator<Type>::max_size() const noexcept
+constexpr size_t AlignedAllocator<Type>::max_size() const noexcept
 {
    return size_t(-1) / sizeof( Type );
 }
@@ -241,9 +244,9 @@ template< typename Type >
 inline typename AlignedAllocator<Type>::Pointer
    AlignedAllocator<Type>::allocate( size_t numObjects, const void* localityHint )
 {
-   UNUSED_PARAMETER( localityHint );
+   MAYBE_UNUSED( localityHint );
 
-   const size_t alignment( AlignmentOf<Type>::value );
+   const size_t alignment( AlignmentOf_v<Type> );
 
    if( alignment >= 8UL ) {
       return reinterpret_cast<Type*>( allocate_backend( numObjects*sizeof(Type), alignment ) );
@@ -267,14 +270,14 @@ inline typename AlignedAllocator<Type>::Pointer
 // to allocate() that origianlly produced \a ptr.
 */
 template< typename Type >
-inline void AlignedAllocator<Type>::deallocate( Pointer ptr, size_t numObjects )
+inline void AlignedAllocator<Type>::deallocate( Pointer ptr, size_t numObjects ) noexcept
 {
-   UNUSED_PARAMETER( numObjects );
+   MAYBE_UNUSED( numObjects );
 
    if( ptr == nullptr )
       return;
 
-   const size_t alignment( AlignmentOf<Type>::value );
+   const size_t alignment( AlignmentOf_v<Type> );
 
    if( alignment >= 8UL ) {
       deallocate_backend( ptr );
@@ -298,16 +301,17 @@ inline void AlignedAllocator<Type>::deallocate( Pointer ptr, size_t numObjects )
 /*!\brief Constructs an object of type \a Type at the specified memory location.
 //
 // \param ptr Pointer to the allocated, uninitialized storage.
-// \param value The initialization value.
+// \param args The constructor arguments.
 // \return void
 //
 // This function constructs an object of type \a Type in the allocated, uninitialized storage
 // pointed to by \a ptr. This construction is performed via placement-new.
 */
 template< typename Type >
-inline void AlignedAllocator<Type>::construct( Pointer ptr, ConstReference value )
+template< typename... Args >
+inline void AlignedAllocator<Type>::construct( Pointer ptr, Args&&... args )
 {
-   ::new( ptr ) Type( value );
+   ::new( ptr ) Type( std::forward<Args>( args )... );
 }
 //*************************************************************************************************
 
@@ -360,7 +364,7 @@ template< typename T1    // Type of the left-hand side aligned allocator
         , typename T2 >  // Type of the right-hand side aligned allocator
 inline bool operator==( const AlignedAllocator<T1>& lhs, const AlignedAllocator<T2>& rhs ) noexcept
 {
-   UNUSED_PARAMETER( lhs, rhs );
+   MAYBE_UNUSED( lhs, rhs );
    return true;
 }
 //*************************************************************************************************
@@ -377,7 +381,7 @@ template< typename T1    // Type of the left-hand side aligned allocator
         , typename T2 >  // Type of the right-hand side aligned allocator
 inline bool operator!=( const AlignedAllocator<T1>& lhs, const AlignedAllocator<T2>& rhs ) noexcept
 {
-   UNUSED_PARAMETER( lhs, rhs );
+   MAYBE_UNUSED( lhs, rhs );
    return false;
 }
 //*************************************************************************************************

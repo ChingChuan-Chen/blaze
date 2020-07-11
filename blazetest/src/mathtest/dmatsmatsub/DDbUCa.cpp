@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsmatsub/DDbUCa.cpp
 //  \brief Source file for the DDbUCa dense matrix/sparse matrix subtraction math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -47,6 +47,10 @@
 #include <blazetest/mathtest/dmatsmatsub/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -65,12 +69,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::DiagonalMatrix< blaze::DynamicMatrix<TypeB> >  DDb;
-      typedef blaze::UpperMatrix< blaze::CompressedMatrix<TypeA> >  UCa;
+      using DDb = blaze::DiagonalMatrix< blaze::DynamicMatrix<TypeB> >;
+      using UCa = blaze::UpperMatrix< blaze::CompressedMatrix<TypeA> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<DDb>  CDDb;
-      typedef blazetest::Creator<UCa>  CUCa;
+      using CDDb = blazetest::Creator<DDb>;
+      using CUCa = blazetest::Creator<UCa>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {

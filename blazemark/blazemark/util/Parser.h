@@ -3,7 +3,7 @@
 //  \file blazemark/util/Parser.h
 //  \brief Header file for the Parser class template
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -130,9 +130,9 @@ class Parser
 {
  private:
    //**Type definitions****************************************************************************
-   typedef std::stringstream::pos_type   StreamPos;   //!< Stream position.
-   typedef std::pair<StreamPos,size_t>   Pair;        //!< Pair of a stream position and a line.
-   typedef std::vector<Pair>             LineVector;  //!< Vector of position/line pairs.
+   using StreamPos  = std::stringstream::pos_type;  //!< Stream position.
+   using Pair       = std::pair<StreamPos,size_t>;  //!< Pair of a stream position and a line.
+   using LineVector = std::vector<Pair>;            //!< Vector of position/line pairs.
    //**********************************************************************************************
 
  public:

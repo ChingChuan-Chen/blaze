@@ -3,7 +3,7 @@
 //  \file src/eigen/Custom.cpp
 //  \brief Source file for the Eigen kernel for custom expressions
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -38,9 +38,9 @@
 //*************************************************************************************************
 
 #include <iostream>
-#include <boost/cast.hpp>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
+#include <blaze/util/NumericCast.h>
 #include <blaze/util/Timing.h>
 #include <blazemark/eigen/Custom.h>
 #include <blazemark/eigen/Init.h>
@@ -71,7 +71,7 @@ namespace eigen {
 double custom( size_t /*N*/, size_t /*F*/, size_t steps )
 {
    using ::blazemark::element_t;
-   using ::boost::numeric_cast;
+   using ::blaze::numeric_cast;
    using ::Eigen::Dynamic;
    using ::Eigen::RowMajor;
    using ::Eigen::ColMajor;

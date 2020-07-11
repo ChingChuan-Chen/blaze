@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/customvector/AlignedPaddedTest.h
 //  \brief Header file for the aligned/padded CustomVector class test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -96,6 +96,7 @@ class AlignedPaddedTest
    void testSubAssign   ();
    void testMultAssign  ();
    void testDivAssign   ();
+   void testCrossAssign ();
    void testScaling     ();
    void testSubscript   ();
    void testAt          ();
@@ -126,13 +127,13 @@ class AlignedPaddedTest
 
    //**Type definitions****************************************************************************
    //! Type of the custom row vector.
-   typedef blaze::CustomVector<int,blaze::aligned,blaze::padded,blaze::rowVector>  VT;
+   using VT = blaze::CustomVector<int,blaze::aligned,blaze::padded,blaze::rowVector>;
 
    //! Type of the custom column vector.
-   typedef blaze::CustomVector<int,blaze::aligned,blaze::padded,blaze::columnVector>  TVT;
+   using TVT = blaze::CustomVector<int,blaze::aligned,blaze::padded,blaze::columnVector>;
 
-   typedef VT::Rebind<double>::Other   RVT;   //!< Rebound custom row vector type.
-   typedef TVT::Rebind<double>::Other  TRVT;  //!< Rebound custom column vector type.
+   using RVT  = VT::Rebind<const double>::Other;   //!< Rebound custom row vector type.
+   using TRVT = TVT::Rebind<const double>::Other;  //!< Rebound custom column vector type.
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************

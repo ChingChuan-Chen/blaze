@@ -3,7 +3,7 @@
 //  \file src/main/Mat6Mat6Add.cpp
 //  \brief Source file for the 6-dimensional matrix/matrix addition benchmark
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -43,9 +43,9 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <blaze/math/Functions.h>
 #include <blaze/math/Infinity.h>
 #include <blaze/math/StaticMatrix.h>
+#include <blaze/util/algorithms/Max.h>
 #include <blaze/util/AlignedAllocator.h>
 #include <blaze/util/Random.h>
 #include <blaze/util/Timing.h>
@@ -57,6 +57,7 @@
 #include <blazemark/flens/Mat6Mat6Add.h>
 #include <blazemark/mtl/Mat6Mat6Add.h>
 #include <blazemark/system/Blitz.h>
+#include <blazemark/system/Boost.h>
 #include <blazemark/system/Config.h>
 #include <blazemark/system/Eigen.h>
 #include <blazemark/system/FLENS.h>
@@ -65,6 +66,10 @@
 #include <blazemark/util/Benchmarks.h>
 #include <blazemark/util/Parser.h>
 #include <blazemark/util/StaticDenseRun.h>
+
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
 
 
 //*************************************************************************************************
@@ -90,7 +95,7 @@ using blazemark::StaticDenseRun;
 // This type definition specifies the type of a single benchmark run for the 6-dimensional
 // matrix/matrix addition benchmark.
 */
-typedef StaticDenseRun<6UL>  Run;
+using Run = StaticDenseRun<6UL>;
 //*************************************************************************************************
 
 
@@ -116,8 +121,8 @@ void estimateSteps( Run& run )
    using blazemark::element_t;
    using blaze::rowMajor;
 
-   typedef blaze::StaticMatrix<element_t,6UL,6UL,rowMajor>  MatrixType;
-   typedef blaze::AlignedAllocator<MatrixType>              AllocatorType;
+   using MatrixType    = blaze::StaticMatrix<element_t,6UL,6UL,rowMajor>;
+   using AllocatorType = blaze::AlignedAllocator<MatrixType>;
 
    blaze::setSeed( blazemark::seed );
 
@@ -147,7 +152,8 @@ void estimateSteps( Run& run )
       if( C[i](0,0) < element_t(0) )
          std::cerr << " Line " << __LINE__ << ": ERROR detected!!!\n";
 
-   run.setSteps( blaze::max( 1UL, ( blazemark::runtime * steps ) / timer.last() ) );
+   const size_t estimatedSteps( ( blazemark::runtime * steps ) / timer.last() );
+   run.setSteps( blaze::max( 1UL, estimatedSteps ) );
 }
 //*************************************************************************************************
 
@@ -215,6 +221,7 @@ void mat6mat6add( std::vector<Run>& runs, Benchmarks benchmarks )
       }
    }
 
+#if BLAZEMARK_BOOST_MODE
    if( benchmarks.runBoost ) {
       std::cout << "   Boost uBLAS [MFlop/s]:\n";
       for( std::vector<Run>::iterator run=runs.begin(); run!=runs.end(); ++run ) {
@@ -225,6 +232,7 @@ void mat6mat6add( std::vector<Run>& runs, Benchmarks benchmarks )
          std::cout << "     " << std::setw(12) << N << mflops << std::endl;
       }
    }
+#endif
 
 #if BLAZEMARK_BLITZ_MODE
    if( benchmarks.runBlitz ) {
@@ -334,5 +342,7 @@ int main( int argc, char** argv )
       std::cerr << "   Error during benchmark execution: " << ex.what() << "\n";
       return EXIT_FAILURE;
    }
+
+   return EXIT_SUCCESS;
 }
 //*************************************************************************************************

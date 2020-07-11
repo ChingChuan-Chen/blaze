@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/Creator.h
 //  \brief Header file for the Creator class template
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -75,6 +75,7 @@
 #include <blazetest/mathtest/creator/HybridUniUpper.h>
 #include <blazetest/mathtest/creator/HybridUpper.h>
 #include <blazetest/mathtest/creator/HybridVector.h>
+#include <blazetest/mathtest/creator/IdentityMatrix.h>
 #include <blazetest/mathtest/creator/Policies.h>
 #include <blazetest/mathtest/creator/StaticDiagonal.h>
 #include <blazetest/mathtest/creator/StaticHermitian.h>
@@ -87,5 +88,9 @@
 #include <blazetest/mathtest/creator/StaticUniUpper.h>
 #include <blazetest/mathtest/creator/StaticUpper.h>
 #include <blazetest/mathtest/creator/StaticVector.h>
+#include <blazetest/mathtest/creator/UniformMatrix.h>
+#include <blazetest/mathtest/creator/UniformVector.h>
+#include <blazetest/mathtest/creator/ZeroMatrix.h>
+#include <blazetest/mathtest/creator/ZeroVector.h>
 
 #endif

@@ -3,7 +3,7 @@
 //  \file src/mathtest/smatsmatsub/LCbUCb.cpp
 //  \brief Source file for the LCbUCb sparse matrix/sparse matrix subtraction math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/smatsmatsub/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::LowerMatrix< blaze::CompressedMatrix<TypeB> >  LCb;
-      typedef blaze::UpperMatrix< blaze::CompressedMatrix<TypeB> >  UCb;
+      using LCb = blaze::LowerMatrix< blaze::CompressedMatrix<TypeB> >;
+      using UCb = blaze::UpperMatrix< blaze::CompressedMatrix<TypeB> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<LCb>  CLCb;
-      typedef blazetest::Creator<UCb>  CUCb;
+      using CLCb = blazetest::Creator<LCb>;
+      using CUCb = blazetest::Creator<UCb>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {

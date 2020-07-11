@@ -3,7 +3,7 @@
 //  \file blaze/math/HermitianMatrix.h
 //  \brief Header file for the complete HermitianMatrix implementation
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -41,21 +41,22 @@
 //*************************************************************************************************
 
 #include <cmath>
-#include <stdexcept>
+#include <vector>
 #include <blaze/math/Aliases.h>
+#include <blaze/math/adaptors/DiagonalMatrix.h>
 #include <blaze/math/adaptors/HermitianMatrix.h>
 #include <blaze/math/constraints/DenseMatrix.h>
 #include <blaze/math/constraints/Resizable.h>
 #include <blaze/math/constraints/SparseMatrix.h>
 #include <blaze/math/DenseMatrix.h>
+#include <blaze/math/Exception.h>
 #include <blaze/math/shims/Real.h>
 #include <blaze/math/SparseMatrix.h>
 #include <blaze/math/typetraits/IsDenseMatrix.h>
 #include <blaze/math/typetraits/UnderlyingBuiltin.h>
 #include <blaze/util/Assert.h>
-#include <blaze/util/FalseType.h>
+#include <blaze/util/IntegralConstant.h>
 #include <blaze/util/Random.h>
-#include <blaze/util/TrueType.h>
 #include <blaze/util/Types.h>
 
 
@@ -144,7 +145,7 @@ template< typename MT  // Type of the adapted matrix
         , bool DF >    // Density flag
 inline const HermitianMatrix<MT,SO,DF> Rand< HermitianMatrix<MT,SO,DF> >::generate() const
 {
-   BLAZE_CONSTRAINT_MUST_NOT_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_RESIZABLE_TYPE( MT );
 
    HermitianMatrix<MT,SO,DF> matrix;
    randomize( matrix );
@@ -167,7 +168,7 @@ template< typename MT  // Type of the adapted matrix
 inline const HermitianMatrix<MT,SO,DF>
    Rand< HermitianMatrix<MT,SO,DF> >::generate( size_t n ) const
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE( MT );
 
    HermitianMatrix<MT,SO,DF> matrix( n );
    randomize( matrix );
@@ -192,11 +193,12 @@ template< typename MT  // Type of the adapted matrix
 inline const HermitianMatrix<MT,SO,DF>
    Rand< HermitianMatrix<MT,SO,DF> >::generate( size_t n, size_t nonzeros ) const
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE         ( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE    ( MT );
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   if( nonzeros > n*n )
-      throw std::invalid_argument( "Invalid number of non-zero elements" );
+   if( nonzeros > n*n ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid number of non-zero elements" );
+   }
 
    HermitianMatrix<MT,SO,DF> matrix( n );
    randomize( matrix, nonzeros );
@@ -222,7 +224,7 @@ template< typename Arg >  // Min/max argument type
 inline const HermitianMatrix<MT,SO,DF>
    Rand< HermitianMatrix<MT,SO,DF> >::generate( const Arg& min, const Arg& max ) const
 {
-   BLAZE_CONSTRAINT_MUST_NOT_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_RESIZABLE_TYPE( MT );
 
    HermitianMatrix<MT,SO,DF> matrix;
    randomize( matrix, min, max );
@@ -248,7 +250,7 @@ template< typename Arg >  // Min/max argument type
 inline const HermitianMatrix<MT,SO,DF>
    Rand< HermitianMatrix<MT,SO,DF> >::generate( size_t n, const Arg& min, const Arg& max ) const
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE( MT );
 
    HermitianMatrix<MT,SO,DF> matrix( n );
    randomize( matrix, min, max );
@@ -277,11 +279,12 @@ inline const HermitianMatrix<MT,SO,DF>
    Rand< HermitianMatrix<MT,SO,DF> >::generate( size_t n, size_t nonzeros,
                                                 const Arg& min, const Arg& max ) const
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE         ( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE    ( MT );
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   if( nonzeros > n*n )
-      throw std::invalid_argument( "Invalid number of non-zero elements" );
+   if( nonzeros > n*n ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid number of non-zero elements" );
+   }
 
    HermitianMatrix<MT,SO,DF> matrix( n );
    randomize( matrix, nonzeros, min, max );
@@ -324,8 +327,8 @@ inline void Rand< HermitianMatrix<MT,SO,DF> >::randomize( HermitianMatrix<MT,SO,
 {
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>        ET;
-   typedef UnderlyingBuiltin_<ET>  BT;
+   using ET = ElementType_t<MT>;
+   using BT = UnderlyingBuiltin_t<ET>;
 
    const size_t n( matrix.rows() );
 
@@ -382,13 +385,14 @@ inline void Rand< HermitianMatrix<MT,SO,DF> >::randomize( HermitianMatrix<MT,SO,
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>        ET;
-   typedef UnderlyingBuiltin_<ET>  BT;
+   using ET = ElementType_t<MT>;
+   using BT = UnderlyingBuiltin_t<ET>;
 
    const size_t n( matrix.rows() );
 
-   if( nonzeros > n*n )
-      throw std::invalid_argument( "Invalid number of non-zero elements" );
+   if( nonzeros > n*n ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid number of non-zero elements" );
+   }
 
    if( n == 0UL ) return;
 
@@ -450,8 +454,8 @@ inline void Rand< HermitianMatrix<MT,SO,DF> >::randomize( HermitianMatrix<MT,SO,
 {
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>        ET;
-   typedef UnderlyingBuiltin_<ET>  BT;
+   using ET = ElementType_t<MT>;
+   using BT = UnderlyingBuiltin_t<ET>;
 
    const size_t n( matrix.rows() );
 
@@ -516,28 +520,55 @@ inline void Rand< HermitianMatrix<MT,SO,DF> >::randomize( HermitianMatrix<MT,SO,
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>        ET;
-   typedef UnderlyingBuiltin_<ET>  BT;
+   using ET = ElementType_t<MT>;
+   using BT = UnderlyingBuiltin_t<ET>;
 
    const size_t n( matrix.rows() );
 
-   if( nonzeros > n*n )
-      throw std::invalid_argument( "Invalid number of non-zero elements" );
+   if( nonzeros > n*n ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid number of non-zero elements" );
+   }
 
    if( n == 0UL ) return;
 
-   matrix.reset();
-   matrix.reserve( nonzeros );
+   std::vector<size_t> dist( n );
+   std::vector<bool> structure( n*n );
+   size_t nz( 0UL );
 
-   while( matrix.nonZeros() < nonzeros )
+   while( nz < nonzeros )
    {
-      const size_t row   ( rand<size_t>( 0UL, n-1UL ) );
-      const size_t column( rand<size_t>( 0UL, n-1UL ) );
+      const size_t row = rand<size_t>( 0UL, n-1UL );
+      const size_t col = rand<size_t>( 0UL, n-1UL );
 
-      if( row == column )
-         matrix(row,column) = rand<BT>( real( min ), real( max ) );
-      else
-         matrix(row,column) = rand<ET>( min, max );
+      if( structure[row*n+col] ) continue;
+
+      ++dist[row];
+      structure[row*n+col] = true;
+      ++nz;
+
+      if( row != col ) {
+         ++dist[col];
+         structure[col*n+row] = true;
+         ++nz;
+      }
+   }
+
+   matrix.reset();
+   matrix.reserve( nz );
+
+   for( size_t i=0UL; i<n; ++i ) {
+      matrix.reserve( i, dist[i] );
+   }
+
+   for( size_t i=0UL; i<n; ++i ) {
+      for( size_t j=i; j<n; ++j ) {
+         if( structure[i*n+j] ) {
+            if( i == j )
+               matrix.append( i, j, rand<BT>( real( min ), real( max ) ) );
+            else
+               matrix.append( i, j, rand<ET>( min, max ) );
+         }
+      }
    }
 }
 /*! \endcond */
@@ -564,7 +595,7 @@ template< typename MT  // Type of the adapted matrix
         , bool DF >    // Density flag
 void makeSymmetric( HermitianMatrix<MT,SO,DF>& matrix )
 {
-   typedef UnderlyingBuiltin_< ElementType_<MT> >  BT;
+   using BT = UnderlyingBuiltin_t< ElementType_t<MT> >;
 
    const size_t n( matrix.rows() );
 
@@ -595,7 +626,7 @@ template< typename MT     // Type of the adapted matrix
         , typename Arg >  // Min/max argument type
 void makeSymmetric( HermitianMatrix<MT,SO,DF>& matrix, const Arg& min, const Arg& max )
 {
-   typedef UnderlyingBuiltin_< ElementType_<MT> >  BT;
+   using BT = UnderlyingBuiltin_t< ElementType_t<MT> >;
 
    const size_t n( matrix.rows() );
 
@@ -668,7 +699,7 @@ void makePositiveDefinite( HermitianMatrix<MT,SO,DF>& matrix )
 {
    using blaze::randomize;
 
-   typedef UnderlyingBuiltin_< ElementType_<MT> >  BT;
+   using BT = UnderlyingBuiltin_t< ElementType_t<MT> >;
 
    const size_t n( matrix.rows() );
 

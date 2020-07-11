@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/uppermatrix/DenseTest.h
 //  \brief Header file for the UpperMatrix dense test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -97,6 +97,7 @@ class DenseTest
    void testAssignment  ();
    void testAddAssign   ();
    void testSubAssign   ();
+   void testSchurAssign ();
    void testMultAssign  ();
    void testScaling     ();
    void testFunctionCall();
@@ -107,6 +108,7 @@ class DenseTest
    void testResize      ();
    void testExtend      ();
    void testReserve     ();
+   void testShrinkToFit ();
    void testSwap        ();
    void testIsDefault   ();
    void testSubmatrix   ();
@@ -139,13 +141,13 @@ class DenseTest
 
    //**Type definitions****************************************************************************
    //! Type of the row-major upper matrix.
-   typedef blaze::UpperMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> >  UT;
+   using UT = blaze::UpperMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> >;
 
    //! Type of the column-major upper matrix.
-   typedef blaze::UpperMatrix< blaze::DynamicMatrix<int,blaze::columnMajor> >  OUT;
+   using OUT = blaze::UpperMatrix< blaze::DynamicMatrix<int,blaze::columnMajor> >;
 
-   typedef UT::Rebind<double>::Other   RUT;   //!< Rebound row-major upper matrix type.
-   typedef OUT::Rebind<double>::Other  ORUT;  //!< Rebound column-major upper matrix type.
+   using RUT  = UT::Rebind<double>::Other;   //!< Rebound row-major upper matrix type.
+   using ORUT = OUT::Rebind<double>::Other;  //!< Rebound column-major upper matrix type.
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************

@@ -3,7 +3,7 @@
 //  \file blaze/math/adaptors/strictlyuppermatrix/StrictlyUpperProxy.h
 //  \brief Header file for the StrictlyUpperProxy class
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -41,15 +41,18 @@
 //*************************************************************************************************
 
 #include <blaze/math/Aliases.h>
-#include <blaze/math/constraints/Expression.h>
+#include <blaze/math/constraints/Computation.h>
 #include <blaze/math/constraints/Hermitian.h>
 #include <blaze/math/constraints/Lower.h>
 #include <blaze/math/constraints/Matrix.h>
 #include <blaze/math/constraints/Symmetric.h>
+#include <blaze/math/constraints/Transformation.h>
 #include <blaze/math/constraints/Upper.h>
+#include <blaze/math/constraints/View.h>
 #include <blaze/math/Exception.h>
 #include <blaze/math/InitializerList.h>
 #include <blaze/math/proxy/Proxy.h>
+#include <blaze/math/RelaxationFlag.h>
 #include <blaze/math/shims/Clear.h>
 #include <blaze/math/shims/IsDefault.h>
 #include <blaze/math/shims/IsNaN.h>
@@ -97,31 +100,35 @@ namespace blaze {
    \endcode
 */
 template< typename MT >  // Type of the adapted matrix
-class StrictlyUpperProxy : public Proxy< StrictlyUpperProxy<MT>, ElementType_<MT> >
+class StrictlyUpperProxy
+   : public Proxy< StrictlyUpperProxy<MT>, ElementType_t<MT> >
 {
  private:
    //**Type definitions****************************************************************************
    //! Reference type of the underlying matrix type.
-   typedef AddConst_< Reference_<MT> >  ReferenceType;
+   using ReferenceType = AddConst_t< Reference_t<MT> >;
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
-   typedef ElementType_<MT>              RepresentedType;  //!< Type of the represented matrix element.
-   typedef AddReference_<ReferenceType>  RawReference;     //!< Reference-to-non-const to the represented element.
-   typedef const RepresentedType&        ConstReference;   //!< Reference-to-const to the represented element.
+   using RepresentedType = ElementType_t<MT>;              //!< Type of the represented matrix element.
+   using RawReference    = AddReference_t<ReferenceType>;  //!< Reference-to-non-const to the represented element.
+   using ConstReference  = const RepresentedType&;         //!< Reference-to-const to the represented element.
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
    /*!\name Constructors */
    //@{
-   explicit inline StrictlyUpperProxy( MT& matrix, size_t row, size_t column );
-            inline StrictlyUpperProxy( const StrictlyUpperProxy& uup );
+   inline StrictlyUpperProxy( MT& matrix, size_t row, size_t column );
+   inline StrictlyUpperProxy( const StrictlyUpperProxy& uup );
    //@}
    //**********************************************************************************************
 
    //**Destructor**********************************************************************************
-   // No explicitly declared destructor.
+   /*!\name Destructor */
+   //@{
+   ~StrictlyUpperProxy() = default;
+   //@}
    //**********************************************************************************************
 
    //**Assignment operators************************************************************************
@@ -140,6 +147,14 @@ class StrictlyUpperProxy : public Proxy< StrictlyUpperProxy<MT>, ElementType_<MT
    template< typename T > inline const StrictlyUpperProxy& operator-=( const T& value ) const;
    template< typename T > inline const StrictlyUpperProxy& operator*=( const T& value ) const;
    template< typename T > inline const StrictlyUpperProxy& operator/=( const T& value ) const;
+   template< typename T > inline const StrictlyUpperProxy& operator%=( const T& value ) const;
+   //@}
+   //**********************************************************************************************
+
+   //**Access operators****************************************************************************
+   /*!\name Access operators */
+   //@{
+   inline const StrictlyUpperProxy* operator->() const noexcept;
    //@}
    //**********************************************************************************************
 
@@ -177,7 +192,9 @@ class StrictlyUpperProxy : public Proxy< StrictlyUpperProxy<MT>, ElementType_<MT
    BLAZE_CONSTRAINT_MUST_NOT_BE_POINTER_TYPE         ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_CONST                ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_VOLATILE             ( MT );
-   BLAZE_CONSTRAINT_MUST_NOT_BE_EXPRESSION_TYPE      ( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_VIEW_TYPE            ( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_COMPUTATION_TYPE     ( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_TRANSFORMATION_TYPE  ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_SYMMETRIC_MATRIX_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_HERMITIAN_MATRIX_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_LOWER_MATRIX_TYPE    ( MT );
@@ -433,6 +450,52 @@ inline const StrictlyUpperProxy<MT>& StrictlyUpperProxy<MT>::operator/=( const T
 //*************************************************************************************************
 
 
+//*************************************************************************************************
+/*!\brief Modulo assignment to the accessed matrix element.
+//
+// \param value The right-hand side value for the modulo operation.
+// \return Reference to the assigned proxy.
+// \exception std::invalid_argument Invalid assignment to diagonal or lower matrix element.
+//
+// In case the proxy represents an element on the diagonal or in the lower part of the matrix,
+// a \a std::invalid_argument exception is thrown.
+*/
+template< typename MT >  // Type of the adapted matrix
+template< typename T >   // Type of the right-hand side value
+inline const StrictlyUpperProxy<MT>& StrictlyUpperProxy<MT>::operator%=( const T& value ) const
+{
+   if( restricted_ ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal or lower matrix element" );
+   }
+
+   value_ %= value;
+
+   return *this;
+}
+//*************************************************************************************************
+
+
+
+
+//=================================================================================================
+//
+//  ACCESS OPERATORS
+//
+//=================================================================================================
+
+//*************************************************************************************************
+/*!\brief Direct access to the accessed matrix element.
+//
+// \return Pointer to the accessed matrix element.
+*/
+template< typename MT >  // Type of the adapted matrix
+inline const StrictlyUpperProxy<MT>* StrictlyUpperProxy<MT>::operator->() const noexcept
+{
+   return this;
+}
+//*************************************************************************************************
+
+
 
 
 //=================================================================================================
@@ -500,25 +563,25 @@ inline StrictlyUpperProxy<MT>::operator ConstReference() const noexcept
 /*!\name StrictlyUpperProxy global functions */
 //@{
 template< typename MT >
-inline void reset( const StrictlyUpperProxy<MT>& proxy );
+void reset( const StrictlyUpperProxy<MT>& proxy );
 
 template< typename MT >
-inline void clear( const StrictlyUpperProxy<MT>& proxy );
+void clear( const StrictlyUpperProxy<MT>& proxy );
+
+template< RelaxationFlag RF, typename MT >
+bool isDefault( const StrictlyUpperProxy<MT>& proxy );
+
+template< RelaxationFlag RF, typename MT >
+bool isReal( const StrictlyUpperProxy<MT>& proxy );
+
+template< RelaxationFlag RF, typename MT >
+bool isZero( const StrictlyUpperProxy<MT>& proxy );
+
+template< RelaxationFlag RF, typename MT >
+bool isOne( const StrictlyUpperProxy<MT>& proxy );
 
 template< typename MT >
-inline bool isDefault( const StrictlyUpperProxy<MT>& proxy );
-
-template< typename MT >
-inline bool isReal( const StrictlyUpperProxy<MT>& proxy );
-
-template< typename MT >
-inline bool isZero( const StrictlyUpperProxy<MT>& proxy );
-
-template< typename MT >
-inline bool isOne( const StrictlyUpperProxy<MT>& proxy );
-
-template< typename MT >
-inline bool isnan( const StrictlyUpperProxy<MT>& proxy );
+bool isnan( const StrictlyUpperProxy<MT>& proxy );
 //@}
 //*************************************************************************************************
 
@@ -573,12 +636,12 @@ inline void clear( const StrictlyUpperProxy<MT>& proxy )
 // This function checks whether the element represented by the access proxy is in default state.
 // In case it is in default state, the function returns \a true, otherwise it returns \a false.
 */
-template< typename MT >
+template< RelaxationFlag RF, typename MT >
 inline bool isDefault( const StrictlyUpperProxy<MT>& proxy )
 {
    using blaze::isDefault;
 
-   return isDefault( proxy.get() );
+   return isDefault<RF>( proxy.get() );
 }
 //*************************************************************************************************
 
@@ -595,12 +658,12 @@ inline bool isDefault( const StrictlyUpperProxy<MT>& proxy )
 // the element is of complex type, the function returns \a true if the imaginary part is equal
 // to 0. Otherwise it returns \a false.
 */
-template< typename MT >
+template< RelaxationFlag RF, typename MT >
 inline bool isReal( const StrictlyUpperProxy<MT>& proxy )
 {
    using blaze::isReal;
 
-   return isReal( proxy.get() );
+   return isReal<RF>( proxy.get() );
 }
 //*************************************************************************************************
 
@@ -615,12 +678,12 @@ inline bool isReal( const StrictlyUpperProxy<MT>& proxy )
 // This function checks whether the element represented by the access proxy represents the numeric
 // value 0. In case it is 0, the function returns \a true, otherwise it returns \a false.
 */
-template< typename MT >
+template< RelaxationFlag RF, typename MT >
 inline bool isZero( const StrictlyUpperProxy<MT>& proxy )
 {
    using blaze::isZero;
 
-   return isZero( proxy.get() );
+   return isZero<RF>( proxy.get() );
 }
 //*************************************************************************************************
 
@@ -635,12 +698,12 @@ inline bool isZero( const StrictlyUpperProxy<MT>& proxy )
 // This function checks whether the element represented by the access proxy represents the numeric
 // value 1. In case it is 1, the function returns \a true, otherwise it returns \a false.
 */
-template< typename MT >
+template< RelaxationFlag RF, typename MT >
 inline bool isOne( const StrictlyUpperProxy<MT>& proxy )
 {
    using blaze::isOne;
 
-   return isOne( proxy.get() );
+   return isOne<RF>( proxy.get() );
 }
 //*************************************************************************************************
 

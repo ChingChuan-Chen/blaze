@@ -3,7 +3,7 @@
 //  \file src/mathtest/tdvecdmatmult/V5bMDb.cpp
 //  \brief Source file for the V5bMDb dense vector/dense matrix multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/tdvecdmatmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StaticVector<TypeB,5UL>  V5b;
-      typedef blaze::DynamicMatrix<TypeB>     MDb;
+      using V5b = blaze::StaticVector<TypeB,5UL>;
+      using MDb = blaze::DynamicMatrix<TypeB>;
 
       // Creator type definitions
-      typedef blazetest::Creator<V5b>  CV5b;
-      typedef blazetest::Creator<MDb>  CMDb;
+      using CV5b = blazetest::Creator<V5b>;
+      using CMDb = blazetest::Creator<MDb>;
 
       // Running the tests
       for( size_t i=0UL; i<=8UL; ++i ) {

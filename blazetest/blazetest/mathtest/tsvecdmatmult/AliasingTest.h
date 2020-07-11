@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/tsvecdmatmult/AliasingTest.h
 //  \brief Header file for the sparse vector/dense matrix multiplication aliasing test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -72,11 +72,11 @@ class AliasingTest
 {
  private:
    //**Type definitions****************************************************************************
-   typedef blaze::DynamicVector<int,blaze::rowVector>     TDVec;  //!< Dense row vector type.
-   typedef blaze::DynamicMatrix<int,blaze::rowMajor>      DMat;   //!< Row-major dense matrix type.
-   typedef blaze::DynamicMatrix<int,blaze::columnMajor>   TDMat;  //!< Column-major dense matrix type.
-   typedef blaze::CompressedVector<int,blaze::rowVector>  TSVec;  //!< Sparse row vector type.
-   typedef blaze::StaticVector<int,3UL,blaze::rowVector>  TRVec;  //!< Result row vector type.
+   using TDVec = blaze::DynamicVector<int,blaze::rowVector>;     //!< Dense row vector type.
+   using DMat  = blaze::DynamicMatrix<int,blaze::rowMajor>;      //!< Row-major dense matrix type.
+   using TDMat = blaze::DynamicMatrix<int,blaze::columnMajor>;   //!< Column-major dense matrix type.
+   using TSVec = blaze::CompressedVector<int,blaze::rowVector>;  //!< Sparse row vector type.
+   using TRVec = blaze::StaticVector<int,3UL,blaze::rowVector>;  //!< Result row vector type.
    //**********************************************************************************************
 
  public:

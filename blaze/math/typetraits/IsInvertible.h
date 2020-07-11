@@ -3,7 +3,7 @@
 //  \file blaze/math/typetraits/IsInvertible.h
 //  \brief Header file for the IsInvertible type trait
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -44,8 +44,6 @@
 #include <blaze/math/typetraits/IsDenseMatrix.h>
 #include <blaze/math/typetraits/UnderlyingElement.h>
 #include <blaze/util/IntegralConstant.h>
-#include <blaze/util/mpl/And.h>
-#include <blaze/util/mpl/Or.h>
 #include <blaze/util/typetraits/IsComplex.h>
 #include <blaze/util/typetraits/IsLongDouble.h>
 
@@ -81,14 +79,29 @@ namespace blaze {
 */
 template< typename T >
 struct IsInvertible
-   : public BoolConstant< Or< IsBLASCompatible<T>
-                            , IsLongDouble<T>
-                            , And< IsComplex<T>
-                                 , IsLongDouble< UnderlyingElement_<T> > >
-                            , And< IsDenseMatrix<T>
-                                 , IsBLASCompatible< UnderlyingElement_<T> > >
-                            >::value >
+   : public BoolConstant< IsBLASCompatible_v<T> ||
+                          IsLongDouble_v<T> ||
+                          ( IsComplex_v<T> && IsLongDouble_v< UnderlyingElement_t<T> > ) ||
+                          ( IsDenseMatrix_v<T> && IsBLASCompatible_v< UnderlyingElement_t<T> > ) >
 {};
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Auxiliary variable template for the IsInvertible type trait.
+// \ingroup math_type_traits
+//
+// The IsInvertible_v variable template provides a convenient shortcut to access the nested
+// \a value of the IsInvertible class template. For instance, given the type \a T the following
+// two statements are identical:
+
+   \code
+   constexpr bool value1 = blaze::IsInvertible<T>::value;
+   constexpr bool value2 = blaze::IsInvertible_v<T>;
+   \endcode
+*/
+template< typename T >
+constexpr bool IsInvertible_v = IsInvertible<T>::value;
 //*************************************************************************************************
 
 } // namespace blaze

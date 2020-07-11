@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/hermitianmatrix/DenseComplexTest.h
 //  \brief Header file for the HermitianMatrix dense complex test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -99,6 +99,7 @@ class DenseComplexTest
    void testAssignment  ();
    void testAddAssign   ();
    void testSubAssign   ();
+   void testSchurAssign ();
    void testMultAssign  ();
    void testScaling     ();
    void testFunctionCall();
@@ -109,9 +110,10 @@ class DenseComplexTest
    void testResize      ();
    void testExtend      ();
    void testReserve     ();
+   void testShrinkToFit ();
+   void testSwap        ();
    void testTranspose   ();
    void testCTranspose  ();
-   void testSwap        ();
    void testIsDefault   ();
    void testSubmatrix   ();
    void testRow         ();
@@ -143,16 +145,16 @@ class DenseComplexTest
 
    //**Type definitions****************************************************************************
    //! Complex element type.
-   typedef blaze::complex<int>  cplx;
+   using cplx = blaze::complex<int>;
 
    //! Type of the row-major Hermitian matrix.
-   typedef blaze::HermitianMatrix< blaze::DynamicMatrix<cplx,blaze::rowMajor> >  HT;
+   using HT = blaze::HermitianMatrix< blaze::DynamicMatrix<cplx,blaze::rowMajor> >;
 
    //! Type of the column-major Hermitian matrix.
-   typedef blaze::HermitianMatrix< blaze::DynamicMatrix<cplx,blaze::columnMajor> >  OHT;
+   using OHT = blaze::HermitianMatrix< blaze::DynamicMatrix<cplx,blaze::columnMajor> >;
 
-   typedef HT::Rebind< complex<double> >::Other   RHT;   //!< Rebound row-major Hermitian matrix type.
-   typedef OHT::Rebind< complex<double> >::Other  ORHT;  //!< Rebound column-major Hermitian matrix type.
+   using RHT  = HT::Rebind< complex<double> >::Other;   //!< Rebound row-major Hermitian matrix type.
+   using ORHT = OHT::Rebind< complex<double> >::Other;  //!< Rebound column-major Hermitian matrix type.
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************

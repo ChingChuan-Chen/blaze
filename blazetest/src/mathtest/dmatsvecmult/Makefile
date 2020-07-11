@@ -2,7 +2,7 @@
 #
 #  Makefile for the dmatsvecmult module of the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -33,8 +33,10 @@
 
 
 # Including the compiler and library settings
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include ../../Makeconfig
+endif
 endif
 
 
@@ -49,6 +51,7 @@ BIN = $(SRC:.cpp=)
 default: M3x3aVCa M3x3aVCb M3x3bVCa M3x3bVCb \
          MHaVCa MHaVCb MHbVCa MHbVCb \
          MDaVCa MDaVCb MDbVCa MDbVCb \
+         MUaVCa MUaVCb MUbVCa MUbVCb \
          SDaVCa SDaVCb SDbVCa SDbVCb \
          HDaVCa HDaVCb HDbVCa HDbVCb \
          LDaVCa LDaVCb LDbVCa LDbVCb \
@@ -56,7 +59,7 @@ default: M3x3aVCa M3x3aVCb M3x3bVCa M3x3bVCb \
          DDaVCa DDaVCb DDbVCa DDbVCb \
          AliasingTest
 all: $(BIN)
-essential: M3x3aVCa MHaVCa MDaVCa SDaVCa HDaVCa LDaVCa UDaVCa DDaVCa AliasingTest
+essential: M3x3aVCa MHaVCa MDaVCa MUaVCa SDaVCa HDaVCa LDaVCa UDaVCa DDaVCa AliasingTest
 single: MDaVCa
 
 
@@ -169,6 +172,15 @@ MHbVCa: MHbVCa.o
 MHbVCb: MHbVCb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
+MUaVCa: MUaVCa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MUaVCb: MUaVCb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MUbVCa: MUbVCa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MUbVCb: MUbVCb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+
 SDaVCa: SDaVCa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 SDaVCb: SDaVCb.o
@@ -210,13 +222,17 @@ AliasingTest: AliasingTest.o
 
 
 # Cleanup
+reset:
+	@$(RM) $(OBJ) $(BIN)
 clean:
-	@$(RM) $(DEP) $(OBJ) $(BIN)
+	@$(RM) $(OBJ) $(BIN) $(DEP)
 
 
 # Makefile includes
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP)
+endif
 endif
 
 
@@ -226,4 +242,4 @@ endif
 
 
 # Setting the independent commands
-.PHONY: default all essential single clean
+.PHONY: default all essential single reset clean

@@ -3,7 +3,7 @@
 //  \file blaze/math/typetraits/IsMatrix.h
 //  \brief Header file for the IsMatrix type trait
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,11 +40,8 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/expressions/Matrix.h>
+#include <blaze/math/expressions/Forward.h>
 #include <blaze/util/IntegralConstant.h>
-#include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/IsBaseOf.h>
-#include <blaze/util/typetraits/RemoveCV.h>
 
 
 namespace blaze {
@@ -54,6 +51,36 @@ namespace blaze {
 //  CLASS DEFINITION
 //
 //=================================================================================================
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Auxiliary helper struct for the IsMatrix type trait.
+// \ingroup math_type_traits
+*/
+template< typename T >
+struct IsMatrixHelper
+{
+ private:
+   //**********************************************************************************************
+   static T* create();
+
+   template< typename MT, bool SO >
+   static TrueType test( const Matrix<MT,SO>* );
+
+   template< typename MT, bool SO >
+   static TrueType test( const volatile Matrix<MT,SO>* );
+
+   static FalseType test( ... );
+   //**********************************************************************************************
+
+ public:
+   //**********************************************************************************************
+   using Type = decltype( test( create() ) );
+   //**********************************************************************************************
+};
+/*! \endcond */
+//*************************************************************************************************
+
 
 //*************************************************************************************************
 /*!\brief Compile time check for matrix types.
@@ -76,9 +103,39 @@ namespace blaze {
 */
 template< typename T >
 struct IsMatrix
-   : public BoolConstant< Or< IsBaseOf<Matrix<RemoveCV_<T>,false>,T>
-                            , IsBaseOf<Matrix<RemoveCV_<T>,true>,T> >::value >
+   : public IsMatrixHelper<T>::Type
 {};
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Specialization of the IsMatrix type trait for references.
+// \ingroup math_type_traits
+*/
+template< typename T >
+struct IsMatrix<T&>
+   : public FalseType
+{};
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Auxiliary variable template for the IsMatrix type trait.
+// \ingroup math_type_traits
+//
+// The IsMatrix_v variable template provides a convenient shortcut to access the nested \a value
+// of the IsMatrix class template. For instance, given the type \a T the following two statements
+// are identical:
+
+   \code
+   constexpr bool value1 = blaze::IsMatrix<T>::value;
+   constexpr bool value2 = blaze::IsMatrix_v<T>;
+   \endcode
+*/
+template< typename T >
+constexpr bool IsMatrix_v = IsMatrix<T>::value;
 //*************************************************************************************************
 
 } // namespace blaze

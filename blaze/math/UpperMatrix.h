@@ -3,7 +3,7 @@
 //  \file blaze/math/UpperMatrix.h
 //  \brief Header file for the complete UpperMatrix implementation
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -43,6 +43,7 @@
 #include <cmath>
 #include <vector>
 #include <blaze/math/Aliases.h>
+#include <blaze/math/adaptors/DiagonalMatrix.h>
 #include <blaze/math/adaptors/UpperMatrix.h>
 #include <blaze/math/constraints/DenseMatrix.h>
 #include <blaze/math/constraints/Resizable.h>
@@ -53,10 +54,9 @@
 #include <blaze/math/SparseMatrix.h>
 #include <blaze/math/typetraits/IsDenseMatrix.h>
 #include <blaze/math/typetraits/UnderlyingBuiltin.h>
-#include <blaze/util/FalseType.h>
 #include <blaze/util/Indices.h>
+#include <blaze/util/IntegralConstant.h>
 #include <blaze/util/Random.h>
-#include <blaze/util/TrueType.h>
 #include <blaze/util/Types.h>
 
 
@@ -150,7 +150,7 @@ template< typename MT  // Type of the adapted matrix
         , bool DF >    // Numeric flag
 inline const UpperMatrix<MT,SO,DF> Rand< UpperMatrix<MT,SO,DF> >::generate() const
 {
-   BLAZE_CONSTRAINT_MUST_NOT_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_RESIZABLE_TYPE( MT );
 
    UpperMatrix<MT,SO,DF> matrix;
    randomize( matrix );
@@ -173,7 +173,7 @@ template< typename MT  // Type of the adapted matrix
 inline const UpperMatrix<MT,SO,DF>
    Rand< UpperMatrix<MT,SO,DF> >::generate( size_t n ) const
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE( MT );
 
    UpperMatrix<MT,SO,DF> matrix( n );
    randomize( matrix );
@@ -198,7 +198,7 @@ template< typename MT  // Type of the adapted matrix
 inline const UpperMatrix<MT,SO,DF>
    Rand< UpperMatrix<MT,SO,DF> >::generate( size_t n, size_t nonzeros ) const
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE         ( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE    ( MT );
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
    if( nonzeros > UpperMatrix<MT,SO,DF>::maxNonZeros( n ) ) {
@@ -229,7 +229,7 @@ template< typename Arg >  // Min/max argument type
 inline const UpperMatrix<MT,SO,DF>
    Rand< UpperMatrix<MT,SO,DF> >::generate( const Arg& min, const Arg& max ) const
 {
-   BLAZE_CONSTRAINT_MUST_NOT_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_RESIZABLE_TYPE( MT );
 
    UpperMatrix<MT,SO,DF> matrix;
    randomize( matrix, min, max );
@@ -255,7 +255,7 @@ template< typename Arg >  // Min/max argument type
 inline const UpperMatrix<MT,SO,DF>
    Rand< UpperMatrix<MT,SO,DF> >::generate( size_t n, const Arg& min, const Arg& max ) const
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE( MT );
 
    UpperMatrix<MT,SO,DF> matrix( n );
    randomize( matrix, min, max );
@@ -284,7 +284,7 @@ inline const UpperMatrix<MT,SO,DF>
    Rand< UpperMatrix<MT,SO,DF> >::generate( size_t n, size_t nonzeros,
                                             const Arg& min, const Arg& max ) const
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE         ( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE    ( MT );
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
    if( nonzeros > UpperMatrix<MT,SO,DF>::maxNonZeros( n ) ) {
@@ -332,7 +332,7 @@ inline void Rand< UpperMatrix<MT,SO,DF> >::randomize( UpperMatrix<MT,SO,DF>& mat
 {
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -388,7 +388,7 @@ inline void Rand< UpperMatrix<MT,SO,DF> >::randomize( UpperMatrix<MT,false,DF>& 
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -438,7 +438,7 @@ inline void Rand< UpperMatrix<MT,SO,DF> >::randomize( UpperMatrix<MT,true,DF>& m
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -512,7 +512,7 @@ inline void Rand< UpperMatrix<MT,SO,DF> >::randomize( UpperMatrix<MT,SO,DF>& mat
 {
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -576,7 +576,7 @@ inline void Rand< UpperMatrix<MT,SO,DF> >::randomize( UpperMatrix<MT,false,DF>& 
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -630,7 +630,7 @@ inline void Rand< UpperMatrix<MT,SO,DF> >::randomize( UpperMatrix<MT,true,DF>& m
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -689,7 +689,7 @@ void makeSymmetric( UpperMatrix<MT,SO,DF>& matrix )
    reset( matrix );
 
    for( size_t i=0UL; i<n; ++i ) {
-      matrix(i,i) = rand< ElementType_<MT> >();
+      matrix(i,i) = rand< ElementType_t<MT> >();
    }
 
    BLAZE_INTERNAL_ASSERT( isSymmetric( matrix ), "Non-symmetric matrix detected" );
@@ -713,7 +713,7 @@ template< typename MT     // Type of the adapted matrix
         , typename Arg >  // Min/max argument type
 void makeSymmetric( UpperMatrix<MT,SO,DF>& matrix, const Arg& min, const Arg& max )
 {
-   typedef ElementType_<MT>  Type;
+   using Type = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -741,7 +741,7 @@ template< typename MT  // Type of the adapted matrix
         , bool DF >    // Density flag
 void makeHermitian( UpperMatrix<MT,SO,DF>& matrix )
 {
-   typedef UnderlyingBuiltin_< ElementType_<MT> >  Type;
+   using Type = UnderlyingBuiltin_t< ElementType_t<MT> >;
 
    const size_t n( matrix.rows() );
 
@@ -772,7 +772,7 @@ template< typename MT     // Type of the adapted matrix
         , typename Arg >  // Min/max argument type
 void makeHermitian( UpperMatrix<MT,SO,DF>& matrix, const Arg& min, const Arg& max )
 {
-   typedef UnderlyingBuiltin_< ElementType_<MT> >  Type;
+   using Type = UnderlyingBuiltin_t< ElementType_t<MT> >;
 
    const size_t n( matrix.rows() );
 

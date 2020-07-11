@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/strictlylowermatrix/SparseTest.h
 //  \brief Header file for the StrictlyLowerMatrix sparse test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -98,6 +98,7 @@ class SparseTest
    void testAssignment  ();
    void testAddAssign   ();
    void testSubAssign   ();
+   void testSchurAssign ();
    void testMultAssign  ();
    void testScaling     ();
    void testFunctionCall();
@@ -105,13 +106,14 @@ class SparseTest
    void testNonZeros    ();
    void testReset       ();
    void testClear       ();
-   void testSet         ();
-   void testInsert      ();
-   void testAppend      ();
    void testResize      ();
    void testReserve     ();
    void testTrim        ();
+   void testShrinkToFit ();
    void testSwap        ();
+   void testSet         ();
+   void testInsert      ();
+   void testAppend      ();
    void testErase       ();
    void testFind        ();
    void testLowerBound  ();
@@ -150,13 +152,13 @@ class SparseTest
 
    //**Type definitions****************************************************************************
    //! Type of the row-major strictly lower matrix.
-   typedef blaze::StrictlyLowerMatrix< blaze::CompressedMatrix<int,blaze::rowMajor> >  LT;
+   using LT = blaze::StrictlyLowerMatrix< blaze::CompressedMatrix<int,blaze::rowMajor> >;
 
    //! Type of the column-major strictly lower matrix.
-   typedef blaze::StrictlyLowerMatrix< blaze::CompressedMatrix<int,blaze::columnMajor> >  OLT;
+   using OLT = blaze::StrictlyLowerMatrix< blaze::CompressedMatrix<int,blaze::columnMajor> >;
 
-   typedef LT::Rebind<double>::Other   RLT;   //!< Rebound row-major strictly lower matrix type.
-   typedef OLT::Rebind<double>::Other  ORLT;  //!< Rebound column-major strictly lower matrix type.
+   using RLT  = LT::Rebind<double>::Other;   //!< Rebound row-major strictly lower matrix type.
+   using ORLT = OLT::Rebind<double>::Other;  //!< Rebound column-major strictly lower matrix type.
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************

@@ -3,7 +3,7 @@
 //  \file blaze/util/typetraits/IsVectorizable.h
 //  \brief Header file for the IsVectorizable type trait
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -67,23 +67,25 @@ struct IsVectorizableHelper
  private:
    //**struct Builtin******************************************************************************
    template< typename BT >
-   struct Builtin { typedef BT  Type; };
+   struct Builtin { using Type = BT ; };
    //**********************************************************************************************
 
    //**struct Complex******************************************************************************
    template< typename CT >
-   struct Complex { typedef typename CT::value_type  Type; };
+   struct Complex { using Type = typename CT::value_type; };
    //**********************************************************************************************
 
    //**********************************************************************************************
-   typedef typename If_< IsComplex<T>, Complex<T>, Builtin<T> >::Type  T2;
+   using T2 = typename If_t< IsComplex_v<T>, Complex<T>, Builtin<T> >::Type;
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
-   enum : bool { value = ( bool( BLAZE_SSE_MODE  ) && IsFloat<T2>::value   ) ||
-                         ( bool( BLAZE_SSE2_MODE ) && IsNumeric<T2>::value ) ||
-                         ( bool( BLAZE_MIC_MODE  ) && IsNumeric<T2>::value && sizeof(T2) >= 4UL ) };
+   static constexpr bool value = ( ( bool( BLAZE_SSE_MODE      ) && IsFloat_v<T2>   ) ||
+                                   ( bool( BLAZE_SSE2_MODE     ) && IsNumeric_v<T2> ) ||
+                                   ( bool( BLAZE_AVX512BW_MODE ) && IsNumeric_v<T2> ) ||
+                                   ( bool( BLAZE_AVX512F_MODE || BLAZE_MIC_MODE  )
+                                     && IsNumeric_v<T2> && sizeof(T2) >= 4UL ) );
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -100,7 +102,7 @@ struct IsVectorizableHelper<void>
 {
  public:
    //**********************************************************************************************
-   enum : bool { value = false };
+   static constexpr bool value = false;
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -130,8 +132,27 @@ struct IsVectorizableHelper<void>
    \endcode
 */
 template< typename T >
-struct IsVectorizable : public BoolConstant< IsVectorizableHelper< RemoveCV_<T> >::value >
+struct IsVectorizable
+   : public BoolConstant< IsVectorizableHelper< RemoveCV_t<T> >::value >
 {};
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Auxiliary variable template for the IsVectorizable type trait.
+// \ingroup type_traits
+//
+// The IsVectorizable_v variable template provides a convenient shortcut to access the nested
+// \a value of the IsVectorizable class template. For instance, given the type \a T the
+// following two statements are identical:
+
+   \code
+   constexpr bool value1 = blaze::IsVectorizable<T>::value;
+   constexpr bool value2 = blaze::IsVectorizable_v<T>;
+   \endcode
+*/
+template< typename T >
+constexpr bool IsVectorizable_v = IsVectorizable<T>::value;
 //*************************************************************************************************
 
 } // namespace blaze

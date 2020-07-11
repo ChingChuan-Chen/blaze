@@ -3,7 +3,7 @@
 //  \file blaze/math/UniLowerMatrix.h
 //  \brief Header file for the complete UniLowerMatrix implementation
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -43,6 +43,8 @@
 #include <cmath>
 #include <vector>
 #include <blaze/math/Aliases.h>
+#include <blaze/math/adaptors/LowerMatrix.h>
+#include <blaze/math/adaptors/StrictlyLowerMatrix.h>
 #include <blaze/math/adaptors/UniLowerMatrix.h>
 #include <blaze/math/constraints/DenseMatrix.h>
 #include <blaze/math/constraints/Resizable.h>
@@ -52,12 +54,11 @@
 #include <blaze/math/SparseMatrix.h>
 #include <blaze/math/typetraits/IsDenseMatrix.h>
 #include <blaze/math/UniUpperMatrix.h>
-#include <blaze/util/FalseType.h>
 #include <blaze/util/Indices.h>
+#include <blaze/util/IntegralConstant.h>
+#include <blaze/util/MaybeUnused.h>
 #include <blaze/util/Random.h>
-#include <blaze/util/TrueType.h>
 #include <blaze/util/Types.h>
-#include <blaze/util/Unused.h>
 
 
 namespace blaze {
@@ -150,7 +151,7 @@ template< typename MT  // Type of the adapted matrix
         , bool DF >    // Numeric flag
 inline const UniLowerMatrix<MT,SO,DF> Rand< UniLowerMatrix<MT,SO,DF> >::generate() const
 {
-   BLAZE_CONSTRAINT_MUST_NOT_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_RESIZABLE_TYPE( MT );
 
    UniLowerMatrix<MT,SO,DF> matrix;
    randomize( matrix );
@@ -173,7 +174,7 @@ template< typename MT  // Type of the adapted matrix
 inline const UniLowerMatrix<MT,SO,DF>
    Rand< UniLowerMatrix<MT,SO,DF> >::generate( size_t n ) const
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE( MT );
 
    UniLowerMatrix<MT,SO,DF> matrix( n );
    randomize( matrix );
@@ -198,7 +199,7 @@ template< typename MT  // Type of the adapted matrix
 inline const UniLowerMatrix<MT,SO,DF>
    Rand< UniLowerMatrix<MT,SO,DF> >::generate( size_t n, size_t nonzeros ) const
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE         ( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE    ( MT );
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
    if( nonzeros > UniLowerMatrix<MT,SO,DF>::maxNonZeros( n ) ) {
@@ -229,7 +230,7 @@ template< typename Arg >  // Min/max argument type
 inline const UniLowerMatrix<MT,SO,DF>
    Rand< UniLowerMatrix<MT,SO,DF> >::generate( const Arg& min, const Arg& max ) const
 {
-   BLAZE_CONSTRAINT_MUST_NOT_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_RESIZABLE_TYPE( MT );
 
    UniLowerMatrix<MT,SO,DF> matrix;
    randomize( matrix, min, max );
@@ -255,7 +256,7 @@ template< typename Arg >  // Min/max argument type
 inline const UniLowerMatrix<MT,SO,DF>
    Rand< UniLowerMatrix<MT,SO,DF> >::generate( size_t n, const Arg& min, const Arg& max ) const
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE( MT );
 
    UniLowerMatrix<MT,SO,DF> matrix( n );
    randomize( matrix, min, max );
@@ -284,7 +285,7 @@ inline const UniLowerMatrix<MT,SO,DF>
    Rand< UniLowerMatrix<MT,SO,DF> >::generate( size_t n, size_t nonzeros,
                                                const Arg& min, const Arg& max ) const
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE         ( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE    ( MT );
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
    if( nonzeros > UniLowerMatrix<MT,SO,DF>::maxNonZeros( n ) ) {
@@ -332,7 +333,7 @@ inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,SO,DF
 {
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -388,7 +389,7 @@ inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,false
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -439,7 +440,7 @@ inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,true,
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -515,7 +516,7 @@ inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,SO,DF
 {
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -579,7 +580,7 @@ inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,false
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -634,7 +635,7 @@ inline void Rand< UniLowerMatrix<MT,SO,DF> >::randomize( UniLowerMatrix<MT,true,
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -713,7 +714,7 @@ template< typename MT     // Type of the adapted matrix
         , typename Arg >  // Min/max argument type
 void makeSymmetric( UniLowerMatrix<MT,SO,DF>& matrix, const Arg& min, const Arg& max )
 {
-   UNUSED_PARAMETER( min, max );
+   MAYBE_UNUSED( min, max );
 
    makeSymmetric( matrix );
 }
@@ -756,7 +757,7 @@ template< typename MT     // Type of the adapted matrix
         , typename Arg >  // Min/max argument type
 void makeHermitian( UniLowerMatrix<MT,SO,DF>& matrix, const Arg& min, const Arg& max )
 {
-   UNUSED_PARAMETER( min, max );
+   MAYBE_UNUSED( min, max );
 
    makeHermitian( matrix );
 }

@@ -2,7 +2,7 @@
 #
 #  Makefile for the svecsvecadd module of the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -33,8 +33,10 @@
 
 
 # Including the compiler and library settings
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include ../../Makeconfig
+endif
 endif
 
 
@@ -57,9 +59,28 @@ VCaVCa: VCaVCa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VCaVCb: VCaVCb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VCaVZa: VCaVZa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VCaVZb: VCaVZb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+
 VCbVCa: VCbVCa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VCbVCb: VCbVCb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VCbVZa: VCbVZa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VCbVZb: VCbVZb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+
+VZaVCa: VZaVCa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VZaVCb: VZaVCb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+
+VZbVCa: VZbVCa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VZbVCb: VZbVCb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 AliasingTest: AliasingTest.o
@@ -67,13 +88,17 @@ AliasingTest: AliasingTest.o
 
 
 # Cleanup
+reset:
+	@$(RM) $(OBJ) $(BIN)
 clean:
-	@$(RM) $(DEP) $(OBJ) $(BIN)
+	@$(RM) $(OBJ) $(BIN) $(DEP)
 
 
 # Makefile includes
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP)
+endif
 endif
 
 
@@ -83,4 +108,4 @@ endif
 
 
 # Setting the independent commands
-.PHONY: default all essential single clean
+.PHONY: default all essential single reset clean

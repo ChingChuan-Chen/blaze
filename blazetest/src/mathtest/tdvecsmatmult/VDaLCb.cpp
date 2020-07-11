@@ -3,7 +3,7 @@
 //  \file src/mathtest/tdvecsmatmult/VDaLCb.cpp
 //  \brief Source file for the VDaLCb dense vector/sparse matrix multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/tdvecsmatmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -64,12 +68,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::DynamicVector<TypeA>                           VDa;
-      typedef blaze::LowerMatrix< blaze::CompressedMatrix<TypeB> >  LCb;
+      using VDa = blaze::DynamicVector<TypeA>;
+      using LCb = blaze::LowerMatrix< blaze::CompressedMatrix<TypeB> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<VDa>  CVDa;
-      typedef blazetest::Creator<LCb>  CLCb;
+      using CVDa = blazetest::Creator<VDa>;
+      using CLCb = blazetest::Creator<LCb>;
 
       // Running tests with small vectors and matrices
       for( size_t i=0UL; i<=6UL; ++i ) {

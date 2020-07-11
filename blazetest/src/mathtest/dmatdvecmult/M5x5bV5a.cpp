@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatdvecmult/M5x5bV5a.cpp
 //  \brief Source file for the M5x5bV5a dense matrix/dense vector multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dmatdvecmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StaticMatrix<TypeB,5UL,5UL>  M5x5b;
-      typedef blaze::StaticVector<TypeA,5UL>      V5a;
+      using M5x5b = blaze::StaticMatrix<TypeB,5UL,5UL>;
+      using V5a = blaze::StaticVector<TypeA,5UL>;
 
       // Creator type definitions
-      typedef blazetest::Creator<M5x5b>  CM5x5b;
-      typedef blazetest::Creator<V5a>    CV5a;
+      using CM5x5b = blazetest::Creator<M5x5b>;
+      using CV5a = blazetest::Creator<V5a>;
 
       // Running the tests
       RUN_DMATDVECMULT_OPERATION_TEST( CM5x5b(), CV5a() );

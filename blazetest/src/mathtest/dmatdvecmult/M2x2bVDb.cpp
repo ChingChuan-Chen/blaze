@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatdvecmult/M2x2bVDb.cpp
 //  \brief Source file for the M2x2bVDb dense matrix/dense vector multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dmatdvecmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -62,12 +66,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StaticMatrix<TypeB,2UL,2UL>  M2x2b;
-      typedef blaze::DynamicVector<TypeB>         VDb;
+      using M2x2b = blaze::StaticMatrix<TypeB,2UL,2UL>;
+      using VDb = blaze::DynamicVector<TypeB>;
 
       // Creator type definitions
-      typedef blazetest::Creator<M2x2b>  CM2x2b;
-      typedef blazetest::Creator<VDb>    CVDb;
+      using CM2x2b = blazetest::Creator<M2x2b>;
+      using CVDb = blazetest::Creator<VDb>;
 
       // Running the tests
       RUN_DMATDVECMULT_OPERATION_TEST( CM2x2b(), CVDb( 2UL ) );

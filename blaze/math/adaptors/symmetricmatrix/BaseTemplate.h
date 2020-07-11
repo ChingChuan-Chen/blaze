@@ -3,7 +3,7 @@
 //  \file blaze/math/adaptors/symmetricmatrix/BaseTemplate.h
 //  \brief Header file for the implementation of the base template of the SymmetricMatrix
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,10 +40,9 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/typetraits/IsColumnMajorMatrix.h>
 #include <blaze/math/typetraits/IsDenseMatrix.h>
 #include <blaze/math/typetraits/IsNumericMatrix.h>
-#include <blaze/util/typetraits/IsNumeric.h>
+#include <blaze/math/typetraits/StorageOrder.h>
 
 
 namespace blaze {
@@ -294,7 +293,7 @@ namespace blaze {
    using blaze::unpadded;
    using blaze::rowMajor;
 
-   typedef SymmetricMatrix< CustomMatrix<double,unaligned,unpadded,rowMajor> >  CustomSymmetric;
+   using CustomSymmetric = SymmetricMatrix< CustomMatrix<double,unaligned,unpadded,rowMajor> >;
 
    // Creating a 3x3 symmetric custom matrix from a properly initialized array
    double array[9] = { 1.0, 2.0, 4.0,
@@ -554,13 +553,10 @@ namespace blaze {
    \code
    using blaze::DynamicMatrix;
    using blaze::SymmetricMatrix;
-   using blaze::rowMajor;
    using blaze::columnMajor;
 
-   typedef SymmetricMatrix< DynamicMatrix<double,columnMajor> >  DynamicSymmetric;
-
-   DynamicSymmetric A( 10UL );
-   Row<DynamicSymmetric> row5 = row( A, 5UL );
+   SymmetricMatrix< DynamicMatrix<double,columnMajor> > A( 10UL );
+   auto row5 = row( A, 5UL );
    \endcode
 
 // Usually, a row view on a column-major matrix results in a considerable performance decrease in
@@ -605,10 +601,10 @@ namespace blaze {
    C = A * B;  // Is not guaranteed to result in a symmetric matrix; some runtime overhead
    \endcode
 */
-template< typename MT                               // Type of the adapted matrix
-        , bool SO = IsColumnMajorMatrix<MT>::value  // Storage order of the adapted matrix
-        , bool DF = IsDenseMatrix<MT>::value        // Density flag
-        , bool NF = IsNumericMatrix<MT>::value >    // Numeric flag
+template< typename MT                        // Type of the adapted matrix
+        , bool SO = StorageOrder_v<MT>       // Storage order of the adapted matrix
+        , bool DF = IsDenseMatrix_v<MT>      // Density flag
+        , bool NF = IsNumericMatrix_v<MT> >  // Numeric flag
 class SymmetricMatrix
 {};
 //*************************************************************************************************

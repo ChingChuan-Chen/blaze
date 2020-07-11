@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsmatmult/AliasingTest.cpp
 //  \brief Source file for the dense matrix/dense matrix multiplication aliasing test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,6 +40,10 @@
 #include <cstdlib>
 #include <iostream>
 #include <blazetest/mathtest/dmatsmatmult/AliasingTest.h>
+
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
 
 
 namespace blazetest {
@@ -342,6 +346,89 @@ void AliasingTest::testDMatSMatMult()
       result_ =  sD3x3_;
       result_ -= dC3x3_ * ( sC3x3_ * sD3x3_ );
       sD3x3_  -= dC3x3_ * ( sC3x3_ * sD3x3_ );
+
+      checkResult( sD3x3_, result_ );
+   }
+
+
+   //=====================================================================================
+   // Multiplication with Schur product assignment
+   //=====================================================================================
+
+   // Schur product assignment to left-hand side operand
+   {
+      test_ = "DMatSMatMult - Schur product assignment to left-hand side operand";
+
+      initialize();
+
+      result_ =  dC3x3_;
+      result_ %= dC3x3_ * sC3x3_;
+      dC3x3_  %= dC3x3_ * sC3x3_;
+
+      checkResult( dC3x3_, result_ );
+   }
+
+   // Schur product assignment to first operand of left-hand side compound
+   {
+      test_ = "DMatSMatMult - Schur product assignment to first operand of left-hand side compound";
+
+      initialize();
+
+      result_ =  dC3x3_;
+      result_ %= ( dC3x3_ * dD3x3_ ) * sC3x3_;
+      dC3x3_  %= ( dC3x3_ * dD3x3_ ) * sC3x3_;
+
+      checkResult( dC3x3_, result_ );
+   }
+
+   // Schur product assignment to second operand of left-hand side compound
+   {
+      test_ = "DMatSMatMult - Schur product assignment to second operand of left-hand side compound";
+
+      initialize();
+
+      result_ =  dD3x3_;
+      result_ %= ( dC3x3_ * dD3x3_ ) * sC3x3_;
+      dD3x3_  %= ( dC3x3_ * dD3x3_ ) * sC3x3_;
+
+      checkResult( dD3x3_, result_ );
+   }
+
+   // Schur product assignment to right-hand side operand
+   {
+      test_ = "DMatSMatMult - Schur product assignment to right-hand side operand";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ %= dC3x3_ * sC3x3_;
+      sC3x3_  %= dC3x3_ * sC3x3_;
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Schur product assignment to first operand of right-hand side compound
+   {
+      test_ = "DMatSMatMult - Schur product assignment to first operand of right-hand side compound";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ %= dC3x3_ * ( sC3x3_ * sD3x3_ );
+      sC3x3_  %= dC3x3_ * ( sC3x3_ * sD3x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Schur product assignment to second operand of right-hand side compound
+   {
+      test_ = "DMatSMatMult - Schur product assignment to second operand of right-hand side compound";
+
+      initialize();
+
+      result_ =  sD3x3_;
+      result_ %= dC3x3_ * ( sC3x3_ * sD3x3_ );
+      sD3x3_  %= dC3x3_ * ( sC3x3_ * sD3x3_ );
 
       checkResult( sD3x3_, result_ );
    }
@@ -688,6 +775,89 @@ void AliasingTest::testDMatTSMatMult()
 
 
    //=====================================================================================
+   // Multiplication with Schur product assignment
+   //=====================================================================================
+
+   // Schur product assignment to left-hand side operand
+   {
+      test_ = "DMatTSMatMult - Schur product assignment to left-hand side operand";
+
+      initialize();
+
+      result_ =  dC3x3_;
+      result_ %= dC3x3_ * tsC3x3_;
+      dC3x3_  %= dC3x3_ * tsC3x3_;
+
+      checkResult( dC3x3_, result_ );
+   }
+
+   // Schur product assignment to first operand of left-hand side compound
+   {
+      test_ = "DMatTSMatMult - Schur product assignment to first operand of left-hand side compound";
+
+      initialize();
+
+      result_ =  dC3x3_;
+      result_ %= ( dC3x3_ * dD3x3_ ) * tsC3x3_;
+      dC3x3_  %= ( dC3x3_ * dD3x3_ ) * tsC3x3_;
+
+      checkResult( dC3x3_, result_ );
+   }
+
+   // Schur product assignment to second operand of left-hand side compound
+   {
+      test_ = "DMatTSMatMult - Schur product assignment to second operand of left-hand side compound";
+
+      initialize();
+
+      result_ =  dD3x3_;
+      result_ %= ( dC3x3_ * dD3x3_ ) * tsC3x3_;
+      dD3x3_  %= ( dC3x3_ * dD3x3_ ) * tsC3x3_;
+
+      checkResult( dD3x3_, result_ );
+   }
+
+   // Schur product assignment to right-hand side operand
+   {
+      test_ = "DMatTSMatMult - Schur product assignment to right-hand side operand";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ %= dC3x3_ * tsC3x3_;
+      tsC3x3_ %= dC3x3_ * tsC3x3_;
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+   // Schur product assignment to first operand of right-hand side compound
+   {
+      test_ = "DMatTSMatMult - Schur product assignment to first operand of right-hand side compound";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ %= dC3x3_ * ( tsC3x3_ * tsD3x3_ );
+      tsC3x3_ %= dC3x3_ * ( tsC3x3_ * tsD3x3_ );
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+   // Schur product assignment to second operand of right-hand side compound
+   {
+      test_ = "DMatTSMatMult - Schur product assignment to second operand of right-hand side compound";
+
+      initialize();
+
+      result_ =  tsD3x3_;
+      result_ %= dC3x3_ * ( tsC3x3_ * tsD3x3_ );
+      tsD3x3_ %= dC3x3_ * ( tsC3x3_ * tsD3x3_ );
+
+      checkResult( tsD3x3_, result_ );
+   }
+
+
+   //=====================================================================================
    // Multiplication with multiplication assignment
    //=====================================================================================
 
@@ -1028,6 +1198,89 @@ void AliasingTest::testTDMatSMatMult()
 
 
    //=====================================================================================
+   // Multiplication with Schur product assignment
+   //=====================================================================================
+
+   // Schur product assignment to left-hand side operand
+   {
+      test_ = "TDMatSMatMult - Schur product assignment to left-hand side operand";
+
+      initialize();
+
+      result_ =  tdC3x3_;
+      result_ %= tdC3x3_ * sC3x3_;
+      tdC3x3_ %= tdC3x3_ * sC3x3_;
+
+      checkResult( tdC3x3_, result_ );
+   }
+
+   // Schur product assignment to first operand of left-hand side compound
+   {
+      test_ = "TDMatSMatMult - Schur product assignment to first operand of left-hand side compound";
+
+      initialize();
+
+      result_ =  tdC3x3_;
+      result_ %= ( tdC3x3_ * tdD3x3_ ) * sC3x3_;
+      tdC3x3_ %= ( tdC3x3_ * tdD3x3_ ) * sC3x3_;
+
+      checkResult( tdC3x3_, result_ );
+   }
+
+   // Schur product assignment to second operand of left-hand side compound
+   {
+      test_ = "TDMatSMatMult - Schur product assignment to second operand of left-hand side compound";
+
+      initialize();
+
+      result_ =  tdD3x3_;
+      result_ %= ( tdC3x3_ * tdD3x3_ ) * sC3x3_;
+      tdD3x3_ %= ( tdC3x3_ * tdD3x3_ ) * sC3x3_;
+
+      checkResult( tdD3x3_, result_ );
+   }
+
+   // Schur product assignment to right-hand side operand
+   {
+      test_ = "TDMatSMatMult - Schur product assignment to right-hand side operand";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ %= tdC3x3_ * sC3x3_;
+      sC3x3_  %= tdC3x3_ * sC3x3_;
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Schur product assignment to first operand of right-hand side compound
+   {
+      test_ = "TDMatSMatMult - Schur product assignment to first operand of right-hand side compound";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ %= tdC3x3_ * ( sC3x3_ * sD3x3_ );
+      sC3x3_  %= tdC3x3_ * ( sC3x3_ * sD3x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Schur product assignment to second operand of right-hand side compound
+   {
+      test_ = "TDMatSMatMult - Schur product assignment to second operand of right-hand side compound";
+
+      initialize();
+
+      result_ =  sD3x3_;
+      result_ %= tdC3x3_ * ( sC3x3_ * sD3x3_ );
+      sD3x3_  %= tdC3x3_ * ( sC3x3_ * sD3x3_ );
+
+      checkResult( sD3x3_, result_ );
+   }
+
+
+   //=====================================================================================
    // Multiplication with multiplication assignment
    //=====================================================================================
 
@@ -1362,6 +1615,89 @@ void AliasingTest::testTDMatTSMatMult()
       result_ =  tsD3x3_;
       result_ -= tdC3x3_ * ( tsC3x3_ * tsD3x3_ );
       tsD3x3_ -= tdC3x3_ * ( tsC3x3_ * tsD3x3_ );
+
+      checkResult( tsD3x3_, result_ );
+   }
+
+
+   //=====================================================================================
+   // Multiplication with Schur product assignment
+   //=====================================================================================
+
+   // Schur product assignment to left-hand side operand
+   {
+      test_ = "TDMatTSMatMult - Schur product assignment to left-hand side operand";
+
+      initialize();
+
+      result_ =  tdC3x3_;
+      result_ %= tdC3x3_ * tsC3x3_;
+      tdC3x3_ %= tdC3x3_ * tsC3x3_;
+
+      checkResult( tdC3x3_, result_ );
+   }
+
+   // Schur product assignment to first operand of left-hand side compound
+   {
+      test_ = "TDMatTSMatMult - Schur product assignment to first operand of left-hand side compound";
+
+      initialize();
+
+      result_ =  tdC3x3_;
+      result_ %= ( tdC3x3_ * tdD3x3_ ) * tsC3x3_;
+      tdC3x3_ %= ( tdC3x3_ * tdD3x3_ ) * tsC3x3_;
+
+      checkResult( tdC3x3_, result_ );
+   }
+
+   // Schur product assignment to second operand of left-hand side compound
+   {
+      test_ = "TDMatTSMatMult - Schur product assignment to second operand of left-hand side compound";
+
+      initialize();
+
+      result_ =  tdD3x3_;
+      result_ %= ( tdC3x3_ * tdD3x3_ ) * tsC3x3_;
+      tdD3x3_ %= ( tdC3x3_ * tdD3x3_ ) * tsC3x3_;
+
+      checkResult( tdD3x3_, result_ );
+   }
+
+   // Schur product assignment to right-hand side operand
+   {
+      test_ = "TDMatTSMatMult - Schur product assignment to right-hand side operand";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ %= tdC3x3_ * tsC3x3_;
+      tsC3x3_ %= tdC3x3_ * tsC3x3_;
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+   // Schur product assignment to first operand of right-hand side compound
+   {
+      test_ = "TDMatTSMatMult - Schur product assignment to first operand of right-hand side compound";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ %= tdC3x3_ * ( tsC3x3_ * tsD3x3_ );
+      tsC3x3_ %= tdC3x3_ * ( tsC3x3_ * tsD3x3_ );
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+   // Schur product assignment to second operand of right-hand side compound
+   {
+      test_ = "TDMatTSMatMult - Schur product assignment to second operand of right-hand side compound";
+
+      initialize();
+
+      result_ =  tsD3x3_;
+      result_ %= tdC3x3_ * ( tsC3x3_ * tsD3x3_ );
+      tsD3x3_ %= tdC3x3_ * ( tsC3x3_ * tsD3x3_ );
 
       checkResult( tsD3x3_, result_ );
    }

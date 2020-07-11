@@ -3,7 +3,7 @@
 //  \file blaze/math/shims/Conjugate.h
 //  \brief Header file for the conjugate shim
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -42,7 +42,6 @@
 
 #include <utility>
 #include <blaze/system/Inline.h>
-#include <blaze/util/DisableIf.h>
 #include <blaze/util/EnableIf.h>
 #include <blaze/util/typetraits/IsBuiltin.h>
 #include <blaze/util/typetraits/IsNumeric.h>
@@ -79,7 +78,7 @@ namespace blaze {
 //       https://en.wikipedia.org/wiki/Complex_conjugate
 */
 template< typename T >
-BLAZE_ALWAYS_INLINE constexpr EnableIf_< IsBuiltin<T>, T > conj( T a ) noexcept
+BLAZE_ALWAYS_INLINE constexpr EnableIf_t< IsBuiltin_v<T>, T > conj( T a ) noexcept
 {
    return a;
 }
@@ -117,7 +116,7 @@ BLAZE_ALWAYS_INLINE constexpr EnableIf_< IsBuiltin<T>, T > conj( T a ) noexcept
 //       https://en.wikipedia.org/wiki/Complex_conjugate
 */
 template< typename T >
-BLAZE_ALWAYS_INLINE void conjugate( T& a ) noexcept( IsNumeric<T>::value )
+BLAZE_ALWAYS_INLINE void conjugate( T& a ) noexcept( IsNumeric_v<T> )
 {
    a = conj( a );
 }
@@ -142,7 +141,7 @@ BLAZE_ALWAYS_INLINE void conjugate( T& a ) noexcept( IsNumeric<T>::value )
 // \return void
 */
 template< typename T >
-BLAZE_ALWAYS_INLINE DisableIf_< IsNumeric<T> > cswap_backend( T& a, T& b )
+BLAZE_ALWAYS_INLINE DisableIf_t< IsNumeric_v<T> > cswap_backend( T& a, T& b )
 {
    using std::swap;
 
@@ -164,7 +163,7 @@ BLAZE_ALWAYS_INLINE DisableIf_< IsNumeric<T> > cswap_backend( T& a, T& b )
 // \return void
 */
 template< typename T >
-BLAZE_ALWAYS_INLINE EnableIf_< IsNumeric<T> > cswap_backend( T& a, T& b ) noexcept
+BLAZE_ALWAYS_INLINE EnableIf_t< IsNumeric_v<T> > cswap_backend( T& a, T& b ) noexcept
 {
    const T tmp( a );
    a = conj( b );
@@ -192,7 +191,7 @@ BLAZE_ALWAYS_INLINE EnableIf_< IsNumeric<T> > cswap_backend( T& a, T& b ) noexce
    \endcode
 */
 template< typename T >
-BLAZE_ALWAYS_INLINE void cswap( T& a, T& b ) noexcept( IsNumeric<T>::value )
+BLAZE_ALWAYS_INLINE void cswap( T& a, T& b ) noexcept( IsNumeric_v<T> )
 {
    cswap_backend( a, b );
 }

@@ -2,7 +2,7 @@
 #
 #  Makefile for the dvecdveccross module of the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -33,8 +33,10 @@
 
 
 # Including the compiler and library settings
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include ../../Makeconfig
+endif
 endif
 
 
@@ -46,9 +48,10 @@ BIN = $(SRC:.cpp=)
 
 
 # General rules
-default: V3aV3a V3aV3b V3bV3a V3bV3b VHaVHa VHaVHb VHbVHa VHbVHb VDaVDa VDaVDb VDbVDa VDbVDb AliasingTest
+default: V3aV3a V3aV3b V3bV3a V3bV3b VHaVHa VHaVHb VHbVHa VHbVHb \
+         VDaVDa VDaVDb VDbVDa VDbVDb VUaVUa VUaVUb VUbVUa VUbVUb AliasingTest
 all: $(BIN)
-essential: V3aV3a VHaVHa VDaVDa AliasingTest
+essential: V3aV3a VHaVHa VDaVDa VUaVUa AliasingTest
 single: VDaVDa
 
 
@@ -65,6 +68,10 @@ V3aVHa: V3aVHa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 V3aVHb: V3aVHb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+V3aVUa: V3aVUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+V3aVUb: V3aVUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 V3bV3a: V3bV3a.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 V3bV3b: V3bV3b.o
@@ -76,6 +83,10 @@ V3bVDb: V3bVDb.o
 V3bVHa: V3bVHa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 V3bVHb: V3bVHb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+V3bVUa: V3bVUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+V3bVUb: V3bVUb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 VDaV3a: VDaV3a.o
@@ -90,6 +101,10 @@ VDaVHa: VDaVHa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDaVHb: VDaVHb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VDaVUa: VDaVUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VDaVUb: VDaVUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDbV3a: VDbV3a.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDbV3b: VDbV3b.o
@@ -101,6 +116,10 @@ VDbVDb: VDbVDb.o
 VDbVHa: VDbVHa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDbVHb: VDbVHb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VDbVUa: VDbVUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VDbVUb: VDbVUb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 VHaV3a: VHaV3a.o
@@ -115,6 +134,10 @@ VHaVHa: VHaVHa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VHaVHb: VHaVHb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VHaVUa: VHaVUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VHaVUb: VHaVUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VHbV3a: VHbV3a.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VHbV3b: VHbV3b.o
@@ -127,19 +150,60 @@ VHbVHa: VHbVHa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VHbVHb: VHbVHb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VHbVUa: VHbVUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VHbVUb: VHbVUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+
+VUaV3a: VUaV3a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaV3b: VUaV3b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaVDa: VUaVDa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaVDb: VUaVDb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaVHa: VUaVHa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaVHb: VUaVHb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaVUa: VUaVUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaVUb: VUaVUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbV3a: VUbV3a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbV3b: VUbV3b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbVDa: VUbVDa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbVDb: VUbVDb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbVHa: VUbVHa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbVHb: VUbVHb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbVUa: VUbVUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbVUb: VUbVUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 AliasingTest: AliasingTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 
 # Cleanup
+reset:
+	@$(RM) $(OBJ) $(BIN)
 clean:
-	@$(RM) $(DEP) $(OBJ) $(BIN)
+	@$(RM) $(OBJ) $(BIN) $(DEP)
 
 
 # Makefile includes
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP)
+endif
 endif
 
 
@@ -149,4 +213,4 @@ endif
 
 
 # Setting the independent commands
-.PHONY: default all essential single clean
+.PHONY: default all essential single reset clean

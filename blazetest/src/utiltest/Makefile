@@ -2,7 +2,7 @@
 #
 #  Makefile for the utiltest module of the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -35,7 +35,7 @@
 # Build rules
 default: all
 
-all: alignedallocator memory typetraits valuetraits
+all: constraints alignedallocator memory numericcast smallarray typetraits valuetraits
 
 essential: all
 
@@ -55,6 +55,16 @@ memory:
 	@echo "Building the memory tests..."
 	@$(MAKE) --no-print-directory -C ./memory $(MAKECMDGOALS)
 
+numericcast:
+	@echo
+	@echo "Building the numeric cast tests..."
+	@$(MAKE) --no-print-directory -C ./numericcast $(MAKECMDGOALS)
+
+smallarray:
+	@echo
+	@echo "Building the small array tests..."
+	@$(MAKE) --no-print-directory -C ./smallarray $(MAKECMDGOALS)
+
 typetraits:
 	@echo
 	@echo "Building the type traits tests..."
@@ -67,14 +77,23 @@ valuetraits:
 
 
 # Cleanup
+reset:
+	@$(MAKE) --no-print-directory -C ./alignedallocator reset
+	@$(MAKE) --no-print-directory -C ./memory reset
+	@$(MAKE) --no-print-directory -C ./numericcast reset
+	@$(MAKE) --no-print-directory -C ./smallarray reset
+	@$(MAKE) --no-print-directory -C ./typetraits reset
+	@$(MAKE) --no-print-directory -C ./valuetraits reset
+
 clean:
 	@$(MAKE) --no-print-directory -C ./alignedallocator clean
 	@$(MAKE) --no-print-directory -C ./memory clean
+	@$(MAKE) --no-print-directory -C ./numericcast clean
+	@$(MAKE) --no-print-directory -C ./smallarray clean
 	@$(MAKE) --no-print-directory -C ./typetraits clean
 	@$(MAKE) --no-print-directory -C ./valuetraits clean
-	@$(RM) $(OBJ) $(DEP)
 
 
 # Setting the independent commands
-.PHONY: default all essential single clean \
-        alignedallocator memory typetraits valuetraits
+.PHONY: default all essential single reset clean \
+        alignedallocator memory numericcast smallarray typetraits valuetraits

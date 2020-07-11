@@ -3,7 +3,7 @@
 //  \file src/mathtest/smatsmatsub/SCaHCb.cpp
 //  \brief Source file for the SCaHCb sparse matrix/sparse matrix subtraction math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/smatsmatsub/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -64,20 +68,20 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::SymmetricMatrix< blaze::CompressedMatrix<NumericA> >  SCa;
-      typedef blaze::HermitianMatrix< blaze::CompressedMatrix<NumericB> >  HCb;
+      using SCa = blaze::SymmetricMatrix< blaze::CompressedMatrix<NumericA> >;
+      using HCb = blaze::HermitianMatrix< blaze::CompressedMatrix<NumericB> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<SCa>  CSCa;
-      typedef blazetest::Creator<HCb>  CHCb;
+      using CSCa = blazetest::Creator<SCa>;
+      using CHCb = blazetest::Creator<HCb>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {
-            for( size_t j=0UL; j<=i*i; ++j ) {
-               for( size_t k=0UL; k<=i; ++k ) {
-                  RUN_SMATSMATSUB_OPERATION_TEST( CSCa( i, j ), CHCb( i, k ) );
-               }
+         for( size_t j=0UL; j<=i*i; ++j ) {
+            for( size_t k=0UL; k<=i; ++k ) {
+               RUN_SMATSMATSUB_OPERATION_TEST( CSCa( i, j ), CHCb( i, k ) );
             }
+         }
       }
 
       // Running tests with large matrices

@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsmatmult/M7x13aMCa.cpp
 //  \brief Source file for the M7x13aMCa dense matrix/sparse matrix multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dmatsmatmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -62,12 +66,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StaticMatrix<TypeA,7UL,13UL>  M7x13a;
-      typedef blaze::CompressedMatrix<TypeA>       MCa;
+      using M7x13a = blaze::StaticMatrix<TypeA,7UL,13UL>;
+      using MCa = blaze::CompressedMatrix<TypeA>;
 
       // Creator type definitions
-      typedef blazetest::Creator<M7x13a>  CM7x13a;
-      typedef blazetest::Creator<MCa>     CMCa;
+      using CM7x13a = blazetest::Creator<M7x13a>;
+      using CMCa = blazetest::Creator<MCa>;
 
       // Running the tests
       for( size_t i=0UL; i<=15UL; ++i ) {

@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatdmatadd/M6x6bM6x6a.cpp
 //  \brief Source file for the M6x6bM6x6a dense matrix/dense matrix addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -44,6 +44,10 @@
 #include <blazetest/mathtest/dmatdmatadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -62,15 +66,15 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StaticMatrix<TypeB,6UL,6UL>  M6x6b;
-      typedef blaze::StaticMatrix<TypeA,6UL,6UL>  M6a;
+      using M6x6b = blaze::StaticMatrix<TypeB,6UL,6UL>;
+      using M6x6a = blaze::StaticMatrix<TypeA,6UL,6UL>;
 
       // Creator type definitions
-      typedef blazetest::Creator<M6x6b>  CM6x6b;
-      typedef blazetest::Creator<M6a>    CM6a;
+      using CM6x6b = blazetest::Creator<M6x6b>;
+      using CM6x6a = blazetest::Creator<M6x6a>;
 
       // Running the tests
-      RUN_DMATDMATADD_OPERATION_TEST( CM6x6b(), CM6a() );
+      RUN_DMATDMATADD_OPERATION_TEST( CM6x6b(), CM6x6a() );
    }
    catch( std::exception& ex ) {
       std::cerr << "\n\n ERROR DETECTED during dense matrix/dense matrix addition:\n"

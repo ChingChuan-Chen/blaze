@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/creator/Complex.h
 //  \brief Specialization of the Creator class template for complex values
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -67,7 +67,7 @@ class Creator< complex<T> >
 {
  public:
    //**Type definitions****************************************************************************
-   typedef complex<T>  Type;  //!< Type to be created by the Creator.
+   using Type = complex<T>;  //!< Type to be created by the Creator.
    //**********************************************************************************************
 
    //**Constructors********************************************************************************

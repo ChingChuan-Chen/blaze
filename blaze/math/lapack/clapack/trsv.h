@@ -3,7 +3,7 @@
 //  \file blaze/math/lapack/clapack/trsv.h
 //  \brief Header file for the CLAPACK trsv wrapper functions
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,8 +40,10 @@
 // Includes
 //*************************************************************************************************
 
+#include <blaze/math/blas/Types.h>
 #include <blaze/util/Complex.h>
 #include <blaze/util/StaticAssert.h>
+#include <blaze/util/Types.h>
 
 
 //=================================================================================================
@@ -52,14 +54,28 @@
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
+#if !defined(BLAS_H)
 extern "C" {
 
-void strsv_( char* uplo, char* trans, char* diag, int* n, float*  A, int* lda, float*  x, int* incX );
-void dtrsv_( char* uplo, char* trans, char* diag, int* n, double* A, int* lda, double* x, int* incX );
-void ctrsv_( char* uplo, char* trans, char* diag, int* n, float*  A, int* lda, float*  x, int* incX );
-void ztrsv_( char* uplo, char* trans, char* diag, int* n, double* A, int* lda, double* x, int* incX );
+void strsv_( char* uplo, char* trans, char* diag, blaze::blas_int_t* n, float* A,
+             blaze::blas_int_t* lda, float* x, blaze::blas_int_t* incX,
+             blaze::fortran_charlen_t nuplo, blaze::fortran_charlen_t ntrans,
+             blaze::fortran_charlen_t ndiag );
+void dtrsv_( char* uplo, char* trans, char* diag, blaze::blas_int_t* n, double* A,
+             blaze::blas_int_t* lda, double* x, blaze::blas_int_t* incX,
+             blaze::fortran_charlen_t nuplo, blaze::fortran_charlen_t ntrans,
+             blaze::fortran_charlen_t ndiag );
+void ctrsv_( char* uplo, char* trans, char* diag, blaze::blas_int_t* n, float* A,
+             blaze::blas_int_t* lda, float* x, blaze::blas_int_t* incX,
+             blaze::fortran_charlen_t nuplo, blaze::fortran_charlen_t ntrans,
+             blaze::fortran_charlen_t ndiag );
+void ztrsv_( char* uplo, char* trans, char* diag, blaze::blas_int_t* n, double* A,
+             blaze::blas_int_t* lda, double* x, blaze::blas_int_t* incX,
+             blaze::fortran_charlen_t nuplo, blaze::fortran_charlen_t ntrans,
+             blaze::fortran_charlen_t ndiag );
 
 }
+#endif
 /*! \endcond */
 //*************************************************************************************************
 
@@ -77,17 +93,17 @@ namespace blaze {
 //*************************************************************************************************
 /*!\name LAPACK triangular linear system functions (trsv) */
 //@{
-inline void trsv( char uplo, char trans, char diag, int n, const float* A,
-                  int lda, float* x, int incX );
+void trsv( char uplo, char trans, char diag, blas_int_t n, const float* A,
+           blas_int_t lda, float* x, blas_int_t incX );
 
-inline void trsv( char uplo, char trans, char diag, int n, const double* A,
-                  int lda, double* x, int incX );
+void trsv( char uplo, char trans, char diag, blas_int_t n, const double* A,
+           blas_int_t lda, double* x, blas_int_t incX );
 
-inline void trsv( char uplo, char trans, char diag, int n, const complex<float>* A,
-                  int lda, complex<float>* x, int incX );
+void trsv( char uplo, char trans, char diag, blas_int_t n, const complex<float>* A,
+           blas_int_t lda, complex<float>* x, blas_int_t incX );
 
-inline void trsv( char uplo, char trans, char diag, int n, const complex<double>* A,
-                  int lda, complex<double>* x, int incX );
+void trsv( char uplo, char trans, char diag, blas_int_t n, const complex<double>* A,
+           blas_int_t lda, complex<double>* x, blas_int_t incX );
 //@}
 //*************************************************************************************************
 
@@ -108,9 +124,9 @@ inline void trsv( char uplo, char trans, char diag, int n, const complex<double>
 // \return void
 //
 // This function uses the LAPACK strsv() function to compute the solution to the triangular system
-// of linear equations \f$ A*x=b \f$, where \a A is a n-by-n triangular matrix and \a x and \a b
-// are n-dimensional vectors. The \a trans argument specifies the form of the linear system of
-// equations:
+// of linear equations \f$ A*x=b \f$, where \a A is a \a n-by-\a n triangular matrix and \a x and
+// \a b are n-dimensional vectors. The \a trans argument specifies the form of the linear system
+// of equations:
 //
 //   - 'N': \f$ A*x=b \f$ (no transpose)
 //   - 'T': \f$ A^{T}*x=b \f$ (transpose)
@@ -120,16 +136,21 @@ inline void trsv( char uplo, char trans, char diag, int n, const complex<double>
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 //
 // \note The function does not perform any test for singularity or near-singularity. Such tests
 // must be performed prior to calling this function!
 */
-inline void trsv( char uplo, char trans, char diag, int n, const float* A,
-                  int lda, float* x, int incX )
+inline void trsv( char uplo, char trans, char diag, blas_int_t n, const float* A,
+                  blas_int_t lda, float* x, blas_int_t incX )
 {
-   strsv_( &uplo, &trans, &diag, &n, const_cast<float*>( A ), &lda, x, &incX );
+   strsv_( &uplo, &trans, &diag, &n, const_cast<float*>( A ), &lda, x, &incX
+#if !defined(BLAS_H)
+         , blaze::fortran_charlen_t(1), blaze::fortran_charlen_t(1), blaze::fortran_charlen_t(1)
+#endif
+         );
 }
 //*************************************************************************************************
 
@@ -150,9 +171,9 @@ inline void trsv( char uplo, char trans, char diag, int n, const float* A,
 // \return void
 //
 // This function uses the LAPACK dtrsv() function to compute the solution to the triangular system
-// of linear equations \f$ A*x=b \f$, where \a A is a n-by-n triangular matrix and \a x and \a b
-// are n-dimensional vectors. The \a trans argument specifies the form of the linear system of
-// equations:
+// of linear equations \f$ A*x=b \f$, where \a A is a \a n-by-\a n triangular matrix and \a x and
+// \a b are n-dimensional vectors. The \a trans argument specifies the form of the linear system
+// of equations:
 //
 //   - 'N': \f$ A*x=b \f$ (no transpose)
 //   - 'T': \f$ A^{T}*x=b \f$ (transpose)
@@ -162,16 +183,21 @@ inline void trsv( char uplo, char trans, char diag, int n, const float* A,
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 //
 // \note The function does not perform any test for singularity or near-singularity. Such tests
 // must be performed prior to calling this function!
 */
-inline void trsv( char uplo, char trans, char diag, int n, const double* A,
-                  int lda, double* x, int incX )
+inline void trsv( char uplo, char trans, char diag, blas_int_t n, const double* A,
+                  blas_int_t lda, double* x, blas_int_t incX )
 {
-   dtrsv_( &uplo, &trans, &diag, &n, const_cast<double*>( A ), &lda, x, &incX );
+   dtrsv_( &uplo, &trans, &diag, &n, const_cast<double*>( A ), &lda, x, &incX
+#if !defined(BLAS_H)
+         , blaze::fortran_charlen_t(1), blaze::fortran_charlen_t(1), blaze::fortran_charlen_t(1)
+#endif
+         );
 }
 //*************************************************************************************************
 
@@ -192,9 +218,9 @@ inline void trsv( char uplo, char trans, char diag, int n, const double* A,
 // \return void
 //
 // This function uses the LAPACK ctrsv() function to compute the solution to the triangular system
-// of linear equations \f$ A*x=b \f$, where \a A is a n-by-n triangular matrix and \a x and \a b
-// are n-dimensional vectors. The \a trans argument specifies the form of the linear system of
-// equations:
+// of linear equations \f$ A*x=b \f$, where \a A is a \a n-by-\a n triangular matrix and \a x and
+// \a b are n-dimensional vectors. The \a trans argument specifies the form of the linear system
+// of equations:
 //
 //   - 'N': \f$ A*x=b \f$ (no transpose)
 //   - 'T': \f$ A^{T}*x=b \f$ (transpose)
@@ -204,19 +230,24 @@ inline void trsv( char uplo, char trans, char diag, int n, const double* A,
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 //
 // \note The function does not perform any test for singularity or near-singularity. Such tests
 // must be performed prior to calling this function!
 */
-inline void trsv( char uplo, char trans, char diag, int n, const complex<float>* A,
-                  int lda, complex<float>* x, int incX )
+inline void trsv( char uplo, char trans, char diag, blas_int_t n, const complex<float>* A,
+                  blas_int_t lda, complex<float>* x, blas_int_t incX )
 {
    BLAZE_STATIC_ASSERT( sizeof( complex<float> ) == 2UL*sizeof( float ) );
 
    ctrsv_( &uplo, &trans, &diag, &n, const_cast<float*>( reinterpret_cast<const float*>( A ) ),
-           &lda, reinterpret_cast<float*>( x ), &incX );
+           &lda, reinterpret_cast<float*>( x ), &incX
+#if !defined(BLAS_H)
+         , blaze::fortran_charlen_t(1), blaze::fortran_charlen_t(1), blaze::fortran_charlen_t(1)
+#endif
+         );
 }
 //*************************************************************************************************
 
@@ -237,9 +268,9 @@ inline void trsv( char uplo, char trans, char diag, int n, const complex<float>*
 // \return void
 //
 // This function uses the LAPACK ztrsv() function to compute the solution to the triangular system
-// of linear equations \f$ A*x=b \f$, where \a A is a n-by-n triangular matrix and \a x and \a b
-// are n-dimensional vectors. The \a trans argument specifies the form of the linear system of
-// equations:
+// of linear equations \f$ A*x=b \f$, where \a A is a \a n-by-\a n triangular matrix and \a x and
+// \a b are n-dimensional vectors. The \a trans argument specifies the form of the linear system
+// of equations:
 //
 //   - 'N': \f$ A*x=b \f$ (no transpose)
 //   - 'T': \f$ A^{T}*x=b \f$ (transpose)
@@ -249,19 +280,24 @@ inline void trsv( char uplo, char trans, char diag, int n, const complex<float>*
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 //
 // \note The function does not perform any test for singularity or near-singularity. Such tests
 // must be performed prior to calling this function!
 */
-inline void trsv( char uplo, char trans, char diag, int n, const complex<double>* A,
-                  int lda, complex<double>* x, int incX )
+inline void trsv( char uplo, char trans, char diag, blas_int_t n, const complex<double>* A,
+                  blas_int_t lda, complex<double>* x, blas_int_t incX )
 {
    BLAZE_STATIC_ASSERT( sizeof( complex<double> ) == 2UL*sizeof( double ) );
 
    ztrsv_( &uplo, &trans, &diag, &n, const_cast<double*>( reinterpret_cast<const double*>( A ) ),
-           &lda, reinterpret_cast<double*>( x ), &incX );
+           &lda, reinterpret_cast<double*>( x ), &incX
+#if !defined(BLAS_H)
+         , blaze::fortran_charlen_t(1), blaze::fortran_charlen_t(1), blaze::fortran_charlen_t(1)
+#endif
+         );
 }
 //*************************************************************************************************
 

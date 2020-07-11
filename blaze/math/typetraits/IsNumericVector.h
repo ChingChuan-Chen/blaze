@@ -3,7 +3,7 @@
 //  \file blaze/math/typetraits/IsNumericVector.h
 //  \brief Header file for the IsNumericVector type trait
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -43,7 +43,6 @@
 #include <blaze/math/typetraits/IsVector.h>
 #include <blaze/math/typetraits/UnderlyingElement.h>
 #include <blaze/util/IntegralConstant.h>
-#include <blaze/util/mpl/And.h>
 #include <blaze/util/typetraits/IsNumeric.h>
 
 
@@ -66,13 +65,13 @@ namespace blaze {
 // \a FalseType, and the class derives from \a FalseType.
 
    \code
-   typedef DynamicVector<int>               Type1;
-   typedef StaticVector<float,3UL>          Type2;
-   typedef HybridVector< complex<double> >  Type3;
+   using Type1 = DynamicVector<int>;
+   using Type2 = StaticVector<float,3UL>;
+   using Type3 = HybridVector< complex<double> >;
 
-   typedef double                               Type4;
-   typedef DynamicMatrix<int>                   Type5;
-   typedef DynamicVector< DynamicVector<int> >  Type6;
+   using Type4 = double;
+   using Type5 = DynamicMatrix<int>;
+   using Type6 = DynamicVector< DynamicVector<int> >;
 
    blaze::IsNumericVector< Type1 >::value  // Evaluates to 1
    blaze::IsNumericVector< Type2 >::Type   // Results in TrueType
@@ -84,8 +83,26 @@ namespace blaze {
 */
 template< typename T >
 struct IsNumericVector
-   : public BoolConstant< And< IsVector<T>, IsNumeric< UnderlyingElement_<T> > >::value >
+   : public BoolConstant< IsVector_v<T> && IsNumeric_v< UnderlyingElement_t<T> > >
 {};
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Auxiliary variable template for the IsNumericVector type trait.
+// \ingroup math_type_traits
+//
+// The IsNumericVector_v variable template provides a convenient shortcut to access the nested
+// \a value of the IsNumericVector class template. For instance, given the type \a T the
+// following two statements are identical:
+
+   \code
+   constexpr bool value1 = blaze::IsNumericVector<T>::value;
+   constexpr bool value2 = blaze::IsNumericVector_v<T>;
+   \endcode
+*/
+template< typename T >
+constexpr bool IsNumericVector_v = IsNumericVector<T>::value;
 //*************************************************************************************************
 
 } // namespace blaze

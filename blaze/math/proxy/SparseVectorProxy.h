@@ -3,7 +3,7 @@
 //  \file blaze/math/proxy/SparseVectorProxy.h
 //  \brief Header file for the SparseVectorProxy class
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -48,10 +48,9 @@
 #include <blaze/math/shims/Reset.h>
 #include <blaze/math/typetraits/IsRowVector.h>
 #include <blaze/system/Inline.h>
-#include <blaze/util/DisableIf.h>
+#include <blaze/util/EnableIf.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/typetraits/IsIntegral.h>
-#include <blaze/util/Unused.h>
 
 
 namespace blaze {
@@ -72,24 +71,25 @@ namespace blaze {
 */
 template< typename PT    // Type of the proxy
         , typename VT >  // Type of the sparse vector
-class SparseVectorProxy : public SparseVector< PT, IsRowVector<VT>::value >
+class SparseVectorProxy
+   : public SparseVector< PT, IsRowVector_v<VT> >
 {
  public:
    //**Type definitions****************************************************************************
-   typedef ResultType_<VT>      ResultType;      //!< Result type for expression template evaluations.
-   typedef TransposeType_<VT>   TransposeType;   //!< Transpose type for expression template evaluations.
-   typedef ElementType_<VT>     ElementType;     //!< Type of the sparse vector elements.
-   typedef ReturnType_<VT>      ReturnType;      //!< Return type for expression template evaluations.
-   typedef CompositeType_<VT>   CompositeType;   //!< Data type for composite expression templates.
-   typedef Reference_<VT>       Reference;       //!< Reference to a non-constant vector value.
-   typedef ConstReference_<VT>  ConstReference;  //!< Reference to a constant vector value.
-   typedef Iterator_<VT>        Iterator;        //!< Iterator over non-constant elements.
-   typedef ConstIterator_<VT>   ConstIterator;   //!< Iterator over constant elements.
+   using ResultType     = ResultType_t<VT>;      //!< Result type for expression template evaluations.
+   using TransposeType  = TransposeType_t<VT>;   //!< Transpose type for expression template evaluations.
+   using ElementType    = ElementType_t<VT>;     //!< Type of the sparse vector elements.
+   using ReturnType     = ReturnType_t<VT>;      //!< Return type for expression template evaluations.
+   using CompositeType  = CompositeType_t<VT>;   //!< Data type for composite expression templates.
+   using Reference      = Reference_t<VT>;       //!< Reference to a non-constant vector value.
+   using ConstReference = ConstReference_t<VT>;  //!< Reference to a constant vector value.
+   using Iterator       = Iterator_t<VT>;        //!< Iterator over non-constant elements.
+   using ConstIterator  = ConstIterator_t<VT>;   //!< Iterator over constant elements.
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
    //! Compilation flag for SMP assignments.
-   enum : bool { smpAssignable = VT::smpAssignable };
+   static constexpr bool smpAssignable = VT::smpAssignable;
    //**********************************************************************************************
 
    //**Data access functions***********************************************************************
@@ -108,18 +108,22 @@ class SparseVectorProxy : public SparseVector< PT, IsRowVector<VT>::value >
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-   inline size_t   size() const;
-   inline size_t   capacity() const;
-   inline size_t   nonZeros() const;
-   inline void     reset() const;
-   inline void     clear() const;
-   inline Iterator set( size_t index, const ElementType& value ) const;
+   inline size_t size() const;
+   inline size_t capacity() const;
+   inline size_t nonZeros() const;
+   inline void   reset() const;
+   inline void   clear() const;
+   inline void   resize( size_t n, bool preserve=true ) const;
+   inline void   reserve( size_t n ) const;
+   //@}
+   //**********************************************************************************************
+
+   //**Insertion functions*************************************************************************
+   /*!\name Insertion functions */
+   //@{
+   inline Iterator set   ( size_t index, const ElementType& value ) const;
    inline Iterator insert( size_t index, const ElementType& value ) const;
    inline void     append( size_t index, const ElementType& value, bool check=false ) const;
-   inline void     resize( size_t n, bool preserve=true ) const;
-   inline void     reserve( size_t n ) const;
-
-   template< typename Other > inline void scale( const Other& scalar ) const;
    //@}
    //**********************************************************************************************
 
@@ -130,7 +134,7 @@ class SparseVectorProxy : public SparseVector< PT, IsRowVector<VT>::value >
    inline Iterator erase( Iterator pos ) const;
    inline Iterator erase( Iterator first, Iterator last ) const;
 
-   template< typename Pred, typename = DisableIf_< IsIntegral<Pred> > >
+   template< typename Pred, typename = DisableIf_t< IsIntegral_v<Pred> > >
    inline void erase( Pred predicate );
 
    template< typename Pred >
@@ -147,6 +151,26 @@ class SparseVectorProxy : public SparseVector< PT, IsRowVector<VT>::value >
    inline Iterator lowerBound( size_t i, size_t j ) const;
    inline Iterator upperBound( size_t index ) const;
    inline Iterator upperBound( size_t i, size_t j ) const;
+   //@}
+   //**********************************************************************************************
+
+   //**Numeric functions***************************************************************************
+   /*!\name Numeric functions */
+   //@{
+   template< typename Other > inline void scale( const Other& scalar ) const;
+   //@}
+   //**********************************************************************************************
+
+ protected:
+   //**Special member functions********************************************************************
+   /*!\name Special member functions */
+   //@{
+   SparseVectorProxy() = default;
+   SparseVectorProxy( const SparseVectorProxy& ) = default;
+   SparseVectorProxy( SparseVectorProxy&& ) = default;
+   ~SparseVectorProxy() = default;
+   SparseVectorProxy& operator=( const SparseVectorProxy& ) = default;
+   SparseVectorProxy& operator=( SparseVectorProxy&& ) = default;
    //@}
    //**********************************************************************************************
 
@@ -515,6 +539,10 @@ inline void SparseVectorProxy<PT,VT>::reserve( size_t n ) const
 // \param scalar The scalar value for the vector scaling.
 // \return void
 // \exception std::invalid_argument Invalid access to restricted element.
+//
+// This function scales the vector by applying the given scalar value \a scalar to each element
+// of the vector. For built-in and \c complex data types it has the same effect as using the
+// multiplication assignment operator.
 */
 template< typename PT       // Type of the proxy
         , typename VT >     // Type of the sparse vector
@@ -682,7 +710,7 @@ inline void SparseVectorProxy<PT,VT>::erase( Iterator first, Iterator last, Pred
 // is found, the function returns an iterator to the element. Otherwise an iterator just past
 // the last non-zero element of the sparse vector (the end() iterator) is returned. Note that
 // the returned sparse vector iterator is subject to invalidation due to inserting operations
-// via the subscript operator or the insert() function!
+// via the subscript operator, the set() function or the insert() function!
 */
 template< typename PT    // Type of the proxy
         , typename VT >  // Type of the sparse vector
@@ -703,8 +731,8 @@ inline typename SparseVectorProxy<PT,VT>::Iterator
 // This function returns an iterator to the first element with an index not less then the given
 // index. In combination with the upperBound() function this function can be used to create a
 // pair of iterators specifying a range of indices. Note that the returned sparse vector iterator
-// is subject to invalidation due to inserting operations via the subscript operator or the
-// insert() function!
+// is subject to invalidation due to inserting operations via the subscript operator, the set()
+// function or the insert() function!
 */
 template< typename PT    // Type of the proxy
         , typename VT >  // Type of the sparse vector
@@ -725,8 +753,8 @@ inline typename SparseVectorProxy<PT,VT>::Iterator
 // This function returns an iterator to the first element with an index greater then the given
 // index. In combination with the lowerBound() function this function can be used to create a
 // pair of iterators specifying a range of indices. Note that the returned sparse vector iterator
-// is subject to invalidation due to inserting operations via the subscript operator or the
-// insert() function!
+// is subject to invalidation due to inserting operations via the subscript operator, the set()
+// function or the insert() function!
 */
 template< typename PT    // Type of the proxy
         , typename VT >  // Type of the sparse vector
@@ -750,38 +778,38 @@ inline typename SparseVectorProxy<PT,VT>::Iterator
 /*!\name SparseVectorProxy global functions */
 //@{
 template< typename PT, typename VT >
-BLAZE_ALWAYS_INLINE typename SparseVectorProxy<PT,VT>::Iterator
+typename SparseVectorProxy<PT,VT>::Iterator
    begin( const SparseVectorProxy<PT,VT>& proxy );
 
 template< typename PT, typename VT >
-BLAZE_ALWAYS_INLINE typename SparseVectorProxy<PT,VT>::ConstIterator
+typename SparseVectorProxy<PT,VT>::ConstIterator
    cbegin( const SparseVectorProxy<PT,VT>& proxy );
 
 template< typename PT, typename VT >
-BLAZE_ALWAYS_INLINE typename SparseVectorProxy<PT,VT>::Iterator
+typename SparseVectorProxy<PT,VT>::Iterator
    end( const SparseVectorProxy<PT,VT>& proxy );
 
 template< typename PT, typename VT >
-BLAZE_ALWAYS_INLINE typename SparseVectorProxy<PT,VT>::ConstIterator
+typename SparseVectorProxy<PT,VT>::ConstIterator
    cend( const SparseVectorProxy<PT,VT>& proxy );
 
 template< typename PT, typename VT >
-BLAZE_ALWAYS_INLINE size_t size( const SparseVectorProxy<PT,VT>& proxy );
+size_t size( const SparseVectorProxy<PT,VT>& proxy );
 
 template< typename PT, typename VT >
-BLAZE_ALWAYS_INLINE size_t capacity( const SparseVectorProxy<PT,VT>& proxy );
+size_t capacity( const SparseVectorProxy<PT,VT>& proxy );
 
 template< typename PT, typename VT >
-BLAZE_ALWAYS_INLINE size_t nonZeros( const SparseVectorProxy<PT,VT>& proxy );
+size_t nonZeros( const SparseVectorProxy<PT,VT>& proxy );
 
 template< typename PT, typename VT >
-BLAZE_ALWAYS_INLINE void resize( const SparseVectorProxy<PT,VT>& proxy, size_t n, bool preserve=true );
+void resize( const SparseVectorProxy<PT,VT>& proxy, size_t n, bool preserve=true );
 
 template< typename PT, typename VT >
-BLAZE_ALWAYS_INLINE void reset( const SparseVectorProxy<PT,VT>& proxy );
+void reset( const SparseVectorProxy<PT,VT>& proxy );
 
 template< typename PT, typename VT >
-BLAZE_ALWAYS_INLINE void clear( const SparseVectorProxy<PT,VT>& proxy );
+void clear( const SparseVectorProxy<PT,VT>& proxy );
 //@}
 //*************************************************************************************************
 

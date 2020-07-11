@@ -1,9 +1,9 @@
 //=================================================================================================
 /*!
 //  \file blazetest/utiltest/ThrowingResource.h
-//  \brief Header file for the ThrowingResource class template
+//  \brief Header file for the ThrowingResource class
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -63,7 +63,8 @@ namespace utiltest {
 // counted via the InstanceCounter class and guaranteed to be 16-bit aligned. Additionally, it
 // throws an exception during the construction of the 7th instance.
 */
-class alignas( 16UL ) ThrowingResource : public InstanceCounter<ThrowingResource>
+class alignas( 16UL ) ThrowingResource
+   : public InstanceCounter<ThrowingResource>
 {
  public:
    //**Constructors********************************************************************************

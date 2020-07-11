@@ -3,7 +3,7 @@
 //  \file src/mathtest/densematrix/StrictlyLowerTest.cpp
 //  \brief Source file for the strictly lower DenseMatrix operation test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -44,6 +44,10 @@
 #include <blaze/math/StrictlyLowerMatrix.h>
 #include <blazetest/mathtest/densematrix/StrictlyLowerTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 namespace blazetest {
 
@@ -66,8 +70,9 @@ StrictlyLowerTest::StrictlyLowerTest()
 {
    testIsSymmetric();
    testIsHermitian();
-   testIsLower();
    testIsUniform();
+   testIsZero();
+   testIsLower();
    testIsUniLower();
    testIsStrictlyLower();
    testIsUpper();
@@ -446,6 +451,129 @@ void StrictlyLowerTest::testIsUniform()
             std::ostringstream oss;
             oss << " Test: " << test_ << "\n"
                 << " Error: Invalid isUniform evaluation\n"
+                << " Details:\n"
+                << "   Matrix:\n" << mat << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the \c isZero() function for dense matrices.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c isZero() function for dense matrices. In case an
+// error is detected, a \a std::runtime_error exception is thrown.
+*/
+void StrictlyLowerTest::testIsZero()
+{
+   //=====================================================================================
+   // Row-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Row-major isZero()";
+
+      // Default strictly lower matrix
+      {
+         blaze::StrictlyLowerMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> > mat( 3UL );
+
+         checkRows    ( mat, 3UL );
+         checkColumns ( mat, 3UL );
+         checkCapacity( mat, 9UL );
+         checkNonZeros( mat, 0UL );
+         checkNonZeros( mat, 0UL, 0UL );
+         checkNonZeros( mat, 1UL, 0UL );
+         checkNonZeros( mat, 2UL, 0UL );
+
+         if( isZero( mat ) != true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isZero evaluation\n"
+                << " Details:\n"
+                << "   Matrix:\n" << mat << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Strictly lower matrix
+      {
+         blaze::StrictlyLowerMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> > mat( 3UL );
+         mat(1,0) = 4;
+         mat(2,0) = 5;
+
+         checkRows    ( mat, 3UL );
+         checkColumns ( mat, 3UL );
+         checkCapacity( mat, 9UL );
+         checkNonZeros( mat, 2UL );
+         checkNonZeros( mat, 0UL, 0UL );
+         checkNonZeros( mat, 1UL, 1UL );
+         checkNonZeros( mat, 2UL, 1UL );
+
+         if( isZero( mat ) != false ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isZero evaluation\n"
+                << " Details:\n"
+                << "   Matrix:\n" << mat << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Column-major isZero()";
+
+      // Default strictly lower matrix
+      {
+         blaze::StrictlyLowerMatrix< blaze::DynamicMatrix<int,blaze::columnMajor> > mat( 3UL );
+
+         checkRows    ( mat, 3UL );
+         checkColumns ( mat, 3UL );
+         checkCapacity( mat, 9UL );
+         checkNonZeros( mat, 0UL );
+         checkNonZeros( mat, 0UL, 0UL );
+         checkNonZeros( mat, 1UL, 0UL );
+         checkNonZeros( mat, 2UL, 0UL );
+
+         if( isZero( mat ) != true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isZero evaluation\n"
+                << " Details:\n"
+                << "   Matrix:\n" << mat << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Strictly lower matrix
+      {
+         blaze::StrictlyLowerMatrix< blaze::DynamicMatrix<int,blaze::columnMajor> > mat( 3UL );
+         mat(1,0) = 4;
+         mat(2,0) = 5;
+
+         checkRows    ( mat, 3UL );
+         checkColumns ( mat, 3UL );
+         checkCapacity( mat, 9UL );
+         checkNonZeros( mat, 2UL );
+         checkNonZeros( mat, 0UL, 2UL );
+         checkNonZeros( mat, 1UL, 0UL );
+         checkNonZeros( mat, 2UL, 0UL );
+
+         if( isZero( mat ) != false ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isZero evaluation\n"
                 << " Details:\n"
                 << "   Matrix:\n" << mat << "\n";
             throw std::runtime_error( oss.str() );

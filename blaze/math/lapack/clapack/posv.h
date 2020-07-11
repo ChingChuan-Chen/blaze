@@ -3,7 +3,7 @@
 //  \file blaze/math/lapack/clapack/posv.h
 //  \brief Header file for the CLAPACK posv wrapper functions
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,8 +40,10 @@
 // Includes
 //*************************************************************************************************
 
+#include <blaze/math/blas/Types.h>
 #include <blaze/util/Complex.h>
 #include <blaze/util/StaticAssert.h>
+#include <blaze/util/Types.h>
 
 
 //=================================================================================================
@@ -52,14 +54,24 @@
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
+#if !defined(INTEL_MKL_VERSION)
 extern "C" {
 
-void sposv_( char* uplo, int* n, int* nrhs, float*  A, int* lda, float*  b, int* ldb, int* info );
-void dposv_( char* uplo, int* n, int* nrhs, double* A, int* lda, double* b, int* ldb, int* info );
-void cposv_( char* uplo, int* n, int* nrhs, float*  A, int* lda, float*  b, int* ldb, int* info );
-void zposv_( char* uplo, int* n, int* nrhs, double* A, int* lda, double* b, int* ldb, int* info );
+void sposv_( char* uplo, blaze::blas_int_t* n, blaze::blas_int_t* nrhs, float* A,
+             blaze::blas_int_t* lda, float* b, blaze::blas_int_t* ldb,
+             blaze::blas_int_t* info, blaze::fortran_charlen_t nuplo );
+void dposv_( char* uplo, blaze::blas_int_t* n, blaze::blas_int_t* nrhs, double* A,
+             blaze::blas_int_t* lda, double* b, blaze::blas_int_t* ldb,
+             blaze::blas_int_t* info, blaze::fortran_charlen_t nuplo );
+void cposv_( char* uplo, blaze::blas_int_t* n, blaze::blas_int_t* nrhs, float* A,
+             blaze::blas_int_t* lda, float* b, blaze::blas_int_t* ldb,
+             blaze::blas_int_t* info, blaze::fortran_charlen_t nuplo );
+void zposv_( char* uplo, blaze::blas_int_t* n, blaze::blas_int_t* nrhs, double* A,
+             blaze::blas_int_t* lda, double* b, blaze::blas_int_t* ldb,
+             blaze::blas_int_t* info, blaze::fortran_charlen_t nuplo );
 
 }
+#endif
 /*! \endcond */
 //*************************************************************************************************
 
@@ -77,13 +89,17 @@ namespace blaze {
 //*************************************************************************************************
 /*!\name LAPACK positive definite linear system functions (posv) */
 //@{
-inline void posv( char uplo, int n, int nrhs, float* A, int lda, float* B, int ldb, int* info );
+void posv( char uplo, blas_int_t n, blas_int_t nrhs, float* A, blas_int_t lda,
+           float* B, blas_int_t ldb, blas_int_t* info );
 
-inline void posv( char uplo, int n, int nrhs, double* A, int lda, double* B, int ldb, int* info );
+void posv( char uplo, blas_int_t n, blas_int_t nrhs, double* A, blas_int_t lda,
+           double* B, blas_int_t ldb, blas_int_t* info );
 
-inline void posv( char uplo, int n, int nrhs, complex<float>* A, int lda, complex<float>* B, int ldb, int* info );
+void posv( char uplo, blas_int_t n, blas_int_t nrhs, complex<float>* A, blas_int_t lda,
+           complex<float>* B, blas_int_t ldb, blas_int_t* info );
 
-inline void posv( char uplo, int n, int nrhs, complex<double>* A, int lda, complex<double>* B, int ldb, int* info );
+void posv( char uplo, blas_int_t n, blas_int_t nrhs, complex<double>* A, blas_int_t lda,
+           complex<double>* B, blas_int_t ldb, blas_int_t* info );
 //@}
 //*************************************************************************************************
 
@@ -104,8 +120,8 @@ inline void posv( char uplo, int n, int nrhs, complex<double>* A, int lda, compl
 // \return void
 //
 // This function uses the LAPACK sposv() function to compute the solution to the positive definite
-// system of linear equations \f$ A*X=B \f$, where \a A is a n-by-n positive definite matrix and
-// \a X and \a B are n-by-nrhs matrices.
+// system of linear equations \f$ A*X=B \f$, where \a A is a \a n-by-\a n positive definite matrix
+// and \a X and \a B are \a n-by-\a nrhs matrices.
 //
 // The Cholesky decomposition is used to factor \a A as
 
@@ -129,12 +145,22 @@ inline void posv( char uplo, int n, int nrhs, complex<double>* A, int lda, compl
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 */
-inline void posv( char uplo, int n, int nrhs, float* A, int lda, float* B, int ldb, int* info )
+inline void posv( char uplo, blas_int_t n, blas_int_t nrhs, float* A, blas_int_t lda,
+                  float* B, blas_int_t ldb, blas_int_t* info )
 {
-   sposv_( &uplo, &n, &nrhs, A, &lda, B, &ldb, info );
+#if defined(INTEL_MKL_VERSION)
+   BLAZE_STATIC_ASSERT( sizeof( MKL_INT ) == sizeof( blas_int_t ) );
+#endif
+
+   sposv_( &uplo, &n, &nrhs, A, &lda, B, &ldb, info
+#if !defined(INTEL_MKL_VERSION)
+         , blaze::fortran_charlen_t(1)
+#endif
+         );
 }
 //*************************************************************************************************
 
@@ -155,8 +181,8 @@ inline void posv( char uplo, int n, int nrhs, float* A, int lda, float* B, int l
 // \return void
 //
 // This function uses the LAPACK dposv() function to compute the solution to the positive definite
-// system of linear equations \f$ A*X=B \f$, where \a A is a n-by-n positive definite matrix and
-// \a X and \a B are n-by-nrhs matrices.
+// system of linear equations \f$ A*X=B \f$, where \a A is a \a n-by-\a n positive definite matrix
+// and \a X and \a B are \a n-by-\a nrhs matrices.
 //
 // The Cholesky decomposition is used to factor \a A as
 
@@ -180,12 +206,22 @@ inline void posv( char uplo, int n, int nrhs, float* A, int lda, float* B, int l
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 */
-inline void posv( char uplo, int n, int nrhs, double* A, int lda, double* B, int ldb, int* info )
+inline void posv( char uplo, blas_int_t n, blas_int_t nrhs, double* A, blas_int_t lda,
+                  double* B, blas_int_t ldb, blas_int_t* info )
 {
-   dposv_( &uplo, &n, &nrhs, A, &lda, B, &ldb, info );
+#if defined(INTEL_MKL_VERSION)
+   BLAZE_STATIC_ASSERT( sizeof( MKL_INT ) == sizeof( blas_int_t ) );
+#endif
+
+   dposv_( &uplo, &n, &nrhs, A, &lda, B, &ldb, info
+#if !defined(INTEL_MKL_VERSION)
+         , blaze::fortran_charlen_t(1)
+#endif
+         );
 }
 //*************************************************************************************************
 
@@ -206,8 +242,8 @@ inline void posv( char uplo, int n, int nrhs, double* A, int lda, double* B, int
 // \return void
 //
 // This function uses the LAPACK cposv() function to compute the solution to the positive definite
-// system of linear equations \f$ A*X=B \f$, where \a A is a n-by-n positive definite matrix and
-// \a X and \a B are n-by-nrhs matrices.
+// system of linear equations \f$ A*X=B \f$, where \a A is a \a n-by-\a n positive definite matrix
+// and \a X and \a B are \a n-by-\a nrhs matrices.
 //
 // The Cholesky decomposition is used to factor \a A as
 
@@ -231,15 +267,29 @@ inline void posv( char uplo, int n, int nrhs, double* A, int lda, double* B, int
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 */
-inline void posv( char uplo, int n, int nrhs, complex<float>* A, int lda, complex<float>* B, int ldb, int* info )
+inline void posv( char uplo, blas_int_t n, blas_int_t nrhs, complex<float>* A, blas_int_t lda,
+                  complex<float>* B, blas_int_t ldb, blas_int_t* info )
 {
    BLAZE_STATIC_ASSERT( sizeof( complex<float> ) == 2UL*sizeof( float ) );
 
-   cposv_( &uplo, &n, &nrhs, reinterpret_cast<float*>( A ), &lda,
-           reinterpret_cast<float*>( B ), &ldb, info );
+#if defined(INTEL_MKL_VERSION)
+   BLAZE_STATIC_ASSERT( sizeof( MKL_INT ) == sizeof( blas_int_t ) );
+   BLAZE_STATIC_ASSERT( sizeof( MKL_Complex8 ) == sizeof( complex<float> ) );
+   using ET = MKL_Complex8;
+#else
+   using ET = float;
+#endif
+
+   cposv_( &uplo, &n, &nrhs, reinterpret_cast<ET*>( A ), &lda,
+           reinterpret_cast<ET*>( B ), &ldb, info
+#if !defined(INTEL_MKL_VERSION)
+         , blaze::fortran_charlen_t(1)
+#endif
+         );
 }
 //*************************************************************************************************
 
@@ -260,8 +310,8 @@ inline void posv( char uplo, int n, int nrhs, complex<float>* A, int lda, comple
 // \return void
 //
 // This function uses the LAPACK zposv() function to compute the solution to the positive definite
-// system of linear equations \f$ A*X=B \f$, where \a A is a n-by-n positive definite matrix and
-// \a X and \a B are n-by-nrhs matrices.
+// system of linear equations \f$ A*X=B \f$, where \a A is a \a n-by-\a n positive definite matrix
+// and \a X and \a B are \a n-by-\a nrhs matrices.
 //
 // The Cholesky decomposition is used to factor \a A as
 
@@ -285,15 +335,29 @@ inline void posv( char uplo, int n, int nrhs, complex<float>* A, int lda, comple
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 */
-inline void posv( char uplo, int n, int nrhs, complex<double>* A, int lda, complex<double>* B, int ldb, int* info )
+inline void posv( char uplo, blas_int_t n, blas_int_t nrhs, complex<double>* A, blas_int_t lda,
+                  complex<double>* B, blas_int_t ldb, blas_int_t* info )
 {
    BLAZE_STATIC_ASSERT( sizeof( complex<double> ) == 2UL*sizeof( double ) );
 
-   zposv_( &uplo, &n, &nrhs, reinterpret_cast<double*>( A ), &lda,
-           reinterpret_cast<double*>( B ), &ldb, info );
+#if defined(INTEL_MKL_VERSION)
+   BLAZE_STATIC_ASSERT( sizeof( MKL_INT ) == sizeof( blas_int_t ) );
+   BLAZE_STATIC_ASSERT( sizeof( MKL_Complex16 ) == sizeof( complex<double> ) );
+   using ET = MKL_Complex16;
+#else
+   using ET = double;
+#endif
+
+   zposv_( &uplo, &n, &nrhs, reinterpret_cast<ET*>( A ), &lda,
+           reinterpret_cast<ET*>( B ), &ldb, info
+#if !defined(INTEL_MKL_VERSION)
+         , blaze::fortran_charlen_t(1)
+#endif
+         );
 }
 //*************************************************************************************************
 

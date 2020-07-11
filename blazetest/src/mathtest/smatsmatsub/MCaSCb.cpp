@@ -3,7 +3,7 @@
 //  \file src/mathtest/smatsmatsub/MCaSCb.cpp
 //  \brief Source file for the MCaSCb sparse matrix/sparse matrix subtraction math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/smatsmatsub/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::CompressedMatrix<TypeA>                            MCa;
-      typedef blaze::SymmetricMatrix< blaze::CompressedMatrix<TypeB> >  SCb;
+      using MCa = blaze::CompressedMatrix<TypeA>;
+      using SCb = blaze::SymmetricMatrix< blaze::CompressedMatrix<TypeB> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<MCa>  CMCa;
-      typedef blazetest::Creator<SCb>  CSCb;
+      using CMCa = blazetest::Creator<MCa>;
+      using CSCb = blazetest::Creator<SCb>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {

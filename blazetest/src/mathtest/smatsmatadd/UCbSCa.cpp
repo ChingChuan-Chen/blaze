@@ -3,7 +3,7 @@
 //  \file src/mathtest/smatsmatadd/UCbSCa.cpp
 //  \brief Source file for the UCbSCa sparse matrix/sparse matrix addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/smatsmatadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -64,12 +68,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::UpperMatrix< blaze::CompressedMatrix<TypeB> >      UCb;
-      typedef blaze::SymmetricMatrix< blaze::CompressedMatrix<TypeA> >  SCa;
+      using UCb = blaze::UpperMatrix< blaze::CompressedMatrix<TypeB> >;
+      using SCa = blaze::SymmetricMatrix< blaze::CompressedMatrix<TypeA> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<UCb>  CUCb;
-      typedef blazetest::Creator<SCa>  CSCa;
+      using CUCb = blazetest::Creator<UCb>;
+      using CSCa = blazetest::Creator<SCa>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {

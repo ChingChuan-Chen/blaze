@@ -3,7 +3,7 @@
 //  \file blaze/math/CompressedMatrix.h
 //  \brief Header file for the complete CompressedMatrix implementation
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,8 +45,9 @@
 #include <blaze/math/sparse/CompressedMatrix.h>
 #include <blaze/math/CompressedVector.h>
 #include <blaze/math/Exception.h>
+#include <blaze/math/IdentityMatrix.h>
 #include <blaze/math/SparseMatrix.h>
-#include <blaze/system/Precision.h>
+#include <blaze/math/ZeroMatrix.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/Indices.h>
 #include <blaze/util/Random.h>

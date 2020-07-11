@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/diagonalmatrix/RowTest.h
 //  \brief Header file for the DiagonalMatrix row test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -49,7 +49,6 @@
 #include <blaze/math/DynamicVector.h>
 #include <blaze/math/DiagonalMatrix.h>
 #include <blaze/math/Row.h>
-#include <blaze/math/traits/RowExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blazetest/system/Types.h>
 
@@ -77,16 +76,16 @@ class RowTest
  private:
    //**Type definitions****************************************************************************
    //! Type of the dense diagonal matrix.
-   typedef blaze::DiagonalMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> >  DDT;
+   using DDT = blaze::DiagonalMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> >;
 
    //! Opposite dense diagonal matrix type.
-   typedef DDT::OppositeType  DODT;
+   using DODT = DDT::OppositeType;
 
    //! Type of the sparse diagonal matrix.
-   typedef blaze::DiagonalMatrix< blaze::CompressedMatrix<int,blaze::rowMajor> >  SDT;
+   using SDT = blaze::DiagonalMatrix< blaze::CompressedMatrix<int,blaze::rowMajor> >;
 
    //! Opposite sparse diagonal matrix type.
-   typedef SDT::OppositeType  SODT;
+   using SODT = SDT::OppositeType;
    //**********************************************************************************************
 
  public:
@@ -159,9 +158,6 @@ class RowTest
 template< typename DT >  // Type of the diagonal matrix
 void RowTest::testAssignment()
 {
-   typedef blaze::RowExprTrait_<DT>  RT;
-
-
    //=====================================================================================
    // Dense vector assignment
    //=====================================================================================
@@ -178,7 +174,7 @@ void RowTest::testAssignment()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
       row1 = vec;
 
       checkRows    ( diag, 3UL );
@@ -221,7 +217,7 @@ void RowTest::testAssignment()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
 
       try {
          row1 = vec;
@@ -249,7 +245,7 @@ void RowTest::testAssignment()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
 
       try {
          row1 = vec;
@@ -283,7 +279,7 @@ void RowTest::testAssignment()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
       row1 = vec;
 
       checkRows    ( diag, 3UL );
@@ -327,7 +323,7 @@ void RowTest::testAssignment()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
 
       try {
          row1 = vec;
@@ -356,7 +352,7 @@ void RowTest::testAssignment()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
 
       try {
          row1 = vec;
@@ -386,9 +382,6 @@ void RowTest::testAssignment()
 template< typename DT >  // Type of the diagonal matrix
 void RowTest::testAddAssign()
 {
-   typedef blaze::RowExprTrait_<DT>  RT;
-
-
    //=====================================================================================
    // Dense vector addition assignment
    //=====================================================================================
@@ -405,7 +398,7 @@ void RowTest::testAddAssign()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
       row1 += vec;
 
       checkRows    ( diag, 3UL );
@@ -448,7 +441,7 @@ void RowTest::testAddAssign()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
 
       try {
          row1 += vec;
@@ -476,7 +469,7 @@ void RowTest::testAddAssign()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
 
       try {
          row1 += vec;
@@ -510,7 +503,7 @@ void RowTest::testAddAssign()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
       row1 += vec;
 
       checkRows    ( diag, 3UL );
@@ -554,7 +547,7 @@ void RowTest::testAddAssign()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
 
       try {
          row1 += vec;
@@ -583,7 +576,7 @@ void RowTest::testAddAssign()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
 
       try {
          row1 += vec;
@@ -613,9 +606,6 @@ void RowTest::testAddAssign()
 template< typename DT >  // Type of the diagonal matrix
 void RowTest::testSubAssign()
 {
-   typedef blaze::RowExprTrait_<DT>  RT;
-
-
    //=====================================================================================
    // Dense vector subtraction assignment
    //=====================================================================================
@@ -632,7 +622,7 @@ void RowTest::testSubAssign()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
       row1 -= vec;
 
       checkRows    ( diag, 3UL );
@@ -675,7 +665,7 @@ void RowTest::testSubAssign()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
 
       try {
          row1 -= vec;
@@ -703,7 +693,7 @@ void RowTest::testSubAssign()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
 
       try {
          row1 -= vec;
@@ -737,7 +727,7 @@ void RowTest::testSubAssign()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
       row1 -= vec;
 
       checkRows    ( diag, 3UL );
@@ -781,7 +771,7 @@ void RowTest::testSubAssign()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
 
       try {
          row1 -= vec;
@@ -810,7 +800,7 @@ void RowTest::testSubAssign()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
 
       try {
          row1 -= vec;
@@ -840,9 +830,6 @@ void RowTest::testSubAssign()
 template< typename DT >  // Type of the diagonal matrix
 void RowTest::testMultAssign()
 {
-   typedef blaze::RowExprTrait_<DT>  RT;
-
-
    //=====================================================================================
    // Dense vector multiplication assignment
    //=====================================================================================
@@ -861,7 +848,7 @@ void RowTest::testMultAssign()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
       row1 *= vec;
 
       checkRows    ( diag, 3UL );
@@ -910,7 +897,7 @@ void RowTest::testMultAssign()
       DT diag;
       init( diag );
 
-      RT row1 = row( diag, 1UL );
+      auto row1 = row( diag, 1UL );
       row1 *= vec;
 
       checkRows    ( diag, 3UL );

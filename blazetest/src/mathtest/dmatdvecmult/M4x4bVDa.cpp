@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatdvecmult/M4x4bVDa.cpp
 //  \brief Source file for the M4x4bVDa dense matrix/dense vector multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dmatdvecmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StaticMatrix<TypeB,4UL,4UL>  M4x4b;
-      typedef blaze::DynamicVector<TypeA>         VDa;
+      using M4x4b = blaze::StaticMatrix<TypeB,4UL,4UL>;
+      using VDa = blaze::DynamicVector<TypeA>;
 
       // Creator type definitions
-      typedef blazetest::Creator<M4x4b>  CM4x4b;
-      typedef blazetest::Creator<VDa>    CVDa;
+      using CM4x4b = blazetest::Creator<M4x4b>;
+      using CVDa = blazetest::Creator<VDa>;
 
       // Running the tests
       RUN_DMATDVECMULT_OPERATION_TEST( CM4x4b(), CVDa( 4UL ) );

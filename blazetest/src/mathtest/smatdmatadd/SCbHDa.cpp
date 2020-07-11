@@ -1,9 +1,9 @@
 //=================================================================================================
 /*!
-//  \file src/mathtest/smatdmatadd/SDbHDa.cpp
-//  \brief Source file for the SDbHDa sparse matrix/dense matrix addition math test
+//  \file src/mathtest/smatdmatadd/SCbHDa.cpp
+//  \brief Source file for the SCbHDa sparse matrix/dense matrix addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -47,6 +47,10 @@
 #include <blazetest/mathtest/smatdmatadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -57,7 +61,7 @@
 //*************************************************************************************************
 int main()
 {
-   std::cout << "   Running 'SDbHDa'..." << std::endl;
+   std::cout << "   Running 'SCbHDa'..." << std::endl;
 
    using blazetest::mathtest::NumericA;
    using blazetest::mathtest::NumericB;
@@ -65,23 +69,23 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::SymmetricMatrix< blaze::CompressedMatrix<NumericB> >  SDb;
-      typedef blaze::HermitianMatrix< blaze::DynamicMatrix<NumericA> >     HDa;
+      using SCb = blaze::SymmetricMatrix< blaze::CompressedMatrix<NumericB> >;
+      using HDa = blaze::HermitianMatrix< blaze::DynamicMatrix<NumericA> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<SDb>  CSDb;
-      typedef blazetest::Creator<HDa>  CHDa;
+      using CSCb = blazetest::Creator<SCb>;
+      using CHDa = blazetest::Creator<HDa>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {
          for( size_t j=0UL; j<=i*i; ++j ) {
-            RUN_SMATDMATADD_OPERATION_TEST( CSDb( i, j ), CHDa( i ) );
+            RUN_SMATDMATADD_OPERATION_TEST( CSCb( i, j ), CHDa( i ) );
          }
       }
 
       // Running tests with large matrices
-      RUN_SMATDMATADD_OPERATION_TEST( CSDb(  67UL,  7UL ), CHDa(  67UL ) );
-      RUN_SMATDMATADD_OPERATION_TEST( CSDb( 128UL, 16UL ), CHDa( 128UL ) );
+      RUN_SMATDMATADD_OPERATION_TEST( CSCb(  67UL,  7UL ), CHDa(  67UL ) );
+      RUN_SMATDMATADD_OPERATION_TEST( CSCb( 128UL, 16UL ), CHDa( 128UL ) );
    }
    catch( std::exception& ex ) {
       std::cerr << "\n\n ERROR DETECTED during sparse matrix/dense matrix addition:\n"

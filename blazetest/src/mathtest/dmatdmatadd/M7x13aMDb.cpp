@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatdmatadd/M7x13aMDb.cpp
 //  \brief Source file for the M7x13aMDb dense matrix/dense matrix addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dmatdmatadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StaticMatrix<TypeA,7UL,13UL>  M7x13a;
-      typedef blaze::DynamicMatrix<TypeB>          MDb;
+      using M7x13a = blaze::StaticMatrix<TypeA,7UL,13UL>;
+      using MDb = blaze::DynamicMatrix<TypeB>;
 
       // Creator type definitions
-      typedef blazetest::Creator<M7x13a>  CM7x13a;
-      typedef blazetest::Creator<MDb>     CMDb;
+      using CM7x13a = blazetest::Creator<M7x13a>;
+      using CMDb = blazetest::Creator<MDb>;
 
       // Running the tests
       RUN_DMATDMATADD_OPERATION_TEST( CM7x13a(), CMDb( 7UL, 13UL ) );

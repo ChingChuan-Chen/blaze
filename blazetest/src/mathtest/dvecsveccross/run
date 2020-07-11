@@ -3,7 +3,7 @@
 #
 #  Run script for the dvecsveccross module of the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -51,5 +51,10 @@ EXE=$PATH_DVECSVECCROSS/VHaVCa; if [ -x $EXE ]; then $EXE; if [ $? != 0 ]; then 
 EXE=$PATH_DVECSVECCROSS/VHaVCb; if [ -x $EXE ]; then $EXE; if [ $? != 0 ]; then exit 1; fi fi
 EXE=$PATH_DVECSVECCROSS/VHbVCa; if [ -x $EXE ]; then $EXE; if [ $? != 0 ]; then exit 1; fi fi
 EXE=$PATH_DVECSVECCROSS/VHbVCb; if [ -x $EXE ]; then $EXE; if [ $? != 0 ]; then exit 1; fi fi
+
+EXE=$PATH_DVECSVECCROSS/VUaVCa; if [ -x $EXE ]; then $EXE; if [ $? != 0 ]; then exit 1; fi fi
+EXE=$PATH_DVECSVECCROSS/VUaVCb; if [ -x $EXE ]; then $EXE; if [ $? != 0 ]; then exit 1; fi fi
+EXE=$PATH_DVECSVECCROSS/VUbVCa; if [ -x $EXE ]; then $EXE; if [ $? != 0 ]; then exit 1; fi fi
+EXE=$PATH_DVECSVECCROSS/VUbVCb; if [ -x $EXE ]; then $EXE; if [ $? != 0 ]; then exit 1; fi fi
 
 EXE=$PATH_DVECSVECCROSS/AliasingTest; if [ -x $EXE ]; then $EXE; if [ $? != 0 ]; then exit 1; fi fi

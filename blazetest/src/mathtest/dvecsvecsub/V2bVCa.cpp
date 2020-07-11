@@ -3,7 +3,7 @@
 //  \file src/mathtest/dvecsvecsub/V2bVCa.cpp
 //  \brief Source file for the V2bVCa dense vector/sparse vector subtraction math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dvecsvecsub/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Vector type definitions
-      typedef blaze::StaticVector<TypeB,2UL>  V2b;
-      typedef blaze::CompressedVector<TypeA>  VCa;
+      using V2b = blaze::StaticVector<TypeB,2UL>;
+      using VCa = blaze::CompressedVector<TypeA>;
 
       // Creator type definitions
-      typedef blazetest::Creator<V2b>  CV2b;
-      typedef blazetest::Creator<VCa>  CVCa;
+      using CV2b = blazetest::Creator<V2b>;
+      using CVCa = blazetest::Creator<VCa>;
 
       // Running the tests
       for( size_t i=0UL; i<=2UL; ++i ) {

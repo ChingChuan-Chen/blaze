@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatdmatmult/SLDbHDb.cpp
 //  \brief Source file for the SLDbHDb dense matrix/dense matrix multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/dmatdmatmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StrictlyLowerMatrix< blaze::DynamicMatrix<NumericB> >  SLDb;
-      typedef blaze::HermitianMatrix< blaze::DynamicMatrix<NumericB> >      HDb;
+      using SLDb = blaze::StrictlyLowerMatrix< blaze::DynamicMatrix<NumericB> >;
+      using HDb = blaze::HermitianMatrix< blaze::DynamicMatrix<NumericB> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<SLDb>  CSLDb;
-      typedef blazetest::Creator<HDb>   CHDb;
+      using CSLDb = blazetest::Creator<SLDb>;
+      using CHDb = blazetest::Creator<HDb>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {

@@ -3,7 +3,7 @@
 //  \file src/mathtest/smatdmatsub/SCbS3x3a.cpp
 //  \brief Source file for the SCbS3x3a sparse matrix/dense matrix subtraction math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/smatdmatsub/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -64,12 +68,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::SymmetricMatrix< blaze::CompressedMatrix<TypeB> >      SCb;
-      typedef blaze::SymmetricMatrix< blaze::StaticMatrix<TypeA,3UL,3UL> >  S3x3a;
+      using SCb = blaze::SymmetricMatrix< blaze::CompressedMatrix<TypeB> >;
+      using S3x3a = blaze::SymmetricMatrix< blaze::StaticMatrix<TypeA,3UL,3UL> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<SCb>    CSCb;
-      typedef blazetest::Creator<S3x3a>  CS3x3a;
+      using CSCb = blazetest::Creator<SCb>;
+      using CS3x3a = blazetest::Creator<S3x3a>;
 
       // Running the tests
       for( size_t i=0UL; i<=9UL; ++i ) {

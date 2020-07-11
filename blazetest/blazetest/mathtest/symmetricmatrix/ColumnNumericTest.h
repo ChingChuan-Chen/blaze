@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/symmetricmatrix/ColumnNumericTest.h
 //  \brief Header file for the SymmetricMatrix column numeric test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -49,7 +49,6 @@
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/DynamicVector.h>
 #include <blaze/math/SymmetricMatrix.h>
-#include <blaze/math/traits/ColumnExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blazetest/system/Types.h>
 
@@ -77,16 +76,16 @@ class ColumnNumericTest
  private:
    //**Type definitions****************************************************************************
    //! Type of the dense numeric symmetric matrix.
-   typedef blaze::SymmetricMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> >  DST;
+   using DST = blaze::SymmetricMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> >;
 
    //! Opposite dense numeric symmetric matrix type.
-   typedef DST::OppositeType  DOST;
+   using DOST = DST::OppositeType;
 
    //! Type of the sparse numeric symmetric matrix.
-   typedef blaze::SymmetricMatrix< blaze::CompressedMatrix<int,blaze::rowMajor> >  SST;
+   using SST = blaze::SymmetricMatrix< blaze::CompressedMatrix<int,blaze::rowMajor> >;
 
    //! Opposite sparse numeric symmetric matrix type.
-   typedef SST::OppositeType  SOST;
+   using SOST = SST::OppositeType;
    //**********************************************************************************************
 
  public:
@@ -159,9 +158,6 @@ class ColumnNumericTest
 template< typename ST >  // Type of the symmetric matrix
 void ColumnNumericTest::testAssignment()
 {
-   typedef blaze::ColumnExprTrait_<ST>  CT;
-
-
    //=====================================================================================
    // Dense vector assignment
    //=====================================================================================
@@ -180,7 +176,7 @@ void ColumnNumericTest::testAssignment()
       ST sym;
       init( sym );
 
-      CT col1 = column( sym, 1UL );
+      auto col1 = column( sym, 1UL );
       col1 = vec;
 
       checkRows    ( sym, 3UL );
@@ -229,7 +225,7 @@ void ColumnNumericTest::testAssignment()
       ST sym;
       init( sym );
 
-      CT col1 = column( sym, 1UL );
+      auto col1 = column( sym, 1UL );
       col1 = vec;
 
       checkRows    ( sym, 3UL );
@@ -274,9 +270,6 @@ void ColumnNumericTest::testAssignment()
 template< typename ST >  // Type of the symmetric matrix
 void ColumnNumericTest::testAddAssign()
 {
-   typedef blaze::ColumnExprTrait_<ST>  CT;
-
-
    //=====================================================================================
    // Dense vector addition assignment
    //=====================================================================================
@@ -295,7 +288,7 @@ void ColumnNumericTest::testAddAssign()
       ST sym;
       init( sym );
 
-      CT col1 = column( sym, 1UL );
+      auto col1 = column( sym, 1UL );
       col1 += vec;
 
       checkRows    ( sym, 3UL );
@@ -344,7 +337,7 @@ void ColumnNumericTest::testAddAssign()
       ST sym;
       init( sym );
 
-      CT col1 = column( sym, 1UL );
+      auto col1 = column( sym, 1UL );
       col1 += vec;
 
       checkRows    ( sym, 3UL );
@@ -389,9 +382,6 @@ void ColumnNumericTest::testAddAssign()
 template< typename ST >  // Type of the symmetric matrix
 void ColumnNumericTest::testSubAssign()
 {
-   typedef blaze::ColumnExprTrait_<ST>  CT;
-
-
    //=====================================================================================
    // Dense vector subtraction assignment
    //=====================================================================================
@@ -410,7 +400,7 @@ void ColumnNumericTest::testSubAssign()
       ST sym;
       init( sym );
 
-      CT col1 = column( sym, 1UL );
+      auto col1 = column( sym, 1UL );
       col1 -= vec;
 
       checkRows    ( sym, 3UL );
@@ -459,7 +449,7 @@ void ColumnNumericTest::testSubAssign()
       ST sym;
       init( sym );
 
-      CT col1 = column( sym, 1UL );
+      auto col1 = column( sym, 1UL );
       col1 -= vec;
 
       checkRows    ( sym, 3UL );
@@ -504,9 +494,6 @@ void ColumnNumericTest::testSubAssign()
 template< typename ST >  // Type of the symmetric matrix
 void ColumnNumericTest::testMultAssign()
 {
-   typedef blaze::ColumnExprTrait_<ST>  CT;
-
-
    //=====================================================================================
    // Dense vector multiplication assignment
    //=====================================================================================
@@ -525,7 +512,7 @@ void ColumnNumericTest::testMultAssign()
       ST sym;
       init( sym );
 
-      CT col1 = column( sym, 1UL );
+      auto col1 = column( sym, 1UL );
       col1 *= vec;
 
       checkRows    ( sym, 3UL );
@@ -574,7 +561,7 @@ void ColumnNumericTest::testMultAssign()
       ST sym;
       init( sym );
 
-      CT col1 = column( sym, 1UL );
+      auto col1 = column( sym, 1UL );
       col1 *= vec;
 
       checkRows    ( sym, 3UL );

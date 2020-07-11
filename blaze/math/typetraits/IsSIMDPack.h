@@ -3,7 +3,7 @@
 //  \file blaze/math/typetraits/IsSIMDPack.h
 //  \brief Header file for the IsSIMDPack type trait
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -42,9 +42,6 @@
 
 #include <blaze/math/simd/SIMDPack.h>
 #include <blaze/util/IntegralConstant.h>
-#include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/IsBaseOf.h>
-#include <blaze/util/typetraits/RemoveCV.h>
 
 
 namespace blaze {
@@ -54,6 +51,36 @@ namespace blaze {
 //  CLASS DEFINITION
 //
 //=================================================================================================
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Auxiliary helper struct for the IsSIMDPack type trait.
+// \ingroup math_type_traits
+*/
+template< typename T >
+struct IsSIMDPackHelper
+{
+ private:
+   //**********************************************************************************************
+   static T* create();
+
+   template< typename U >
+   static TrueType test( const SIMDPack<U>* );
+
+   template< typename U >
+   static TrueType test( const volatile SIMDPack<U>* );
+
+   static FalseType test( ... );
+   //**********************************************************************************************
+
+ public:
+   //**********************************************************************************************
+   using Type = decltype( test( create() ) );
+   //**********************************************************************************************
+};
+/*! \endcond */
+//*************************************************************************************************
+
 
 //*************************************************************************************************
 /*!\brief Compile time check for SIMD data types.
@@ -101,19 +128,49 @@ namespace blaze {
 // \a FalseType. Examples:
 
    \code
-   blaze::IsSIMDPack< SIMDint32 >::value        // Evaluates to 1
-   blaze::IsSIMDPack< const SIMDdouble >::Type  // Results in TrueType
-   blaze::IsSIMDPack< volatile SIMDint >        // Is derived from TrueType
-   blaze::IsSIMDPack< int >::value                 // Evaluates to 0
-   blaze::IsSIMDPack< const double >::Type         // Results in FalseType
-   blaze::IsSIMDPack< volatile complex<double> >   // Is derived from FalseType
+   blaze::IsSIMDPack< SIMDint32 >::value          // Evaluates to 1
+   blaze::IsSIMDPack< const SIMDdouble >::Type    // Results in TrueType
+   blaze::IsSIMDPack< volatile SIMDint >          // Is derived from TrueType
+   blaze::IsSIMDPack< int >::value                // Evaluates to 0
+   blaze::IsSIMDPack< const double >::Type        // Results in FalseType
+   blaze::IsSIMDPack< volatile complex<double> >  // Is derived from FalseType
    \endcode
 */
 template< typename T >
 struct IsSIMDPack
-   : public BoolConstant< Or< IsBaseOf<SIMDPack< RemoveCV_<T> >,T>
-                            , IsBaseOf<SIMDPack< RemoveCV_<T> >,T> >::value >
+   : public IsSIMDPackHelper<T>::Type
 {};
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Specialization of the IsSIMDPack type trait for references.
+// \ingroup math_type_traits
+*/
+template< typename T >
+struct IsSIMDPack<T&>
+   : public FalseType
+{};
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Auxiliary variable template for the IsSIMDPack type trait.
+// \ingroup math_type_traits
+//
+// The IsSIMDPack_v variable template provides a convenient shortcut to access the nested
+// \a value of the IsSIMDPack class template. For instance, given the type \a T the following
+// two statements are identical:
+
+   \code
+   constexpr bool value1 = blaze::IsSIMDPack<T>::value;
+   constexpr bool value2 = blaze::IsSIMDPack_v<T>;
+   \endcode
+*/
+template< typename T >
+constexpr bool IsSIMDPack_v = IsSIMDPack<T>::value;
 //*************************************************************************************************
 
 } // namespace blaze

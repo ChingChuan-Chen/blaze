@@ -2,7 +2,7 @@
 #
 #  Makefile for the submatrix module of the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -33,8 +33,10 @@
 
 
 # Including the compiler and library settings
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include ../../Makeconfig
+endif
 endif
 
 
@@ -54,24 +56,34 @@ noop: $(BIN)
 
 
 # Build rules
-DenseAlignedTest: DenseAlignedTest.o
+DenseAlignedTest1: DenseAlignedTest1.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
-DenseUnalignedTest: DenseUnalignedTest.o
+DenseAlignedTest2: DenseAlignedTest2.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+DenseUnalignedTest1: DenseUnalignedTest1.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+DenseUnalignedTest2: DenseUnalignedTest2.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 IncludeTest: IncludeTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
-SparseTest: SparseTest.o
+SparseTest1: SparseTest1.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+SparseTest2: SparseTest2.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 
 # Cleanup
+reset:
+	@$(RM) $(OBJ) $(BIN)
 clean:
-	@$(RM) $(DEP) $(OBJ) $(BIN)
+	@$(RM) $(OBJ) $(BIN) $(DEP)
 
 
 # Makefile includes
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP)
+endif
 endif
 
 
@@ -81,4 +93,4 @@ endif
 
 
 # Setting the independent commands
-.PHONY: default all essential single noop clean
+.PHONY: default all essential single noop reset clean

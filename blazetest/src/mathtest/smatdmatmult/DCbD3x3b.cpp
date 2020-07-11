@@ -3,7 +3,7 @@
 //  \file src/mathtest/smatdmatmult/DCbD3x3b.cpp
 //  \brief Source file for the DCbD3x3b sparse matrix/dense matrix multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/smatdmatmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::DiagonalMatrix< blaze::CompressedMatrix<TypeB> >      DCb;
-      typedef blaze::DiagonalMatrix< blaze::StaticMatrix<TypeB,3UL,3UL> >  D3x3b;
+      using DCb = blaze::DiagonalMatrix< blaze::CompressedMatrix<TypeB> >;
+      using D3x3b = blaze::DiagonalMatrix< blaze::StaticMatrix<TypeB,3UL,3UL> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<DCb>    CDCb;
-      typedef blazetest::Creator<D3x3b>  CD3x3b;
+      using CDCb = blazetest::Creator<DCb>;
+      using CD3x3b = blazetest::Creator<D3x3b>;
 
       // Running the tests
       for( size_t i=0UL; i<=3UL; ++i ) {

@@ -3,7 +3,7 @@
 //  \file blaze/math/lapack/unmlq.h
 //  \brief Header file for the LAPACK functions to multiply Q from a LQ decomposition with a matrix (unmlq)
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -41,11 +41,12 @@
 //*************************************************************************************************
 
 #include <memory>
-#include <boost/cast.hpp>
 #include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/Adaptor.h>
 #include <blaze/math/constraints/BLASCompatible.h>
 #include <blaze/math/constraints/Computation.h>
+#include <blaze/math/constraints/ConstDataAccess.h>
+#include <blaze/math/constraints/Contiguous.h>
 #include <blaze/math/constraints/MutableDataAccess.h>
 #include <blaze/math/Exception.h>
 #include <blaze/math/expressions/DenseMatrix.h>
@@ -53,6 +54,7 @@
 #include <blaze/math/lapack/clapack/unmqr.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/constraints/Complex.h>
+#include <blaze/util/NumericCast.h>
 
 
 namespace blaze {
@@ -67,8 +69,8 @@ namespace blaze {
 /*!\name LAPACK functions to multiply Q from a LQ decomposition with a matrix (unmlq) */
 //@{
 template< typename MT1, bool SO, typename MT2 >
-inline void unmlq( DenseMatrix<MT1,SO>& C, const DenseMatrix<MT2,SO>& A,
-                   char side, char trans, const ElementType_<MT2>* tau );
+void unmlq( DenseMatrix<MT1,SO>& C, const DenseMatrix<MT2,SO>& A,
+            char side, char trans, const ElementType_t<MT2>* tau );
 //@}
 //*************************************************************************************************
 
@@ -121,33 +123,42 @@ inline void unmlq( DenseMatrix<MT1,SO>& C, const DenseMatrix<MT2,SO>& A,
    unmlq( C, A, 'R', 'N', tau.data() );  // Computing C = C * Q
    \endcode
 
+// The function fails if ...
+//
+//  - ... the number of rows of the given \a A matrix is larger than the number of columns;
+//  - ... the given \a side argument is neither \c 'L' nor \c 'R';
+//  - ... the given \a trans argument is neither \c 'N' nor \c 'T'.
+//
+// In all failure cases an exception is thrown.
+//
 // For more information on the unmlq() functions (i.e. sunmlq() and dunmlq()) see the LAPACK
 // online documentation browser:
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 */
 template< typename MT1, bool SO, typename MT2 >
 inline void unmlq( DenseMatrix<MT1,SO>& C, const DenseMatrix<MT2,SO>& A,
-                   char side, char trans, const ElementType_<MT2>* tau )
+                   char side, char trans, const ElementType_t<MT2>* tau )
 {
-   using boost::numeric_cast;
-
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT1 );
    BLAZE_CONSTRAINT_MUST_NOT_BE_COMPUTATION_TYPE( MT1 );
    BLAZE_CONSTRAINT_MUST_HAVE_MUTABLE_DATA_ACCESS( MT1 );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT1> );
-   BLAZE_CONSTRAINT_MUST_BE_COMPLEX_TYPE( ElementType_<MT1> );
+   BLAZE_CONSTRAINT_MUST_BE_CONTIGUOUS_TYPE( MT1 );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT1> );
+   BLAZE_CONSTRAINT_MUST_BE_COMPLEX_TYPE( ElementType_t<MT1> );
 
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT2 );
    BLAZE_CONSTRAINT_MUST_NOT_BE_COMPUTATION_TYPE( MT2 );
    BLAZE_CONSTRAINT_MUST_HAVE_CONST_DATA_ACCESS( MT2 );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT2> );
-   BLAZE_CONSTRAINT_MUST_BE_COMPLEX_TYPE( ElementType_<MT2> );
+   BLAZE_CONSTRAINT_MUST_BE_CONTIGUOUS_TYPE( MT2 );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT2> );
+   BLAZE_CONSTRAINT_MUST_BE_COMPLEX_TYPE( ElementType_t<MT2> );
 
-   typedef ElementType_<MT1>  ET;
+   using ET = ElementType_t<MT1>;
 
    if( (~A).rows() > (~A).columns() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid size of Q matrix" );
@@ -161,12 +172,12 @@ inline void unmlq( DenseMatrix<MT1,SO>& C, const DenseMatrix<MT2,SO>& A,
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid trans argument provided" );
    }
 
-   int m   ( numeric_cast<int>( SO ? (~C).rows() : (~C).columns() ) );
-   int n   ( numeric_cast<int>( SO ? (~C).columns() : (~C).rows() ) );
-   int k   ( numeric_cast<int>( min( (~A).rows(), (~A).columns() ) ) );
-   int lda ( numeric_cast<int>( (~A).spacing() ) );
-   int ldc ( numeric_cast<int>( (~C).spacing() ) );
-   int info( 0 );
+   blas_int_t m   ( numeric_cast<blas_int_t>( SO ? (~C).rows() : (~C).columns() ) );
+   blas_int_t n   ( numeric_cast<blas_int_t>( SO ? (~C).columns() : (~C).rows() ) );
+   blas_int_t k   ( numeric_cast<blas_int_t>( min( (~A).rows(), (~A).columns() ) ) );
+   blas_int_t lda ( numeric_cast<blas_int_t>( (~A).spacing() ) );
+   blas_int_t ldc ( numeric_cast<blas_int_t>( (~C).spacing() ) );
+   blas_int_t info( 0 );
 
    if( m == 0 || n == 0 || k == 0 ) {
       return;
@@ -176,7 +187,7 @@ inline void unmlq( DenseMatrix<MT1,SO>& C, const DenseMatrix<MT2,SO>& A,
       ( side  == 'L' )?( side  = 'R' ):( side  = 'L' );
    }
 
-   int lwork( k*ldc );
+   blas_int_t lwork( k*ldc );
    const std::unique_ptr<ET[]> work( new ET[lwork] );
 
    if( SO ) {

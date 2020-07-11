@@ -3,7 +3,7 @@
 //  \file blaze/math/CustomVector.h
 //  \brief Header file for the complete CustomVector implementation
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,11 +40,13 @@
 // Includes
 //*************************************************************************************************
 
+#include <blaze/math/AlignmentFlag.h>
 #include <blaze/math/dense/CustomVector.h>
 #include <blaze/math/dense/DynamicVector.h>
 #include <blaze/math/dense/StaticVector.h>
 #include <blaze/math/DenseVector.h>
 #include <blaze/math/DynamicMatrix.h>
+#include <blaze/math/ZeroVector.h>
 #include <blaze/util/Random.h>
 
 
@@ -63,20 +65,21 @@ namespace blaze {
 //
 // This specialization of the Rand class randomizes instances of CustomVector.
 */
-template< typename Type  // Data type of the vector
-        , bool AF        // Alignment flag
-        , bool PF        // Padding flag
-        , bool TF >      // Transpose flag
-class Rand< CustomVector<Type,AF,PF,TF> >
+template< typename Type     // Data type of the vector
+        , AlignmentFlag AF  // Alignment flag
+        , PaddingFlag PF    // Padding flag
+        , bool TF           // Transpose flag
+        , typename RT >     // Result type
+class Rand< CustomVector<Type,AF,PF,TF,RT> >
 {
  public:
    //**Randomize functions*************************************************************************
    /*!\name Randomize functions */
    //@{
-   inline void randomize( CustomVector<Type,AF,PF,TF>& vector ) const;
+   inline void randomize( CustomVector<Type,AF,PF,TF,RT>& vector ) const;
 
    template< typename Arg >
-   inline void randomize( CustomVector<Type,AF,PF,TF>& vector, const Arg& min, const Arg& max ) const;
+   inline void randomize( CustomVector<Type,AF,PF,TF,RT>& vector, const Arg& min, const Arg& max ) const;
    //@}
    //**********************************************************************************************
 };
@@ -91,11 +94,12 @@ class Rand< CustomVector<Type,AF,PF,TF> >
 // \param vector The vector to be randomized.
 // \return void
 */
-template< typename Type  // Data type of the vector
-        , bool AF        // Alignment flag
-        , bool PF        // Padding flag
-        , bool TF >      // Transpose flag
-inline void Rand< CustomVector<Type,AF,PF,TF> >::randomize( CustomVector<Type,AF,PF,TF>& vector ) const
+template< typename Type     // Data type of the vector
+        , AlignmentFlag AF  // Alignment flag
+        , PaddingFlag PF    // Padding flag
+        , bool TF           // Transpose flag
+        , typename RT >     // Result type
+inline void Rand< CustomVector<Type,AF,PF,TF,RT> >::randomize( CustomVector<Type,AF,PF,TF,RT>& vector ) const
 {
    using blaze::randomize;
 
@@ -117,13 +121,14 @@ inline void Rand< CustomVector<Type,AF,PF,TF> >::randomize( CustomVector<Type,AF
 // \param max The largest possible value for a vector element.
 // \return void
 */
-template< typename Type   // Data type of the vector
-        , bool AF         // Alignment flag
-        , bool PF         // Padding flag
-        , bool TF >       // Transpose flag
-template< typename Arg >  // Min/max argument type
-inline void Rand< CustomVector<Type,AF,PF,TF> >::randomize( CustomVector<Type,AF,PF,TF>& vector,
-                                                            const Arg& min, const Arg& max ) const
+template< typename Type     // Data type of the vector
+        , AlignmentFlag AF  // Alignment flag
+        , PaddingFlag PF    // Padding flag
+        , bool TF           // Transpose flag
+        , typename RT >     // Result type
+template< typename Arg >    // Min/max argument type
+inline void Rand< CustomVector<Type,AF,PF,TF,RT> >::randomize( CustomVector<Type,AF,PF,TF,RT>& vector,
+                                                               const Arg& min, const Arg& max ) const
 {
    using blaze::randomize;
 

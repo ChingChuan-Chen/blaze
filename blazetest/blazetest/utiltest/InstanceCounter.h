@@ -3,7 +3,7 @@
 //  \file blazetest/utiltest/InstanceCounter.h
 //  \brief Header file for InstanceCounter class template
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -69,7 +69,9 @@ class InstanceCounter
    //**Constructors********************************************************************************
    /*!\name Constructors */
    //@{
-   inline InstanceCounter();
+   inline InstanceCounter() noexcept;
+   inline InstanceCounter( const InstanceCounter& ) noexcept;
+   inline InstanceCounter( InstanceCounter&& ) noexcept;
    //@}
    //**********************************************************************************************
 
@@ -80,11 +82,19 @@ class InstanceCounter
    //@}
    //**********************************************************************************************
 
+   //**Assignment operators************************************************************************
+   /*!\name Assignment operators */
+   //@{
+   InstanceCounter& operator=( const InstanceCounter& ) = default;
+   InstanceCounter& operator=( InstanceCounter&& ) = default;
+   //@}
+   //**********************************************************************************************
+
  public:
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-   static inline unsigned int getCount();
+   static inline unsigned int getCount() noexcept;
    //@}
    //**********************************************************************************************
 
@@ -108,10 +118,32 @@ class InstanceCounter
 //=================================================================================================
 
 //*************************************************************************************************
-/*!\brief The constructor of InstanceCounter.
+/*!\brief The default constructor of InstanceCounter.
 */
 template< typename T >
-inline InstanceCounter<T>::InstanceCounter()
+inline InstanceCounter<T>::InstanceCounter() noexcept
+{
+   ++counter_;
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief The copy constructor of InstanceCounter.
+*/
+template< typename T >
+inline InstanceCounter<T>::InstanceCounter( const InstanceCounter& ) noexcept
+{
+   ++counter_;
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief The move constructor of InstanceCounter.
+*/
+template< typename T >
+inline InstanceCounter<T>::InstanceCounter( InstanceCounter&& ) noexcept
 {
    ++counter_;
 }
@@ -151,7 +183,7 @@ inline InstanceCounter<T>::~InstanceCounter()
 // \return The current count of instances.
 */
 template< typename T >
-inline unsigned int InstanceCounter<T>::getCount()
+inline unsigned int InstanceCounter<T>::getCount() noexcept
 {
    return counter_;
 }

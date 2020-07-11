@@ -3,7 +3,7 @@
 //  \file src/mathtest/smatsmatmult/SCaMCb.cpp
 //  \brief Source file for the SCaMCb sparse matrix/sparse matrix multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/smatsmatmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::SymmetricMatrix< blaze::CompressedMatrix<TypeA> >  SCa;
-      typedef blaze::CompressedMatrix<TypeB>                            MCb;
+      using SCa = blaze::SymmetricMatrix< blaze::CompressedMatrix<TypeA> >;
+      using MCb = blaze::CompressedMatrix<TypeB>;
 
       // Creator type definitions
-      typedef blazetest::Creator<SCa>  CSCa;
-      typedef blazetest::Creator<MCb>  CMCb;
+      using CSCa = blazetest::Creator<SCa>;
+      using CMCb = blazetest::Creator<MCb>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {

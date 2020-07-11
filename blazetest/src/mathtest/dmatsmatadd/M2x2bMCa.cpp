@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsmatadd/M2x2bMCa.cpp
 //  \brief Source file for the M2x2bMCa dense matrix/sparse matrix addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dmatsmatadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StaticMatrix<TypeB,2UL,2UL>  M2x2b;
-      typedef blaze::CompressedMatrix<TypeA>      MCa;
+      using M2x2b = blaze::StaticMatrix<TypeB,2UL,2UL>;
+      using MCa = blaze::CompressedMatrix<TypeA>;
 
       // Creator type definitions
-      typedef blazetest::Creator<M2x2b>  CM2x2b;
-      typedef blazetest::Creator<MCa>    CMCa;
+      using CM2x2b = blazetest::Creator<M2x2b>;
+      using CMCa = blazetest::Creator<MCa>;
 
       // Running the tests
       for( size_t i=0UL; i<=4UL; ++i ) {

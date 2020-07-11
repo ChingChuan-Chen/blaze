@@ -3,7 +3,7 @@
 //  \file src/mathtest/hybridvector/ClassTest.cpp
 //  \brief Source file for the HybridVector class test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -37,6 +37,7 @@
 // Includes
 //*************************************************************************************************
 
+#include <array>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -49,6 +50,10 @@
 #include <blazetest/mathtest/hybridvector/ClassTest.h>
 #include <blazetest/mathtest/RandomMaximum.h>
 #include <blazetest/mathtest/RandomMinimum.h>
+
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
 
 
 namespace blazetest {
@@ -100,6 +105,7 @@ ClassTest::ClassTest()
    testSubAssign();
    testMultAssign();
    testDivAssign();
+   testCrossAssign();
    testScaling();
    testSubscript();
    testAt();
@@ -139,7 +145,16 @@ void ClassTest::testConstructors()
    //=====================================================================================
 
    {
-      test_ = "HybridVector default constructor";
+      test_ = "HybridVector default constructor (size 0)";
+
+      blaze::HybridVector<int,0UL,blaze::rowVector> vec;
+
+      checkSize    ( vec, 0UL );
+      checkNonZeros( vec, 0UL );
+   }
+
+   {
+      test_ = "HybridVector default constructor (size 7)";
 
       blaze::HybridVector<int,7UL,blaze::rowVector> vec;
 
@@ -280,6 +295,27 @@ void ClassTest::testConstructors()
       }
    }
 
+   {
+      test_ = "HybridVector std::array initialization constructor (size 4)";
+
+      const std::array<int,4UL> array{ 1, 2, 3, 4 };
+      blaze::HybridVector<int,5UL,blaze::rowVector> vec( array );
+
+      checkSize    ( vec, 4UL );
+      checkCapacity( vec, 4UL );
+      checkNonZeros( vec, 4UL );
+
+      if( vec[0] != 1 || vec[1] != 2 || vec[2] != 3 || vec[3] != 4 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Construction failed\n"
+             << " Details:\n"
+             << "   Result:\n" << vec << "\n"
+             << "   Expected result:\n( 1 2 3 4 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
 
    //=====================================================================================
    // Copy constructor
@@ -338,8 +374,9 @@ void ClassTest::testConstructors()
       using blaze::padded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec1( memory.get(), 5UL, 16UL );
       vec1[0] = 1;
       vec1[1] = 2;
       vec1[2] = 3;
@@ -369,9 +406,9 @@ void ClassTest::testConstructors()
       using blaze::unpadded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[6] );
-      UnalignedUnpadded vec1( array.get()+1UL, 5UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[6] );
+      UnalignedUnpadded vec1( memory.get()+1UL, 5UL );
       vec1[0] = 1;
       vec1[1] = 2;
       vec1[2] = 3;
@@ -541,9 +578,31 @@ void ClassTest::testAssignment()
    //=====================================================================================
 
    {
-      test_ = "HybridVector array assignment";
+      test_ = "HybridVector static array assignment";
 
       const int array[4] = { 1, 2, 3, 4 };
+      blaze::HybridVector<int,7UL,blaze::rowVector> vec;
+      vec = array;
+
+      checkSize    ( vec, 4UL );
+      checkCapacity( vec, 7UL );
+      checkNonZeros( vec, 4UL );
+
+      if( vec[0] != 1 || vec[1] != 2 || vec[2] != 3 || vec[3] != 4 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << vec << "\n"
+             << "   Expected result:\n( 1 2 3 4 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   {
+      test_ = "HybridVector std::array assignment";
+
+      const std::array<int,4UL> array{ 1, 2, 3, 4 };
       blaze::HybridVector<int,7UL,blaze::rowVector> vec;
       vec = array;
 
@@ -592,7 +651,7 @@ void ClassTest::testAssignment()
    {
       test_ = "HybridVector copy assignment stress test";
 
-      typedef blaze::HybridVector<int,20UL,blaze::rowVector>  RandomVectorType;
+      using RandomVectorType = blaze::HybridVector<int,20UL,blaze::rowVector>;
 
       blaze::HybridVector<int,20UL,blaze::rowVector> vec1;
       const int min( randmin );
@@ -655,8 +714,9 @@ void ClassTest::testAssignment()
       using blaze::padded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec1( memory.get(), 5UL, 16UL );
       vec1[0] = 1;
       vec1[1] = 2;
       vec1[2] = 3;
@@ -687,9 +747,9 @@ void ClassTest::testAssignment()
       using blaze::unpadded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[6] );
-      UnalignedUnpadded vec1( array.get()+1UL, 5UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[6] );
+      UnalignedUnpadded vec1( memory.get()+1UL, 5UL );
       vec1[0] = 1;
       vec1[1] = 2;
       vec1[2] = 3;
@@ -716,11 +776,11 @@ void ClassTest::testAssignment()
    {
       test_ = "HybridVector dense vector assignment stress test";
 
-      typedef blaze::HybridVector<unsigned int,25UL,blaze::rowVector>  RandomVectorType;
+      using RandomVectorType = blaze::HybridVector<short,20UL,blaze::rowVector>;
 
       blaze::HybridVector<int,20UL,blaze::rowVector> vec1;
-      const unsigned int min( randmin );
-      const unsigned int max( randmax );
+      const short min( randmin );
+      const short max( randmax );
 
       for( size_t i=0UL; i<100UL; ++i )
       {
@@ -792,7 +852,7 @@ void ClassTest::testAssignment()
    {
       test_ = "HybridVector sparse vector assignment stress test";
 
-      typedef blaze::CompressedVector<int,blaze::rowVector>  RandomVectorType;
+      using RandomVectorType = blaze::CompressedVector<int,blaze::rowVector>;
 
       blaze::HybridVector<int,20UL,blaze::rowVector> vec1;
       const int min( randmin );
@@ -886,8 +946,9 @@ void ClassTest::testAddAssign()
       using blaze::padded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec1( memory.get(), 5UL, 16UL );
       vec1[0] =  1;
       vec1[1] =  0;
       vec1[2] = -2;
@@ -919,9 +980,9 @@ void ClassTest::testAddAssign()
       using blaze::unpadded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[6] );
-      UnalignedUnpadded vec1( array.get()+1UL, 5UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[6] );
+      UnalignedUnpadded vec1( memory.get()+1UL, 5UL );
       vec1[0] =  1;
       vec1[1] =  0;
       vec1[2] = -2;
@@ -1025,8 +1086,9 @@ void ClassTest::testSubAssign()
       using blaze::padded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec1( memory.get(), 5UL, 16UL );
       vec1[0] = -1;
       vec1[1] =  0;
       vec1[2] =  2;
@@ -1058,9 +1120,9 @@ void ClassTest::testSubAssign()
       using blaze::unpadded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[6] );
-      UnalignedUnpadded vec1( array.get()+1UL, 5UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[6] );
+      UnalignedUnpadded vec1( memory.get()+1UL, 5UL );
       vec1[0] = -1;
       vec1[1] =  0;
       vec1[2] =  2;
@@ -1164,8 +1226,9 @@ void ClassTest::testMultAssign()
       using blaze::padded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec1( memory.get(), 5UL, 16UL );
       vec1[0] =  1;
       vec1[1] =  0;
       vec1[2] = -2;
@@ -1197,9 +1260,9 @@ void ClassTest::testMultAssign()
       using blaze::unpadded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[6] );
-      UnalignedUnpadded vec1( array.get()+1UL, 5UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[6] );
+      UnalignedUnpadded vec1( memory.get()+1UL, 5UL );
       vec1[0] =  1;
       vec1[1] =  0;
       vec1[2] = -2;
@@ -1303,8 +1366,9 @@ void ClassTest::testDivAssign()
       using blaze::padded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec1( memory.get(), 5UL, 16UL );
       vec1[0] =  1;
       vec1[1] =  2;
       vec1[2] = -3;
@@ -1336,9 +1400,9 @@ void ClassTest::testDivAssign()
       using blaze::unpadded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[6] );
-      UnalignedUnpadded vec1( array.get()+1UL, 5UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[6] );
+      UnalignedUnpadded vec1( memory.get()+1UL, 5UL );
       vec1[0] =  1;
       vec1[1] =  2;
       vec1[2] = -3;
@@ -1359,6 +1423,141 @@ void ClassTest::testDivAssign()
              << " Details:\n"
              << "   Result:\n" << vec2 << "\n"
              << "   Expected result:\n( 2 0 1 2 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the HybridVector cross product assignment operators.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the cross product assignment operators of the HybridVector
+// class template. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void ClassTest::testCrossAssign()
+{
+   //=====================================================================================
+   // Dense vector cross product assignment
+   //=====================================================================================
+
+   {
+      test_ = "HybridVector dense vector cross product assignment (mixed type)";
+
+      blaze::HybridVector<short,7UL,blaze::rowVector> vec1{ 1, 0, -2 };
+      blaze::HybridVector<int,8UL,blaze::rowVector> vec2{ 2, 0, -1 };
+
+      vec2 %= vec1;
+
+      checkSize    ( vec2, 3UL );
+      checkCapacity( vec2, 3UL );
+      checkNonZeros( vec2, 1UL );
+
+      if( vec2[0] != 0 || vec2[1] != 3 || vec2[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << vec2 << "\n"
+             << "   Expected result:\n( 0 3 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   {
+      test_ = "HybridVector dense vector cross product assignment (aligned/padded)";
+
+      using blaze::aligned;
+      using blaze::padded;
+      using blaze::rowVector;
+
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec1( memory.get(), 3UL, 16UL );
+      vec1[0] =  1;
+      vec1[1] =  0;
+      vec1[2] = -2;
+      blaze::HybridVector<int,5UL,blaze::rowVector> vec2{ 2, 0, -1 };
+
+      vec2 %= vec1;
+
+      checkSize    ( vec2, 3UL );
+      checkCapacity( vec2, 3UL );
+      checkNonZeros( vec2, 1UL );
+
+      if( vec2[0] != 0 || vec2[1] != 3 || vec2[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << vec2 << "\n"
+             << "   Expected result:\n( 0 3 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   {
+      test_ = "HybridVector dense vector cross product assignment (unaligned/unpadded)";
+
+      using blaze::unaligned;
+      using blaze::unpadded;
+      using blaze::rowVector;
+
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[4] );
+      UnalignedUnpadded vec1( memory.get()+1UL, 3UL );
+      vec1[0] =  1;
+      vec1[1] =  0;
+      vec1[2] = -2;
+      blaze::HybridVector<int,5UL,blaze::rowVector> vec2{ 2, 0, -1 };
+
+      vec2 %= vec1;
+
+      checkSize    ( vec2, 3UL );
+      checkCapacity( vec2, 3UL );
+      checkNonZeros( vec2, 1UL );
+
+      if( vec2[0] != 0 || vec2[1] != 3 || vec2[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << vec2 << "\n"
+             << "   Expected result:\n( 0 3 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Sparse vector cross product assignment
+   //=====================================================================================
+
+   {
+      test_ = "HybridVector sparse vector cross product assignment";
+
+      blaze::CompressedVector<int,blaze::rowVector> vec1( 3UL, 2UL );
+      vec1[0] =  1;
+      vec1[2] = -2;
+      blaze::HybridVector<int,5UL,blaze::rowVector> vec2{ 2, 0,-1 };
+
+      vec2 %= vec1;
+
+      checkSize    ( vec2, 3UL );
+      checkCapacity( vec2, 3UL );
+      checkNonZeros( vec2, 1UL );
+
+      if( vec2[0] != 0 || vec2[1] != 3 || vec2[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << vec2 << "\n"
+             << "   Expected result:\n( 0 3 0 )\n";
          throw std::runtime_error( oss.str() );
       }
    }
@@ -1934,9 +2133,9 @@ void ClassTest::testAt()
 */
 void ClassTest::testIterator()
 {
-   typedef blaze::HybridVector<int,4UL>  VectorType;
-   typedef VectorType::Iterator          Iterator;
-   typedef VectorType::ConstIterator     ConstIterator;
+   using VectorType    = blaze::HybridVector<int,4UL>;
+   using Iterator      = VectorType::Iterator;
+   using ConstIterator = VectorType::ConstIterator;
 
    VectorType vec{ 1, 0, -2, -3 };
 
@@ -1944,7 +2143,7 @@ void ClassTest::testIterator()
    {
       test_ = "Iterator default constructor";
 
-      Iterator it = Iterator();
+      Iterator it{};
 
       if( it != Iterator() ) {
          std::ostringstream oss;
@@ -1958,7 +2157,7 @@ void ClassTest::testIterator()
    {
       test_ = "ConstIterator default constructor";
 
-      ConstIterator it = ConstIterator();
+      ConstIterator it{};
 
       if( it != ConstIterator() ) {
          std::ostringstream oss;
@@ -1982,13 +2181,13 @@ void ClassTest::testIterator()
       }
    }
 
-   // Counting the number of elements via Iterator
+   // Counting the number of elements via Iterator (end-begin)
    {
-      test_ = "Iterator subtraction";
+      test_ = "Iterator subtraction (end-begin)";
 
-      const size_t number( end( vec ) - begin( vec ) );
+      const ptrdiff_t number( end( vec ) - begin( vec ) );
 
-      if( number != 4UL ) {
+      if( number != 4L ) {
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
              << " Error: Invalid number of elements detected\n"
@@ -1999,19 +2198,53 @@ void ClassTest::testIterator()
       }
    }
 
-   // Counting the number of elements via ConstIterator
+   // Counting the number of elements via Iterator (begin-end)
    {
-      test_ = "ConstIterator subtraction";
+      test_ = "Iterator subtraction (begin-end)";
 
-      const size_t number( end( vec ) - begin( vec ) );
+      const ptrdiff_t number( begin( vec ) - end( vec ) );
 
-      if( number != 4UL ) {
+      if( number != -4L ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Invalid number of elements detected\n"
+             << " Details:\n"
+             << "   Number of elements         : " << number << "\n"
+             << "   Expected number of elements: -4\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   // Counting the number of elements via ConstIterator (end-begin)
+   {
+      test_ = "ConstIterator subtraction (end-begin)";
+
+      const ptrdiff_t number( end( vec ) - begin( vec ) );
+
+      if( number != 4L ) {
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
              << " Error: Invalid number of elements detected\n"
              << " Details:\n"
              << "   Number of elements         : " << number << "\n"
              << "   Expected number of elements: 4\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   // Counting the number of elements via ConstIterator (end-begin)
+   {
+      test_ = "ConstIterator subtraction (begin-end)";
+
+      const ptrdiff_t number( begin( vec ) - end( vec ) );
+
+      if( number != -4L ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Invalid number of elements detected\n"
+             << " Details:\n"
+             << "   Number of elements         : " << number << "\n"
+             << "   Expected number of elements: -4\n";
          throw std::runtime_error( oss.str() );
       }
    }

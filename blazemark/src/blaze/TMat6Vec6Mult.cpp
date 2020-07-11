@@ -3,7 +3,7 @@
 //  \file src/blaze/TMat6Vec6Mult.cpp
 //  \brief Source file for the Blaze 6D transpose matrix/vector multiplication kernel
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -75,10 +75,10 @@ double tmat6vec6mult( size_t N, size_t steps )
    using ::blaze::columnVector;
    using ::blaze::columnMajor;
 
-   typedef ::blaze::StaticMatrix<element_t,6UL,6UL,columnMajor>  MatrixType;
-   typedef ::blaze::StaticVector<element_t,6UL,columnVector>     VectorType;
-   typedef ::blaze::AlignedAllocator<MatrixType>                 MatrixAllocatorType;
-   typedef ::blaze::AlignedAllocator<VectorType>                 VectorAllocatorType;
+   using MatrixType          = ::blaze::StaticMatrix<element_t,6UL,6UL,columnMajor>;
+   using VectorType          = ::blaze::StaticVector<element_t,6UL,columnVector>;
+   using MatrixAllocatorType = ::blaze::AlignedAllocator<MatrixType>;
+   using VectorAllocatorType = ::blaze::AlignedAllocator<VectorType>;
 
    ::blaze::setSeed( seed );
 

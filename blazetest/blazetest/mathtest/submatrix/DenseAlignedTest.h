@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/submatrix/DenseAlignedTest.h
 //  \brief Header file for the Submatrix dense aligned test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -87,23 +87,27 @@ class DenseAlignedTest
    /*!\name Test functions */
    //@{
    void testConstructors();
-   void testAssignment  ();
-   void testAddAssign   ();
-   void testSubAssign   ();
-   void testMultAssign  ();
-   void testScaling     ();
+   void testAssignment();
+   void testAddAssign();
+   void testSubAssign();
+   void testSchurAssign();
+   void testMultAssign();
+   void testScaling();
    void testFunctionCall();
-   void testIterator    ();
-   void testNonZeros    ();
-   void testReset       ();
-   void testClear       ();
-   void testTranspose   ();
-   void testCTranspose  ();
-   void testIsDefault   ();
-   void testIsSame      ();
-   void testSubmatrix   ();
-   void testRow         ();
-   void testColumn      ();
+   void testIterator();
+   void testNonZeros();
+   void testReset();
+   void testClear();
+   void testTranspose();
+   void testCTranspose();
+   void testIsDefault();
+   void testIsSame();
+   void testSubmatrix();
+   void testRow();
+   void testRows();
+   void testColumn();
+   void testColumns();
+   void testBand();
 
    template< typename Type >
    void checkRows( const Type& matrix, size_t expectedRows ) const;
@@ -127,12 +131,12 @@ class DenseAlignedTest
    //**********************************************************************************************
 
    //**Type definitions****************************************************************************
-   typedef blaze::DynamicMatrix<int,blaze::rowMajor>  MT;     //!< Row-major dynamic matrix type
-   typedef MT::OppositeType                           OMT;    //!< Column-major dynamic matrix type
-   typedef blaze::Submatrix<MT,blaze::aligned>        ASMT;   //!< Aligned dense submatrix type for row-major matrices.
-   typedef blaze::Submatrix<MT,blaze::unaligned>      USMT;   //!< Unaligned dense submatrix type for row-major matrices.
-   typedef blaze::Submatrix<OMT,blaze::aligned>       AOSMT;  //!< Aligned dense submatrix type for column-major matrices.
-   typedef blaze::Submatrix<OMT,blaze::unaligned>     UOSMT;  //!< Unaligned dense submatrix type for column-major matrices.
+   using MT    = blaze::DynamicMatrix<int,blaze::rowMajor>;  //!< Row-major dynamic matrix type
+   using OMT   = MT::OppositeType;                           //!< Column-major dynamic matrix type
+   using ASMT  = blaze::Submatrix<MT,blaze::aligned>;        //!< Aligned dense submatrix type for row-major matrices.
+   using USMT  = blaze::Submatrix<MT,blaze::unaligned>;      //!< Unaligned dense submatrix type for row-major matrices.
+   using AOSMT = blaze::Submatrix<OMT,blaze::aligned>;       //!< Aligned dense submatrix type for column-major matrices.
+   using UOSMT = blaze::Submatrix<OMT,blaze::unaligned>;     //!< Unaligned dense submatrix type for column-major matrices.
    //**********************************************************************************************
 
    //**Member variables****************************************************************************
@@ -205,7 +209,7 @@ void DenseAlignedTest::checkRows( const Type& matrix, size_t expectedRows ) cons
 /*!\brief Checking the number of columns of the given dense matrix.
 //
 // \param matrix The dense matrix to be checked.
-// \param expectedRows The expected number of columns of the dense matrix.
+// \param expectedColumns The expected number of columns of the dense matrix.
 // \return void
 // \exception std::runtime_error Error detected.
 //

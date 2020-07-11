@@ -2,7 +2,7 @@
 #
 #  Makefile for the dvecsvecsub module of the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -33,8 +33,10 @@
 
 
 # Including the compiler and library settings
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include ../../Makeconfig
+endif
 endif
 
 
@@ -46,9 +48,10 @@ BIN = $(SRC:.cpp=)
 
 
 # General rules
-default: V3aVCa V3aVCb V3bVCa V3bVCb VHaVCa VHaVCb VHbVCa VHbVCb VDaVCa VDaVCb VDbVCa VDbVCb AliasingTest
+default: V3aVCa V3aVCb V3bVCa V3bVCb VHaVCa VHaVCb VHbVCa VHbVCb \
+         VDaVCa VDaVCb VDbVCa VDbVCb VUaVCa VUaVCb VUbVCa VUbVCb AliasingTest
 all: $(BIN)
-essential: V3aVCa VHaVCa VDaVCa AliasingTest
+essential: V3aVCa VHaVCa VDaVCa VUaVCa AliasingTest
 single: VDaVCa
 
 
@@ -66,9 +69,17 @@ V3aVCa: V3aVCa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 V3aVCb: V3aVCb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+V3aVZa: V3aVZa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+V3aVZb: V3aVZb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 V3bVCa: V3bVCa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 V3bVCb: V3bVCb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+V3bVZa: V3bVZa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+V3bVZb: V3bVZb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 V4aVCa: V4aVCa.o
@@ -102,18 +113,51 @@ VDaVCa: VDaVCa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDaVCb: VDaVCb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VDaVZa: VDaVZa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VDaVZb: VDaVZb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDbVCa: VDbVCa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDbVCb: VDbVCb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VDbVZa: VDbVZa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VDbVZb: VDbVZb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 VHaVCa: VHaVCa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VHaVCb: VHaVCb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VHaVZa: VHaVZa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VHaVZb: VHaVZb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VHbVCa: VHbVCa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VHbVCb: VHbVCb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VHbVZa: VHbVZa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VHbVZb: VHbVZb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+
+VUaVCa: VUaVCa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaVCb: VUaVCb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaVZa: VUaVZa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaVZb: VUaVZb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbVCa: VUbVCa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbVCb: VUbVCb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbVZa: VUbVZa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbVZb: VUbVZb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 AliasingTest: AliasingTest.o
@@ -121,13 +165,17 @@ AliasingTest: AliasingTest.o
 
 
 # Cleanup
+reset:
+	@$(RM) $(OBJ) $(BIN)
 clean:
-	@$(RM) $(DEP) $(OBJ) $(BIN)
+	@$(RM) $(OBJ) $(BIN) $(DEP)
 
 
 # Makefile includes
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP)
+endif
 endif
 
 
@@ -137,4 +185,4 @@ endif
 
 
 # Setting the independent commands
-.PHONY: default all essential single clean
+.PHONY: default all essential single reset clean

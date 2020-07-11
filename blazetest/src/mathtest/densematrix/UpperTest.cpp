@@ -3,7 +3,7 @@
 //  \file src/mathtest/densematrix/UpperTest.cpp
 //  \brief Source file for the upper DenseMatrix operation test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -44,6 +44,10 @@
 #include <blaze/math/UpperMatrix.h>
 #include <blazetest/mathtest/densematrix/UpperTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 namespace blazetest {
 
@@ -66,8 +70,9 @@ UpperTest::UpperTest()
 {
    testIsSymmetric();
    testIsHermitian();
-   testIsLower();
    testIsUniform();
+   testIsZero();
+   testIsLower();
    testIsUniLower();
    testIsStrictlyLower();
    testIsUpper();
@@ -306,6 +311,29 @@ void UpperTest::testIsHermitian()
          }
       }
 
+      // Non-real diagonal element
+      {
+         blaze::UpperMatrix< blaze::DynamicMatrix<cplx,blaze::rowMajor> > mat( 3UL );
+         mat(1,1).imag( 1 );
+
+         checkRows    ( mat, 3UL );
+         checkColumns ( mat, 3UL );
+         checkCapacity( mat, 9UL );
+         checkNonZeros( mat, 1UL );
+         checkNonZeros( mat, 0UL, 0UL );
+         checkNonZeros( mat, 1UL, 1UL );
+         checkNonZeros( mat, 2UL, 0UL );
+
+         if( isHermitian( mat ) != false ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isHermitian evaluation\n"
+                << " Details:\n"
+                << "   Matrix:\n" << mat << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
       // Diagonal upper matrix
       {
          blaze::UpperMatrix< blaze::DynamicMatrix<cplx,blaze::rowMajor> > mat( 3UL );
@@ -380,6 +408,29 @@ void UpperTest::testIsHermitian()
          checkNonZeros( mat, 2UL, 0UL );
 
          if( isHermitian( mat ) != true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isHermitian evaluation\n"
+                << " Details:\n"
+                << "   Matrix:\n" << mat << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Non-real diagonal element
+      {
+         blaze::UpperMatrix< blaze::DynamicMatrix<cplx,blaze::columnMajor> > mat( 3UL );
+         mat(1,1).imag( 1 );
+
+         checkRows    ( mat, 3UL );
+         checkColumns ( mat, 3UL );
+         checkCapacity( mat, 9UL );
+         checkNonZeros( mat, 1UL );
+         checkNonZeros( mat, 0UL, 0UL );
+         checkNonZeros( mat, 1UL, 1UL );
+         checkNonZeros( mat, 2UL, 0UL );
+
+         if( isHermitian( mat ) != false ) {
             std::ostringstream oss;
             oss << " Test: " << test_ << "\n"
                 << " Error: Invalid isHermitian evaluation\n"
@@ -556,6 +607,127 @@ void UpperTest::testIsUniform()
             std::ostringstream oss;
             oss << " Test: " << test_ << "\n"
                 << " Error: Invalid isUniform evaluation\n"
+                << " Details:\n"
+                << "   Matrix:\n" << mat << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the \c isZero() function for dense matrices.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c isZero() function for dense matrices. In case an
+// error is detected, a \a std::runtime_error exception is thrown.
+*/
+void UpperTest::testIsZero()
+{
+   //=====================================================================================
+   // Row-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Row-major isZero()";
+
+      // Zero upper matrix
+      {
+         blaze::UpperMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> > mat( 3UL );
+
+         checkRows    ( mat, 3UL );
+         checkColumns ( mat, 3UL );
+         checkCapacity( mat, 9UL );
+         checkNonZeros( mat, 0UL );
+         checkNonZeros( mat, 0UL, 0UL );
+         checkNonZeros( mat, 1UL, 0UL );
+         checkNonZeros( mat, 2UL, 0UL );
+
+         if( isZero( mat ) != true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isZero evaluation\n"
+                << " Details:\n"
+                << "   Matrix:\n" << mat << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Non-zero upper matrix
+      {
+         blaze::UpperMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> > mat( 3UL );
+         mat(0,2) = 5;
+
+         checkRows    ( mat, 3UL );
+         checkColumns ( mat, 3UL );
+         checkCapacity( mat, 9UL );
+         checkNonZeros( mat, 1UL );
+         checkNonZeros( mat, 0UL, 1UL );
+         checkNonZeros( mat, 1UL, 0UL );
+         checkNonZeros( mat, 2UL, 0UL );
+
+         if( isZero( mat ) != false ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isZero evaluation\n"
+                << " Details:\n"
+                << "   Matrix:\n" << mat << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Column-major isZero()";
+
+      // Zero upper matrix
+      {
+         blaze::UpperMatrix< blaze::DynamicMatrix<int,blaze::columnMajor> > mat( 3UL );
+
+         checkRows    ( mat, 3UL );
+         checkColumns ( mat, 3UL );
+         checkCapacity( mat, 9UL );
+         checkNonZeros( mat, 0UL );
+         checkNonZeros( mat, 0UL, 0UL );
+         checkNonZeros( mat, 1UL, 0UL );
+         checkNonZeros( mat, 2UL, 0UL );
+
+         if( isZero( mat ) != true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isZero evaluation\n"
+                << " Details:\n"
+                << "   Matrix:\n" << mat << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Non-zero upper matrix
+      {
+         blaze::UpperMatrix< blaze::DynamicMatrix<int,blaze::columnMajor> > mat( 3UL );
+         mat(0,2) = 5;
+
+         checkRows    ( mat, 3UL );
+         checkColumns ( mat, 3UL );
+         checkCapacity( mat, 9UL );
+         checkNonZeros( mat, 1UL );
+         checkNonZeros( mat, 0UL, 0UL );
+         checkNonZeros( mat, 1UL, 0UL );
+         checkNonZeros( mat, 2UL, 1UL );
+
+         if( isZero( mat ) != false ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isZero evaluation\n"
                 << " Details:\n"
                 << "   Matrix:\n" << mat << "\n";
             throw std::runtime_error( oss.str() );

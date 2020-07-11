@@ -3,7 +3,7 @@
 //  \file src/blaze/Mat6Mat6Mult.cpp
 //  \brief Source file for the Blaze 6D matrix/matrix multiplication kernel
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -72,8 +72,8 @@ double mat6mat6mult( size_t N, size_t steps )
    using ::blazemark::element_t;
    using ::blaze::rowMajor;
 
-   typedef ::blaze::StaticMatrix<element_t,6UL,6UL,rowMajor>  MatrixType;
-   typedef ::blaze::AlignedAllocator<MatrixType>              AllocatorType;
+   using MatrixType    = ::blaze::StaticMatrix<element_t,6UL,6UL,rowMajor>;
+   using AllocatorType = ::blaze::AlignedAllocator<MatrixType>;
 
    ::blaze::setSeed( seed );
 

@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatdmatsub/HHaHHb.cpp
 //  \brief Source file for the HHaHHb dense matrix/dense matrix subtraction math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dmatdmatsub/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::HermitianMatrix< blaze::HybridMatrix<NumericA,128UL,128UL> >  HHa;
-      typedef blaze::HermitianMatrix< blaze::HybridMatrix<NumericB,128UL,128UL> >  HHb;
+      using HHa = blaze::HermitianMatrix< blaze::HybridMatrix<NumericA,128UL,128UL> >;
+      using HHb = blaze::HermitianMatrix< blaze::HybridMatrix<NumericB,128UL,128UL> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<HHa>  CHHa;
-      typedef blazetest::Creator<HHb>  CHHb;
+      using CHHa = blazetest::Creator<HHa>;
+      using CHHb = blazetest::Creator<HHb>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=9UL; ++i ) {

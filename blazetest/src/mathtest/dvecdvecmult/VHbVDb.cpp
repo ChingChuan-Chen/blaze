@@ -3,7 +3,7 @@
 //  \file src/mathtest/dvecdvecmult/VHbVDb.cpp
 //  \brief Source file for the VHbVDb dense vector/dense vector multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,10 +40,14 @@
 #include <cstdlib>
 #include <iostream>
 #include <blaze/math/DynamicVector.h>
-#include <blaze/math/StaticVector.h>
+#include <blaze/math/HybridVector.h>
 #include <blazetest/mathtest/Creator.h>
 #include <blazetest/mathtest/dvecdvecmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
+
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
 
 
 //=================================================================================================
@@ -62,12 +66,12 @@ int main()
    try
    {
       // Vector type definitions
-      typedef blaze::HybridVector<TypeB,128UL>  VHb;
-      typedef blaze::DynamicVector<TypeB>       VDb;
+      using VHb = blaze::HybridVector<TypeB,128UL>;
+      using VDb = blaze::DynamicVector<TypeB>;
 
       // Creator type definitions
-      typedef blazetest::Creator<VHb>  CVHb;
-      typedef blazetest::Creator<VDb>  CVDb;
+      using CVHb = blazetest::Creator<VHb>;
+      using CVDb = blazetest::Creator<VDb>;
 
       // Running tests with small vectors
       for( size_t i=0UL; i<=6UL; ++i ) {

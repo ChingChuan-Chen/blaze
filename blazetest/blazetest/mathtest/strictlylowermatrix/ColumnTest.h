@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/strictlylowermatrix/ColumnTest.h
 //  \brief Header file for the StrictlyLowerMatrix column test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -49,7 +49,6 @@
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/DynamicVector.h>
 #include <blaze/math/StrictlyLowerMatrix.h>
-#include <blaze/math/traits/ColumnExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blazetest/system/Types.h>
 
@@ -77,16 +76,16 @@ class ColumnTest
  private:
    //**Type definitions****************************************************************************
    //! Type of the dense strictly lower triangular matrix.
-   typedef blaze::StrictlyLowerMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> >  DLT;
+   using DLT = blaze::StrictlyLowerMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> >;
 
    //! Opposite dense strictly lower triangular matrix type.
-   typedef DLT::OppositeType  DOLT;
+   using DOLT = DLT::OppositeType;
 
    //! Type of the sparse strictly lower triangular matrix.
-   typedef blaze::StrictlyLowerMatrix< blaze::CompressedMatrix<int,blaze::rowMajor> >  SLT;
+   using SLT = blaze::StrictlyLowerMatrix< blaze::CompressedMatrix<int,blaze::rowMajor> >;
 
    //! Opposite sparse strictly lower triangular matrix type.
-   typedef SLT::OppositeType  SOLT;
+   using SOLT = SLT::OppositeType;
    //**********************************************************************************************
 
  public:
@@ -159,9 +158,6 @@ class ColumnTest
 template< typename LT >  // Type of the strictly lower matrix
 void ColumnTest::testAssignment()
 {
-   typedef blaze::ColumnExprTrait_<LT>  CT;
-
-
    //=====================================================================================
    // Dense vector assignment
    //=====================================================================================
@@ -178,7 +174,7 @@ void ColumnTest::testAssignment()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
       col1 = vec;
 
       checkRows    ( lower, 3UL );
@@ -221,7 +217,7 @@ void ColumnTest::testAssignment()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
 
       try {
          col1 = vec;
@@ -249,7 +245,7 @@ void ColumnTest::testAssignment()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
 
       try {
          col1 = vec;
@@ -282,7 +278,7 @@ void ColumnTest::testAssignment()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
       col1 = vec;
 
       checkRows    ( lower, 3UL );
@@ -325,7 +321,7 @@ void ColumnTest::testAssignment()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
 
       try {
          col1 = vec;
@@ -353,7 +349,7 @@ void ColumnTest::testAssignment()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
 
       try {
          col1 = vec;
@@ -383,9 +379,6 @@ void ColumnTest::testAssignment()
 template< typename LT >  // Type of the strictly lower matrix
 void ColumnTest::testAddAssign()
 {
-   typedef blaze::ColumnExprTrait_<LT>  CT;
-
-
    //=====================================================================================
    // Dense vector addition assignment
    //=====================================================================================
@@ -402,7 +395,7 @@ void ColumnTest::testAddAssign()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
       col1 += vec;
 
       checkRows    ( lower, 3UL );
@@ -445,7 +438,7 @@ void ColumnTest::testAddAssign()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
 
       try {
          col1 += vec;
@@ -473,7 +466,7 @@ void ColumnTest::testAddAssign()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
 
       try {
          col1 += vec;
@@ -506,7 +499,7 @@ void ColumnTest::testAddAssign()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
       col1 += vec;
 
       checkRows    ( lower, 3UL );
@@ -549,7 +542,7 @@ void ColumnTest::testAddAssign()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
 
       try {
          col1 += vec;
@@ -577,7 +570,7 @@ void ColumnTest::testAddAssign()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
 
       try {
          col1 += vec;
@@ -607,9 +600,6 @@ void ColumnTest::testAddAssign()
 template< typename LT >  // Type of the strictly lower matrix
 void ColumnTest::testSubAssign()
 {
-   typedef blaze::ColumnExprTrait_<LT>  CT;
-
-
    //=====================================================================================
    // Dense vector subtraction assignment
    //=====================================================================================
@@ -626,7 +616,7 @@ void ColumnTest::testSubAssign()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
       col1 -= vec;
 
       checkRows    ( lower, 3UL );
@@ -669,7 +659,7 @@ void ColumnTest::testSubAssign()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
 
       try {
          col1 -= vec;
@@ -697,7 +687,7 @@ void ColumnTest::testSubAssign()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
 
       try {
          col1 -= vec;
@@ -730,7 +720,7 @@ void ColumnTest::testSubAssign()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
       col1 -= vec;
 
       checkRows    ( lower, 3UL );
@@ -773,7 +763,7 @@ void ColumnTest::testSubAssign()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
 
       try {
          col1 -= vec;
@@ -801,7 +791,7 @@ void ColumnTest::testSubAssign()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
 
       try {
          col1 -= vec;
@@ -831,9 +821,6 @@ void ColumnTest::testSubAssign()
 template< typename LT >  // Type of the strictly lower matrix
 void ColumnTest::testMultAssign()
 {
-   typedef blaze::ColumnExprTrait_<LT>  CT;
-
-
    //=====================================================================================
    // Dense vector multiplication assignment
    //=====================================================================================
@@ -852,7 +839,7 @@ void ColumnTest::testMultAssign()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
       col1 *= vec;
 
       checkRows    ( lower, 3UL );
@@ -901,7 +888,7 @@ void ColumnTest::testMultAssign()
       LT lower;
       init( lower );
 
-      CT col1 = column( lower, 1UL );
+      auto col1 = column( lower, 1UL );
       col1 *= vec;
 
       checkRows    ( lower, 3UL );

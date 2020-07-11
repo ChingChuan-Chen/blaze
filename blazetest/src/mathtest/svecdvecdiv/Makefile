@@ -2,7 +2,7 @@
 #
 #  Makefile for the svecdvecdiv module of the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -33,8 +33,10 @@
 
 
 # Including the compiler and library settings
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include ../../Makeconfig
+endif
 endif
 
 
@@ -46,9 +48,10 @@ BIN = $(SRC:.cpp=)
 
 
 # General rules
-default: VCaV3a VCaV3b VCbV3a VCbV3b VCaVHa VCaVHb VCbVHa VCbVHb VCaVDa VCaVDb VCbVDa VCbVDb AliasingTest
+default: VCaV3a VCaV3b VCbV3a VCbV3b VCaVHa VCaVHb VCbVHa VCbVHb \
+         VCaVDa VCaVDb VCbVDa VCbVDb VCaVUa VCaVUb VCbVUa VCbVUb AliasingTest
 all: $(BIN)
-essential: VCaV3a VCaVHa VCaVDa AliasingTest
+essential: VCaV3a VCaVHa VCaVDa VCaVUa AliasingTest
 single: VCaVDa
 
 
@@ -116,18 +119,31 @@ VCbVHa: VCbVHa.o
 VCbVHb: VCbVHb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
+VCaVUa: VCaVUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VCaVUb: VCaVUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VCbVUa: VCbVUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VCbVUb: VCbVUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+
 AliasingTest: AliasingTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 
 # Cleanup
+reset:
+	@$(RM) $(OBJ) $(BIN)
 clean:
-	@$(RM) $(DEP) $(OBJ) $(BIN)
+	@$(RM) $(OBJ) $(BIN) $(DEP)
 
 
 # Makefile includes
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP)
+endif
 endif
 
 
@@ -137,4 +153,4 @@ endif
 
 
 # Setting the independent commands
-.PHONY: default all essential single clean
+.PHONY: default all essential single reset clean

@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatdvecmult/SUDaVDa.cpp
 //  \brief Source file for the SUDaVDa dense matrix/dense vector multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/dmatdvecmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StrictlyUpperMatrix< blaze::DynamicMatrix<TypeA> >  SUDa;
-      typedef blaze::DynamicVector<TypeA>                                VDa;
+      using SUDa = blaze::StrictlyUpperMatrix< blaze::DynamicMatrix<TypeA> >;
+      using VDa = blaze::DynamicVector<TypeA>;
 
       // Creator type definitions
-      typedef blazetest::Creator<SUDa>  CSUDa;
-      typedef blazetest::Creator<VDa>   CVDa;
+      using CSUDa = blazetest::Creator<SUDa>;
+      using CVDa = blazetest::Creator<VDa>;
 
       // Running tests with small matrices and vectors
       for( size_t i=0UL; i<=6UL; ++i ) {

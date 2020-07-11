@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/densematrix/UniUpperTest.h
 //  \brief Header file for the uniupper DenseMatrix operation test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -68,7 +68,7 @@ class UniUpperTest
 {
  private:
    //**Type definitions****************************************************************************
-   typedef blaze::complex<int>  cplx;  //!< Complex element type.
+   using cplx = blaze::complex<int>;  //!< Complex element type.
    //**********************************************************************************************
 
  public:
@@ -91,6 +91,7 @@ class UniUpperTest
    void testIsSymmetric();
    void testIsHermitian();
    void testIsUniform();
+   void testIsZero();
    void testIsLower();
    void testIsUniLower();
    void testIsStrictlyLower();

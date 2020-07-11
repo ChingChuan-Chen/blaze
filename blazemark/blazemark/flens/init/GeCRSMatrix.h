@@ -3,7 +3,7 @@
 //  \file blazemark/flens/init/GeCRSMatrix.h
 //  \brief Header file for the FLENS CRS matrix initialization functions
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -84,8 +84,8 @@ template< typename Type         // Data type of the matrix
 void init( ::flens::GeCRSMatrix< ::flens::CRS<Type,::flens::IndexBaseZero<IndexType> > >& m
          , size_t rows, size_t columns, size_t nonzeros )
 {
-   typedef ::flens::IndexBaseZero<IndexType>                              IndexBase;
-   typedef ::flens::CoordStorage<Type,::flens::CoordRowColCmp,IndexBase>  Coord;
+   using IndexBase = ::flens::IndexBaseZero<IndexType>;
+   using Coord     = ::flens::CoordStorage<Type,::flens::CoordRowColCmp,IndexBase>;
 
    const IndexType M( rows    );
    const IndexType N( columns );

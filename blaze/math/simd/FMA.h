@@ -3,7 +3,7 @@
 //  \file blaze/math/simd/FMA.h
 //  \brief Header file for the SIMD fused multiply-add (FMA) functionality
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,10 +40,10 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/simd/Addition.h>
+#include <blaze/math/simd/Add.h>
 #include <blaze/math/simd/BasicTypes.h>
-#include <blaze/math/simd/Multiplication.h>
-#include <blaze/math/simd/Subtraction.h>
+#include <blaze/math/simd/Mult.h>
+#include <blaze/math/simd/Sub.h>
 #include <blaze/system/Inline.h>
 #include <blaze/system/Vectorization.h>
 
@@ -66,7 +66,8 @@ namespace blaze {
 template< typename T1    // Type of the left-hand side multiplication operand
         , typename T2    // Type of the right-hand side multiplication operand
         , typename T3 >  // Type of the right-hand side addition operand
-struct SIMDf32FmaddExpr : public SIMDf32< SIMDf32FmaddExpr<T1,T2,T3> >
+struct SIMDf32FmaddExpr
+   : public SIMDf32< SIMDf32FmaddExpr<T1,T2,T3> >
 {
    //**Type definitions****************************************************************************
    using This     = SIMDf32FmaddExpr<T1,T2,T3>;  //!< Type of this SIMDf32FMaddExpr instance.
@@ -80,7 +81,7 @@ struct SIMDf32FmaddExpr : public SIMDf32< SIMDf32FmaddExpr<T1,T2,T3> >
    // \param b The right-hand side operand for the multiplication.
    // \param c The right-hand side operand for the addition.
    */
-   explicit BLAZE_ALWAYS_INLINE SIMDf32FmaddExpr( const T1& a, const T2& b, const T3& c )
+   BLAZE_ALWAYS_INLINE SIMDf32FmaddExpr( const T1& a, const T2& b, const T3& c )
       : a_( a )  // The left-hand side operand for the multiplication
       , b_( b )  // The right-hand side operand for the multiplication
       , c_( c )  // The right-hand side operand for the addition
@@ -93,7 +94,7 @@ struct SIMDf32FmaddExpr : public SIMDf32< SIMDf32FmaddExpr<T1,T2,T3> >
    // \return The resulting packed 32-bit floating point value.
    */
    BLAZE_ALWAYS_INLINE const SIMDfloat eval() const noexcept
-#if BLAZE_FMA_MODE && BLAZE_MIC_MODE
+#if BLAZE_FMA_MODE && ( BLAZE_AVX512F_MODE || BLAZE_MIC_MODE )
    {
       return _mm512_fmadd_ps( a_.eval().value, b_.eval().value, c_.eval().value );
    }
@@ -129,7 +130,8 @@ struct SIMDf32FmaddExpr : public SIMDf32< SIMDf32FmaddExpr<T1,T2,T3> >
 template< typename T1    // Type of the left-hand side multiplication operand
         , typename T2    // Type of the right-hand side multiplication operand
         , typename T3 >  // Type of the right-hand side subtraction operand
-struct SIMDf32FmsubExpr : public SIMDf32< SIMDf32FmsubExpr<T1,T2,T3> >
+struct SIMDf32FmsubExpr
+   : public SIMDf32< SIMDf32FmsubExpr<T1,T2,T3> >
 {
    //**Type definitions****************************************************************************
    using This     = SIMDf32MultExpr<T1,T2>;  //!< Type of this SIMDf32FMsubExpr instance.
@@ -143,7 +145,7 @@ struct SIMDf32FmsubExpr : public SIMDf32< SIMDf32FmsubExpr<T1,T2,T3> >
    // \param b The right-hand side operand for the multiplication.
    // \param c The right-hand side operand for the subtraction.
    */
-   explicit BLAZE_ALWAYS_INLINE SIMDf32FmsubExpr( const T1& a, const T2& b, const T3& c )
+   BLAZE_ALWAYS_INLINE SIMDf32FmsubExpr( const T1& a, const T2& b, const T3& c )
       : a_( a )  // The left-hand side operand for the multiplication
       , b_( b )  // The right-hand side operand for the multiplication
       , c_( c )  // The right-hand side operand for the subtraction
@@ -156,7 +158,7 @@ struct SIMDf32FmsubExpr : public SIMDf32< SIMDf32FmsubExpr<T1,T2,T3> >
    // \return The resulting packed 32-bit floating point value.
    */
    BLAZE_ALWAYS_INLINE const SIMDfloat eval() const noexcept
-#if BLAZE_FMA_MODE && BLAZE_MIC_MODE
+#if BLAZE_FMA_MODE && ( BLAZE_AVX512F_MODE || BLAZE_MIC_MODE )
    {
       return _mm512_fmsub_ps( a_.eval().value, b_.eval().value, c_.eval().value );
    }
@@ -279,7 +281,7 @@ template< typename T1    // Type of the first FMA multiplication operand
         , typename T2    // Type of the second FMA multiplication operand
         , typename T3    // Type of the FMA addition operand
         , typename T4 >  // Type of the second addition operand
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator+( const SIMDf32FmaddExpr<T1,T2,T3>& a, const SIMDf32<T4>& b )
 {
    return ( a.a_ * a.b_ ) + ( a.c_ + (~b) );
@@ -308,7 +310,7 @@ template< typename T1    // Type of the first addition operand
         , typename T2    // Type of the first FMA multiplication operand
         , typename T3    // Type of the second FMA multiplication operand
         , typename T4 >  // Type of the FMA addition operand
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator+( const SIMDf32<T1>& a, const SIMDf32FmaddExpr<T2,T3,T4>& b )
 {
    return ( b.a_ * b.b_ ) + ( b.c_ + (~a) );
@@ -398,7 +400,7 @@ template< typename T1    // Type of the first multiplication operand of the left
         , typename T4    // Type of the first multiplication operand of the right-hand side FMA
         , typename T5    // Type of the second multiplication operand of the right-hand side FMA
         , typename T6 >  // Type of the addition operand of the right-hand side FMA
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator+( const SIMDf32FmaddExpr<T1,T2,T3>& a, const SIMDf32FmaddExpr<T4,T5,T6>& b )
 {
    return ( a.a_ * a.b_ ) + ( ( b.a_ * b.b_ ) + ( a.c_ + b.c_ ) );
@@ -428,7 +430,7 @@ template< typename T1    // Type of the first multiplication operand of the left
         , typename T4    // Type of the first multiplication operand of the right-hand side FMA
         , typename T5    // Type of the second multiplication operand of the right-hand side FMA
         , typename T6 >  // Type of the subtraction operand of the right-hand side FMA
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator+( const SIMDf32FmaddExpr<T1,T2,T3>& a, const SIMDf32FmsubExpr<T4,T5,T6>& b )
 {
    return ( a.a_ * a.b_ ) + ( ( b.a_ * b.b_ ) + ( a.c_ - b.c_ ) );
@@ -458,7 +460,7 @@ template< typename T1    // Type of the first multiplication operand of the left
         , typename T4    // Type of the first multiplication operand of the right-hand side FMA
         , typename T5    // Type of the second multiplication operand of the right-hand side FMA
         , typename T6 >  // Type of the addition operand of the right-hand side FMA
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator+( const SIMDf32FmsubExpr<T1,T2,T3>& a, const SIMDf32FmaddExpr<T4,T5,T6>& b )
 {
    return ( a.a_ * a.b_ ) + ( ( b.a_ * b.b_ ) + ( b.c_ - a.c_ ) );
@@ -488,7 +490,7 @@ template< typename T1    // Type of the first multiplication operand of the left
         , typename T4    // Type of the first multiplication operand of the right-hand side FMA
         , typename T5    // Type of the second multiplication operand of the right-hand side FMA
         , typename T6 >  // Type of the subtraction operand of the right-hand side FMA
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator+( const SIMDf32FmsubExpr<T1,T2,T3>& a, const SIMDf32FmsubExpr<T4,T5,T6>& b )
 {
    return ( a.a_ * a.b_ ) + ( ( b.a_ * b.b_ ) - ( b.c_ + a.c_ ) );
@@ -570,7 +572,7 @@ template< typename T1    // Type of the first FMA multiplication operand
         , typename T2    // Type of the second FMA multiplication operand
         , typename T3    // Type of the FMA subtraction operand
         , typename T4 >  // Type of the second subtraction operand
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator-( const SIMDf32FmsubExpr<T1,T2,T3>& a, const SIMDf32<T4>& b )
 {
    return ( a.a_ * a.b_ ) - ( a.c_ + (~b) );
@@ -600,7 +602,7 @@ template< typename T1    // Type of the first FMA multiplication operand
         , typename T3    // Type of the FMA subtraction operand
         , typename T4    // Type of the first multiplication operand
         , typename T5 >  // Type of the second multiplication operand
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator-( const SIMDf32FmsubExpr<T1,T2,T3>& a, const SIMDf32MultExpr<T4,T5>& b )
 {
    return ( a.a_ * a.b_ ) - ( b.a_ * b.b_ + a.c_ );
@@ -660,7 +662,7 @@ template< typename T1    // Type of the first multiplication operand of the left
         , typename T4    // Type of the first multiplication operand of the right-hand side FMA
         , typename T5    // Type of the second multiplication operand of the right-hand side FMA
         , typename T6 >  // Type of the addition operand of the right-hand side FMA
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator-( const SIMDf32FmaddExpr<T1,T2,T3>& a, const SIMDf32FmaddExpr<T4,T5,T6>& b )
 {
    return ( a.a_ * a.b_ ) - ( ( b.a_ * b.b_ ) + ( b.c_ - a.c_ ) );
@@ -690,7 +692,7 @@ template< typename T1    // Type of the first multiplication operand of the left
         , typename T4    // Type of the first multiplication operand of the right-hand side FMA
         , typename T5    // Type of the second multiplication operand of the right-hand side FMA
         , typename T6 >  // Type of the subtraction operand of the right-hand side FMA
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator-( const SIMDf32FmaddExpr<T1,T2,T3>& a, const SIMDf32FmsubExpr<T4,T5,T6>& b )
 {
    return ( a.a_ * a.b_ ) - ( ( b.a_ * b.b_ ) - ( a.c_ + b.c_ ) );
@@ -720,7 +722,7 @@ template< typename T1    // Type of the first multiplication operand of the left
         , typename T4    // Type of the first multiplication operand of the right-hand side FMA
         , typename T5    // Type of the second multiplication operand of the right-hand side FMA
         , typename T6 >  // Type of the addition operand of the right-hand side FMA
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator-( const SIMDf32FmsubExpr<T1,T2,T3>& a, const SIMDf32FmaddExpr<T4,T5,T6>& b )
 {
    return ( a.a_ * a.b_ ) - ( ( b.a_ * b.b_ ) + ( a.c_ + b.c_ ) );
@@ -750,7 +752,7 @@ template< typename T1    // Type of the first multiplication operand of the left
         , typename T4    // Type of the first multiplication operand of the right-hand side FMA
         , typename T5    // Type of the second multiplication operand of the right-hand side FMA
         , typename T6 >  // Type of the subtraction operand of the right-hand side FMA
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator-( const SIMDf32FmsubExpr<T1,T2,T3>& a, const SIMDf32FmsubExpr<T4,T5,T6>& b )
 {
    return ( a.a_ * a.b_ ) - ( ( b.a_ * b.b_ ) + ( a.c_ - b.c_ ) );
@@ -778,7 +780,8 @@ BLAZE_ALWAYS_INLINE const auto
 template< typename T1    // Type of the left-hand side multiplication operand
         , typename T2    // Type of the right-hand side multiplication operand
         , typename T3 >  // Type of the right-hand side addition operand
-struct SIMDf64FmaddExpr : public SIMDf64< SIMDf64FmaddExpr<T1,T2,T3> >
+struct SIMDf64FmaddExpr
+   : public SIMDf64< SIMDf64FmaddExpr<T1,T2,T3> >
 {
    //**Type definitions****************************************************************************
    using This     = SIMDf64FmaddExpr<T1,T2,T3>;  //!< Type of this SIMDf64FMaddExpr instance.
@@ -792,7 +795,7 @@ struct SIMDf64FmaddExpr : public SIMDf64< SIMDf64FmaddExpr<T1,T2,T3> >
    // \param b The right-hand side operand for the multiplication.
    // \param c The right-hand side operand for the addition.
    */
-   explicit BLAZE_ALWAYS_INLINE SIMDf64FmaddExpr( const T1& a, const T2& b, const T3& c )
+   BLAZE_ALWAYS_INLINE SIMDf64FmaddExpr( const T1& a, const T2& b, const T3& c )
       : a_( a )  // The left-hand side operand for the multiplication
       , b_( b )  // The right-hand side operand for the multiplication
       , c_( c )  // The right-hand side operand for the addition
@@ -805,7 +808,7 @@ struct SIMDf64FmaddExpr : public SIMDf64< SIMDf64FmaddExpr<T1,T2,T3> >
    // \return The resulting packed 64-bit floating point value.
    */
    BLAZE_ALWAYS_INLINE const SIMDdouble eval() const noexcept
-#if BLAZE_FMA_MODE && BLAZE_MIC_MODE
+#if BLAZE_FMA_MODE && ( BLAZE_AVX512F_MODE || BLAZE_MIC_MODE )
    {
       return _mm512_fmadd_pd( a_.eval().value, b_.eval().value, c_.eval().value );
    }
@@ -841,7 +844,8 @@ struct SIMDf64FmaddExpr : public SIMDf64< SIMDf64FmaddExpr<T1,T2,T3> >
 template< typename T1    // Type of the left-hand side multiplication operand
         , typename T2    // Type of the right-hand side multiplication operand
         , typename T3 >  // Type of the right-hand side subtraction operand
-struct SIMDf64FmsubExpr : public SIMDf64< SIMDf64FmsubExpr<T1,T2,T3> >
+struct SIMDf64FmsubExpr
+   : public SIMDf64< SIMDf64FmsubExpr<T1,T2,T3> >
 {
    //**Type definitions****************************************************************************
    using This     = SIMDf64MultExpr<T1,T2>;  //!< Type of this SIMDf64FMsubExpr instance.
@@ -855,7 +859,7 @@ struct SIMDf64FmsubExpr : public SIMDf64< SIMDf64FmsubExpr<T1,T2,T3> >
    // \param b The right-hand side operand for the multiplication.
    // \param c The right-hand side operand for the subtraction.
    */
-   explicit BLAZE_ALWAYS_INLINE SIMDf64FmsubExpr( const T1& a, const T2& b, const T3& c )
+   BLAZE_ALWAYS_INLINE SIMDf64FmsubExpr( const T1& a, const T2& b, const T3& c )
       : a_( a )  // The left-hand side operand for the multiplication
       , b_( b )  // The right-hand side operand for the multiplication
       , c_( c )  // The right-hand side operand for the subtraction
@@ -868,7 +872,7 @@ struct SIMDf64FmsubExpr : public SIMDf64< SIMDf64FmsubExpr<T1,T2,T3> >
    // \return The resulting packed 64-bit floating point value.
    */
    BLAZE_ALWAYS_INLINE const SIMDdouble eval() const noexcept
-#if BLAZE_FMA_MODE && BLAZE_MIC_MODE
+#if BLAZE_FMA_MODE && ( BLAZE_AVX512F_MODE || BLAZE_MIC_MODE )
    {
       return _mm512_fmsub_pd( a_.eval().value, b_.eval().value, c_.eval().value );
    }
@@ -991,7 +995,7 @@ template< typename T1    // Type of the first FMA multiplication operand
         , typename T2    // Type of the second FMA multiplication operand
         , typename T3    // Type of the FMA addition operand
         , typename T4 >  // Type of the second addition operand
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator+( const SIMDf64FmaddExpr<T1,T2,T3>& a, const SIMDf64<T4>& b )
 {
    return ( a.a_ * a.b_ ) + ( a.c_ + (~b) );
@@ -1020,7 +1024,7 @@ template< typename T1    // Type of the first addition operand
         , typename T2    // Type of the first FMA multiplication operand
         , typename T3    // Type of the second FMA multiplication operand
         , typename T4 >  // Type of the FMA addition operand
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator+( const SIMDf64<T1>& a, const SIMDf64FmaddExpr<T2,T3,T4>& b )
 {
    return ( b.a_ * b.b_ ) + ( b.c_ + (~a) );
@@ -1110,7 +1114,7 @@ template< typename T1    // Type of the first multiplication operand of the left
         , typename T4    // Type of the first multiplication operand of the right-hand side FMA
         , typename T5    // Type of the second multiplication operand of the right-hand side FMA
         , typename T6 >  // Type of the addition operand of the right-hand side FMA
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator+( const SIMDf64FmaddExpr<T1,T2,T3>& a, const SIMDf64FmaddExpr<T4,T5,T6>& b )
 {
    return ( a.a_ * a.b_ ) + ( ( b.a_ * b.b_ ) + ( a.c_ + b.c_ ) );
@@ -1140,7 +1144,7 @@ template< typename T1    // Type of the first multiplication operand of the left
         , typename T4    // Type of the first multiplication operand of the right-hand side FMA
         , typename T5    // Type of the second multiplication operand of the right-hand side FMA
         , typename T6 >  // Type of the subtraction operand of the right-hand side FMA
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator+( const SIMDf64FmaddExpr<T1,T2,T3>& a, const SIMDf64FmsubExpr<T4,T5,T6>& b )
 {
    return ( a.a_ * a.b_ ) + ( ( b.a_ * b.b_ ) + ( a.c_ - b.c_ ) );
@@ -1170,7 +1174,7 @@ template< typename T1    // Type of the first multiplication operand of the left
         , typename T4    // Type of the first multiplication operand of the right-hand side FMA
         , typename T5    // Type of the second multiplication operand of the right-hand side FMA
         , typename T6 >  // Type of the addition operand of the right-hand side FMA
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator+( const SIMDf64FmsubExpr<T1,T2,T3>& a, const SIMDf64FmaddExpr<T4,T5,T6>& b )
 {
    return ( a.a_ * a.b_ ) + ( ( b.a_ * b.b_ ) + ( b.c_ - a.c_ ) );
@@ -1200,7 +1204,7 @@ template< typename T1    // Type of the first multiplication operand of the left
         , typename T4    // Type of the first multiplication operand of the right-hand side FMA
         , typename T5    // Type of the second multiplication operand of the right-hand side FMA
         , typename T6 >  // Type of the subtraction operand of the right-hand side FMA
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator+( const SIMDf64FmsubExpr<T1,T2,T3>& a, const SIMDf64FmsubExpr<T4,T5,T6>& b )
 {
    return ( a.a_ * a.b_ ) + ( ( b.a_ * b.b_ ) - ( b.c_ + a.c_ ) );
@@ -1282,7 +1286,7 @@ template< typename T1    // Type of the first FMA multiplication operand
         , typename T2    // Type of the second FMA multiplication operand
         , typename T3    // Type of the FMA subtraction operand
         , typename T4 >  // Type of the second subtraction operand
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator-( const SIMDf64FmsubExpr<T1,T2,T3>& a, const SIMDf64<T4>& b )
 {
    return ( a.a_ * a.b_ ) - ( a.c_ + (~b) );
@@ -1312,7 +1316,7 @@ template< typename T1    // Type of the first FMA multiplication operand
         , typename T3    // Type of the FMA subtraction operand
         , typename T4    // Type of the first multiplication operand
         , typename T5 >  // Type of the second multiplication operand
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator-( const SIMDf64FmsubExpr<T1,T2,T3>& a, const SIMDf64MultExpr<T4,T5>& b )
 {
    return ( a.a_ * a.b_ ) - ( b.a_ * b.b_ + a.c_ );
@@ -1372,7 +1376,7 @@ template< typename T1    // Type of the first multiplication operand of the left
         , typename T4    // Type of the first multiplication operand of the right-hand side FMA
         , typename T5    // Type of the second multiplication operand of the right-hand side FMA
         , typename T6 >  // Type of the addition operand of the right-hand side FMA
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator-( const SIMDf64FmaddExpr<T1,T2,T3>& a, const SIMDf64FmaddExpr<T4,T5,T6>& b )
 {
    return ( a.a_ * a.b_ ) - ( ( b.a_ * b.b_ ) + ( b.c_ - a.c_ ) );
@@ -1402,7 +1406,7 @@ template< typename T1    // Type of the first multiplication operand of the left
         , typename T4    // Type of the first multiplication operand of the right-hand side FMA
         , typename T5    // Type of the second multiplication operand of the right-hand side FMA
         , typename T6 >  // Type of the subtraction operand of the right-hand side FMA
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator-( const SIMDf64FmaddExpr<T1,T2,T3>& a, const SIMDf64FmsubExpr<T4,T5,T6>& b )
 {
    return ( a.a_ * a.b_ ) - ( ( b.a_ * b.b_ ) - ( a.c_ + b.c_ ) );
@@ -1432,7 +1436,7 @@ template< typename T1    // Type of the first multiplication operand of the left
         , typename T4    // Type of the first multiplication operand of the right-hand side FMA
         , typename T5    // Type of the second multiplication operand of the right-hand side FMA
         , typename T6 >  // Type of the addition operand of the right-hand side FMA
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator-( const SIMDf64FmsubExpr<T1,T2,T3>& a, const SIMDf64FmaddExpr<T4,T5,T6>& b )
 {
    return ( a.a_ * a.b_ ) - ( ( b.a_ * b.b_ ) + ( a.c_ + b.c_ ) );
@@ -1462,7 +1466,7 @@ template< typename T1    // Type of the first multiplication operand of the left
         , typename T4    // Type of the first multiplication operand of the right-hand side FMA
         , typename T5    // Type of the second multiplication operand of the right-hand side FMA
         , typename T6 >  // Type of the subtraction operand of the right-hand side FMA
-BLAZE_ALWAYS_INLINE const auto
+BLAZE_ALWAYS_INLINE decltype(auto)
    operator-( const SIMDf64FmsubExpr<T1,T2,T3>& a, const SIMDf64FmsubExpr<T4,T5,T6>& b )
 {
    return ( a.a_ * a.b_ ) - ( ( b.a_ * b.b_ ) + ( a.c_ - b.c_ ) );

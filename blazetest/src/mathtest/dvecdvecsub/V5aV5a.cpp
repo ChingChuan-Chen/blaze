@@ -3,7 +3,7 @@
 //  \file src/mathtest/dvecdvecsub/V5aV5a.cpp
 //  \brief Source file for the V5aV5a dense vector/dense vector subtraction math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -44,6 +44,10 @@
 #include <blazetest/mathtest/dvecdvecsub/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -61,10 +65,10 @@ int main()
    try
    {
       // Vector type definitions
-      typedef blaze::StaticVector<TypeA,5UL>  V5a;
+      using V5a = blaze::StaticVector<TypeA,5UL>;
 
       // Creator type definitions
-      typedef blazetest::Creator<V5a>  CV5a;
+      using CV5a = blazetest::Creator<V5a>;
 
       // Running the tests
       RUN_DVECDVECSUB_OPERATION_TEST( CV5a(), CV5a() );

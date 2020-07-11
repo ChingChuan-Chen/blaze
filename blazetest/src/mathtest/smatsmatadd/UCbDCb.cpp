@@ -3,7 +3,7 @@
 //  \file src/mathtest/smatsmatadd/UCbDCb.cpp
 //  \brief Source file for the UCbDCb sparse matrix/sparse matrix addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/smatsmatadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,20 +67,20 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::UpperMatrix< blaze::CompressedMatrix<TypeB> >     UCb;
-      typedef blaze::DiagonalMatrix< blaze::CompressedMatrix<TypeB> >  DCb;
+      using UCb = blaze::UpperMatrix< blaze::CompressedMatrix<TypeB> >;
+      using DCb = blaze::DiagonalMatrix< blaze::CompressedMatrix<TypeB> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<UCb>  CUCb;
-      typedef blazetest::Creator<DCb>  CDCb;
+      using CUCb = blazetest::Creator<UCb>;
+      using CDCb = blazetest::Creator<DCb>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {
-            for( size_t j=0UL; j<=UCb::maxNonZeros( i ); ++j ) {
-               for( size_t k=0UL; k<=i; ++k ) {
-                  RUN_SMATSMATADD_OPERATION_TEST( CUCb( i, j ), CDCb( i, k ) );
-               }
+         for( size_t j=0UL; j<=UCb::maxNonZeros( i ); ++j ) {
+            for( size_t k=0UL; k<=i; ++k ) {
+               RUN_SMATSMATADD_OPERATION_TEST( CUCb( i, j ), CDCb( i, k ) );
             }
+         }
       }
 
       // Running tests with large matrices

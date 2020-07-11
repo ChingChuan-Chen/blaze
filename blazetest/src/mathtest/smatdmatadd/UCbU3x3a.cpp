@@ -3,7 +3,7 @@
 //  \file src/mathtest/smatdmatadd/UCbU3x3a.cpp
 //  \brief Source file for the UCbU3x3a sparse matrix/dense matrix addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/smatdmatadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -64,12 +68,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::UpperMatrix< blaze::CompressedMatrix<TypeB> >      UCb;
-      typedef blaze::UpperMatrix< blaze::StaticMatrix<TypeA,3UL,3UL> >  U3x3a;
+      using UCb = blaze::UpperMatrix< blaze::CompressedMatrix<TypeB> >;
+      using U3x3a = blaze::UpperMatrix< blaze::StaticMatrix<TypeA,3UL,3UL> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<UCb>    CUCb;
-      typedef blazetest::Creator<U3x3a>  CU3x3a;
+      using CUCb = blazetest::Creator<UCb>;
+      using CU3x3a = blazetest::Creator<U3x3a>;
 
       // Running the tests
       for( size_t i=0UL; i<=6UL; ++i ) {

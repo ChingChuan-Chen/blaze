@@ -3,7 +3,7 @@
 //  \file blazetest/system/LAPACK.h
 //  \brief System settings for the LAPACK mode
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -56,6 +56,23 @@
 //  - Activated  : \b 1
 */
 #define BLAZETEST_MATHTEST_LAPACK_MODE 0
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Compilation switch for the LAPACK support of the gesvdx() functions.
+// \ingroup system
+//
+// The LAPACK gesvdx() functions are not supported by all LAPACK libraries. Via this compilation
+// switch tests for the gesvdx() function can be explicitly enabled/disabled. In case both the
+// LAPACK mode and this switch are enabled, all gesvdx() tests are included, in case either one
+// is disabled the gesvdx() tests are ignored.
+//
+// Possible settings for the LAPACK gesvdx() switch:
+//  - Deactivated: \b 0
+//  - Activated  : \b 1
+*/
+#define BLAZETEST_MATHTEST_LAPACK_SUPPORTS_GESVDX 0
 //*************************************************************************************************
 
 #endif

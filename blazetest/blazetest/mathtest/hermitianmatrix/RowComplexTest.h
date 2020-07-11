@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/hermitianmatrix/RowComplexTest.h
 //  \brief Header file for the HermitianMatrix row complex test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -49,7 +49,6 @@
 #include <blaze/math/DynamicVector.h>
 #include <blaze/math/HermitianMatrix.h>
 #include <blaze/math/Row.h>
-#include <blaze/math/traits/RowExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blazetest/system/Types.h>
 
@@ -77,19 +76,19 @@ class RowComplexTest
  private:
    //**Type definitions****************************************************************************
    //! Complex element type.
-   typedef blaze::complex<int>  cplx;
+   using cplx = blaze::complex<int>;
 
    //! Type of the dense Hermitian matrix.
-   typedef blaze::HermitianMatrix< blaze::DynamicMatrix<cplx,blaze::rowMajor> >  DHT;
+   using DHT = blaze::HermitianMatrix< blaze::DynamicMatrix<cplx,blaze::rowMajor> >;
 
    //! Opposite dense Hermitian matrix type.
-   typedef DHT::OppositeType  DOHT;
+   using DOHT = DHT::OppositeType;
 
    //! Type of the sparse Hermitian matrix.
-   typedef blaze::HermitianMatrix< blaze::CompressedMatrix<cplx,blaze::rowMajor> >  SHT;
+   using SHT = blaze::HermitianMatrix< blaze::CompressedMatrix<cplx,blaze::rowMajor> >;
 
    //! Opposite sparse Hermitian matrix type.
-   typedef SHT::OppositeType  SOHT;
+   using SOHT = SHT::OppositeType;
    //**********************************************************************************************
 
  public:
@@ -162,9 +161,6 @@ class RowComplexTest
 template< typename HT >  // Type of the Hermitian matrix
 void RowComplexTest::testAssignment()
 {
-   typedef blaze::RowExprTrait_<HT>  RT;
-
-
    //=====================================================================================
    // Dense vector assignment
    //=====================================================================================
@@ -183,7 +179,7 @@ void RowComplexTest::testAssignment()
       HT herm;
       init( herm );
 
-      RT row1 = row( herm, 1UL );
+      auto row1 = row( herm, 1UL );
       row1 = vec;
 
       checkRows    ( herm, 3UL );
@@ -229,7 +225,7 @@ void RowComplexTest::testAssignment()
       HT herm;
       init( herm );
 
-      RT row1 = row( herm, 1UL );
+      auto row1 = row( herm, 1UL );
 
       try {
          row1 = vec;
@@ -263,7 +259,7 @@ void RowComplexTest::testAssignment()
       HT herm;
       init( herm );
 
-      RT row1 = row( herm, 1UL );
+      auto row1 = row( herm, 1UL );
       row1 = vec;
 
       checkRows    ( herm, 3UL );
@@ -309,7 +305,7 @@ void RowComplexTest::testAssignment()
       HT herm;
       init( herm );
 
-      RT row1 = row( herm, 1UL );
+      auto row1 = row( herm, 1UL );
 
       try {
          row1 = vec;
@@ -339,9 +335,6 @@ void RowComplexTest::testAssignment()
 template< typename HT >  // Type of the Hermitian matrix
 void RowComplexTest::testAddAssign()
 {
-   typedef blaze::RowExprTrait_<HT>  RT;
-
-
    //=====================================================================================
    // Dense vector addition assignment
    //=====================================================================================
@@ -360,7 +353,7 @@ void RowComplexTest::testAddAssign()
       HT herm;
       init( herm );
 
-      RT row1 = row( herm, 1UL );
+      auto row1 = row( herm, 1UL );
       row1 += vec;
 
       checkRows    ( herm, 3UL );
@@ -406,7 +399,7 @@ void RowComplexTest::testAddAssign()
       HT herm;
       init( herm );
 
-      RT row1 = row( herm, 1UL );
+      auto row1 = row( herm, 1UL );
 
       try {
          row1 += vec;
@@ -440,7 +433,7 @@ void RowComplexTest::testAddAssign()
       HT herm;
       init( herm );
 
-      RT row1 = row( herm, 1UL );
+      auto row1 = row( herm, 1UL );
       row1 += vec;
 
       checkRows    ( herm, 3UL );
@@ -486,7 +479,7 @@ void RowComplexTest::testAddAssign()
       HT herm;
       init( herm );
 
-      RT row1 = row( herm, 1UL );
+      auto row1 = row( herm, 1UL );
 
       try {
          row1 += vec;
@@ -516,9 +509,6 @@ void RowComplexTest::testAddAssign()
 template< typename HT >  // Type of the Hermitian matrix
 void RowComplexTest::testSubAssign()
 {
-   typedef blaze::RowExprTrait_<HT>  RT;
-
-
    //=====================================================================================
    // Dense vector subtraction assignment
    //=====================================================================================
@@ -537,7 +527,7 @@ void RowComplexTest::testSubAssign()
       HT herm;
       init( herm );
 
-      RT row1 = row( herm, 1UL );
+      auto row1 = row( herm, 1UL );
       row1 -= vec;
 
       checkRows    ( herm, 3UL );
@@ -583,7 +573,7 @@ void RowComplexTest::testSubAssign()
       HT herm;
       init( herm );
 
-      RT row1 = row( herm, 1UL );
+      auto row1 = row( herm, 1UL );
 
       try {
          row1 -= vec;
@@ -617,7 +607,7 @@ void RowComplexTest::testSubAssign()
       HT herm;
       init( herm );
 
-      RT row1 = row( herm, 1UL );
+      auto row1 = row( herm, 1UL );
       row1 -= vec;
 
       checkRows    ( herm, 3UL );
@@ -663,7 +653,7 @@ void RowComplexTest::testSubAssign()
       HT herm;
       init( herm );
 
-      RT row1 = row( herm, 1UL );
+      auto row1 = row( herm, 1UL );
 
       try {
          row1 -= vec;
@@ -693,9 +683,6 @@ void RowComplexTest::testSubAssign()
 template< typename HT >  // Type of the Hermitian matrix
 void RowComplexTest::testMultAssign()
 {
-   typedef blaze::RowExprTrait_<HT>  RT;
-
-
    //=====================================================================================
    // Dense vector multiplication assignment
    //=====================================================================================
@@ -714,7 +701,7 @@ void RowComplexTest::testMultAssign()
       HT herm;
       init( herm );
 
-      RT row1 = row( herm, 1UL );
+      auto row1 = row( herm, 1UL );
       row1 *= vec;
 
       checkRows    ( herm, 3UL );
@@ -760,7 +747,7 @@ void RowComplexTest::testMultAssign()
       HT herm;
       init( herm );
 
-      RT row1 = row( herm, 1UL );
+      auto row1 = row( herm, 1UL );
 
       try {
          row1 *= vec;
@@ -794,7 +781,7 @@ void RowComplexTest::testMultAssign()
       HT herm;
       init( herm );
 
-      RT row1 = row( herm, 1UL );
+      auto row1 = row( herm, 1UL );
       row1 *= vec;
 
       checkRows    ( herm, 3UL );
@@ -840,7 +827,7 @@ void RowComplexTest::testMultAssign()
       HT herm;
       init( herm );
 
-      RT row1 = row( herm, 1UL );
+      auto row1 = row( herm, 1UL );
 
       try {
          row1 *= vec;

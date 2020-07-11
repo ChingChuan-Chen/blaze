@@ -3,7 +3,7 @@
 //  \file src/mathtest/svecdvecmult/VCbV4b.cpp
 //  \brief Source file for the VCbV4b sparse vector/dense vector multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/svecdvecmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -62,12 +66,12 @@ int main()
    try
    {
       // Vector type definitions
-      typedef blaze::CompressedVector<TypeB>  VCb;
-      typedef blaze::StaticVector<TypeB,4UL>  V4b;
+      using VCb = blaze::CompressedVector<TypeB>;
+      using V4b = blaze::StaticVector<TypeB,4UL>;
 
       // Creator type definitions
-      typedef blazetest::Creator<VCb>  CVCb;
-      typedef blazetest::Creator<V4b>  CV4b;
+      using CVCb = blazetest::Creator<VCb>;
+      using CV4b = blazetest::Creator<V4b>;
 
       // Running the tests
       for( size_t i=0UL; i<=4UL; ++i ) {

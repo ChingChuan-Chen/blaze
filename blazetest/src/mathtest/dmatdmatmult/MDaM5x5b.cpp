@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatdmatmult/MDaM5x5b.cpp
 //  \brief Source file for the MDaM5x5b dense matrix/dense matrix multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dmatdmatmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::DynamicMatrix<TypeA>         MDa;
-      typedef blaze::StaticMatrix<TypeB,5UL,5UL>  M5x5b;
+      using MDa = blaze::DynamicMatrix<TypeA>;
+      using M5x5b = blaze::StaticMatrix<TypeB,5UL,5UL>;
 
       // Creator type definitions
-      typedef blazetest::Creator<MDa>    CMDa;
-      typedef blazetest::Creator<M5x5b>  CM5x5b;
+      using CMDa = blazetest::Creator<MDa>;
+      using CM5x5b = blazetest::Creator<M5x5b>;
 
       // Running the tests
       RUN_DMATDMATMULT_OPERATION_TEST( CMDa( 3UL, 5UL ), CM5x5b() );

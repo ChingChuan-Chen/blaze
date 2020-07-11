@@ -3,7 +3,7 @@
 //  \file blazemark/classic/Vector.h
 //  \brief Implementation of classic arbitrary sized vector
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -567,7 +567,7 @@ inline const Vector<Type> operator*( const Vector<Type>& lhs, const Vector<Type>
 // Note that this operator only works for scalar values of built-in data type.
 */
 template< typename Type >
-inline const ::blaze::EnableIf_< ::blaze::IsNumeric<Type>, Vector<Type> >
+inline const ::blaze::EnableIf_t< ::blaze::IsNumeric_v<Type>, Vector<Type> >
    operator*( const Vector<Type>& vec, Type scalar )
 {
    Vector<Type> res( vec.size() );
@@ -605,7 +605,7 @@ inline const ::blaze::EnableIf_< ::blaze::IsNumeric<Type>, Vector<Type> >
 // Note that this operator only works for scalar values of built-in data type.
 */
 template< typename Type >
-inline const ::blaze::EnableIf_< ::blaze::IsNumeric<Type>, Vector<Type> >
+inline const ::blaze::EnableIf_t< ::blaze::IsNumeric_v<Type>, Vector<Type> >
    operator*( Type scalar, const Vector<Type>& vec )
 {
    Vector<Type> res( vec.size() );

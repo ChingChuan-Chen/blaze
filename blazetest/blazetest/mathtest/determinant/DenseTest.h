@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/determinant/DenseTest.h
 //  \brief Header file for the dense matrix determinant test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -139,7 +139,7 @@ void DenseTest::testRandom2x2()
 
    using blaze::equal;
 
-   typedef blaze::ElementType_<Type>  ET;
+   using ET = blaze::ElementType_t<Type>;
 
    Type A;
    resize( A, 2UL, 2UL );
@@ -185,7 +185,7 @@ void DenseTest::testRandom3x3()
 
    using blaze::equal;
 
-   typedef blaze::ElementType_<Type>  ET;
+   using ET = blaze::ElementType_t<Type>;
 
    Type A;
    resize( A, 3UL, 3UL );
@@ -231,7 +231,7 @@ void DenseTest::testRandom4x4()
 
    using blaze::equal;
 
-   typedef blaze::ElementType_<Type>  ET;
+   using ET = blaze::ElementType_t<Type>;
 
    Type A;
    resize( A, 4UL, 4UL );
@@ -277,7 +277,7 @@ void DenseTest::testRandom5x5()
 
    using blaze::equal;
 
-   typedef blaze::ElementType_<Type>  ET;
+   using ET = blaze::ElementType_t<Type>;
 
    Type A;
    resize( A, 5UL, 5UL );
@@ -323,7 +323,7 @@ void DenseTest::testRandom6x6()
 
    using blaze::equal;
 
-   typedef blaze::ElementType_<Type>  ET;
+   using ET = blaze::ElementType_t<Type>;
 
    Type A;
    resize( A, 6UL, 6UL );

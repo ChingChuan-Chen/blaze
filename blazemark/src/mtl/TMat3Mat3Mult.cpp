@@ -3,7 +3,7 @@
 //  \file src/mtl/TMat3Mat3Mult.cpp
 //  \brief Source file for the MTL 3D transpose matrix/matrix multiplication kernel
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -70,12 +70,12 @@ double tmat3mat3mult( size_t N, size_t steps )
 {
    using ::blazemark::element_t;
 
-   typedef ::mtl::tag::row_major  row_major;
-   typedef ::mtl::tag::col_major  col_major;
-   typedef ::mtl::mat::parameters<row_major>  row_parameters;
-   typedef ::mtl::mat::parameters<col_major>  col_parameters;
-   typedef ::mtl::dense2D<element_t,row_parameters>  row_dense2D;
-   typedef ::mtl::dense2D<element_t,col_parameters>  col_dense2D;
+   using row_major      = ::mtl::tag::row_major;
+   using col_major      = ::mtl::tag::col_major;
+   using row_parameters = ::mtl::mat::parameters<row_major>;
+   using col_parameters = ::mtl::mat::parameters<col_major>;
+   using row_dense2D    = ::mtl::dense2D<element_t,row_parameters>;
+   using col_dense2D    = ::mtl::dense2D<element_t,col_parameters>;
 
    ::blaze::setSeed( seed );
 

@@ -2,7 +2,7 @@
 #
 #  Makefile for the tdvecdmatmult module of the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -33,8 +33,10 @@
 
 
 # Including the compiler and library settings
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include ../../Makeconfig
+endif
 endif
 
 
@@ -49,6 +51,7 @@ BIN = $(SRC:.cpp=)
 default: V3aM3x3a V3aM3x3b V3bM3x3a V3bM3x3b \
          VHaMHa VHaMHb VHbMHa VHbMHb \
          VDaMDa VDaMDb VDbMDa VDbMDb \
+         VUaMUa VUaMUb VUbMUa VUbMUb \
          VDaSDa VDaSDb VDbSDa VDbSDb \
          VDaHDa VDaHDb VDbHDa VDbHDb \
          VDaLDa VDaLDb VDbLDa VDbLDb \
@@ -56,7 +59,7 @@ default: V3aM3x3a V3aM3x3b V3bM3x3a V3bM3x3b \
          VDaDDa VDaDDb VDbDDa VDbDDb \
          AliasingTest
 all: $(BIN)
-essential: V3aM3x3a VHaMHa VDaMDa VDaSDa VDaHDa VDaLDa VDaUDa VDaDDa AliasingTest
+essential: V3aM3x3a VHaMHa VDaMDa VUaMUa VDaSDa VDaHDa VDaLDa VDaUDa VDaDDa AliasingTest
 single: VDaMDa
 
 
@@ -141,6 +144,10 @@ V6aMHa: V6aMHa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 V6aMHb: V6aMHb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+V6aMUa: V6aMUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+V6aMUb: V6aMUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 V6bM6x6a: V6bM6x6a.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 V6bM6x6b: V6bM6x6b.o
@@ -152,6 +159,10 @@ V6bMDb: V6bMDb.o
 V6bMHa: V6bMHa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 V6bMHb: V6bMHb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+V6bMUa: V6bMUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+V6bMUb: V6bMUb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 V7aM7x13a: V7aM7x13a.o
@@ -220,6 +231,10 @@ VDaMHa: VDaMHa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDaMHb: VDaMHb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VDaMUa: VDaMUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VDaMUb: VDaMUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDaSDa: VDaSDa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDaSDb: VDaSDb.o
@@ -284,6 +299,10 @@ VDbMHa: VDbMHa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDbMHb: VDbMHb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VDbMUa: VDbMUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VDbMUb: VDbMUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDbSDa: VDbSDa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDbSDb: VDbSDb.o
@@ -337,6 +356,10 @@ VHaMHa: VHaMHa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VHaMHb: VHaMHb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VHaMUa: VHaMUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VHaMUb: VHaMUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VHbM2x2a: VHbM2x2a.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VHbM2x2b: VHbM2x2b.o
@@ -373,19 +396,108 @@ VHbMHa: VHbMHa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VHbMHb: VHbMHb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VHbMUa: VHbMUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VHbMUb: VHbMUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+
+VUaM2x2a: VUaM2x2a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaM2x2b: VUaM2x2b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaM3x3a: VUaM3x3a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaM3x3b: VUaM3x3b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaM4x4a: VUaM4x4a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaM4x4b: VUaM4x4b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaM5x5a: VUaM5x5a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaM5x5b: VUaM5x5b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaM6x6a: VUaM6x6a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaM6x6b: VUaM6x6b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaM7x13a: VUaM7x13a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaM7x13b: VUaM7x13b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaM16x8a: VUaM16x8a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaM16x8b: VUaM16x8b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaMDa: VUaMDa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaMDb: VUaMDb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaMHa: VUaMHa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaMHb: VUaMHb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaMUa: VUaMUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaMUb: VUaMUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbM2x2a: VUbM2x2a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbM2x2b: VUbM2x2b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbM3x3a: VUbM3x3a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbM3x3b: VUbM3x3b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbM4x4a: VUbM4x4a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbM4x4b: VUbM4x4b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbM5x5a: VUbM5x5a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbM5x5b: VUbM5x5b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbM6x6a: VUbM6x6a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbM6x6b: VUbM6x6b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbM7x13a: VUbM7x13a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbM7x13b: VUbM7x13b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbM16x8a: VUbM16x8a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbM16x8b: VUbM16x8b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbMDa: VUbMDa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbMDb: VUbMDb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbMHa: VUbMHa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbMHb: VUbMHb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbMUa: VUbMUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbMUb: VUbMUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 AliasingTest: AliasingTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 
 # Cleanup
+reset:
+	@$(RM) $(OBJ) $(BIN)
 clean:
-	@$(RM) $(DEP) $(OBJ) $(BIN)
+	@$(RM) $(OBJ) $(BIN) $(DEP)
 
 
 # Makefile includes
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP)
+endif
 endif
 
 
@@ -395,4 +507,4 @@ endif
 
 
 # Setting the independent commands
-.PHONY: default all essential single clean
+.PHONY: default all essential single reset clean

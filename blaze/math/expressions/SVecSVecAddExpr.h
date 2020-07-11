@@ -3,7 +3,7 @@
 //  \file blaze/math/expressions/SVecSVecAddExpr.h
 //  \brief Header file for the sparse vector/sparse vector addition expression
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,35 +40,34 @@
 // Includes
 //*************************************************************************************************
 
+#include <utility>
 #include <blaze/math/Aliases.h>
+#include <blaze/math/constraints/RequiresEvaluation.h>
 #include <blaze/math/constraints/SparseVector.h>
 #include <blaze/math/constraints/TransposeFlag.h>
 #include <blaze/math/constraints/VecVecAddExpr.h>
+#include <blaze/math/constraints/Zero.h>
 #include <blaze/math/Exception.h>
 #include <blaze/math/expressions/Computation.h>
 #include <blaze/math/expressions/Forward.h>
 #include <blaze/math/expressions/SparseVector.h>
 #include <blaze/math/expressions/VecVecAddExpr.h>
-#include <blaze/math/Functions.h>
 #include <blaze/math/shims/IsDefault.h>
 #include <blaze/math/shims/Serial.h>
-#include <blaze/math/traits/AddExprTrait.h>
 #include <blaze/math/traits/AddTrait.h>
-#include <blaze/math/traits/SubvectorExprTrait.h>
-#include <blaze/math/typetraits/IsComputation.h>
 #include <blaze/math/typetraits/IsExpression.h>
 #include <blaze/math/typetraits/IsResizable.h>
 #include <blaze/math/typetraits/IsTemporary.h>
-#include <blaze/math/typetraits/Size.h>
+#include <blaze/math/typetraits/IsZero.h>
+#include <blaze/system/MacroDisable.h>
+#include <blaze/util/algorithms/Min.h>
 #include <blaze/util/Assert.h>
-#include <blaze/util/constraints/Reference.h>
-#include <blaze/util/DisableIf.h>
 #include <blaze/util/EnableIf.h>
-#include <blaze/util/logging/FunctionTrace.h>
+#include <blaze/util/FunctionTrace.h>
+#include <blaze/util/MaybeUnused.h>
 #include <blaze/util/mpl/If.h>
-#include <blaze/util/mpl/Max.h>
 #include <blaze/util/Types.h>
-#include <blaze/util/typetraits/RemoveReference.h>
+#include <blaze/util/typetraits/IsSame.h>
 
 
 namespace blaze {
@@ -89,18 +88,18 @@ namespace blaze {
 template< typename VT1  // Type of the left-hand side sparse vector
         , typename VT2  // Type of the right-hand side sparse vector
         , bool TF >     // Transpose flag
-class SVecSVecAddExpr : public SparseVector< SVecSVecAddExpr<VT1,VT2,TF>, TF >
-                      , private VecVecAddExpr
-                      , private Computation
+class SVecSVecAddExpr
+   : public VecVecAddExpr< SparseVector< SVecSVecAddExpr<VT1,VT2,TF>, TF > >
+   , private Computation
 {
  private:
    //**Type definitions****************************************************************************
-   typedef ResultType_<VT1>     RT1;  //!< Result type of the left-hand side sparse vector expression.
-   typedef ResultType_<VT2>     RT2;  //!< Result type of the right-hand side sparse vector expression.
-   typedef ReturnType_<VT1>     RN1;  //!< Return type of the left-hand side sparse vector expression.
-   typedef ReturnType_<VT2>     RN2;  //!< Return type of the right-hand side sparse vector expression.
-   typedef CompositeType_<VT1>  CT1;  //!< Composite type of the left-hand side sparse vector expression.
-   typedef CompositeType_<VT2>  CT2;  //!< Composite type of the right-hand side sparse vector expression.
+   using RT1 = ResultType_t<VT1>;     //!< Result type of the left-hand side sparse vector expression.
+   using RT2 = ResultType_t<VT2>;     //!< Result type of the right-hand side sparse vector expression.
+   using RN1 = ReturnType_t<VT1>;     //!< Return type of the left-hand side sparse vector expression.
+   using RN2 = ReturnType_t<VT2>;     //!< Return type of the right-hand side sparse vector expression.
+   using CT1 = CompositeType_t<VT1>;  //!< Composite type of the left-hand side sparse vector expression.
+   using CT2 = CompositeType_t<VT2>;  //!< Composite type of the right-hand side sparse vector expression.
    //**********************************************************************************************
 
    //**Return type evaluation**********************************************************************
@@ -110,55 +109,54 @@ class SVecSVecAddExpr : public SparseVector< SVecSVecAddExpr<VT1,VT2,TF>, TF >
        or matrix, \a returnExpr will be set to \a false and the subscript operator will
        return it's result by value. Otherwise \a returnExpr will be set to \a true and
        the subscript operator may return it's result as an expression. */
-   enum : bool { returnExpr = !IsTemporary<RN1>::value && !IsTemporary<RN2>::value };
+   static constexpr bool returnExpr = ( !IsTemporary_v<RN1> && !IsTemporary_v<RN2> );
 
    //! Expression return type for the subscript operator.
-   typedef AddExprTrait_<RN1,RN2>  ExprReturnType;
+   using ExprReturnType = decltype( std::declval<RN1>() + std::declval<RN2>() );
    //**********************************************************************************************
 
    //**Parallel evaluation strategy****************************************************************
    /*! \cond BLAZE_INTERNAL */
-   //! Helper structure for the explicit application of the SFINAE principle.
-   /*! The UseSMPAssign struct is a helper struct for the selection of the parallel evaluation
-       strategy. In case the target vector is SMP assignable, \a value is set to 1 and the
-       expression specific evaluation strategy is selected. Otherwise \a value is set to 0
-       and the default strategy is chosen. */
+   //! Helper variable template for the explicit application of the SFINAE principle.
+   /*! This variable template is a helper for the selection of the parallel evaluation strategy.
+       In case the target vector is SMP assignable, the variable is set to 1 and the expression
+       specific evaluation strategy is selected. Otherwise the variable is set to 0 and the
+       default strategy is chosen. */
    template< typename VT >
-   struct UseSMPAssign {
-      enum : bool { value = VT::smpAssignable };
-   };
+   static constexpr bool UseSMPAssign_v = VT::smpAssignable;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
-   typedef SVecSVecAddExpr<VT1,VT2,TF>  This;           //!< Type of this SVecSVecAddExpr instance.
-   typedef AddTrait_<RT1,RT2>           ResultType;     //!< Result type for expression template evaluations.
-   typedef TransposeType_<ResultType>   TransposeType;  //!< Transpose type for expression template evaluations.
-   typedef ElementType_<ResultType>     ElementType;    //!< Resulting element type.
+   using This          = SVecSVecAddExpr<VT1,VT2,TF>;  //!< Type of this SVecSVecAddExpr instance.
+   using BaseType      = SparseVector<This,TF>;        //!< Base type of this SVecSVecAddExpr instance.
+   using ResultType    = AddTrait_t<RT1,RT2>;          //!< Result type for expression template evaluations.
+   using TransposeType = TransposeType_t<ResultType>;  //!< Transpose type for expression template evaluations.
+   using ElementType   = ElementType_t<ResultType>;    //!< Resulting element type.
 
    //! Return type for expression template evaluations.
-   typedef const IfTrue_< returnExpr, ExprReturnType, ElementType >  ReturnType;
+   using ReturnType = const If_t< returnExpr, ExprReturnType, ElementType >;
 
    //! Data type for composite expression templates.
-   typedef const ResultType  CompositeType;
+   using CompositeType = const ResultType;
 
    //! Composite type of the left-hand side sparse vector expression.
-   typedef If_< IsExpression<VT1>, const VT1, const VT1& >  LeftOperand;
+   using LeftOperand = If_t< IsExpression_v<VT1>, const VT1, const VT1& >;
 
    //! Composite type of the right-hand side sparse vector expression.
-   typedef If_< IsExpression<VT2>, const VT2, const VT2& >  RightOperand;
+   using RightOperand = If_t< IsExpression_v<VT2>, const VT2, const VT2& >;
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = false };
+   static constexpr bool smpAssignable = false;
    //**********************************************************************************************
 
    //**Constructor*********************************************************************************
    /*!\brief Constructor for the SVecSVecAddExpr class.
    */
-   explicit inline SVecSVecAddExpr( const VT1& lhs, const VT2& rhs ) noexcept
+   inline SVecSVecAddExpr( const VT1& lhs, const VT2& rhs ) noexcept
       : lhs_( lhs )  // Left-hand side sparse vector of the addition expression
       , rhs_( rhs )  // Right-hand side sparse vector of the addition expression
    {
@@ -277,15 +275,12 @@ class SVecSVecAddExpr : public SparseVector< SVecSVecAddExpr<VT1,VT2,TF>, TF >
    // type is resizable.
    */
    template< typename VT >  // Type of the target dense vector
-   friend inline EnableIf_< IsResizable< ElementType_<VT> > >
-      assign( DenseVector<VT,TF>& lhs, const SVecSVecAddExpr& rhs )
+   friend inline auto assign( DenseVector<VT,TF>& lhs, const SVecSVecAddExpr& rhs )
+      -> EnableIf_t< IsResizable_v< ElementType_t<VT> > >
    {
       BLAZE_FUNCTION_TRACE;
 
       BLAZE_INTERNAL_ASSERT( (~lhs).size() == rhs.size(), "Invalid vector sizes" );
-
-      typedef ConstIterator_< RemoveReference_<CT1> >  LeftIterator;
-      typedef ConstIterator_< RemoveReference_<CT2> >  RightIterator;
 
       CT1 x( serial( rhs.lhs_ ) );  // Evaluation of the left-hand side sparse vector operand
       CT2 y( serial( rhs.rhs_ ) );  // Evaluation of the right-hand side sparse vector operand
@@ -294,14 +289,14 @@ class SVecSVecAddExpr : public SparseVector< SVecSVecAddExpr<VT1,VT2,TF>, TF >
       BLAZE_INTERNAL_ASSERT( y.size() == rhs.rhs_.size(), "Invalid vector size" );
       BLAZE_INTERNAL_ASSERT( x.size() == (~lhs).size()  , "Invalid vector size" );
 
-      const LeftIterator  lend( x.end() );
-      const RightIterator rend( y.end() );
+      const auto lend( x.end() );
+      const auto rend( y.end() );
 
-      for( LeftIterator l=x.begin(); l!=lend; ++l ) {
+      for( auto l=x.begin(); l!=lend; ++l ) {
          (~lhs)[l->index()] = l->value();
       }
 
-      for( RightIterator r=y.begin(); r!=rend; ++r ) {
+      for( auto r=y.begin(); r!=rend; ++r ) {
          if( isDefault( (~lhs)[r->index()] ) )
             (~lhs)[r->index()] = r->value();
          else
@@ -325,15 +320,12 @@ class SVecSVecAddExpr : public SparseVector< SVecSVecAddExpr<VT1,VT2,TF>, TF >
    // type is not resizable.
    */
    template< typename VT >  // Type of the target dense vector
-   friend inline DisableIf_< IsResizable< ElementType_<VT> > >
-      assign( DenseVector<VT,TF>& lhs, const SVecSVecAddExpr& rhs )
+   friend inline auto assign( DenseVector<VT,TF>& lhs, const SVecSVecAddExpr& rhs )
+      -> DisableIf_t< IsResizable_v< ElementType_t<VT> > >
    {
       BLAZE_FUNCTION_TRACE;
 
       BLAZE_INTERNAL_ASSERT( (~lhs).size() == rhs.size(), "Invalid vector sizes" );
-
-      typedef ConstIterator_< RemoveReference_<CT1> >  LeftIterator;
-      typedef ConstIterator_< RemoveReference_<CT2> >  RightIterator;
 
       CT1 x( serial( rhs.lhs_ ) );  // Evaluation of the left-hand side sparse vector operand
       CT2 y( serial( rhs.rhs_ ) );  // Evaluation of the right-hand side sparse vector operand
@@ -342,14 +334,14 @@ class SVecSVecAddExpr : public SparseVector< SVecSVecAddExpr<VT1,VT2,TF>, TF >
       BLAZE_INTERNAL_ASSERT( y.size() == rhs.rhs_.size(), "Invalid vector size" );
       BLAZE_INTERNAL_ASSERT( x.size() == (~lhs).size()  , "Invalid vector size" );
 
-      const LeftIterator  lend( x.end() );
-      const RightIterator rend( y.end() );
+      const auto lend( x.end() );
+      const auto rend( y.end() );
 
-      for( LeftIterator l=x.begin(); l!=lend; ++l ) {
+      for( auto l=x.begin(); l!=lend; ++l ) {
          (~lhs)[l->index()] = l->value();
       }
 
-      for( RightIterator r=y.begin(); r!=rend; ++r ) {
+      for( auto r=y.begin(); r!=rend; ++r ) {
          (~lhs)[r->index()] += r->value();
       }
    }
@@ -375,9 +367,6 @@ class SVecSVecAddExpr : public SparseVector< SVecSVecAddExpr<VT1,VT2,TF>, TF >
 
       BLAZE_INTERNAL_ASSERT( (~lhs).size() == rhs.size(), "Invalid vector sizes" );
 
-      typedef ConstIterator_< RemoveReference_<CT1> >  LeftIterator;
-      typedef ConstIterator_< RemoveReference_<CT2> >  RightIterator;
-
       CT1 x( serial( rhs.lhs_ ) );  // Evaluation of the left-hand side sparse vector operand
       CT2 y( serial( rhs.rhs_ ) );  // Evaluation of the right-hand side sparse vector operand
 
@@ -385,11 +374,15 @@ class SVecSVecAddExpr : public SparseVector< SVecSVecAddExpr<VT1,VT2,TF>, TF >
       BLAZE_INTERNAL_ASSERT( y.size() == rhs.rhs_.size(), "Invalid vector size" );
       BLAZE_INTERNAL_ASSERT( x.size() == (~lhs).size()  , "Invalid vector size" );
 
-      const LeftIterator  lend( x.end() );
-      const RightIterator rend( y.end() );
+      // Final memory allocation (based on the evaluated operands)
+      (~lhs).reserve( min( x.size(), x.nonZeros() + y.nonZeros() ) );
 
-      LeftIterator  l( x.begin() );
-      RightIterator r( y.begin() );
+      // Performing the vector addition
+      const auto lend( x.end() );
+      const auto rend( y.end() );
+
+      auto l( x.begin() );
+      auto r( y.begin() );
 
       while( l != lend && r != rend )
       {
@@ -498,7 +491,7 @@ class SVecSVecAddExpr : public SparseVector< SVecSVecAddExpr<VT1,VT2,TF>, TF >
 
       BLAZE_CONSTRAINT_MUST_BE_SPARSE_VECTOR_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_VECTOR_WITH_TRANSPOSE_FLAG( ResultType, TF );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<ResultType> );
+      BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType );
 
       BLAZE_INTERNAL_ASSERT( (~lhs).size() == rhs.size(), "Invalid vector sizes" );
 
@@ -535,8 +528,8 @@ class SVecSVecAddExpr : public SparseVector< SVecSVecAddExpr<VT1,VT2,TF>, TF >
    // expression specific parallel evaluation strategy is selected.
    */
    template< typename VT >  // Type of the target dense vector
-   friend inline EnableIf_< UseSMPAssign<VT> >
-      smpAddAssign( DenseVector<VT,TF>& lhs, const SVecSVecAddExpr& rhs )
+   friend inline auto smpAddAssign( DenseVector<VT,TF>& lhs, const SVecSVecAddExpr& rhs )
+      -> EnableIf_t< UseSMPAssign_v<VT> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -567,8 +560,8 @@ class SVecSVecAddExpr : public SparseVector< SVecSVecAddExpr<VT1,VT2,TF>, TF >
    // expression specific parallel evaluation strategy is selected.
    */
    template< typename VT >  // Type of the target dense vector
-   friend inline EnableIf_< UseSMPAssign<VT> >
-      smpSubAssign( DenseVector<VT,TF>& lhs, const SVecSVecAddExpr& rhs )
+   friend inline auto smpSubAssign( DenseVector<VT,TF>& lhs, const SVecSVecAddExpr& rhs )
+      -> EnableIf_t< UseSMPAssign_v<VT> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -600,14 +593,14 @@ class SVecSVecAddExpr : public SparseVector< SVecSVecAddExpr<VT1,VT2,TF>, TF >
    // expression specific parallel evaluation strategy is selected.
    */
    template< typename VT >  // Type of the target dense vector
-   friend inline EnableIf_< UseSMPAssign<VT> >
-      smpMultAssign( DenseVector<VT,TF>& lhs, const SVecSVecAddExpr& rhs )
+   friend inline auto smpMultAssign( DenseVector<VT,TF>& lhs, const SVecSVecAddExpr& rhs )
+      -> EnableIf_t< UseSMPAssign_v<VT> >
    {
       BLAZE_FUNCTION_TRACE;
 
       BLAZE_CONSTRAINT_MUST_BE_SPARSE_VECTOR_TYPE( ResultType );
       BLAZE_CONSTRAINT_MUST_BE_VECTOR_WITH_TRANSPOSE_FLAG( ResultType, TF );
-      BLAZE_CONSTRAINT_MUST_BE_REFERENCE_TYPE( CompositeType_<ResultType> );
+      BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType );
 
       BLAZE_INTERNAL_ASSERT( (~lhs).size() == rhs.size(), "Invalid vector sizes" );
 
@@ -643,6 +636,139 @@ class SVecSVecAddExpr : public SparseVector< SVecSVecAddExpr<VT1,VT2,TF>, TF >
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Backend implementation of the addition of two sparse vectors (\f$ \vec{a}=\vec{b}+\vec{c} \f$).
+// \ingroup sparse_vector
+//
+// \param lhs The left-hand side sparse vector for the vector addition.
+// \param rhs The right-hand side sparse vector for the vector addition.
+// \return The sum of the two sparse vectors.
+//
+// This function implements a performance optimized treatment of the addition between two
+// sparse vectors.
+*/
+template< typename VT1  // Type of the left-hand side sparse vector
+        , typename VT2  // Type of the right-hand side sparse vector
+        , bool TF       // Transpose flag
+        , DisableIf_t< ( ( IsZero_v<VT1> || IsZero_v<VT2> ) &&
+                         IsSame_v< ElementType_t<VT1>, ElementType_t<VT2> > ) ||
+                       ( IsZero_v<VT1> && IsZero_v<VT2> ) >* = nullptr >
+inline const SVecSVecAddExpr<VT1,VT2,TF>
+   svecsvecadd( const SparseVector<VT1,TF>& lhs, const SparseVector<VT2,TF>& rhs )
+{
+   BLAZE_FUNCTION_TRACE;
+
+   BLAZE_INTERNAL_ASSERT( (~lhs).size() == (~rhs).size(), "Invalid vector sizes" );
+
+   return SVecSVecAddExpr<VT1,VT2,TF>( ~lhs, ~rhs );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Backend implementation of the addition between a sparse vector and a zero vector
+//        (\f$ \vec{a}=\vec{b}+\vec{c} \f$).
+// \ingroup sparse_vector
+//
+// \param lhs The left-hand side sparse vector for the vector addition.
+// \param rhs The right-hand side zero vector for the vector addition.
+// \return The sum of the two sparse vectors.
+//
+// This function implements a performance optimized treatment of the addition between a sparse
+// vector and a zero vector.
+*/
+template< typename VT1  // Type of the left-hand side sparse vector
+        , typename VT2  // Type of the right-hand side sparse vector
+        , bool TF       // Transpose flag
+        , EnableIf_t< !IsZero_v<VT1> && IsZero_v<VT2> &&
+                      IsSame_v< ElementType_t<VT1>, ElementType_t<VT2> > >* = nullptr >
+inline const VT1&
+   svecsvecadd( const SparseVector<VT1,TF>& lhs, const SparseVector<VT2,TF>& rhs )
+{
+   BLAZE_FUNCTION_TRACE;
+
+   MAYBE_UNUSED( rhs );
+
+   BLAZE_INTERNAL_ASSERT( (~lhs).size() == (~rhs).size(), "Invalid vector sizes" );
+
+   return (~lhs);
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Backend implementation of the addition between a zero vector and a sparse vector
+//        (\f$ \vec{a}=\vec{b}+\vec{c} \f$).
+// \ingroup sparse_vector
+//
+// \param lhs The left-hand side zero vector for the vector addition.
+// \param rhs The right-hand side sparse vector for the vector addition.
+// \return The sum of the two sparse vectors.
+//
+// This function implements a performance optimized treatment of the addition between a zero
+// vector and a sparse vector.
+*/
+template< typename VT1  // Type of the left-hand side sparse vector
+        , typename VT2  // Type of the right-hand side sparse vector
+        , bool TF       // Transpose flag
+        , EnableIf_t< IsZero_v<VT1> && !IsZero_v<VT2> &&
+                      IsSame_v< ElementType_t<VT1>, ElementType_t<VT2> > >* = nullptr >
+inline const VT2&
+   svecsvecadd( const SparseVector<VT1,TF>& lhs, const SparseVector<VT2,TF>& rhs )
+{
+   BLAZE_FUNCTION_TRACE;
+
+   MAYBE_UNUSED( lhs );
+
+   BLAZE_INTERNAL_ASSERT( (~lhs).size() == (~rhs).size(), "Invalid vector sizes" );
+
+   return (~rhs);
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Backend implementation of the addition of two zero vectors (\f$ \vec{a}=\vec{b}+\vec{c} \f$).
+// \ingroup sparse_vector
+//
+// \param lhs The left-hand side zero vector for the vector addition.
+// \param rhs The right-hand side zero vector for the vector addition.
+// \return The resulting zero vector.
+//
+// This function implements a performance optimized treatment of the addition between two zero
+// vectors. It returns a zero vector.
+*/
+template< typename VT1  // Type of the left-hand side sparse vector
+        , typename VT2  // Type of the right-hand side sparse vector
+        , bool TF       // Transpose flag
+        , EnableIf_t< IsZero_v<VT1> && IsZero_v<VT2> >* = nullptr >
+inline decltype(auto)
+   svecsvecadd( const SparseVector<VT1,TF>& lhs, const SparseVector<VT2,TF>& rhs )
+{
+   BLAZE_FUNCTION_TRACE;
+
+   MAYBE_UNUSED( rhs );
+
+   BLAZE_INTERNAL_ASSERT( (~lhs).size() == (~rhs).size(), "Invalid vector sizes" );
+
+   using ReturnType = const AddTrait_t< ResultType_t<VT1>, ResultType_t<VT2> >;
+
+   BLAZE_CONSTRAINT_MUST_BE_VECTOR_WITH_TRANSPOSE_FLAG( ReturnType, TF );
+   BLAZE_CONSTRAINT_MUST_BE_ZERO_TYPE( ReturnType );
+
+   return ReturnType( (~lhs).size() );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Addition operator for the addition of two sparse vectors (\f$ \vec{a}=\vec{b}+\vec{c} \f$).
 // \ingroup sparse_vector
 //
@@ -660,17 +786,17 @@ class SVecSVecAddExpr : public SparseVector< SVecSVecAddExpr<VT1,VT2,TF>, TF >
    \endcode
 
 // The operator returns a sparse vector of the higher-order element type of the two involved
-// vector element types \a T1::ElementType and \a T2::ElementType. Both vector types \a T1
-// and \a T2 as well as the two element types \a T1::ElementType and \a T2::ElementType have
-// to be supported by the AddTrait class template.\n
+// vector element types \a VT1::ElementType and \a VT2::ElementType. Both vector types \a VT1
+// and \a VT2 as well as the two element types \a VT1::ElementType and \a VT2::ElementType
+// have to be supported by the AddTrait class template.\n
 // In case the current sizes of the two given vectors don't match, a \a std::invalid_argument
 // is thrown.
 */
-template< typename T1  // Type of the left-hand side sparse vector
-        , typename T2  // Type of the right-hand side sparse vector
-        , bool TF >    // Transpose flag
-inline const SVecSVecAddExpr<T1,T2,TF>
-   operator+( const SparseVector<T1,TF>& lhs, const SparseVector<T2,TF>& rhs )
+template< typename VT1  // Type of the left-hand side sparse vector
+        , typename VT2  // Type of the right-hand side sparse vector
+        , bool TF >     // Transpose flag
+inline decltype(auto)
+   operator+( const SparseVector<VT1,TF>& lhs, const SparseVector<VT2,TF>& rhs )
 {
    BLAZE_FUNCTION_TRACE;
 
@@ -678,49 +804,8 @@ inline const SVecSVecAddExpr<T1,T2,TF>
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   return SVecSVecAddExpr<T1,T2,TF>( ~lhs, ~rhs );
+   return svecsvecadd( ~lhs, ~rhs );
 }
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  SIZE SPECIALIZATIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename VT1, typename VT2, bool TF >
-struct Size< SVecSVecAddExpr<VT1,VT2,TF> >
-   : public Max< Size<VT1>, Size<VT2> >
-{};
-/*! \endcond */
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  EXPRESSION TRAIT SPECIALIZATIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename VT1, typename VT2, bool TF, bool AF >
-struct SubvectorExprTrait< SVecSVecAddExpr<VT1,VT2,TF>, AF >
-{
- public:
-   //**********************************************************************************************
-   using Type = AddExprTrait_< SubvectorExprTrait_<const VT1,AF>
-                             , SubvectorExprTrait_<const VT2,AF> >;
-   //**********************************************************************************************
-};
-/*! \endcond */
 //*************************************************************************************************
 
 } // namespace blaze

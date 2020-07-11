@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsmatadd/DDaLCa.cpp
 //  \brief Source file for the DDaLCa dense matrix/sparse matrix addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -47,6 +47,10 @@
 #include <blazetest/mathtest/dmatsmatadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -64,12 +68,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::DiagonalMatrix< blaze::DynamicMatrix<TypeA> >  DDa;
-      typedef blaze::LowerMatrix< blaze::CompressedMatrix<TypeA> >  LCa;
+      using DDa = blaze::DiagonalMatrix< blaze::DynamicMatrix<TypeA> >;
+      using LCa = blaze::LowerMatrix< blaze::CompressedMatrix<TypeA> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<DDa>  CDDa;
-      typedef blazetest::Creator<LCa>  CLCa;
+      using CDDa = blazetest::Creator<DDa>;
+      using CLCa = blazetest::Creator<LCa>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {

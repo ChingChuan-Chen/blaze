@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/dynamicvector/ClassTest.h
 //  \brief Header file for the DynamicVector class test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,11 +40,11 @@
 // Includes
 //*************************************************************************************************
 
+#include <array>
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <boost/container/static_vector.hpp>
-#include <boost/container/vector.hpp>
+#include <vector>
 #include <blaze/math/constraints/ColumnVector.h>
 #include <blaze/math/constraints/DenseVector.h>
 #include <blaze/math/constraints/RequiresEvaluation.h>
@@ -102,6 +102,7 @@ class ClassTest
    void testSubAssign   ();
    void testMultAssign  ();
    void testDivAssign   ();
+   void testCrossAssign ();
    void testScaling     ();
    void testSubscript   ();
    void testAt          ();
@@ -112,6 +113,7 @@ class ClassTest
    void testResize      ();
    void testExtend      ();
    void testReserve     ();
+   void testShrinkToFit ();
    void testSwap        ();
    void testIsDefault   ();
 
@@ -134,11 +136,11 @@ class ClassTest
    //**********************************************************************************************
 
    //**Type definitions****************************************************************************
-   typedef blaze::DynamicVector<int,blaze::rowVector>     VT;   //!< Type of the dynamic vector.
-   typedef blaze::DynamicVector<int,blaze::columnVector>  TVT;  //!< Transpose dynamic vector type.
+   using VT  = blaze::DynamicVector<int,blaze::rowVector>;     //!< Type of the dynamic vector.
+   using TVT = blaze::DynamicVector<int,blaze::columnVector>;  //!< Transpose dynamic vector type.
 
-   typedef VT::Rebind<double>::Other   RVT;   //!< Rebound dynamic vector type.
-   typedef TVT::Rebind<double>::Other  TRVT;  //!< Transpose rebound dynamic vector type.
+   using RVT  = VT::Rebind<double>::Other;   //!< Rebound dynamic vector type.
+   using TRVT = TVT::Rebind<double>::Other;  //!< Transpose rebound dynamic vector type.
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************
@@ -213,7 +215,7 @@ class ClassTest
 template< typename Type >
 void ClassTest::testAlignment( const std::string& type )
 {
-   typedef blaze::DynamicVector<Type,blaze::rowVector>  VectorType;
+   using VectorType = blaze::DynamicVector<Type,blaze::rowVector>;
 
    const size_t alignment( blaze::AlignmentOf<Type>::value );
 
@@ -246,7 +248,7 @@ void ClassTest::testAlignment( const std::string& type )
 
    {
       const VectorType init( 7UL );
-      const boost::container::static_vector<VectorType,7UL> vecs( 7UL, init );
+      const std::array<VectorType,7UL> vecs{ init, init, init, init, init, init, init };
 
       for( size_t i=0; i<vecs.size(); ++i )
       {
@@ -272,7 +274,7 @@ void ClassTest::testAlignment( const std::string& type )
 
    {
       const VectorType init( 7UL );
-      const boost::container::vector<VectorType> vecs( 7UL, init );
+      const std::vector<VectorType> vecs( 7UL, init );
 
       for( size_t i=0; i<vecs.size(); ++i )
       {

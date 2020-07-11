@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/subvector/DenseAlignedTest.h
 //  \brief Header file for the Subvector dense aligned test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -92,6 +92,7 @@ class DenseAlignedTest
    void testSubAssign   ();
    void testMultAssign  ();
    void testDivAssign   ();
+   void testCrossAssign ();
    void testScaling     ();
    void testSubscript   ();
    void testIterator    ();
@@ -101,6 +102,7 @@ class DenseAlignedTest
    void testIsDefault   ();
    void testIsSame      ();
    void testSubvector   ();
+   void testElements    ();
 
    template< typename Type >
    void checkSize( const Type& vector, size_t expectedSize ) const;
@@ -118,9 +120,9 @@ class DenseAlignedTest
    //**********************************************************************************************
 
    //**Type definitions****************************************************************************
-   typedef blaze::DynamicVector<int,blaze::rowVector>  VT;    //!< Dynamic row vector type
-   typedef blaze::Subvector<VT,blaze::aligned>         ASVT;  //!< Aligned subvector type for dynamic row vectors.
-   typedef blaze::Subvector<VT,blaze::unaligned>       USVT;  //!< Unaligned subvector type for dynamic row vectors.
+   using VT   = blaze::DynamicVector<int,blaze::rowVector>;  //!< Dynamic row vector type
+   using ASVT = blaze::Subvector<VT,blaze::aligned>;         //!< Aligned subvector type for dynamic row vectors.
+   using USVT = blaze::Subvector<VT,blaze::unaligned>;       //!< Unaligned subvector type for dynamic row vectors.
    //**********************************************************************************************
 
    //**Member variables****************************************************************************

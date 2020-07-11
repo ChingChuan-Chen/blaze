@@ -3,7 +3,7 @@
 //  \file src/main/SMatDVecMult.cpp
 //  \brief Source file for the sparse matrix/dense vector multiplication benchmark
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,8 +45,8 @@
 #include <vector>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/DynamicVector.h>
-#include <blaze/math/Functions.h>
 #include <blaze/math/Infinity.h>
+#include <blaze/util/algorithms/Max.h>
 #include <blaze/util/Random.h>
 #include <blaze/util/Timing.h>
 #include <blazemark/blaze/init/CompressedMatrix.h>
@@ -58,6 +58,7 @@
 #include <blazemark/flens/SMatDVecMult.h>
 #include <blazemark/gmm/SMatDVecMult.h>
 #include <blazemark/mtl/SMatDVecMult.h>
+#include <blazemark/system/Boost.h>
 #include <blazemark/system/Config.h>
 #include <blazemark/system/Eigen.h>
 #include <blazemark/system/FLENS.h>
@@ -67,6 +68,10 @@
 #include <blazemark/util/Benchmarks.h>
 #include <blazemark/util/DynamicSparseRun.h>
 #include <blazemark/util/Parser.h>
+
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
 
 
 //*************************************************************************************************
@@ -92,7 +97,7 @@ using blazemark::Parser;
 // This type definition specifies the type of a single benchmark run for the sparse
 // matrix/dense vector multiplication benchmark.
 */
-typedef DynamicSparseRun  Run;
+using Run = DynamicSparseRun;
 //*************************************************************************************************
 
 
@@ -147,7 +152,8 @@ void estimateSteps( Run& run )
    if( b.size() != N )
       std::cerr << " Line " << __LINE__ << ": ERROR detected!!!\n";
 
-   run.setSteps( blaze::max( 1UL, ( blazemark::runtime * steps ) / timer.last() ) );
+   const size_t estimatedSteps( ( blazemark::runtime * steps ) / timer.last() );
+   run.setSteps( blaze::max( 1UL, estimatedSteps ) );
 }
 //*************************************************************************************************
 
@@ -241,6 +247,7 @@ void smatdvecmult( std::vector<Run>& runs, Benchmarks benchmarks )
       }
    }
 
+#if BLAZEMARK_BOOST_MODE
    if( benchmarks.runBoost ) {
       std::vector<Run>::iterator run=runs.begin();
       while( run != runs.end() ) {
@@ -257,6 +264,7 @@ void smatdvecmult( std::vector<Run>& runs, Benchmarks benchmarks )
          }
       }
    }
+#endif
 
 #if BLAZEMARK_GMM_MODE
    if( benchmarks.runGMM ) {
@@ -390,5 +398,7 @@ int main( int argc, char** argv )
       std::cerr << "   Error during benchmark execution: " << ex.what() << "\n";
       return EXIT_FAILURE;
    }
+
+   return EXIT_SUCCESS;
 }
 //*************************************************************************************************

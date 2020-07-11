@@ -3,7 +3,7 @@
 //  \file blaze/math/typetraits/IsEvalExpr.h
 //  \brief Header file for the IsEvalExpr type trait class
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -41,10 +41,7 @@
 //*************************************************************************************************
 
 #include <blaze/math/expressions/EvalExpr.h>
-#include <blaze/util/mpl/And.h>
-#include <blaze/util/mpl/Not.h>
 #include <blaze/util/IntegralConstant.h>
-#include <blaze/util/typetraits/IsBaseOf.h>
 
 
 namespace blaze {
@@ -56,20 +53,81 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Auxiliary helper struct for the IsEvalExpr type trait.
+// \ingroup math_type_traits
+*/
+template< typename T >
+struct IsEvalExprHelper
+{
+ private:
+   //**********************************************************************************************
+   static T* create();
+
+   template< typename U >
+   static TrueType test( const EvalExpr<U>* );
+
+   template< typename U >
+   static TrueType test( const volatile EvalExpr<U>* );
+
+   static FalseType test( ... );
+   //**********************************************************************************************
+
+ public:
+   //**********************************************************************************************
+   using Type = decltype( test( create() ) );
+   //**********************************************************************************************
+};
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Compile time check whether the given type is an evaluation expression template.
 // \ingroup math_type_traits
 //
 // This type trait class tests whether or not the given type \a Type is an evaluation expression
-// template. In order to qualify as a valid evaluation expression template, the given type has to
-// derive (publicly or privately) from the EvalExpr base class. In case the given type is a valid
-// evaluation expression template, the \a value member constant is set to \a true, the nested
-// type definition \a Type is \a TrueType, and the class derives from \a TrueType. Otherwise
-// \a value is set to \a false, \a Type is \a FalseType, and the class derives from \a FalseType.
+// template. In order to qualify as a valid evaluation expression template, the given type has
+// to derive publicly from the EvalExpr base class. In case the given type is a valid evaluation
+// expression template, the \a value member constant is set to \a true, the nested type definition
+// \a Type is \a TrueType, and the class derives from \a TrueType. Otherwise \a value is set to
+// \a false, \a Type is \a FalseType, and the class derives from \a FalseType.
 */
 template< typename T >
 struct IsEvalExpr
-   : public BoolConstant< And< IsBaseOf<EvalExpr,T>, Not< IsBaseOf<T,EvalExpr> > >::value >
+   : public IsEvalExprHelper<T>::Type
 {};
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Specialization of the IsEvalExpr type trait for references.
+// \ingroup math_type_traits
+*/
+template< typename T >
+struct IsEvalExpr<T&>
+   : public FalseType
+{};
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Auxiliary variable template for the IsEvalExpr type trait.
+// \ingroup math_type_traits
+//
+// The IsEvalExpr_v variable template provides a convenient shortcut to access the nested
+// \a value of the IsEvalExpr class template. For instance, given the type \a T the following
+// two statements are identical:
+
+   \code
+   constexpr bool value1 = blaze::IsEvalExpr<T>::value;
+   constexpr bool value2 = blaze::IsEvalExpr_v<T>;
+   \endcode
+*/
+template< typename T >
+constexpr bool IsEvalExpr_v = IsEvalExpr<T>::value;
 //*************************************************************************************************
 
 } // namespace blaze

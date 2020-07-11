@@ -2,7 +2,7 @@
 #
 #  Makefile for the hermitianmatrix module of the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -33,8 +33,10 @@
 
 
 # Including the compiler and library settings
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include ../../Makeconfig
+endif
 endif
 
 
@@ -58,9 +60,13 @@ ColumnComplexTest: ColumnComplexTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 ColumnRealTest: ColumnRealTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
-DenseComplexTest: DenseComplexTest.o
+DenseComplexTest1: DenseComplexTest1.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
-DenseRealTest: DenseRealTest.o
+DenseComplexTest2: DenseComplexTest2.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+DenseRealTest1: DenseRealTest1.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+DenseRealTest2: DenseRealTest2.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 IncludeTest: IncludeTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
@@ -68,9 +74,13 @@ RowComplexTest: RowComplexTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 RowRealTest: RowRealTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
-SparseComplexTest: SparseComplexTest.o
+SparseComplexTest1: SparseComplexTest1.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
-SparseRealTest: SparseRealTest.o
+SparseComplexTest2: SparseComplexTest2.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+SparseRealTest1: SparseRealTest1.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+SparseRealTest2: SparseRealTest2.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 SubmatrixComplexTest: SubmatrixComplexTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
@@ -79,13 +89,17 @@ SubmatrixRealTest: SubmatrixRealTest.o
 
 
 # Cleanup
+reset:
+	@$(RM) $(OBJ) $(BIN)
 clean:
-	@$(RM) $(DEP) $(OBJ) $(BIN)
+	@$(RM) $(OBJ) $(BIN) $(DEP)
 
 
 # Makefile includes
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP)
+endif
 endif
 
 
@@ -95,4 +109,4 @@ endif
 
 
 # Setting the independent commands
-.PHONY: default all essential single noop clean
+.PHONY: default all essential single noop reset clean

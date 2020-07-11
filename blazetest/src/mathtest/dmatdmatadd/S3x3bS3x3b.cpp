@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatdmatadd/S3x3bS3x3b.cpp
 //  \brief Source file for the S3x3bS3x3b dense matrix/dense matrix addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dmatdmatadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -62,10 +66,10 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::SymmetricMatrix< blaze::StaticMatrix<TypeB,3UL,3UL> >  S3x3b;
+      using S3x3b = blaze::SymmetricMatrix< blaze::StaticMatrix<TypeB,3UL,3UL> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<S3x3b>  CS3x3b;
+      using CS3x3b = blazetest::Creator<S3x3b>;
 
       // Running the tests
       RUN_DMATDMATADD_OPERATION_TEST( CS3x3b(), CS3x3b() );

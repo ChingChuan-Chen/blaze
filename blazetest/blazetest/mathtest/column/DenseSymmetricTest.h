@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/column/DenseSymmetricTest.h
 //  \brief Header file for the Column dense symmetric test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -43,9 +43,9 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <blaze/math/constraints/ColumnVector.h>
 #include <blaze/math/constraints/DenseMatrix.h>
 #include <blaze/math/constraints/DenseVector.h>
-#include <blaze/math/constraints/TransposeFlag.h>
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/Column.h>
 #include <blaze/math/SymmetricMatrix.h>
@@ -91,20 +91,22 @@ class DenseSymmetricTest
    /*!\name Test functions */
    //@{
    void testConstructors();
-   void testAssignment  ();
-   void testAddAssign   ();
-   void testSubAssign   ();
-   void testMultAssign  ();
-   void testDivAssign   ();
-   void testScaling     ();
-   void testSubscript   ();
-   void testIterator    ();
-   void testNonZeros    ();
-   void testReset       ();
-   void testClear       ();
-   void testIsDefault   ();
-   void testIsSame      ();
-   void testSubvector   ();
+   void testAssignment();
+   void testAddAssign();
+   void testSubAssign();
+   void testMultAssign();
+   void testDivAssign();
+   void testCrossAssign();
+   void testScaling();
+   void testSubscript();
+   void testIterator();
+   void testNonZeros();
+   void testReset();
+   void testClear();
+   void testIsDefault();
+   void testIsSame();
+   void testSubvector();
+   void testElements();
 
    template< typename Type >
    void checkSize( const Type& column, size_t expectedSize ) const;
@@ -122,7 +124,7 @@ class DenseSymmetricTest
    void checkNonZeros( const Type& object, size_t expectedNonZeros ) const;
 
    template< typename Type >
-   void checkNonZeros( const Type& column, size_t index, size_t expectedNonZeros ) const;
+   void checkNonZeros( const Type& matrix, size_t index, size_t expectedNonZeros ) const;
    //@}
    //**********************************************************************************************
 
@@ -134,11 +136,11 @@ class DenseSymmetricTest
    //**********************************************************************************************
 
    //**Type definitions****************************************************************************
-   typedef blaze::DynamicMatrix<int,blaze::rowMajor>  DMT;  //!< Row-major dynamic matrix type.
-   typedef blaze::SymmetricMatrix<DMT>                MT;   //!< Row-major dynamic matrix type.
-   typedef MT::OppositeType                           OMT;  //!< Column-major dynamic matrix type.
-   typedef blaze::Column<MT>                          CT;   //!< Dense column type for row-major matrices.
-   typedef blaze::Column<OMT>                         OCT;  //!< Dense column type for column-major matrices.
+   using DMT = blaze::DynamicMatrix<int,blaze::rowMajor>;  //!< Row-major dynamic matrix type.
+   using MT  = blaze::SymmetricMatrix<DMT>;                //!< Row-major dynamic matrix type.
+   using OMT = MT::OppositeType;                           //!< Column-major dynamic matrix type.
+   using CT  = blaze::Column<MT>;                          //!< Dense column type for row-major matrices.
+   using OCT = blaze::Column<OMT>;                         //!< Dense column type for column-major matrices.
    //**********************************************************************************************
 
    //**Member variables****************************************************************************
@@ -246,7 +248,7 @@ void DenseSymmetricTest::checkRows( const Type& matrix, size_t expectedRows ) co
 /*!\brief Checking the number of columns of the given dynamic matrix.
 //
 // \param matrix The dynamic matrix to be checked.
-// \param expectedRows The expected number of columns of the dynamic matrix.
+// \param expectedColumns The expected number of columns of the dynamic matrix.
 // \return void
 // \exception std::runtime_error Error detected.
 //

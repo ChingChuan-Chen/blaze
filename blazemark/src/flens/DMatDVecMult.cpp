@@ -3,7 +3,7 @@
 //  \file src/flens/DMatDVecMult.cpp
 //  \brief Source file for the FLENS dense matrix/dense vector multiplication kernel
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -38,8 +38,8 @@
 //*************************************************************************************************
 
 #include <iostream>
-#include <boost/cast.hpp>
 #include <flens/flens.cxx>
+#include <blaze/util/NumericCast.h>
 #include <blaze/util/Timing.h>
 #include <blazemark/flens/DMatDVecMult.h>
 #include <blazemark/flens/init/DenseVector.h>
@@ -70,10 +70,10 @@ namespace flens {
 double dmatdvecmult( size_t N, size_t steps )
 {
    using ::blazemark::element_t;
-   using ::boost::numeric_cast;
+   using ::blaze::numeric_cast;
 
-   typedef ::flens::GeMatrix< ::flens::FullStorage<element_t,::flens::RowMajor> >  RowGeMatrix;
-   typedef ::flens::DenseVector< ::flens::Array<element_t> >  DenseVector;
+   using RowGeMatrix = ::flens::GeMatrix< ::flens::FullStorage<element_t,::flens::RowMajor> >;
+   using DenseVector = ::flens::DenseVector< ::flens::Array<element_t> >;
 
    ::blaze::setSeed( seed );
 

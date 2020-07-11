@@ -3,7 +3,7 @@
 //  \file blaze/math/expressions/DMatDeclDiagExpr.h
 //  \brief Header file for the dense matrix diagonal declaration expression
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -41,53 +41,36 @@
 //*************************************************************************************************
 
 #include <iterator>
+#include <blaze/math/adaptors/diagonalmatrix/BaseTemplate.h>
 #include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/DenseMatrix.h>
 #include <blaze/math/constraints/Diagonal.h>
-#include <blaze/math/constraints/MatMatAddExpr.h>
 #include <blaze/math/constraints/MatMatMultExpr.h>
-#include <blaze/math/constraints/MatMatSubExpr.h>
 #include <blaze/math/constraints/StorageOrder.h>
 #include <blaze/math/Exception.h>
-#include <blaze/math/expressions/Computation.h>
+#include <blaze/math/expressions/Declaration.h>
 #include <blaze/math/expressions/DeclDiagExpr.h>
 #include <blaze/math/expressions/DenseMatrix.h>
 #include <blaze/math/expressions/Forward.h>
 #include <blaze/math/simd/SIMDTrait.h>
-#include <blaze/math/traits/ColumnExprTrait.h>
-#include <blaze/math/traits/DeclDiagExprTrait.h>
-#include <blaze/math/traits/DMatDeclDiagExprTrait.h>
-#include <blaze/math/traits/MultExprTrait.h>
-#include <blaze/math/traits/RowExprTrait.h>
-#include <blaze/math/traits/SubmatrixExprTrait.h>
-#include <blaze/math/traits/TDMatDeclDiagExprTrait.h>
-#include <blaze/math/typetraits/Columns.h>
+#include <blaze/math/sparse/Forward.h>
+#include <blaze/math/traits/DeclDiagTrait.h>
+#include <blaze/math/typetraits/HasConstDataAccess.h>
 #include <blaze/math/typetraits/IsAligned.h>
-#include <blaze/math/typetraits/IsColumnMajorMatrix.h>
-#include <blaze/math/typetraits/IsDenseMatrix.h>
+#include <blaze/math/typetraits/IsDiagonal.h>
 #include <blaze/math/typetraits/IsExpression.h>
-#include <blaze/math/typetraits/IsHermitian.h>
 #include <blaze/math/typetraits/IsLower.h>
-#include <blaze/math/typetraits/IsRowMajorMatrix.h>
-#include <blaze/math/typetraits/IsStrictlyLower.h>
-#include <blaze/math/typetraits/IsStrictlyUpper.h>
 #include <blaze/math/typetraits/IsSymmetric.h>
-#include <blaze/math/typetraits/IsUniLower.h>
-#include <blaze/math/typetraits/IsUniUpper.h>
 #include <blaze/math/typetraits/IsUpper.h>
 #include <blaze/math/typetraits/RequiresEvaluation.h>
-#include <blaze/math/typetraits/Rows.h>
 #include <blaze/util/Assert.h>
-#include <blaze/util/DisableIf.h>
-#include <blaze/util/EmptyType.h>
 #include <blaze/util/EnableIf.h>
+#include <blaze/util/FunctionTrace.h>
 #include <blaze/util/IntegralConstant.h>
 #include <blaze/util/InvalidType.h>
-#include <blaze/util/logging/FunctionTrace.h>
-#include <blaze/util/mpl/And.h>
 #include <blaze/util/mpl/If.h>
-#include <blaze/util/TrueType.h>
 #include <blaze/util/Types.h>
+#include <blaze/util/typetraits/GetMemberType.h>
 
 
 namespace blaze {
@@ -107,11 +90,18 @@ namespace blaze {
 */
 template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order
-class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
-                       , private DeclDiagExpr
-                       , private If< IsComputation<MT>, Computation, EmptyType >::Type
+class DMatDeclDiagExpr
+   : public DeclDiagExpr< DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO > >
+   , public Declaration<MT>
 {
  private:
+   //**Type definitions****************************************************************************
+   using RT = ResultType_t<MT>;  //!< Result type of the dense matrix expression.
+
+   //! Definition of the GetConstIterator type trait.
+   BLAZE_CREATE_GET_TYPE_MEMBER_TYPE_TRAIT( GetConstIterator, ConstIterator, INVALID_TYPE );
+   //**********************************************************************************************
+
    //**Serial evaluation strategy******************************************************************
    //! Compilation switch for the serial evaluation strategy of the diagonal declaration expression.
    /*! The \a useAssign compile time constant expression represents a compilation switch for
@@ -120,298 +110,59 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
        will be set to 1 and the diagonal declaration expression will be evaluated via the
        \a assign function family. Otherwise \a useAssign will be set to 0 and the expression
        will be evaluated via the subscript operator. */
-   enum : bool { useAssign = RequiresEvaluation<MT>::value };
+   static constexpr bool useAssign = RequiresEvaluation_v<MT>;
 
    /*! \cond BLAZE_INTERNAL */
-   //! Helper structure for the explicit application of the SFINAE principle.
+   //! Helper variable template for the explicit application of the SFINAE principle.
    template< typename MT2 >
-   struct UseAssign {
-      enum : bool { value = useAssign };
-   };
+   static constexpr bool UseAssign_v = useAssign;
    /*! \endcond */
    //**********************************************************************************************
 
    //**Parallel evaluation strategy****************************************************************
    /*! \cond BLAZE_INTERNAL */
-   //! Helper structure for the explicit application of the SFINAE principle.
-   /*! The UseSMPAssign struct is a helper struct for the selection of the parallel evaluation
-       strategy. In case the target matrix is SMP assignable and the dense matrix operand requires
-       an intermediate evaluation, \a value is set to 1 and the expression specific evaluation
-       strategy is selected. Otherwise \a value is set to 0 and the default strategy is chosen. */
+   //! Helper variable template for the explicit application of the SFINAE principle.
+   /*! This variable template is a helper for the selection of the parallel evaluation strategy.
+       In case the target matrix is SMP assignable and the dense matrix operand requires an
+       intermediate evaluation, the variable is set to 1 and the expression specific evaluation
+       strategy is selected. Otherwise the variable is set to 0 and the default strategy is
+       chosen. */
    template< typename MT2 >
-   struct UseSMPAssign {
-      enum : bool { value = MT2::smpAssignable && useAssign };
-   };
+   static constexpr bool UseSMPAssign_v = ( MT2::smpAssignable && useAssign );
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
-   typedef DMatDeclDiagExpr<MT,SO>  This;           //!< Type of this DMatDeclDiagExpr instance.
-   typedef ResultType_<MT>          ResultType;     //!< Result type for expression template evaluations.
-   typedef OppositeType_<MT>        OppositeType;   //!< Result type with opposite storage order for expression template evaluations.
-   typedef TransposeType_<MT>       TransposeType;  //!< Transpose type for expression template evaluations.
-   typedef ElementType_<MT>         ElementType;    //!< Resulting element type.
-   typedef ReturnType_<MT>          ReturnType;     //!< Return type for expression template evaluations.
+   using This          = DMatDeclDiagExpr<MT,SO>;      //!< Type of this DMatDeclDiagExpr instance.
+   using BaseType      = DenseMatrix<This,SO>;         //!< Base type of this DMatDeclDiagExpr instance.
+   using ResultType    = DeclDiagTrait_t<RT>;          //!< Result type for expression template evaluations.
+   using OppositeType  = OppositeType_t<ResultType>;   //!< Result type with opposite storage order for expression template evaluations.
+   using TransposeType = TransposeType_t<ResultType>;  //!< Transpose type for expression template evaluations.
+   using ElementType   = ElementType_t<MT>;            //!< Resulting element type.
+   using ReturnType    = ReturnType_t<MT>;             //!< Return type for expression template evaluations.
 
    //! Data type for composite expression templates.
-   typedef If_< RequiresEvaluation<MT>, const ResultType, const DMatDeclDiagExpr& >  CompositeType;
+   using CompositeType = If_t< RequiresEvaluation_v<MT>, const ResultType, const DMatDeclDiagExpr& >;
+
+   //! Iterator over the elements of the dense matrix.
+   using ConstIterator = GetConstIterator_t<MT>;
 
    //! Composite data type of the dense matrix expression.
-   typedef If_< IsExpression<MT>, const MT, const MT& >  Operand;
-   //**********************************************************************************************
-
-   //**ConstIterator class definition**************************************************************
-   /*!\brief Iterator over the elements of the dense matrix.
-   */
-   class ConstIterator
-   {
-    public:
-      //**Type definitions*************************************************************************
-      typedef std::random_access_iterator_tag  IteratorCategory;  //!< The iterator category.
-      typedef ElementType                      ValueType;         //!< Type of the underlying elements.
-      typedef ElementType*                     PointerType;       //!< Pointer return type.
-      typedef ElementType&                     ReferenceType;     //!< Reference return type.
-      typedef ptrdiff_t                        DifferenceType;    //!< Difference between two iterators.
-
-      // STL iterator requirements
-      typedef IteratorCategory  iterator_category;  //!< The iterator category.
-      typedef ValueType         value_type;         //!< Type of the underlying elements.
-      typedef PointerType       pointer;            //!< Pointer return type.
-      typedef ReferenceType     reference;          //!< Reference return type.
-      typedef DifferenceType    difference_type;    //!< Difference between two iterators.
-
-      //! ConstIterator type of the dense matrix expression.
-      typedef ConstIterator_<MT>  IteratorType;
-      //*******************************************************************************************
-
-      //**Constructor******************************************************************************
-      /*!\brief Constructor for the ConstIterator class.
-      //
-      // \param iterator Iterator to the initial element.
-      */
-      explicit inline ConstIterator( IteratorType iterator )
-         : iterator_( iterator )  // Iterator to the current element
-      {}
-      //*******************************************************************************************
-
-      //**Addition assignment operator*************************************************************
-      /*!\brief Addition assignment operator.
-      //
-      // \param inc The increment of the iterator.
-      // \return The incremented iterator.
-      */
-      inline ConstIterator& operator+=( size_t inc ) {
-         iterator_ += inc;
-         return *this;
-      }
-      //*******************************************************************************************
-
-      //**Subtraction assignment operator**********************************************************
-      /*!\brief Subtraction assignment operator.
-      //
-      // \param dec The decrement of the iterator.
-      // \return The decremented iterator.
-      */
-      inline ConstIterator& operator-=( size_t dec ) {
-         iterator_ -= dec;
-         return *this;
-      }
-      //*******************************************************************************************
-
-      //**Prefix increment operator****************************************************************
-      /*!\brief Pre-increment operator.
-      //
-      // \return Reference to the incremented iterator.
-      */
-      inline ConstIterator& operator++() {
-         ++iterator_;
-         return *this;
-      }
-      //*******************************************************************************************
-
-      //**Postfix increment operator***************************************************************
-      /*!\brief Post-increment operator.
-      //
-      // \return The previous position of the iterator.
-      */
-      inline const ConstIterator operator++( int ) {
-         return ConstIterator( iterator_++ );
-      }
-      //*******************************************************************************************
-
-      //**Prefix decrement operator****************************************************************
-      /*!\brief Pre-decrement operator.
-      //
-      // \return Reference to the decremented iterator.
-      */
-      inline ConstIterator& operator--() {
-         --iterator_;
-         return *this;
-      }
-      //*******************************************************************************************
-
-      //**Postfix decrement operator***************************************************************
-      /*!\brief Post-decrement operator.
-      //
-      // \return The previous position of the iterator.
-      */
-      inline const ConstIterator operator--( int ) {
-         return ConstIterator( iterator_-- );
-      }
-      //*******************************************************************************************
-
-      //**Element access operator******************************************************************
-      /*!\brief Direct access to the element at the current iterator position.
-      //
-      // \return The resulting value.
-      */
-      inline ReturnType operator*() const {
-         return *iterator_;
-      }
-      //*******************************************************************************************
-
-      //**Load function****************************************************************************
-      /*!\brief Access to the SIMD elements of the matrix.
-      //
-      // \return The resulting SIMD element.
-      */
-      inline auto load() const noexcept {
-         return iterator_.load();
-      }
-      //*******************************************************************************************
-
-      //**Equality operator************************************************************************
-      /*!\brief Equality comparison between two ConstIterator objects.
-      //
-      // \param rhs The right-hand side iterator.
-      // \return \a true if the iterators refer to the same element, \a false if not.
-      */
-      inline bool operator==( const ConstIterator& rhs ) const {
-         return iterator_ == rhs.iterator_;
-      }
-      //*******************************************************************************************
-
-      //**Inequality operator**********************************************************************
-      /*!\brief Inequality comparison between two ConstIterator objects.
-      //
-      // \param rhs The right-hand side iterator.
-      // \return \a true if the iterators don't refer to the same element, \a false if they do.
-      */
-      inline bool operator!=( const ConstIterator& rhs ) const {
-         return iterator_ != rhs.iterator_;
-      }
-      //*******************************************************************************************
-
-      //**Less-than operator***********************************************************************
-      /*!\brief Less-than comparison between two ConstIterator objects.
-      //
-      // \param rhs The right-hand side iterator.
-      // \return \a true if the left-hand side iterator is smaller, \a false if not.
-      */
-      inline bool operator<( const ConstIterator& rhs ) const {
-         return iterator_ < rhs.iterator_;
-      }
-      //*******************************************************************************************
-
-      //**Greater-than operator********************************************************************
-      /*!\brief Greater-than comparison between two ConstIterator objects.
-      //
-      // \param rhs The right-hand side iterator.
-      // \return \a true if the left-hand side iterator is greater, \a false if not.
-      */
-      inline bool operator>( const ConstIterator& rhs ) const {
-         return iterator_ > rhs.iterator_;
-      }
-      //*******************************************************************************************
-
-      //**Less-or-equal-than operator**************************************************************
-      /*!\brief Less-than comparison between two ConstIterator objects.
-      //
-      // \param rhs The right-hand side iterator.
-      // \return \a true if the left-hand side iterator is smaller or equal, \a false if not.
-      */
-      inline bool operator<=( const ConstIterator& rhs ) const {
-         return iterator_ <= rhs.iterator_;
-      }
-      //*******************************************************************************************
-
-      //**Greater-or-equal-than operator***********************************************************
-      /*!\brief Greater-than comparison between two ConstIterator objects.
-      //
-      // \param rhs The right-hand side iterator.
-      // \return \a true if the left-hand side iterator is greater or equal, \a false if not.
-      */
-      inline bool operator>=( const ConstIterator& rhs ) const {
-         return iterator_ >= rhs.iterator_;
-      }
-      //*******************************************************************************************
-
-      //**Subtraction operator*********************************************************************
-      /*!\brief Calculating the number of elements between two iterators.
-      //
-      // \param rhs The right-hand side iterator.
-      // \return The number of elements between the two iterators.
-      */
-      inline DifferenceType operator-( const ConstIterator& rhs ) const {
-         return iterator_ - rhs.iterator_;
-      }
-      //*******************************************************************************************
-
-      //**Addition operator************************************************************************
-      /*!\brief Addition between a ConstIterator and an integral value.
-      //
-      // \param it The iterator to be incremented.
-      // \param inc The number of elements the iterator is incremented.
-      // \return The incremented iterator.
-      */
-      friend inline const ConstIterator operator+( const ConstIterator& it, size_t inc ) {
-         return ConstIterator( it.iterator_ + inc );
-      }
-      //*******************************************************************************************
-
-      //**Addition operator************************************************************************
-      /*!\brief Addition between an integral value and a ConstIterator.
-      //
-      // \param inc The number of elements the iterator is incremented.
-      // \param it The iterator to be incremented.
-      // \return The incremented iterator.
-      */
-      friend inline const ConstIterator operator+( size_t inc, const ConstIterator& it ) {
-         return ConstIterator( it.iterator_ + inc );
-      }
-      //*******************************************************************************************
-
-      //**Subtraction operator*********************************************************************
-      /*!\brief Subtraction between a ConstIterator and an integral value.
-      //
-      // \param it The iterator to be decremented.
-      // \param dec The number of elements the iterator is decremented.
-      // \return The decremented iterator.
-      */
-      friend inline const ConstIterator operator-( const ConstIterator& it, size_t dec ) {
-         return ConstIterator( it.iterator_ - dec );
-      }
-      //*******************************************************************************************
-
-    private:
-      //**Member variables*************************************************************************
-      IteratorType iterator_;  //!< Iterator to the current element.
-      //*******************************************************************************************
-   };
+   using Operand = If_t< IsExpression_v<MT>, const MT, const MT& >;
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template evaluation strategy.
-   enum : bool { simdEnabled = MT::simdEnabled };
+   static constexpr bool simdEnabled = MT::simdEnabled;
 
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = MT::smpAssignable };
+   static constexpr bool smpAssignable = MT::smpAssignable;
    //**********************************************************************************************
 
    //**SIMD properties*****************************************************************************
    //! The number of elements packed within a single SIMD element.
-   enum : size_t { SIMDSIZE = SIMDTrait<ElementType>::size };
+   static constexpr size_t SIMDSIZE = SIMDTrait<ElementType>::size;
    //**********************************************************************************************
 
    //**Constructor*********************************************************************************
@@ -421,7 +172,9 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    */
    explicit inline DMatDeclDiagExpr( const MT& dm ) noexcept
       : dm_( dm )  // Dense matrix of the decldiag expression
-   {}
+   {
+      BLAZE_INTERNAL_ASSERT( isSquare( ~dm ), "Non-square matrix detected" );
+   }
    //**********************************************************************************************
 
    //**Access operator*****************************************************************************
@@ -598,8 +351,8 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseAssign<MT2> >
-      assign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+   friend inline auto assign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseAssign_v<MT2> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -625,8 +378,8 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    */
    template< typename MT2  // Type of the target sparse matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseAssign<MT2> >
-      assign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+   friend inline auto assign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseAssign_v<MT2> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -652,8 +405,8 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseAssign<MT2> >
-      addAssign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+   friend inline auto addAssign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseAssign_v<MT2> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -679,8 +432,8 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    */
    template< typename MT2  // Type of the target sparse matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseAssign<MT2> >
-      addAssign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+   friend inline auto addAssign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseAssign_v<MT2> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -706,8 +459,8 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseAssign<MT2> >
-      subAssign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+   friend inline auto subAssign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseAssign_v<MT2> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -733,8 +486,8 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    */
    template< typename MT2  // Type of the target sparse matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseAssign<MT2> >
-      subAssign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+   friend inline auto subAssign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseAssign_v<MT2> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -742,6 +495,60 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
       BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
 
       subAssign( ~lhs, rhs.dm_ );
+   }
+   /*! \endcond */
+   //**********************************************************************************************
+
+   //**Schur product assignment to dense matrices**************************************************
+   /*! \cond BLAZE_INTERNAL */
+   /*!\brief Schur product assignment of a dense matrix decldiag expression to a dense matrix.
+   // \ingroup dense_matrix
+   //
+   // \param lhs The target left-hand side dense matrix.
+   // \param rhs The right-hand side decldiag expression for the Schur product.
+   // \return void
+   //
+   // This function implements the performance optimized Schur product assignment of a dense matrix
+   // decldiag expression to a dense matrix.
+   */
+   template< typename MT2  // Type of the target dense matrix
+           , bool SO2 >    // Storage order of the target dense matrix
+   friend inline auto schurAssign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseAssign_v<MT2> >
+   {
+      BLAZE_FUNCTION_TRACE;
+
+      BLAZE_INTERNAL_ASSERT( (~lhs).rows()    == rhs.rows()   , "Invalid number of rows"    );
+      BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
+
+      schurAssign( ~lhs, rhs.dm_ );
+   }
+   /*! \endcond */
+   //**********************************************************************************************
+
+   //**Schur product assignment to sparse matrices*************************************************
+   /*! \cond BLAZE_INTERNAL */
+   /*!\brief Schur product assignment of a dense matrix decldiag expression to a sparse matrix.
+   // \ingroup dense_matrix
+   //
+   // \param lhs The target left-hand side sparse matrix.
+   // \param rhs The right-hand side decldiag expression for the Schur product.
+   // \return void
+   //
+   // This function implements the performance optimized Schur product assignment of a dense matrix
+   // decldiag expression to a sparse matrix.
+   */
+   template< typename MT2  // Type of the target sparse matrix
+           , bool SO2 >    // Storage order of the target dense matrix
+   friend inline auto schurAssign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseAssign_v<MT2> >
+   {
+      BLAZE_FUNCTION_TRACE;
+
+      BLAZE_INTERNAL_ASSERT( (~lhs).rows()    == rhs.rows()   , "Invalid number of rows"    );
+      BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
+
+      schurAssign( ~lhs, rhs.dm_ );
    }
    /*! \endcond */
    //**********************************************************************************************
@@ -760,8 +567,8 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseAssign<MT2> >
-      multAssign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+   friend inline auto multAssign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseAssign_v<MT2> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -787,8 +594,8 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    */
    template< typename MT2  // Type of the target sparse matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseAssign<MT2> >
-      multAssign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+   friend inline auto multAssign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseAssign_v<MT2> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -814,8 +621,8 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseSMPAssign<MT2> >
-      smpAssign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+   friend inline auto smpAssign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseSMPAssign_v<MT2> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -841,8 +648,8 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    */
    template< typename MT2  // Type of the target sparse matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseSMPAssign<MT2> >
-      smpAssign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+   friend inline auto smpAssign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseSMPAssign_v<MT2> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -868,8 +675,8 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseSMPAssign<MT2> >
-      smpAddAssign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+   friend inline auto smpAddAssign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseSMPAssign_v<MT2> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -895,8 +702,8 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    */
    template< typename MT2  // Type of the target sparse matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseSMPAssign<MT2> >
-      smpAddAssign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+   friend inline auto smpAddAssign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseSMPAssign_v<MT2> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -922,8 +729,8 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseSMPAssign<MT2> >
-      smpSubAssign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+   friend inline auto smpSubAssign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseSMPAssign_v<MT2> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -949,8 +756,8 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    */
    template< typename MT2  // Type of the target sparse matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseSMPAssign<MT2> >
-      smpSubAssign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+   friend inline auto smpSubAssign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseSMPAssign_v<MT2> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -958,6 +765,60 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
       BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
 
       smpSubAssign( ~lhs, rhs.dm_ );
+   }
+   /*! \endcond */
+   //**********************************************************************************************
+
+   //**SMP Schur product assignment to dense matrices**********************************************
+   /*! \cond BLAZE_INTERNAL */
+   /*!\brief SMP Schur product assignment of a dense matrix decldiag expression to a dense matrix.
+   // \ingroup dense_matrix
+   //
+   // \param lhs The target left-hand side dense matrix.
+   // \param rhs The right-hand side decldiag expression for the Schur product.
+   // \return void
+   //
+   // This function implements the performance optimized SMP Schur product assignment of a dense
+   // matrix decldiag expression to a dense matrix.
+   */
+   template< typename MT2  // Type of the target dense matrix
+           , bool SO2 >    // Storage order of the target dense matrix
+   friend inline auto smpSchurAssign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseSMPAssign_v<MT2> >
+   {
+      BLAZE_FUNCTION_TRACE;
+
+      BLAZE_INTERNAL_ASSERT( (~lhs).rows()    == rhs.rows()   , "Invalid number of rows"    );
+      BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
+
+      smpSchurAssign( ~lhs, rhs.dm_ );
+   }
+   /*! \endcond */
+   //**********************************************************************************************
+
+   //**SMP Schur product assignment to sparse matrices*********************************************
+   /*! \cond BLAZE_INTERNAL */
+   /*!\brief SMP Schur product assignment of a dense matrix decldiag expression to a sparse matrix.
+   // \ingroup dense_matrix
+   //
+   // \param lhs The target left-hand side sparse matrix.
+   // \param rhs The right-hand side decldiag expression for the Schur product.
+   // \return void
+   //
+   // This function implements the performance optimized SMP Schur product assignment of a dense
+   // matrix decldiag expression to a sparse matrix.
+   */
+   template< typename MT2  // Type of the target sparse matrix
+           , bool SO2 >    // Storage order of the target dense matrix
+   friend inline auto smpSchurAssign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseSMPAssign_v<MT2> >
+   {
+      BLAZE_FUNCTION_TRACE;
+
+      BLAZE_INTERNAL_ASSERT( (~lhs).rows()    == rhs.rows()   , "Invalid number of rows"    );
+      BLAZE_INTERNAL_ASSERT( (~lhs).columns() == rhs.columns(), "Invalid number of columns" );
+
+      smpSchurAssign( ~lhs, rhs.dm_ );
    }
    /*! \endcond */
    //**********************************************************************************************
@@ -977,8 +838,8 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    */
    template< typename MT2  // Type of the target dense matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseSMPAssign<MT2> >
-      smpMultAssign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+   friend inline auto smpMultAssign( DenseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseSMPAssign_v<MT2> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -1005,8 +866,8 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    */
    template< typename MT2  // Type of the target sparse matrix
            , bool SO2 >    // Storage order of the target dense matrix
-   friend inline EnableIf_< UseSMPAssign<MT2> >
-      smpMultAssign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+   friend inline auto smpMultAssign( SparseMatrix<MT2,SO2>& lhs, const DMatDeclDiagExpr& rhs )
+      -> EnableIf_t< UseSMPAssign_v<MT2> >
    {
       BLAZE_FUNCTION_TRACE;
 
@@ -1023,8 +884,6 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER( MT, SO );
    BLAZE_CONSTRAINT_MUST_NOT_BE_DIAGONAL_MATRIX_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_NOT_BE_MATMATADDEXPR_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_NOT_BE_MATMATSUBEXPR_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_MATMATMULTEXPR_TYPE( MT );
    /*! \endcond */
    //**********************************************************************************************
@@ -1041,16 +900,67 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
 //=================================================================================================
 
 //*************************************************************************************************
-/*!\brief Declares the given non-diagonal dense matrix expression \a dm as diagonal.
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Declares the given dense matrix expression \a dm as diagonal.
+// \ingroup dense_matrix
+//
+// \param dm The input matrix.
+// \return The redeclared dense matrix.
+//
+// This function declares the given dense matrix expression \a dm as diagonal. The function
+// returns an expression representing the operation.
+*/
+template< typename MT  // Type of the dense matrix
+        , bool SO      // Storage order
+        , DisableIf_t< IsDiagonal_v<MT> >* = nullptr >
+inline const DMatDeclDiagExpr<MT,SO> decldiag_backend( const DenseMatrix<MT,SO>& dm )
+{
+   BLAZE_FUNCTION_TRACE;
+
+   BLAZE_INTERNAL_ASSERT( isSquare( ~dm ), "Non-square matrix detected" );
+
+   return DMatDeclDiagExpr<MT,SO>( ~dm );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Redeclares the given diagonal dense matrix expression \a dm as diagonal.
+// \ingroup dense_matrix
+//
+// \param dm The input matrix.
+// \return The redeclared dense matrix.
+//
+// This function redeclares the given diagonal dense matrix expression \a dm as diagonal.
+// The function returns a reference to the already diagonal matrix expression.
+*/
+template< typename MT  // Type of the dense matrix
+        , bool SO      // Storage order
+        , EnableIf_t< IsDiagonal_v<MT> >* = nullptr >
+inline const MT& decldiag_backend( const DenseMatrix<MT,SO>& dm )
+{
+   BLAZE_FUNCTION_TRACE;
+
+   BLAZE_INTERNAL_ASSERT( isSquare( ~dm ), "Non-square matrix detected" );
+
+   return ~dm;
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Declares the given dense matrix expression \a dm as diagonal.
 // \ingroup dense_matrix
 //
 // \param dm The input matrix.
 // \return The redeclared dense matrix.
 // \exception std::invalid_argument Invalid diagonal matrix specification.
 //
-// The \a decldiag function declares the given non-diagonal dense matrix expression \a dm as
-// diagonal. The function returns an expression representing the operation. In case the given
-// matrix is not a square matrix, a \a std::invalid_argument exception is thrown.\n
+// The \a decldiag function declares the given dense matrix expression \a dm as diagonal. In
+// case the given matrix is not a square matrix, a \a std::invalid_argument exception is thrown.\n
 // The following example demonstrates the use of the \a decldiag function:
 
    \code
@@ -1061,8 +971,7 @@ class DMatDeclDiagExpr : public DenseMatrix< DMatDeclDiagExpr<MT,SO>, SO >
 */
 template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order
-inline DisableIf_< IsDiagonal<MT>, const DMatDeclDiagExpr<MT,SO> >
-   decldiag( const DenseMatrix<MT,SO>& dm )
+inline decltype(auto) decldiag( const DenseMatrix<MT,SO>& dm )
 {
    BLAZE_FUNCTION_TRACE;
 
@@ -1070,29 +979,7 @@ inline DisableIf_< IsDiagonal<MT>, const DMatDeclDiagExpr<MT,SO> >
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid diagonal matrix specification" );
    }
 
-   return DMatDeclDiagExpr<MT,SO>( ~dm );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Redeclares the given diagonal dense matrix expression \a dm as diagonal.
-// \ingroup dense_matrix
-//
-// \param dm The input matrix.
-// \return The redeclared dense matrix.
-//
-// The \a decldiag function redeclares the given diagonal dense matrix expression \a dm as
-// diagonal. The function returns a reference to the already diagonal matrix expression.
-*/
-template< typename MT  // Type of the dense matrix
-        , bool SO >    // Storage order
-inline EnableIf_< IsDiagonal<MT>, const MT& >
-   decldiag( const DenseMatrix<MT,SO>& dm )
-{
-   BLAZE_FUNCTION_TRACE;
-
-   return ~dm;
+   return decldiag_backend( ~dm );
 }
 //*************************************************************************************************
 
@@ -1101,71 +988,15 @@ inline EnableIf_< IsDiagonal<MT>, const MT& >
 
 //=================================================================================================
 //
-//  GLOBAL RESTRUCTURING FUNCTIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Declares the given non-diagonal dense matrix-scalar multiplication expression as diagonal.
-// \ingroup dense_matrix
-//
-// \param dm The input dense matrix-scalar multiplication expression.
-// \return The redeclared expression.
-// \exception std::invalid_argument Invalid diagonal matrix specification.
-//
-// This function implements the application of the decldiag() operation on a dense matrix-
-// scalar multiplication. It restructures the expression \f$ A=decldiag(B*s1) \f$ to the
-// expression \f$ A=decldiag(B)*s1 \f$. In case the given matrix is not a square matrix,
-// a \a std::invalid_argument exception is thrown.
-*/
-template< typename MT  // Type of the left-hand side dense matrix
-        , typename ST  // Type of the right-hand side scalar value
-        , bool SO >    // Storage order
-inline const DisableIf_< IsDiagonal<MT>, MultExprTrait_< DeclDiagExprTrait_<MT>, ST > >
-   decldiag( const DMatScalarMultExpr<MT,ST,SO>& dm )
-{
-   BLAZE_FUNCTION_TRACE;
-
-   if( !isSquare( dm ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid diagonal matrix specification" );
-   }
-
-   return decldiag( dm.leftOperand() ) * dm.rightOperand();
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  ROWS SPECIALIZATIONS
+//  HASCONSTDATAACCESS SPECIALIZATIONS
 //
 //=================================================================================================
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, bool SO >
-struct Rows< DMatDeclDiagExpr<MT,SO> > : public Rows<MT>
-{};
-/*! \endcond */
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  COLUMNS SPECIALIZATIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename MT, bool SO >
-struct Columns< DMatDeclDiagExpr<MT,SO> > : public Columns<MT>
+struct HasConstDataAccess< DMatDeclDiagExpr<MT,SO> >
+   : public HasConstDataAccess<MT>
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1183,7 +1014,7 @@ struct Columns< DMatDeclDiagExpr<MT,SO> > : public Columns<MT>
 /*! \cond BLAZE_INTERNAL */
 template< typename MT, bool SO >
 struct IsAligned< DMatDeclDiagExpr<MT,SO> >
-   : public BoolConstant< IsAligned<MT>::value >
+   : public IsAligned<MT>
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1211,24 +1042,6 @@ struct IsSymmetric< DMatDeclDiagExpr<MT,SO> >
 
 //=================================================================================================
 //
-//  ISHERMITIAN SPECIALIZATIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename MT, bool SO >
-struct IsHermitian< DMatDeclDiagExpr<MT,SO> >
-   : public BoolConstant< IsHermitian<MT>::value >
-{};
-/*! \endcond */
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
 //  ISLOWER SPECIALIZATIONS
 //
 //=================================================================================================
@@ -1238,42 +1051,6 @@ struct IsHermitian< DMatDeclDiagExpr<MT,SO> >
 template< typename MT, bool SO >
 struct IsLower< DMatDeclDiagExpr<MT,SO> >
    : public TrueType
-{};
-/*! \endcond */
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  ISUNILOWER SPECIALIZATIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename MT, bool SO >
-struct IsUniLower< DMatDeclDiagExpr<MT,SO> >
-   : public BoolConstant< IsUniLower<MT>::value >
-{};
-/*! \endcond */
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  ISSTRICTLYLOWER SPECIALIZATIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename MT, bool SO >
-struct IsStrictlyLower< DMatDeclDiagExpr<MT,SO> >
-   : public BoolConstant< IsStrictlyLower<MT>::value >
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -1293,124 +1070,6 @@ template< typename MT, bool SO >
 struct IsUpper< DMatDeclDiagExpr<MT,SO> >
    : public TrueType
 {};
-/*! \endcond */
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  ISUNIUPPER SPECIALIZATIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename MT, bool SO >
-struct IsUniUpper< DMatDeclDiagExpr<MT,SO> >
-   : public BoolConstant< IsUniUpper<MT>::value >
-{};
-/*! \endcond */
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  ISSTRICTLYUPPER SPECIALIZATIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename MT, bool SO >
-struct IsStrictlyUpper< DMatDeclDiagExpr<MT,SO> >
-   : public BoolConstant< IsStrictlyUpper<MT>::value >
-{};
-/*! \endcond */
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  EXPRESSION TRAIT SPECIALIZATIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename MT, typename ST >
-struct DMatDeclDiagExprTrait< DMatScalarMultExpr<MT,ST,false> >
-{
- public:
-   //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsRowMajorMatrix<MT>, IsNumeric<ST> >
-                   , MultExprTrait_< DeclDiagExprTrait_<MT>, ST >
-                   , INVALID_TYPE >;
-   //**********************************************************************************************
-};
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename MT, typename ST >
-struct TDMatDeclDiagExprTrait< DMatScalarMultExpr<MT,ST,true> >
-{
- public:
-   //**********************************************************************************************
-   using Type = If_< And< IsDenseMatrix<MT>, IsColumnMajorMatrix<MT>, IsNumeric<ST> >
-                   , MultExprTrait_< DeclDiagExprTrait_<MT>, ST >
-                   , INVALID_TYPE >;
-   //**********************************************************************************************
-};
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename MT, bool SO, bool AF >
-struct SubmatrixExprTrait< DMatDeclDiagExpr<MT,SO>, AF >
-{
- public:
-   //**********************************************************************************************
-   using Type = SubmatrixExprTrait_<const MT,AF>;
-   //**********************************************************************************************
-};
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename MT, bool SO >
-struct RowExprTrait< DMatDeclDiagExpr<MT,SO> >
-{
- public:
-   //**********************************************************************************************
-   using Type = RowExprTrait_<const MT>;
-   //**********************************************************************************************
-};
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename MT, bool SO >
-struct ColumnExprTrait< DMatDeclDiagExpr<MT,SO> >
-{
- public:
-   //**********************************************************************************************
-   using Type = ColumnExprTrait_<const MT>;
-   //**********************************************************************************************
-};
 /*! \endcond */
 //*************************************************************************************************
 

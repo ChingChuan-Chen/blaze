@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatdmatsub/L3x3bL3x3a.cpp
 //  \brief Source file for the L3x3bL3x3a dense matrix/dense matrix subtraction math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dmatdmatsub/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::LowerMatrix< blaze::StaticMatrix<TypeB,3UL,3UL> >  L3x3b;
-      typedef blaze::LowerMatrix< blaze::StaticMatrix<TypeA,3UL,3UL> >  L3x3a;
+      using L3x3b = blaze::LowerMatrix< blaze::StaticMatrix<TypeB,3UL,3UL> >;
+      using L3x3a = blaze::LowerMatrix< blaze::StaticMatrix<TypeA,3UL,3UL> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<L3x3b>  CL3x3b;
-      typedef blazetest::Creator<L3x3a>  CL3x3a;
+      using CL3x3b = blazetest::Creator<L3x3b>;
+      using CL3x3a = blazetest::Creator<L3x3a>;
 
       // Running the tests
       RUN_DMATDMATSUB_OPERATION_TEST( CL3x3b(), CL3x3a() );

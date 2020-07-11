@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatdvecmult/M16x8bVDb.cpp
 //  \brief Source file for the M16x8bVDb dense matrix/dense vector multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dmatdvecmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -62,12 +66,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StaticMatrix<TypeB,16UL,8UL>  M16x8b;
-      typedef blaze::DynamicVector<TypeB>          VDb;
+      using M16x8b = blaze::StaticMatrix<TypeB,16UL,8UL>;
+      using VDb = blaze::DynamicVector<TypeB>;
 
       // Creator type definitions
-      typedef blazetest::Creator<M16x8b>  CM16x8b;
-      typedef blazetest::Creator<VDb>     CVDb;
+      using CM16x8b = blazetest::Creator<M16x8b>;
+      using CVDb = blazetest::Creator<VDb>;
 
       // Running the tests
       RUN_DMATDVECMULT_OPERATION_TEST( CM16x8b(), CVDb( 8UL ) );

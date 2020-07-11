@@ -2,7 +2,7 @@
 #
 #  Makefile for the tdvecsmatmult module of the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -33,8 +33,10 @@
 
 
 # Including the compiler and library settings
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include ../../Makeconfig
+endif
 endif
 
 
@@ -49,6 +51,7 @@ BIN = $(SRC:.cpp=)
 default: V3aMCa V3aMCb V3bMCa V3bMCb \
          VHaMCa VHaMCb VHbMCa VHbMCb \
          VDaMCa VDaMCb VDbMCa VDbMCb \
+         VUaMCa VUaMCb VUbMCa VUbMCb \
          VDaSCa VDaSCb VDbSCa VDbSCb \
          VDaHCa VDaHCb VDbHCa VDbHCb \
          VDaLCa VDaLCb VDbLCa VDbLCb \
@@ -56,7 +59,7 @@ default: V3aMCa V3aMCb V3bMCa V3bMCb \
          VDaDCa VDaDCb VDbDCa VDbDCb \
          AliasingTest
 all: $(BIN)
-essential: V3aMCa VHaMCa VDaMCa VDaSCa VDaHCa VDaLCa VDaUCa VDaDCa AliasingTest
+essential: V3aMCa VHaMCa VDaMCa VUaMCa VDaSCa VDaHCa VDaLCa VDaUCa VDaDCa AliasingTest
 single: VDaMCa
 
 
@@ -74,9 +77,17 @@ V3aMCa: V3aMCa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 V3aMCb: V3aMCb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+V3aMIa: V3aMIa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+V3aMIb: V3aMIb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 V3bMCa: V3bMCa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 V3bMCb: V3bMCb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+V3bMIa: V3bMIa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+V3bMIb: V3bMIb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 V4aMCa: V4aMCa.o
@@ -122,6 +133,10 @@ VDaMCa: VDaMCa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDaMCb: VDaMCb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VDaMIa: VDaMIa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VDaMIb: VDaMIb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDaSCa: VDaSCa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDaSCb: VDaSCb.o
@@ -146,6 +161,10 @@ VDbMCa: VDbMCa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDbMCb: VDbMCb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VDbMIa: VDbMIa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VDbMIb: VDbMIb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDbSCa: VDbSCa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VDbSCb: VDbSCb.o
@@ -159,9 +178,34 @@ VHaMCa: VHaMCa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VHaMCb: VHaMCb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VHaMIa: VHaMIa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VHaMIb: VHaMIb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VHbMCa: VHbMCa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VHbMCb: VHbMCb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VHbMIa: VHbMIa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VHbMIb: VHbMIb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+
+VUaMCa: VUaMCa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaMCb: VUaMCb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaMIa: VUaMIa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUaMIb: VUaMIb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbMCa: VUbMCa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbMCb: VUbMCb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbMIa: VUbMIa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VUbMIb: VUbMIb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 AliasingTest: AliasingTest.o
@@ -169,13 +213,17 @@ AliasingTest: AliasingTest.o
 
 
 # Cleanup
+reset:
+	@$(RM) $(OBJ) $(BIN)
 clean:
-	@$(RM) $(DEP) $(OBJ) $(BIN)
+	@$(RM) $(OBJ) $(BIN) $(DEP)
 
 
 # Makefile includes
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP)
+endif
 endif
 
 
@@ -185,4 +233,4 @@ endif
 
 
 # Setting the independent commands
-.PHONY: default all essential single clean
+.PHONY: default all essential single reset clean

@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatdmatadd/MDbM5x5a.cpp
 //  \brief Source file for the MDbM5x5a dense matrix/dense matrix addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dmatdmatadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::DynamicMatrix<TypeB>         MDb;
-      typedef blaze::StaticMatrix<TypeA,5UL,5UL>  M5x5a;
+      using MDb = blaze::DynamicMatrix<TypeB>;
+      using M5x5a = blaze::StaticMatrix<TypeA,5UL,5UL>;
 
       // Creator type definitions
-      typedef blazetest::Creator<MDb>    CMDb;
-      typedef blazetest::Creator<M5x5a>  CM5x5a;
+      using CMDb = blazetest::Creator<MDb>;
+      using CM5x5a = blazetest::Creator<M5x5a>;
 
       // Running the tests
       RUN_DMATDMATADD_OPERATION_TEST( CMDb( 5UL, 5UL ), CM5x5a() );

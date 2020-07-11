@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/hermitianmatrix/SparseRealTest.h
 //  \brief Header file for the HermitianMatrix sparse real test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -98,6 +98,7 @@ class SparseRealTest
    void testAssignment  ();
    void testAddAssign   ();
    void testSubAssign   ();
+   void testSchurAssign ();
    void testMultAssign  ();
    void testScaling     ();
    void testFunctionCall();
@@ -105,19 +106,20 @@ class SparseRealTest
    void testNonZeros    ();
    void testReset       ();
    void testClear       ();
-   void testSet         ();
-   void testInsert      ();
-   void testAppend      ();
    void testResize      ();
    void testReserve     ();
    void testTrim        ();
-   void testTranspose   ();
-   void testCTranspose  ();
+   void testShrinkToFit ();
    void testSwap        ();
+   void testSet         ();
+   void testInsert      ();
+   void testAppend      ();
    void testErase       ();
    void testFind        ();
    void testLowerBound  ();
    void testUpperBound  ();
+   void testTranspose   ();
+   void testCTranspose  ();
    void testIsDefault   ();
    void testSubmatrix   ();
    void testRow         ();
@@ -152,13 +154,13 @@ class SparseRealTest
 
    //**Type definitions****************************************************************************
    //! Type of the row-major Hermitian matrix.
-   typedef blaze::HermitianMatrix< blaze::CompressedMatrix<int,blaze::rowMajor> >  HT;
+   using HT = blaze::HermitianMatrix< blaze::CompressedMatrix<int,blaze::rowMajor> >;
 
    //! Type of the column-major Hermitian matrix.
-   typedef blaze::HermitianMatrix< blaze::CompressedMatrix<int,blaze::columnMajor> >  OHT;
+   using OHT = blaze::HermitianMatrix< blaze::CompressedMatrix<int,blaze::columnMajor> >;
 
-   typedef HT::Rebind<double>::Other   RHT;   //!< Rebound row-major Hermitian matrix type.
-   typedef OHT::Rebind<double>::Other  ORHT;  //!< Rebound column-major Hermitian matrix type.
+   using RHT  = HT::Rebind<double>::Other;   //!< Rebound row-major Hermitian matrix type.
+   using ORHT = OHT::Rebind<double>::Other;  //!< Rebound column-major Hermitian matrix type.
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************

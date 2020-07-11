@@ -3,7 +3,7 @@
 //  \file blaze/math/adaptors/symmetricmatrix/DenseNonNumeric.h
 //  \brief SymmetricMatrix specialization for dense matrices with non-numeric element type
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -44,23 +44,25 @@
 #include <utility>
 #include <blaze/math/adaptors/symmetricmatrix/BaseTemplate.h>
 #include <blaze/math/Aliases.h>
+#include <blaze/math/constraints/Computation.h>
 #include <blaze/math/constraints/DenseMatrix.h>
-#include <blaze/math/constraints/Expression.h>
 #include <blaze/math/constraints/Hermitian.h>
 #include <blaze/math/constraints/Lower.h>
 #include <blaze/math/constraints/Resizable.h>
 #include <blaze/math/constraints/StorageOrder.h>
 #include <blaze/math/constraints/Symmetric.h>
+#include <blaze/math/constraints/Transformation.h>
 #include <blaze/math/constraints/Upper.h>
+#include <blaze/math/constraints/View.h>
 #include <blaze/math/dense/DenseMatrix.h>
 #include <blaze/math/Exception.h>
 #include <blaze/math/expressions/DenseMatrix.h>
 #include <blaze/math/expressions/Forward.h>
+#include <blaze/math/RelaxationFlag.h>
 #include <blaze/math/shims/Clear.h>
 #include <blaze/math/shims/Conjugate.h>
 #include <blaze/math/shims/IsDefault.h>
-#include <blaze/math/traits/MultTrait.h>
-#include <blaze/math/typetraits/Columns.h>
+#include <blaze/math/shims/IsZero.h>
 #include <blaze/math/typetraits/IsComputation.h>
 #include <blaze/math/typetraits/IsCustom.h>
 #include <blaze/math/typetraits/IsSMPAssignable.h>
@@ -68,7 +70,7 @@
 #include <blaze/math/typetraits/IsSquare.h>
 #include <blaze/math/typetraits/IsSymmetric.h>
 #include <blaze/math/typetraits/RemoveAdaptor.h>
-#include <blaze/math/typetraits/Rows.h>
+#include <blaze/math/typetraits/Size.h>
 #include <blaze/math/views/Submatrix.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/constraints/Const.h>
@@ -76,14 +78,13 @@
 #include <blaze/util/constraints/Pointer.h>
 #include <blaze/util/constraints/Reference.h>
 #include <blaze/util/constraints/Volatile.h>
-#include <blaze/util/DisableIf.h>
 #include <blaze/util/EnableIf.h>
+#include <blaze/util/MaybeUnused.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/StaticAssert.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/typetraits/IsNumeric.h>
 #include <blaze/util/typetraits/RemoveReference.h>
-#include <blaze/util/Unused.h>
 
 
 namespace blaze {
@@ -109,34 +110,45 @@ class SymmetricMatrix<MT,SO,true,false>
 {
  private:
    //**Type definitions****************************************************************************
-   typedef OppositeType_<MT>   OT;  //!< Opposite type of the dense matrix.
-   typedef TransposeType_<MT>  TT;  //!< Transpose type of the dense matrix.
-   typedef ElementType_<MT>    ET;  //!< Element type of the dense matrix.
+   using OT = OppositeType_t<MT>;   //!< Opposite type of the dense matrix.
+   using TT = TransposeType_t<MT>;  //!< Transpose type of the dense matrix.
+   using ET = ElementType_t<MT>;    //!< Element type of the dense matrix.
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
-   typedef SymmetricMatrix<MT,SO,true,false>   This;            //!< Type of this SymmetricMatrix instance.
-   typedef DenseMatrix<This,SO>                BaseType;        //!< Base type of this SymmetricMatrix instance.
-   typedef This                                ResultType;      //!< Result type for expression template evaluations.
-   typedef SymmetricMatrix<OT,!SO,true,false>  OppositeType;    //!< Result type with opposite storage order for expression template evaluations.
-   typedef SymmetricMatrix<TT,!SO,true,false>  TransposeType;   //!< Transpose type for expression template evaluations.
-   typedef ET                                  ElementType;     //!< Type of the matrix elements.
-   typedef ReturnType_<MT>                     ReturnType;      //!< Return type for expression template evaluations.
-   typedef const This&                         CompositeType;   //!< Data type for composite expression templates.
-   typedef Reference_<MT>                      Reference;       //!< Reference to a non-constant matrix value.
-   typedef ConstReference_<MT>                 ConstReference;  //!< Reference to a constant matrix value.
-   typedef Pointer_<MT>                        Pointer;         //!< Pointer to a non-constant matrix value.
-   typedef ConstPointer_<MT>                   ConstPointer;    //!< Pointer to a constant matrix value.
+   using This           = SymmetricMatrix<MT,SO,true,false>;   //!< Type of this SymmetricMatrix instance.
+   using BaseType       = DenseMatrix<This,SO>;                //!< Base type of this SymmetricMatrix instance.
+   using ResultType     = This;                                //!< Result type for expression template evaluations.
+   using OppositeType   = SymmetricMatrix<OT,!SO,true,false>;  //!< Result type with opposite storage order for expression template evaluations.
+   using TransposeType  = SymmetricMatrix<TT,!SO,true,false>;  //!< Transpose type for expression template evaluations.
+   using ElementType    = ET;                                  //!< Type of the matrix elements.
+   using ReturnType     = ReturnType_t<MT>;                    //!< Return type for expression template evaluations.
+   using CompositeType  = const This&;                         //!< Data type for composite expression templates.
+   using Reference      = Reference_t<MT>;                     //!< Reference to a non-constant matrix value.
+   using ConstReference = ConstReference_t<MT>;                //!< Reference to a constant matrix value.
+   using Pointer        = Pointer_t<MT>;                       //!< Pointer to a non-constant matrix value.
+   using ConstPointer   = ConstPointer_t<MT>;                  //!< Pointer to a constant matrix value.
    //**********************************************************************************************
 
    //**Rebind struct definition********************************************************************
    /*!\brief Rebind mechanism to obtain a SymmetricMatrix with different data/element type.
    */
-   template< typename ET >  // Data type of the other matrix
+   template< typename NewType >  // Data type of the other matrix
    struct Rebind {
       //! The type of the other SymmetricMatrix.
-      typedef SymmetricMatrix< typename MT::template Rebind<ET>::Other >  Other;
+      using Other = SymmetricMatrix< typename MT::template Rebind<NewType>::Other >;
+   };
+   //**********************************************************************************************
+
+   //**Resize struct definition********************************************************************
+   /*!\brief Resize mechanism to obtain a SymmetricMatrix with different fixed dimensions.
+   */
+   template< size_t NewM    // Number of rows of the other matrix
+           , size_t NewN >  // Number of columns of the other matrix
+   struct Resize {
+      //! The type of the other SymmetricMatrix.
+      using Other = SymmetricMatrix< typename MT::template Resize<NewM,NewN>::Other >;
    };
    //**********************************************************************************************
 
@@ -149,22 +161,22 @@ class SymmetricMatrix<MT,SO,true,false>
     public:
       //**Type definitions*************************************************************************
       //! Return type for the access to the value of a dense matrix element.
-      typedef If_< IsConst<MatrixType>
-                 , ConstReference_<MatrixType>
-                 , Reference_<MatrixType> >  Reference;
+      using Reference = If_t< IsConst_v<MatrixType>
+                            , ConstReference_t<MatrixType>
+                            , Reference_t<MatrixType> >;
 
-      typedef std::random_access_iterator_tag  IteratorCategory;  //!< The iterator category.
-      typedef RemoveReference_<Reference>      ValueType;         //!< Type of the underlying elements.
-      typedef ValueType*                       PointerType;       //!< Pointer return type.
-      typedef Reference                        ReferenceType;     //!< Reference return type.
-      typedef ptrdiff_t                        DifferenceType;    //!< Difference between two iterators.
+      using IteratorCategory = std::random_access_iterator_tag;  //!< The iterator category.
+      using ValueType        = RemoveReference_t<Reference>;     //!< Type of the underlying elements.
+      using PointerType      = ValueType*;                       //!< Pointer return type.
+      using ReferenceType    = Reference;                        //!< Reference return type.
+      using DifferenceType   = ptrdiff_t;                        //!< Difference between two iterators.
 
       // STL iterator requirements
-      typedef IteratorCategory  iterator_category;  //!< The iterator category.
-      typedef ValueType         value_type;         //!< Type of the underlying elements.
-      typedef PointerType       pointer;            //!< Pointer return type.
-      typedef ReferenceType     reference;          //!< Reference return type.
-      typedef DifferenceType    difference_type;    //!< Difference between two iterators.
+      using iterator_category = IteratorCategory;  //!< The iterator category.
+      using value_type        = ValueType;         //!< Type of the underlying elements.
+      using pointer           = PointerType;       //!< Pointer return type.
+      using reference         = ReferenceType;     //!< Reference return type.
+      using difference_type   = DifferenceType;    //!< Difference between two iterators.
       //*******************************************************************************************
 
       //**Constructor******************************************************************************
@@ -444,32 +456,26 @@ class SymmetricMatrix<MT,SO,true,false>
    //**********************************************************************************************
 
    //**Type definitions****************************************************************************
-   typedef MatrixIterator<MT>        Iterator;       //!< Iterator over non-constant elements.
-   typedef MatrixIterator<const MT>  ConstIterator;  //!< Iterator over constant elements.
+   using Iterator      = MatrixIterator<MT>;        //!< Iterator over non-constant elements.
+   using ConstIterator = MatrixIterator<const MT>;  //!< Iterator over constant elements.
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template evaluation strategy.
-   enum : bool { simdEnabled = false };
+   static constexpr bool simdEnabled = false;
 
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = MT::smpAssignable && !IsSMPAssignable<ET>::value };
+   static constexpr bool smpAssignable = ( MT::smpAssignable && !IsSMPAssignable_v<ET> );
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
    /*!\name Constructors */
    //@{
-   explicit inline SymmetricMatrix();
+            inline SymmetricMatrix();
    explicit inline SymmetricMatrix( size_t n );
 
-   explicit inline SymmetricMatrix( ElementType* ptr, size_t n );
-   explicit inline SymmetricMatrix( ElementType* ptr, size_t n, size_t nn );
-
-   template< typename Deleter >
-   explicit inline SymmetricMatrix( ElementType* ptr, size_t n, Deleter d );
-
-   template< typename Deleter >
-   explicit inline SymmetricMatrix( ElementType* ptr, size_t n, size_t nn, Deleter d );
+   inline SymmetricMatrix( ElementType* ptr, size_t n );
+   inline SymmetricMatrix( ElementType* ptr, size_t n, size_t nn );
 
    inline SymmetricMatrix( const SymmetricMatrix& m );
    inline SymmetricMatrix( SymmetricMatrix&& m ) noexcept;
@@ -480,7 +486,10 @@ class SymmetricMatrix<MT,SO,true,false>
    //**********************************************************************************************
 
    //**Destructor**********************************************************************************
-   // No explicitly declared destructor.
+   /*!\name Destructor */
+   //@{
+   ~SymmetricMatrix() = default;
+   //@}
    //**********************************************************************************************
 
    //**Data access functions***********************************************************************
@@ -508,63 +517,85 @@ class SymmetricMatrix<MT,SO,true,false>
    inline SymmetricMatrix& operator=( SymmetricMatrix&& rhs ) noexcept;
 
    template< typename MT2 >
-   inline DisableIf_< IsComputation<MT2>, SymmetricMatrix& > operator=( const Matrix<MT2,SO>& rhs );
+   inline auto operator=( const Matrix<MT2,SO>& rhs )
+      -> DisableIf_t< IsComputation_v<MT2>, SymmetricMatrix& >;
 
    template< typename MT2 >
-   inline EnableIf_< IsComputation<MT2>, SymmetricMatrix& > operator=( const Matrix<MT2,SO>& rhs );
+   inline auto operator=( const Matrix<MT2,SO>& rhs )
+      -> EnableIf_t< IsComputation_v<MT2>, SymmetricMatrix& >;
 
    template< typename MT2 >
-   inline SymmetricMatrix& operator=( const Matrix<MT2,!SO>& rhs );
+   inline auto operator=( const Matrix<MT2,!SO>& rhs ) -> SymmetricMatrix&;
 
    template< typename MT2 >
-   inline DisableIf_< IsComputation<MT2>, SymmetricMatrix& > operator+=( const Matrix<MT2,SO>& rhs );
+   inline auto operator+=( const Matrix<MT2,SO>& rhs )
+      -> DisableIf_t< IsComputation_v<MT2>, SymmetricMatrix& >;
 
    template< typename MT2 >
-   inline EnableIf_< IsComputation<MT2>, SymmetricMatrix& > operator+=( const Matrix<MT2,SO>& rhs );
+   inline auto operator+=( const Matrix<MT2,SO>& rhs )
+      -> EnableIf_t< IsComputation_v<MT2>, SymmetricMatrix& >;
 
    template< typename MT2 >
-   inline SymmetricMatrix& operator+=( const Matrix<MT2,!SO>& rhs );
+   inline auto operator+=( const Matrix<MT2,!SO>& rhs ) -> SymmetricMatrix&;
 
    template< typename MT2 >
-   inline DisableIf_< IsComputation<MT2>, SymmetricMatrix& > operator-=( const Matrix<MT2,SO>& rhs );
+   inline auto operator-=( const Matrix<MT2,SO>& rhs )
+      -> DisableIf_t< IsComputation_v<MT2>, SymmetricMatrix& >;
 
    template< typename MT2 >
-   inline EnableIf_< IsComputation<MT2>, SymmetricMatrix& > operator-=( const Matrix<MT2,SO>& rhs );
+   inline auto operator-=( const Matrix<MT2,SO>& rhs )
+      -> EnableIf_t< IsComputation_v<MT2>, SymmetricMatrix& >;
 
    template< typename MT2 >
-   inline SymmetricMatrix& operator-=( const Matrix<MT2,!SO>& rhs );
+   inline auto operator-=( const Matrix<MT2,!SO>& rhs ) -> SymmetricMatrix&;
 
-   template< typename MT2, bool SO2 >
-   inline SymmetricMatrix& operator*=( const Matrix<MT2,SO2>& rhs );
+   template< typename MT2 >
+   inline auto operator%=( const Matrix<MT2,SO>& rhs )
+      -> DisableIf_t< IsComputation_v<MT2>, SymmetricMatrix& >;
 
-   template< typename Other >
-   inline EnableIf_< IsNumeric<Other>, SymmetricMatrix >& operator*=( Other rhs );
+   template< typename MT2 >
+   inline auto operator%=( const Matrix<MT2,SO>& rhs )
+      -> EnableIf_t< IsComputation_v<MT2>, SymmetricMatrix& >;
 
-   template< typename Other >
-   inline EnableIf_< IsNumeric<Other>, SymmetricMatrix >& operator/=( Other rhs );
+   template< typename MT2 >
+   inline auto operator%=( const Matrix<MT2,!SO>& rhs ) -> SymmetricMatrix&;
+
+   template< typename ST >
+   inline auto operator*=( ST rhs ) -> EnableIf_t< IsNumeric_v<ST>, SymmetricMatrix& >;
+
+   template< typename ST >
+   inline auto operator/=( ST rhs ) -> EnableIf_t< IsNumeric_v<ST>, SymmetricMatrix& >;
    //@}
    //**********************************************************************************************
 
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-                              inline size_t           rows() const noexcept;
-                              inline size_t           columns() const noexcept;
-                              inline size_t           spacing() const noexcept;
-                              inline size_t           capacity() const noexcept;
-                              inline size_t           capacity( size_t i ) const noexcept;
-                              inline size_t           nonZeros() const;
-                              inline size_t           nonZeros( size_t i ) const;
-                              inline void             reset();
-                              inline void             reset( size_t i );
-                              inline void             clear();
-                                     void             resize ( size_t n, bool preserve=true );
-                              inline void             extend ( size_t n, bool preserve=true );
-                              inline void             reserve( size_t elements );
-                              inline SymmetricMatrix& transpose();
-                              inline SymmetricMatrix& ctranspose();
+   inline size_t rows() const noexcept;
+   inline size_t columns() const noexcept;
+   inline size_t spacing() const noexcept;
+   inline size_t capacity() const noexcept;
+   inline size_t capacity( size_t i ) const noexcept;
+   inline size_t nonZeros() const;
+   inline size_t nonZeros( size_t i ) const;
+   inline void   reset();
+   inline void   reset( size_t i );
+   inline void   clear();
+          void   resize ( size_t n, bool preserve=true );
+   inline void   extend ( size_t n, bool preserve=true );
+   inline void   reserve( size_t elements );
+   inline void   shrinkToFit();
+   inline void   swap( SymmetricMatrix& m ) noexcept;
+   //@}
+   //**********************************************************************************************
+
+   //**Numeric functions***************************************************************************
+   /*!\name Numeric functions */
+   //@{
+   inline SymmetricMatrix& transpose();
+   inline SymmetricMatrix& ctranspose();
+
    template< typename Other > inline SymmetricMatrix& scale( const Other& scalar );
-                              inline void             swap( SymmetricMatrix& m ) noexcept;
    //@}
    //**********************************************************************************************
 
@@ -590,13 +621,15 @@ class SymmetricMatrix<MT,SO,true,false>
    //**Expression template evaluation functions****************************************************
    /*!\name Expression template evaluation functions */
    //@{
-   template< typename MT2 > inline void assign   (       DenseMatrix <MT2,SO>& rhs );
-   template< typename MT2 > inline void assign   ( const DenseMatrix <MT2,SO>& rhs );
-   template< typename MT2 > inline void assign   ( const SparseMatrix<MT2,SO>& rhs );
-   template< typename MT2 > inline void addAssign( const DenseMatrix <MT2,SO>& rhs );
-   template< typename MT2 > inline void addAssign( const SparseMatrix<MT2,SO>& rhs );
-   template< typename MT2 > inline void subAssign( const DenseMatrix <MT2,SO>& rhs );
-   template< typename MT2 > inline void subAssign( const SparseMatrix<MT2,SO>& rhs );
+   template< typename MT2 > inline void assign     (       DenseMatrix <MT2,SO>& rhs );
+   template< typename MT2 > inline void assign     ( const DenseMatrix <MT2,SO>& rhs );
+   template< typename MT2 > inline void assign     ( const SparseMatrix<MT2,SO>& rhs );
+   template< typename MT2 > inline void addAssign  ( const DenseMatrix <MT2,SO>& rhs );
+   template< typename MT2 > inline void addAssign  ( const SparseMatrix<MT2,SO>& rhs );
+   template< typename MT2 > inline void subAssign  ( const DenseMatrix <MT2,SO>& rhs );
+   template< typename MT2 > inline void subAssign  ( const SparseMatrix<MT2,SO>& rhs );
+   template< typename MT2 > inline void schurAssign( const DenseMatrix <MT2,SO>& rhs );
+   template< typename MT2 > inline void schurAssign( const SparseMatrix<MT2,SO>& rhs );
    //@}
    //**********************************************************************************************
 
@@ -608,7 +641,7 @@ class SymmetricMatrix<MT,SO,true,false>
    //**********************************************************************************************
 
    //**Friend declarations*************************************************************************
-   template< typename MT2, bool SO2, bool DF2, bool NF2 >
+   template< RelaxationFlag RF, typename MT2, bool SO2, bool DF2, bool NF2 >
    friend bool isDefault( const SymmetricMatrix<MT2,SO2,DF2,NF2>& m );
    //**********************************************************************************************
 
@@ -618,7 +651,9 @@ class SymmetricMatrix<MT,SO,true,false>
    BLAZE_CONSTRAINT_MUST_NOT_BE_POINTER_TYPE         ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_CONST                ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_VOLATILE             ( MT );
-   BLAZE_CONSTRAINT_MUST_NOT_BE_EXPRESSION_TYPE      ( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_VIEW_TYPE            ( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_COMPUTATION_TYPE     ( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_TRANSFORMATION_TYPE  ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_SYMMETRIC_MATRIX_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_HERMITIAN_MATRIX_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_LOWER_MATRIX_TYPE    ( MT );
@@ -626,7 +661,7 @@ class SymmetricMatrix<MT,SO,true,false>
    BLAZE_CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER( OT, !SO );
    BLAZE_CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER( TT, !SO );
    BLAZE_CONSTRAINT_MUST_NOT_BE_NUMERIC_TYPE         ( ElementType );
-   BLAZE_STATIC_ASSERT( Rows<MT>::value == Columns<MT>::value );
+   BLAZE_STATIC_ASSERT( ( Size_v<MT,0UL> == Size_v<MT,1UL> ) );
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -667,7 +702,7 @@ template< typename MT  // Type of the adapted dense matrix
 inline SymmetricMatrix<MT,SO,true,false>::SymmetricMatrix( size_t n )
    : matrix_( n, n )  // The adapted dense matrix
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE( MT );
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square symmetric matrix detected" );
 }
@@ -683,8 +718,21 @@ inline SymmetricMatrix<MT,SO,true,false>::SymmetricMatrix( size_t n )
 // \param n The number of rows and columns of the array of elements.
 // \exception std::invalid_argument Invalid setup of symmetric custom matrix.
 //
-// This constructor creates an unpadded symmetric custom matrix of size \f$ n \times n \f$. The
-// construction fails if ...
+// This constructor creates an unpadded symmetric custom matrix of size \f$ n \times n \f$:
+
+   \code
+   using blaze::SymmetricMatrix;
+   using blaze::CustomMatrix;
+   using blaze::unaligned;
+   using blaze::unpadded;
+
+   using Type = StaticMatrix<int,3UL,3UL>;
+
+   std::vector<Type> memory( 9UL );
+   SymmetricMatrix< CustomMatrix<Type,unaligned,unpadded> > A( memory.data(), 3UL );
+   \endcode
+
+// The construction fails if ...
 //
 //  - ... the passed pointer is \c nullptr;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
@@ -720,8 +768,21 @@ inline SymmetricMatrix<MT,SO,true,false>::SymmetricMatrix( ElementType* ptr, siz
 // \param nn The total number of elements between two rows/columns.
 // \exception std::invalid_argument Invalid setup of symmetric custom matrix.
 //
-// This constructor creates a symmetric custom matrix of size \f$ n \times n \f$. The construction
-// fails if ...
+// This constructor creates a symmetric custom matrix of size \f$ n \times n \f$:
+
+   \code
+   using blaze::SymmetricMatrix;
+   using blaze::CustomMatrix;
+   using blaze::unaligned;
+   using blaze::padded;
+
+   using Type = StaticMatrix<int,3UL,3UL>;
+
+   std::vector<Type> memory( 24UL );
+   SymmetricMatrix< CustomMatrix<Type,unaligned,padded> > A( memory.data(), 3UL, 8UL );
+   \endcode
+
+// The construction fails if ...
 //
 //  - ... the passed pointer is \c nullptr;
 //  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
@@ -738,81 +799,6 @@ template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
 inline SymmetricMatrix<MT,SO,true,false>::SymmetricMatrix( ElementType* ptr, size_t n, size_t nn )
    : matrix_( ptr, n, n, nn )  // The adapted dense matrix
-{
-   if( !isSymmetric( matrix_ ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid setup of symmetric matrix" );
-   }
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Constructor for a symmetric custom matrix of size \f$ n \times n \f$.
-//
-// \param ptr The array of elements to be used by the matrix.
-// \param n The number of rows and columns of the array of elements.
-// \param d The deleter to destroy the array of elements.
-// \exception std::invalid_argument Invalid setup of symmetric custom matrix.
-//
-// This constructor creates an unpadded symmetric custom matrix of size \f$ n \times n \f$. The
-// construction fails if ...
-//
-//  - ... the passed pointer is \c nullptr;
-//  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
-//    aligned according to the available instruction set (SSE, AVX, ...);
-//  - ... the values in the given array do not represent a symmetric matrix.
-//
-// In all failure cases a \a std::invalid_argument exception is thrown.
-//
-// \note This constructor is \b NOT available for padded symmetric custom matrices!
-*/
-template< typename MT         // Type of the adapted dense matrix
-        , bool SO >           // Storage order of the adapted dense matrix
-template< typename Deleter >  // Type of the custom deleter
-inline SymmetricMatrix<MT,SO,true,false>::SymmetricMatrix( ElementType* ptr, size_t n, Deleter d )
-   : matrix_( ptr, n, n, d )  // The adapted dense matrix
-{
-   if( !isSymmetric( matrix_ ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid setup of symmetric matrix" );
-   }
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Constructor for a symmetric custom matrix of size \f$ n \times n \f$.
-//
-// \param ptr The array of elements to be used by the matrix.
-// \param n The number of rows and columns of the array of elements.
-// \param nn The total number of elements between two rows/columns.
-// \param d The deleter to destroy the array of elements.
-// \exception std::invalid_argument Invalid setup of symmetric custom matrix.
-//
-// This constructor creates a symmetric custom matrix of size \f$ n \times n \f$. The construction
-// fails if ...
-//
-//  - ... the passed pointer is \c nullptr;
-//  - ... the alignment flag \a AF is set to \a aligned, but the passed pointer is not properly
-//    aligned according to the available instruction set (SSE, AVX, ...);
-//  - ... the specified spacing \a nn is insufficient for the given data type \a Type and the
-//    available instruction set;
-//  - ... the values in the given array do not represent a symmetric matrix.
-//
-// In all failure cases a \a std::invalid_argument exception is thrown.
-*/
-template< typename MT         // Type of the adapted dense matrix
-        , bool SO >           // Storage order of the adapted dense matrix
-template< typename Deleter >  // Type of the custom deleter
-inline SymmetricMatrix<MT,SO,true,false>::SymmetricMatrix( ElementType* ptr, size_t n, size_t nn, Deleter d )
-   : matrix_( ptr, n, n, nn, d )  // The adapted dense matrix
 {
    if( !isSymmetric( matrix_ ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid setup of symmetric matrix" );
@@ -878,10 +864,10 @@ inline SymmetricMatrix<MT,SO,true,false>::SymmetricMatrix( const Matrix<MT2,SO>&
 {
    using blaze::resize;
 
-   typedef RemoveAdaptor_<ResultType_<MT2> >          RT;
-   typedef If_< IsComputation<MT2>, RT, const MT2& >  Tmp;
+   using RT  = RemoveAdaptor_t<ResultType_t<MT2> >;
+   using Tmp = If_t< IsComputation_v<MT2>, RT, const MT2& >;
 
-   if( IsSymmetric<MT2>::value ) {
+   if( IsSymmetric_v<MT2> ) {
       resize( matrix_, (~m).rows(), (~m).columns() );
       assign( ~m );
    }
@@ -921,10 +907,10 @@ inline SymmetricMatrix<MT,SO,true,false>::SymmetricMatrix( const Matrix<MT2,!SO>
 {
    using blaze::resize;
 
-   typedef RemoveAdaptor_< ResultType_<MT2> >         RT;
-   typedef If_< IsComputation<MT2>, RT, const MT2& >  Tmp;
+   using RT  = RemoveAdaptor_t< ResultType_t<MT2> >;
+   using Tmp = If_t< IsComputation_v<MT2>, RT, const MT2& >;
 
-   if( IsSymmetric<MT2>::value ) {
+   if( IsSymmetric_v<MT2> ) {
       resize( matrix_, (~m).rows(), (~m).columns() );
       assign( trans( ~m ) );
    }
@@ -1366,12 +1352,12 @@ inline SymmetricMatrix<MT,SO,true,false>&
 template< typename MT     // Type of the adapted dense matrix
         , bool SO >       // Storage order of the adapted dense matrix
 template< typename MT2 >  // Type of the right-hand side matrix
-inline DisableIf_< IsComputation<MT2>, SymmetricMatrix<MT,SO,true,false>& >
-   SymmetricMatrix<MT,SO,true,false>::operator=( const Matrix<MT2,SO>& rhs )
+inline auto SymmetricMatrix<MT,SO,true,false>::operator=( const Matrix<MT2,SO>& rhs )
+   -> DisableIf_t< IsComputation_v<MT2>, SymmetricMatrix& >
 {
    using blaze::resize;
 
-   if( !IsSymmetric<MT2>::value && !isSymmetric( ~rhs ) ) {
+   if( !IsSymmetric_v<MT2> && !isSymmetric( ~rhs ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
    }
 
@@ -1381,7 +1367,7 @@ inline DisableIf_< IsComputation<MT2>, SymmetricMatrix<MT,SO,true,false>& >
    }
    else {
       resize( matrix_, (~rhs).rows(), (~rhs).columns() );
-      if( IsSparseMatrix<MT2>::value )
+      if( IsSparseMatrix_v<MT2> )
          reset();
       assign( ~rhs );
    }
@@ -1412,27 +1398,27 @@ inline DisableIf_< IsComputation<MT2>, SymmetricMatrix<MT,SO,true,false>& >
 template< typename MT     // Type of the adapted dense matrix
         , bool SO >       // Storage order of the adapted dense matrix
 template< typename MT2 >  // Type of the right-hand side matrix
-inline EnableIf_< IsComputation<MT2>, SymmetricMatrix<MT,SO,true,false>& >
-   SymmetricMatrix<MT,SO,true,false>::operator=( const Matrix<MT2,SO>& rhs )
+inline auto SymmetricMatrix<MT,SO,true,false>::operator=( const Matrix<MT2,SO>& rhs )
+   -> EnableIf_t< IsComputation_v<MT2>, SymmetricMatrix& >
 {
    using blaze::resize;
 
-   typedef If_< IsSymmetric<MT2>, CompositeType_<MT2>, ResultType_<MT2> >  Tmp;
+   using Tmp = If_t< IsSymmetric_v<MT2>, CompositeType_t<MT2>, ResultType_t<MT2> >;
 
-   if( !IsSquare<MT2>::value && !isSquare( ~rhs ) ) {
+   if( !IsSquare_v<MT2> && !isSquare( ~rhs ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
    }
 
    Tmp tmp( ~rhs );
 
-   if( !IsSymmetric<Tmp>::value && !isSymmetric( tmp ) ) {
+   if( !IsSymmetric_v<Tmp> && !isSymmetric( tmp ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
    }
 
    BLAZE_INTERNAL_ASSERT( !tmp.canAlias( this ), "Aliasing detected" );
 
    resize( matrix_, tmp.rows(), tmp.columns() );
-   if( IsSparseMatrix<Tmp>::value )
+   if( IsSparseMatrix_v<Tmp> )
       reset();
    assign( tmp );
 
@@ -1462,8 +1448,8 @@ inline EnableIf_< IsComputation<MT2>, SymmetricMatrix<MT,SO,true,false>& >
 template< typename MT     // Type of the adapted dense matrix
         , bool SO >       // Storage order of the adapted dense matrix
 template< typename MT2 >  // Type of the right-hand side matrix
-inline SymmetricMatrix<MT,SO,true,false>&
-   SymmetricMatrix<MT,SO,true,false>::operator=( const Matrix<MT2,!SO>& rhs )
+inline auto SymmetricMatrix<MT,SO,true,false>::operator=( const Matrix<MT2,!SO>& rhs )
+   -> SymmetricMatrix&
 {
    return this->operator=( trans( ~rhs ) );
 }
@@ -1487,10 +1473,10 @@ inline SymmetricMatrix<MT,SO,true,false>&
 template< typename MT     // Type of the adapted dense matrix
         , bool SO >       // Storage order of the adapted dense matrix
 template< typename MT2 >  // Type of the right-hand side matrix
-inline DisableIf_< IsComputation<MT2>, SymmetricMatrix<MT,SO,true,false>& >
-   SymmetricMatrix<MT,SO,true,false>::operator+=( const Matrix<MT2,SO>& rhs )
+inline auto SymmetricMatrix<MT,SO,true,false>::operator+=( const Matrix<MT2,SO>& rhs )
+   -> DisableIf_t< IsComputation_v<MT2>, SymmetricMatrix& >
 {
-   if( !IsSymmetric<MT2>::value && !isSymmetric( ~rhs ) ) {
+   if( !IsSymmetric_v<MT2> && !isSymmetric( ~rhs ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
    }
 
@@ -1521,18 +1507,18 @@ inline DisableIf_< IsComputation<MT2>, SymmetricMatrix<MT,SO,true,false>& >
 template< typename MT     // Type of the adapted dense matrix
         , bool SO >       // Storage order of the adapted dense matrix
 template< typename MT2 >  // Type of the right-hand side matrix
-inline EnableIf_< IsComputation<MT2>, SymmetricMatrix<MT,SO,true,false>& >
-   SymmetricMatrix<MT,SO,true,false>::operator+=( const Matrix<MT2,SO>& rhs )
+inline auto SymmetricMatrix<MT,SO,true,false>::operator+=( const Matrix<MT2,SO>& rhs )
+   -> EnableIf_t< IsComputation_v<MT2>, SymmetricMatrix& >
 {
-   typedef If_< IsSymmetric<MT2>, CompositeType_<MT2>, ResultType_<MT2> >  Tmp;
+   using Tmp = If_t< IsSymmetric_v<MT2>, CompositeType_t<MT2>, ResultType_t<MT2> >;
 
-   if( !IsSquare<MT2>::value && !isSquare( ~rhs ) ) {
+   if( !IsSquare_v<MT2> && !isSquare( ~rhs ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
    }
 
    Tmp tmp( ~rhs );
 
-   if( !IsSymmetric<Tmp>::value && !isSymmetric( tmp ) ) {
+   if( !IsSymmetric_v<Tmp> && !isSymmetric( tmp ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
    }
 
@@ -1566,8 +1552,8 @@ inline EnableIf_< IsComputation<MT2>, SymmetricMatrix<MT,SO,true,false>& >
 template< typename MT     // Type of the adapted dense matrix
         , bool SO >       // Storage order of the adapted dense matrix
 template< typename MT2 >  // Type of the right-hand side matrix
-inline SymmetricMatrix<MT,SO,true,false>&
-   SymmetricMatrix<MT,SO,true,false>::operator+=( const Matrix<MT2,!SO>& rhs )
+inline auto SymmetricMatrix<MT,SO,true,false>::operator+=( const Matrix<MT2,!SO>& rhs )
+   -> SymmetricMatrix&
 {
    return this->operator+=( trans( ~rhs ) );
 }
@@ -1591,10 +1577,10 @@ inline SymmetricMatrix<MT,SO,true,false>&
 template< typename MT     // Type of the adapted dense matrix
         , bool SO >       // Storage order of the adapted dense matrix
 template< typename MT2 >  // Type of the right-hand side matrix
-inline DisableIf_< IsComputation<MT2>, SymmetricMatrix<MT,SO,true,false>& >
-   SymmetricMatrix<MT,SO,true,false>::operator-=( const Matrix<MT2,SO>& rhs )
+inline auto SymmetricMatrix<MT,SO,true,false>::operator-=( const Matrix<MT2,SO>& rhs )
+   -> DisableIf_t< IsComputation_v<MT2>, SymmetricMatrix& >
 {
-   if( !IsSymmetric<MT2>::value && !isSymmetric( ~rhs ) ) {
+   if( !IsSymmetric_v<MT2> && !isSymmetric( ~rhs ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
    }
 
@@ -1625,18 +1611,18 @@ inline DisableIf_< IsComputation<MT2>, SymmetricMatrix<MT,SO,true,false>& >
 template< typename MT     // Type of the adapted dense matrix
         , bool SO >       // Storage order of the adapted dense matrix
 template< typename MT2 >  // Type of the right-hand side matrix
-inline EnableIf_< IsComputation<MT2>, SymmetricMatrix<MT,SO,true,false>& >
-   SymmetricMatrix<MT,SO,true,false>::operator-=( const Matrix<MT2,SO>& rhs )
+inline auto SymmetricMatrix<MT,SO,true,false>::operator-=( const Matrix<MT2,SO>& rhs )
+   -> EnableIf_t< IsComputation_v<MT2>, SymmetricMatrix& >
 {
-   typedef If_< IsSymmetric<MT2>, CompositeType_<MT2>, ResultType_<MT2> >  Tmp;
+   using Tmp = If_t< IsSymmetric_v<MT2>, CompositeType_t<MT2>, ResultType_t<MT2> >;
 
-   if( !IsSquare<MT2>::value && !isSquare( ~rhs ) ) {
+   if( !IsSquare_v<MT2> && !isSquare( ~rhs ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
    }
 
    Tmp tmp( ~rhs );
 
-   if( !IsSymmetric<Tmp>::value && !isSymmetric( tmp ) ) {
+   if( !IsSymmetric_v<Tmp> && !isSymmetric( tmp ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
    }
 
@@ -1670,8 +1656,8 @@ inline EnableIf_< IsComputation<MT2>, SymmetricMatrix<MT,SO,true,false>& >
 template< typename MT     // Type of the adapted dense matrix
         , bool SO >       // Storage order of the adapted dense matrix
 template< typename MT2 >  // Type of the right-hand side matrix
-inline SymmetricMatrix<MT,SO,true,false>&
-   SymmetricMatrix<MT,SO,true,false>::operator-=( const Matrix<MT2,!SO>& rhs )
+inline auto SymmetricMatrix<MT,SO,true,false>::operator-=( const Matrix<MT2,!SO>& rhs )
+   -> SymmetricMatrix&
 {
    return this->operator-=( trans( ~rhs ) );
 }
@@ -1681,46 +1667,105 @@ inline SymmetricMatrix<MT,SO,true,false>&
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Multiplication assignment operator for the multiplication of a matrix (\f$ A*=B \f$).
+/*!\brief Schur product assignment operator for the multiplication of a general matrix
+//        (\f$ A\circ=B \f$).
 //
-// \param rhs The right-hand side matrix for the multiplication.
+// \param rhs The right-hand side general matrix for the Schur product.
 // \return Reference to the matrix.
-// \exception std::invalid_argument Matrix sizes do not match.
+// \exception std::invalid_argument Invalid assignment to symmetric matrix.
 //
 // In case the current sizes of the two matrices don't match, a \a std::invalid_argument exception
-// is thrown. Also note that the result of the multiplication operation must be a symmetric matrix.
-// In case it is not, a \a std::invalid_argument exception is thrown.
+// is thrown. Also note that the result of the Schur product operation must be a symmetric matrix,
+// i.e. the given matrix must be a symmetric matrix. In case the result is not a symmetric matrix,
+// a \a std::invalid_argument exception is thrown.
 */
-template< typename MT   // Type of the adapted dense matrix
-        , bool SO >     // Storage order of the adapted dense matrix
-template< typename MT2  // Type of the right-hand side matrix
-        , bool SO2 >    // Storage order of the right-hand side matrix
-inline SymmetricMatrix<MT,SO,true,false>&
-   SymmetricMatrix<MT,SO,true,false>::operator*=( const Matrix<MT2,SO2>& rhs )
+template< typename MT     // Type of the adapted dense matrix
+        , bool SO >       // Storage order of the adapted dense matrix
+template< typename MT2 >  // Type of the right-hand side matrix
+inline auto SymmetricMatrix<MT,SO,true,false>::operator%=( const Matrix<MT2,SO>& rhs )
+   -> DisableIf_t< IsComputation_v<MT2>, SymmetricMatrix& >
 {
-   using blaze::resize;
-
-   typedef MultTrait_< MT, ResultType_<MT2> >  Tmp;
-
-   BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( Tmp );
-
-   if( matrix_.rows() != (~rhs).columns() ) {
+   if( !IsSymmetric_v<MT2> && !isSymmetric( ~rhs ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
    }
 
-   Tmp tmp( (*this) * ~rhs );
-
-   if( !isSymmetric( tmp ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
-   }
-
-   resize( matrix_, tmp.rows(), tmp.columns() );
-   assign( tmp );
+   schurAssign( ~rhs );
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square symmetric matrix detected" );
    BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
 
    return *this;
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Schur product assignment operator for the multiplication of a matrix computation
+//        (\f$ A&=B \f$).
+//
+// \param rhs The right-hand side matrix computation for the Schur product.
+// \return Reference to the matrix.
+// \exception std::invalid_argument Invalid assignment to symmetric matrix.
+//
+// In case the current sizes of the two matrices don't match, a \a std::invalid_argument exception
+// is thrown. Also note that the result of the Schur product operation must be a symmetric matrix,
+// i.e. the given matrix must be a symmetric matrix. In case the result is not a symmetric matrix,
+// a \a std::invalid_argument exception is thrown.
+*/
+template< typename MT     // Type of the adapted dense matrix
+        , bool SO >       // Storage order of the adapted dense matrix
+template< typename MT2 >  // Type of the right-hand side matrix
+inline auto SymmetricMatrix<MT,SO,true,false>::operator%=( const Matrix<MT2,SO>& rhs )
+   -> EnableIf_t< IsComputation_v<MT2>, SymmetricMatrix& >
+{
+   using Tmp = If_t< IsSymmetric_v<MT2>, CompositeType_t<MT2>, ResultType_t<MT2> >;
+
+   if( !IsSquare_v<MT2> && !isSquare( ~rhs ) ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
+   }
+
+   Tmp tmp( ~rhs );
+
+   if( !IsSymmetric_v<Tmp> && !isSymmetric( tmp ) ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to symmetric matrix" );
+   }
+
+   BLAZE_INTERNAL_ASSERT( !tmp.canAlias( this ), "Aliasing detected" );
+
+   schurAssign( tmp );
+
+   BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square symmetric matrix detected" );
+   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
+
+   return *this;
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Schur product assignment operator for the multiplication of a matrix with opposite
+//        storage order (\f$ A\circ=B \f$).
+//
+// \param rhs The right-hand side matrix for the Schur product.
+// \return Reference to the matrix.
+// \exception std::invalid_argument Invalid assignment to symmetric matrix.
+//
+// In case the current sizes of the two matrices don't match, a \a std::invalid_argument exception
+// is thrown. Also note that the result of the Schur product operation must be a symmetric matrix,
+// i.e. the given matrix must be a symmetric matrix. In case the result is not a symmetric matrix,
+// a \a std::invalid_argument exception is thrown.
+*/
+template< typename MT     // Type of the adapted dense matrix
+        , bool SO >       // Storage order of the adapted dense matrix
+template< typename MT2 >  // Type of the right-hand side matrix
+inline auto SymmetricMatrix<MT,SO,true,false>::operator%=( const Matrix<MT2,!SO>& rhs )
+   -> SymmetricMatrix&
+{
+   return this->operator%=( trans( ~rhs ) );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1734,11 +1779,11 @@ inline SymmetricMatrix<MT,SO,true,false>&
 // \param rhs The right-hand side scalar value for the multiplication.
 // \return Reference to the matrix.
 */
-template< typename MT       // Type of the adapted dense matrix
-        , bool SO >         // Storage order of the adapted dense matrix
-template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_< IsNumeric<Other>, SymmetricMatrix<MT,SO,true,false> >&
-   SymmetricMatrix<MT,SO,true,false>::operator*=( Other rhs )
+template< typename MT    // Type of the adapted dense matrix
+        , bool SO >      // Storage order of the adapted dense matrix
+template< typename ST >  // Data type of the right-hand side scalar
+inline auto SymmetricMatrix<MT,SO,true,false>::operator*=( ST rhs )
+   -> EnableIf_t< IsNumeric_v<ST>, SymmetricMatrix& >
 {
    if( SO ) {
       for( size_t j=0UL; j<columns(); ++j )
@@ -1765,13 +1810,13 @@ inline EnableIf_< IsNumeric<Other>, SymmetricMatrix<MT,SO,true,false> >&
 // \param rhs The right-hand side scalar value for the division.
 // \return Reference to the matrix.
 */
-template< typename MT       // Type of the adapted dense matrix
-        , bool SO >         // Storage order of the adapted dense matrix
-template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_< IsNumeric<Other>, SymmetricMatrix<MT,SO,true,false> >&
-   SymmetricMatrix<MT,SO,true,false>::operator/=( Other rhs )
+template< typename MT    // Type of the adapted dense matrix
+        , bool SO >      // Storage order of the adapted dense matrix
+template< typename ST >  // Data type of the right-hand side scalar
+inline auto SymmetricMatrix<MT,SO,true,false>::operator/=( ST rhs )
+   -> EnableIf_t< IsNumeric_v<ST>, SymmetricMatrix& >
 {
-   BLAZE_USER_ASSERT( rhs != Other(0), "Division by zero detected" );
+   BLAZE_USER_ASSERT( !isZero( rhs ), "Division by zero detected" );
 
    if( SO ) {
       for( size_t j=0UL; j<columns(); ++j )
@@ -2050,7 +2095,7 @@ inline void SymmetricMatrix<MT,SO,true,false>::reset( size_t i )
 {
    using blaze::clear;
 
-   for( Iterator element=begin(i); element!=end(i); ++element )
+   for( auto element=begin(i); element!=end(i); ++element )
       clear( *element );
 }
 /*! \endcond */
@@ -2101,9 +2146,9 @@ template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
 void SymmetricMatrix<MT,SO,true,false>::resize( size_t n, bool preserve )
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE( MT );
 
-   UNUSED_PARAMETER( preserve );
+   MAYBE_UNUSED( preserve );
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square symmetric matrix detected" );
 
@@ -2138,9 +2183,9 @@ template< typename MT  // Type of the adapted dense matrix
         , bool SO >    // Storage order of the adapted dense matrix
 inline void SymmetricMatrix<MT,SO,true,false>::extend( size_t n, bool preserve )
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE( MT );
 
-   UNUSED_PARAMETER( preserve );
+   MAYBE_UNUSED( preserve );
 
    resize( rows() + n, true );
 }
@@ -2167,6 +2212,53 @@ inline void SymmetricMatrix<MT,SO,true,false>::reserve( size_t elements )
 /*! \endcond */
 //*************************************************************************************************
 
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Requesting the removal of unused capacity.
+//
+// \return void
+//
+// This function minimizes the capacity of the matrix by removing unused capacity. Please note
+// that in case a reallocation occurs, all iterators (including end() iterators), all pointers
+// and references to elements of this matrix are invalidated.
+*/
+template< typename MT  // Type of the adapted dense matrix
+        , bool SO >    // Storage order of the adapted dense matrix
+inline void SymmetricMatrix<MT,SO,true,false>::shrinkToFit()
+{
+   matrix_.shrinkToFit();
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Swapping the contents of two matrices.
+//
+// \param m The matrix to be swapped.
+// \return void
+*/
+template< typename MT  // Type of the adapted dense matrix
+        , bool SO >    // Storage order of the adapted dense matrix
+inline void SymmetricMatrix<MT,SO,true,false>::swap( SymmetricMatrix& m ) noexcept
+{
+   using std::swap;
+
+   swap( matrix_, m.matrix_ );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+
+
+//=================================================================================================
+//
+//  NUMERIC FUNCTIONS
+//
+//=================================================================================================
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
@@ -2217,6 +2309,17 @@ inline SymmetricMatrix<MT,SO,true,false>& SymmetricMatrix<MT,SO,true,false>::ctr
 //
 // \param scalar The scalar value for the matrix scaling.
 // \return Reference to the matrix.
+//
+// This function scales the matrix by applying the given scalar value \a scalar to each element
+// of the matrix. For built-in and \c complex data types it has the same effect as using the
+// multiplication assignment operator:
+
+   \code
+   blaze::SymmetricMatrix< blaze::DynamicMatrix< blaze::StaticVector<int,1UL> > > A;
+   // ... Resizing and initialization
+   A *= 4;        // Scaling of the matrix
+   A.scale( 4 );  // Same effect as above
+   \endcode
 */
 template< typename MT       // Type of the adapted dense matrix
         , bool SO >         // Storage order of the adapted dense matrix
@@ -2236,25 +2339,6 @@ inline SymmetricMatrix<MT,SO,true,false>&
    }
 
    return *this;
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Swapping the contents of two matrices.
-//
-// \param m The matrix to be swapped.
-// \return void
-*/
-template< typename MT  // Type of the adapted dense matrix
-        , bool SO >    // Storage order of the adapted dense matrix
-inline void SymmetricMatrix<MT,SO,true,false>::swap( SymmetricMatrix& m ) noexcept
-{
-   using std::swap;
-
-   swap( matrix_, m.matrix_ );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -2285,7 +2369,7 @@ inline bool SymmetricMatrix<MT,SO,true,false>::isIntact() const noexcept
    using blaze::isIntact;
 
    return isIntact( matrix_ ) &&
-          ( IsCustom<MT>::value || ( SO ? isUpper( matrix_ ) : isLower( matrix_ ) ) );
+          ( IsCustom_v<MT> || ( SO ? isUpper( matrix_ ) : isLower( matrix_ ) ) );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -2474,19 +2558,17 @@ inline void SymmetricMatrix<MT,SO,true,false>::assign( const SparseMatrix<MT2,SO
    BLAZE_INTERNAL_ASSERT( rows()    == (~rhs).rows()   , "Invalid number of rows"    );
    BLAZE_INTERNAL_ASSERT( columns() == (~rhs).columns(), "Invalid number of columns" );
 
-   typedef ConstIterator_<MT2>  ConstIterator;
-
    if( SO ) {
       for( size_t j=0UL; j<columns(); ++j ) {
-         const ConstIterator last( (~rhs).upperBound(j,j) );
-         for( ConstIterator element=(~rhs).begin(j); element!=last; ++element )
+         const auto last( (~rhs).upperBound(j,j) );
+         for( auto element=(~rhs).begin(j); element!=last; ++element )
             matrix_(element->index(),j) = element->value();
       }
    }
    else {
       for( size_t i=0UL; i<rows(); ++i ) {
-         const ConstIterator last( (~rhs).upperBound(i,i) );
-         for( ConstIterator element=(~rhs).begin(i); element!=last; ++element )
+         const auto last( (~rhs).upperBound(i,i) );
+         for( auto element=(~rhs).begin(i); element!=last; ++element )
             matrix_(i,element->index()) = element->value();
       }
    }
@@ -2550,19 +2632,17 @@ inline void SymmetricMatrix<MT,SO,true,false>::addAssign( const SparseMatrix<MT2
    BLAZE_INTERNAL_ASSERT( rows()    == (~rhs).rows()   , "Invalid number of rows"    );
    BLAZE_INTERNAL_ASSERT( columns() == (~rhs).columns(), "Invalid number of columns" );
 
-   typedef ConstIterator_<MT2>  ConstIterator;
-
    if( SO ) {
       for( size_t j=0UL; j<columns(); ++j ) {
-         const ConstIterator last( (~rhs).upperBound(j,j) );
-         for( ConstIterator element=(~rhs).begin(j); element!=last; ++element )
+         const auto last( (~rhs).upperBound(j,j) );
+         for( auto element=(~rhs).begin(j); element!=last; ++element )
             matrix_(element->index(),j) += element->value();
       }
    }
    else {
       for( size_t i=0UL; i<rows(); ++i ) {
-         const ConstIterator last( (~rhs).upperBound(i,i) );
-         for( ConstIterator element=(~rhs).begin(i); element!=last; ++element )
+         const auto last( (~rhs).upperBound(i,i) );
+         for( auto element=(~rhs).begin(i); element!=last; ++element )
             matrix_(i,element->index()) += element->value();
       }
    }
@@ -2626,20 +2706,114 @@ inline void SymmetricMatrix<MT,SO,true,false>::subAssign( const SparseMatrix<MT2
    BLAZE_INTERNAL_ASSERT( rows()    == (~rhs).rows()   , "Invalid number of rows"    );
    BLAZE_INTERNAL_ASSERT( columns() == (~rhs).columns(), "Invalid number of columns" );
 
-   typedef ConstIterator_<MT2>  ConstIterator;
-
    if( SO ) {
       for( size_t j=0UL; j<columns(); ++j ) {
-         const ConstIterator last( (~rhs).upperBound(j,j) );
-         for( ConstIterator element=(~rhs).begin(j); element!=last; ++element )
+         const auto last( (~rhs).upperBound(j,j) );
+         for( auto element=(~rhs).begin(j); element!=last; ++element )
             matrix_(element->index(),j) -= element->value();
       }
    }
    else {
       for( size_t i=0UL; i<rows(); ++i ) {
-         const ConstIterator last( (~rhs).upperBound(i,i) );
-         for( ConstIterator element=(~rhs).begin(i); element!=last; ++element )
+         const auto last( (~rhs).upperBound(i,i) );
+         for( auto element=(~rhs).begin(i); element!=last; ++element )
             matrix_(i,element->index()) -= element->value();
+      }
+   }
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Default implementation of the Schur product assignment of a dense matrix.
+//
+// \param rhs The right-hand side dense matrix for the Schur product.
+// \return void
+//
+// This function must \b NOT be called explicitly! It is used internally for the performance
+// optimized evaluation of expression templates. Calling this function explicitly might result
+// in erroneous results and/or in compilation errors. Instead of using this function use the
+// assignment operator.
+*/
+template< typename MT     // Type of the adapted dense matrix
+        , bool SO >       // Storage order of the adapted dense matrix
+template< typename MT2 >  // Type of the right-hand side dense matrix
+inline void SymmetricMatrix<MT,SO,true,false>::schurAssign( const DenseMatrix<MT2,SO>& rhs )
+{
+   BLAZE_INTERNAL_ASSERT( rows()    == (~rhs).rows()   , "Invalid number of rows"    );
+   BLAZE_INTERNAL_ASSERT( columns() == (~rhs).columns(), "Invalid number of columns" );
+
+   if( SO ) {
+      for( size_t j=0UL; j<columns(); ++j )
+         for( size_t i=0UL; i<=j; ++i )
+            matrix_(i,j) *= (~rhs)(i,j);
+   }
+   else {
+      for( size_t i=0UL; i<rows(); ++i )
+         for( size_t j=0UL; j<=i; ++j )
+            matrix_(i,j) *= (~rhs)(i,j);
+   }
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Default implementation of the Schur product assignment of a sparse matrix.
+//
+// \param rhs The right-hand side sparse matrix for the Schur product.
+// \return void
+//
+// This function must \b NOT be called explicitly! It is used internally for the performance
+// optimized evaluation of expression templates. Calling this function explicitly might result
+// in erroneous results and/or in compilation errors. Instead of using this function use the
+// assignment operator.
+*/
+template< typename MT     // Type of the adapted dense matrix
+        , bool SO >       // Storage order of the adapted dense matrix
+template< typename MT2 >  // Type of the right-hand side sparse matrix
+inline void SymmetricMatrix<MT,SO,true,false>::schurAssign( const SparseMatrix<MT2,SO>& rhs )
+{
+   BLAZE_INTERNAL_ASSERT( rows()    == (~rhs).rows()   , "Invalid number of rows"    );
+   BLAZE_INTERNAL_ASSERT( columns() == (~rhs).columns(), "Invalid number of columns" );
+
+   if( SO ) {
+      for( size_t j=0UL; j<columns(); ++j )
+      {
+         size_t i( 0UL );
+
+         const auto last( (~rhs).upperBound(j,j) );
+         for( auto element=(~rhs).begin(j); element!=last; ++element ) {
+            for( ; i<element->index(); ++i )
+               reset( matrix_(i,j) );
+            matrix_(i,j) *= element->value();
+            ++i;
+         }
+
+         for( ; i<rows(); ++i ) {
+            reset( matrix_(i,j) );
+         }
+      }
+   }
+   else {
+      for( size_t i=0UL; i<rows(); ++i )
+      {
+         size_t j( 0UL );
+
+         const auto last( (~rhs).upperBound(i,i) );
+         for( auto element=(~rhs).begin(i); element!=last; ++element ) {
+            for( ; j<element->index(); ++j )
+               reset( matrix_(i,j) );
+            matrix_(i,j) *= element->value();
+            ++j;
+         }
+
+         for( ; j<columns(); ++j ) {
+            reset( matrix_(i,j) );
+         }
       }
    }
 }

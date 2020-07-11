@@ -3,7 +3,7 @@
 //  \file blaze/math/proxy/SparseMatrixProxy.h
 //  \brief Header file for the SparseMatrixProxy class
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -49,7 +49,6 @@
 #include <blaze/math/typetraits/IsSquare.h>
 #include <blaze/math/typetraits/IsColumnMajorMatrix.h>
 #include <blaze/system/Inline.h>
-#include <blaze/util/DisableIf.h>
 #include <blaze/util/EnableIf.h>
 #include <blaze/util/Types.h>
 
@@ -72,25 +71,26 @@ namespace blaze {
 */
 template< typename PT    // Type of the proxy
         , typename MT >  // Type of the sparse matrix
-class SparseMatrixProxy : public SparseMatrix< PT, IsColumnMajorMatrix<MT>::value >
+class SparseMatrixProxy
+   : public SparseMatrix< PT, IsColumnMajorMatrix_v<MT> >
 {
  public:
    //**Type definitions****************************************************************************
-   typedef ResultType_<MT>      ResultType;      //!< Result type for expression template evaluations.
-   typedef OppositeType_<MT>    OppositeType;    //!< Result type with opposite storage order for expression template evaluations.
-   typedef TransposeType_<MT>   TransposeType;   //!< Transpose type for expression template evaluations.
-   typedef ElementType_<MT>     ElementType;     //!< Type of the sparse matrix elements.
-   typedef ReturnType_<MT>      ReturnType;      //!< Return type for expression template evaluations.
-   typedef CompositeType_<MT>   CompositeType;   //!< Data type for composite expression templates.
-   typedef Reference_<MT>       Reference;       //!< Reference to a non-constant matrix value.
-   typedef ConstReference_<MT>  ConstReference;  //!< Reference to a constant matrix value.
-   typedef Iterator_<MT>        Iterator;        //!< Iterator over non-constant elements.
-   typedef ConstIterator_<MT>   ConstIterator;   //!< Iterator over constant elements.
+   using ResultType     = ResultType_t<MT>;      //!< Result type for expression template evaluations.
+   using OppositeType   = OppositeType_t<MT>;    //!< Result type with opposite storage order for expression template evaluations.
+   using TransposeType  = TransposeType_t<MT>;   //!< Transpose type for expression template evaluations.
+   using ElementType    = ElementType_t<MT>;     //!< Type of the sparse matrix elements.
+   using ReturnType     = ReturnType_t<MT>;      //!< Return type for expression template evaluations.
+   using CompositeType  = CompositeType_t<MT>;   //!< Data type for composite expression templates.
+   using Reference      = Reference_t<MT>;       //!< Reference to a non-constant matrix value.
+   using ConstReference = ConstReference_t<MT>;  //!< Reference to a constant matrix value.
+   using Iterator       = Iterator_t<MT>;        //!< Iterator over non-constant elements.
+   using ConstIterator  = ConstIterator_t<MT>;   //!< Iterator over constant elements.
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
    //! Compilation flag for SMP assignments.
-   enum : bool { smpAssignable = MT::smpAssignable };
+   static constexpr bool smpAssignable = MT::smpAssignable;
    //**********************************************************************************************
 
    //**Data access functions***********************************************************************
@@ -109,28 +109,30 @@ class SparseMatrixProxy : public SparseMatrix< PT, IsColumnMajorMatrix<MT>::valu
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-   inline size_t   rows() const;
-   inline size_t   columns() const;
-   inline size_t   capacity() const;
-   inline size_t   capacity( size_t i ) const;
-   inline size_t   nonZeros() const;
-   inline size_t   nonZeros( size_t i ) const;
-   inline void     reset() const;
-   inline void     reset( size_t i ) const;
-   inline void     clear() const;
-   inline Iterator set( size_t i, size_t j, const ElementType& value ) const;
+   inline size_t rows() const;
+   inline size_t columns() const;
+   inline size_t capacity() const;
+   inline size_t capacity( size_t i ) const;
+   inline size_t nonZeros() const;
+   inline size_t nonZeros( size_t i ) const;
+   inline void   reset() const;
+   inline void   reset( size_t i ) const;
+   inline void   clear() const;
+   inline void   finalize( size_t i ) const;
+   inline void   resize( size_t m, size_t n, bool preserve=true ) const;
+   inline void   reserve( size_t n ) const;
+   inline void   reserve( size_t i, size_t n ) const;
+   inline void   trim() const;
+   inline void   trim( size_t i ) const;
+   //@}
+   //**********************************************************************************************
+
+   //**Insertion functions*************************************************************************
+   /*!\name Insertion functions */
+   //@{
+   inline Iterator set   ( size_t i, size_t j, const ElementType& value ) const;
    inline Iterator insert( size_t i, size_t j, const ElementType& value ) const;
    inline void     append( size_t i, size_t j, const ElementType& value, bool check=false ) const;
-   inline void     finalize( size_t i ) const;
-   inline void     resize( size_t m, size_t n, bool preserve=true ) const;
-   inline void     reserve( size_t n ) const;
-   inline void     reserve( size_t i, size_t n ) const;
-   inline void     trim() const;
-   inline void     trim( size_t i ) const;
-   inline void     transpose() const;
-   inline void     ctranspose() const;
-
-   template< typename Other > inline void scale( const Other& scalar ) const;
    //@}
    //**********************************************************************************************
 
@@ -155,6 +157,29 @@ class SparseMatrixProxy : public SparseMatrix< PT, IsColumnMajorMatrix<MT>::valu
    inline Iterator find      ( size_t i, size_t j ) const;
    inline Iterator lowerBound( size_t i, size_t j ) const;
    inline Iterator upperBound( size_t i, size_t j ) const;
+   //@}
+   //**********************************************************************************************
+
+   //**Numeric functions***************************************************************************
+   /*!\name Numeric functions */
+   //@{
+   inline void transpose() const;
+   inline void ctranspose() const;
+
+   template< typename Other > inline void scale( const Other& scalar ) const;
+   //@}
+   //**********************************************************************************************
+
+ protected:
+   //**Special member functions********************************************************************
+   /*!\name Special member functions */
+   //@{
+   SparseMatrixProxy() = default;
+   SparseMatrixProxy( const SparseMatrixProxy& ) = default;
+   SparseMatrixProxy( SparseMatrixProxy&& ) = default;
+   ~SparseMatrixProxy() = default;
+   SparseMatrixProxy& operator=( const SparseMatrixProxy& ) = default;
+   SparseMatrixProxy& operator=( SparseMatrixProxy&& ) = default;
    //@}
    //**********************************************************************************************
 
@@ -775,6 +800,10 @@ inline void SparseMatrixProxy<PT,MT>::ctranspose() const
 // \param scalar The scalar value for the matrix scaling.
 // \return void
 // \exception std::invalid_argument Invalid access to restricted element.
+//
+// This function scales the matrix by applying the given scalar value \a scalar to each element
+// of the matrix. For built-in and \c complex data types it has the same effect as using the
+// multiplication assignment operator.
 */
 template< typename PT       // Type of the proxy
         , typename MT >     // Type of the sparse matrix
@@ -953,8 +982,8 @@ inline void SparseMatrixProxy<PT,MT>::erase( size_t i, Iterator first, Iterator 
 // In case the element is found, the function returns an row/column iterator to the element.
 // Otherwise an iterator just past the last non-zero element of row \a i or column \a j (the
 // end() iterator) is returned. Note that the returned sparse matrix iterator is subject to
-// invalidation due to inserting operations via the function call operator or the insert()
-// function!
+// invalidation due to inserting operations via the function call operator, the set() function
+// or the insert() function!
 */
 template< typename PT    // Type of the proxy
         , typename MT >  // Type of the sparse matrix
@@ -978,8 +1007,8 @@ inline typename SparseMatrixProxy<PT,MT>::Iterator
 // returns a column iterator to the first element with an index not less then the given row
 // index. In combination with the upperBound() function this function can be used to create a
 // pair of iterators specifying a range of indices. Note that the returned sparse matrix iterator
-// is subject to invalidation due to inserting operations via the function call operator or the
-// insert() function!
+// is subject to invalidation due to inserting operations via the function call operator, the
+// set() function or the insert() function!
 */
 template< typename PT    // Type of the proxy
         , typename MT >  // Type of the sparse matrix
@@ -1001,10 +1030,10 @@ inline typename SparseMatrixProxy<PT,MT>::Iterator
 // In case of a row-major matrix, this function returns a row iterator to the first element with
 // an index greater then the given column index. In case of a column-major matrix, the function
 // returns a column iterator to the first element with an index greater then the given row
-// index. In combination with the upperBound() function this function can be used to create a
+// index. In combination with the lowerBound() function this function can be used to create a
 // pair of iterators specifying a range of indices. Note that the returned sparse matrix iterator
-// is subject to invalidation due to inserting operations via the function call operator or the
-// insert() function!
+// is subject to invalidation due to inserting operations via the function call operator, the
+// set() function or the insert() function!
 */
 template< typename PT    // Type of the proxy
         , typename MT >  // Type of the sparse matrix
@@ -1028,50 +1057,50 @@ inline typename SparseMatrixProxy<PT,MT>::Iterator
 /*!\name SparseMatrixProxy global functions */
 //@{
 template< typename PT, typename MT >
-BLAZE_ALWAYS_INLINE typename SparseMatrixProxy<PT,MT>::Iterator
+typename SparseMatrixProxy<PT,MT>::Iterator
    begin( const SparseMatrixProxy<PT,MT>& proxy, size_t i );
 
 template< typename PT, typename MT >
-BLAZE_ALWAYS_INLINE typename SparseMatrixProxy<PT,MT>::ConstIterator
+typename SparseMatrixProxy<PT,MT>::ConstIterator
    cbegin( const SparseMatrixProxy<PT,MT>& proxy, size_t i );
 
 template< typename PT, typename MT >
-BLAZE_ALWAYS_INLINE typename SparseMatrixProxy<PT,MT>::Iterator
+typename SparseMatrixProxy<PT,MT>::Iterator
    end( const SparseMatrixProxy<PT,MT>& proxy, size_t i );
 
 template< typename PT, typename MT >
-BLAZE_ALWAYS_INLINE typename SparseMatrixProxy<PT,MT>::ConstIterator
+typename SparseMatrixProxy<PT,MT>::ConstIterator
    cend( const SparseMatrixProxy<PT,MT>& proxy, size_t i );
 
 template< typename PT, typename MT >
-BLAZE_ALWAYS_INLINE size_t rows( const SparseMatrixProxy<PT,MT>& proxy );
+size_t rows( const SparseMatrixProxy<PT,MT>& proxy );
 
 template< typename PT, typename MT >
-BLAZE_ALWAYS_INLINE size_t columns( const SparseMatrixProxy<PT,MT>& proxy );
+size_t columns( const SparseMatrixProxy<PT,MT>& proxy );
 
 template< typename PT, typename MT >
-BLAZE_ALWAYS_INLINE size_t capacity( const SparseMatrixProxy<PT,MT>& proxy );
+size_t capacity( const SparseMatrixProxy<PT,MT>& proxy );
 
 template< typename PT, typename MT >
-BLAZE_ALWAYS_INLINE size_t capacity( const SparseMatrixProxy<PT,MT>& proxy, size_t i );
+size_t capacity( const SparseMatrixProxy<PT,MT>& proxy, size_t i );
 
 template< typename PT, typename MT >
-BLAZE_ALWAYS_INLINE size_t nonZeros( const SparseMatrixProxy<PT,MT>& proxy );
+size_t nonZeros( const SparseMatrixProxy<PT,MT>& proxy );
 
 template< typename PT, typename MT >
-BLAZE_ALWAYS_INLINE size_t nonZeros( const SparseMatrixProxy<PT,MT>& proxy, size_t i );
+size_t nonZeros( const SparseMatrixProxy<PT,MT>& proxy, size_t i );
 
 template< typename PT, typename MT >
-BLAZE_ALWAYS_INLINE void resize( const SparseMatrixProxy<PT,MT>& proxy, size_t m, size_t n, bool preserve=true );
+void resize( const SparseMatrixProxy<PT,MT>& proxy, size_t m, size_t n, bool preserve=true );
 
 template< typename PT, typename MT >
-BLAZE_ALWAYS_INLINE void reset( const SparseMatrixProxy<PT,MT>& proxy );
+void reset( const SparseMatrixProxy<PT,MT>& proxy );
 
 template< typename PT, typename MT >
-BLAZE_ALWAYS_INLINE void reset( const SparseMatrixProxy<PT,MT>& proxy, size_t i );
+void reset( const SparseMatrixProxy<PT,MT>& proxy, size_t i );
 
 template< typename PT, typename MT >
-BLAZE_ALWAYS_INLINE void clear( const SparseMatrixProxy<PT,MT>& proxy );
+void clear( const SparseMatrixProxy<PT,MT>& proxy );
 //@}
 //*************************************************************************************************
 
@@ -1293,7 +1322,7 @@ BLAZE_ALWAYS_INLINE size_t nonZeros( const SparseMatrixProxy<PT,MT>& proxy, size
 */
 template< typename PT    // Type of the proxy
         , typename MT >  // Type of the sparse matrix
-BLAZE_ALWAYS_INLINE DisableIf_< IsSquare<MT> >
+BLAZE_ALWAYS_INLINE DisableIf_t< IsSquare_v<MT> >
    resize_backend( const SparseMatrixProxy<PT,MT>& proxy, size_t m, size_t n, bool preserve )
 {
    proxy.resize( m, n, preserve );
@@ -1318,7 +1347,7 @@ BLAZE_ALWAYS_INLINE DisableIf_< IsSquare<MT> >
 */
 template< typename PT    // Type of the proxy
         , typename MT >  // Type of the sparse matrix
-BLAZE_ALWAYS_INLINE EnableIf_< IsSquare<MT> >
+BLAZE_ALWAYS_INLINE EnableIf_t< IsSquare_v<MT> >
    resize_backend( const SparseMatrixProxy<PT,MT>& proxy, size_t m, size_t n, bool preserve )
 {
    if( m != n ) {

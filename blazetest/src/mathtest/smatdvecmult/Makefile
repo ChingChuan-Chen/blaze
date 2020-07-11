@@ -2,7 +2,7 @@
 #
 #  Makefile for the smatdvecmult module of the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -33,8 +33,10 @@
 
 
 # Including the compiler and library settings
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include ../../Makeconfig
+endif
 endif
 
 
@@ -49,6 +51,7 @@ BIN = $(SRC:.cpp=)
 default: MCaV3a MCaV3b MCbV3a MCbV3b \
          MCaVHa MCaVHb MCbVHa MCbVHb \
          MCaVDa MCaVDb MCbVDa MCbVDb \
+         MCaVUa MCaVUb MCbVUa MCbVUb \
          SCaVDa SCaVDb SCbVDa SCbVDb \
          HCaVDa HCaVDb HCbVDa HCbVDb \
          LCaVDa LCaVDb LCbVDa LCbVDb \
@@ -56,7 +59,7 @@ default: MCaV3a MCaV3b MCbV3a MCbV3b \
          DCaVDa DCaVDb DCbVDa DCbVDb \
          AliasingTest
 all: $(BIN)
-essential: MCaV3a MCaVHa MCaVDa SCaVDa HCaVDa LCaVDa UCaVDa DCaVDa AliasingTest
+essential: MCaV3a MCaVHa MCaVDa MCaVUa SCaVDa HCaVDa LCaVDa UCaVDa DCaVDa AliasingTest
 single: MCaVDa
 
 
@@ -116,6 +119,10 @@ MCaVHa: MCaVHa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 MCaVHb: MCaVHb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MCaVUa: MCaVUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MCaVUb: MCaVUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 MCbV2a: MCbV2a.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
@@ -145,6 +152,43 @@ MCbVHa: MCbVHa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 MCbVHb: MCbVHb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MCbVUa: MCbVUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MCbVUb: MCbVUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+
+MIaV3a: MIaV3a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MIaV3b: MIaV3b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MIaVDa: MIaVDa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MIaVDb: MIaVDb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MIaVHa: MIaVHa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MIaVHb: MIaVHb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MIaVUa: MIaVUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MIaVUb: MIaVUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MIbV3a: MIbV3a.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MIbV3b: MIbV3b.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MIbVDa: MIbVDa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MIbVDb: MIbVDb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MIbVHa: MIbVHa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MIbVHb: MIbVHb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MIbVUa: MIbVUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+MIbVUb: MIbVUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 SCaVDa: SCaVDa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
@@ -169,13 +213,17 @@ AliasingTest: AliasingTest.o
 
 
 # Cleanup
+reset:
+	@$(RM) $(OBJ) $(BIN)
 clean:
-	@$(RM) $(DEP) $(OBJ) $(BIN)
+	@$(RM) $(OBJ) $(BIN) $(DEP)
 
 
 # Makefile includes
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP)
+endif
 endif
 
 
@@ -185,4 +233,4 @@ endif
 
 
 # Setting the independent commands
-.PHONY: default all essential single clean
+.PHONY: default all essential single reset clean

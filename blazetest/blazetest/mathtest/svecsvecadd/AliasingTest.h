@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/svecsvecadd/AliasingTest.h
 //  \brief Header file for the sparse vector/sparse vector addition aliasing test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -72,10 +72,10 @@ class AliasingTest
 {
  private:
    //**Type definitions****************************************************************************
-   typedef blaze::DynamicVector<int,blaze::columnVector>     DVec;  //!< Dense column vector type.
-   typedef blaze::CompressedVector<int,blaze::columnVector>  SVec;  //!< Sparse column vector type.
-   typedef blaze::CompressedMatrix<int,blaze::rowMajor>      SMat;  //!< Row-major sparse matrix type.
-   typedef blaze::StaticVector<int,3UL,blaze::columnVector>  RVec;  //!< Result column vector type.
+   using DVec = blaze::DynamicVector<int,blaze::columnVector>;     //!< Dense column vector type.
+   using SVec = blaze::CompressedVector<int,blaze::columnVector>;  //!< Sparse column vector type.
+   using SMat = blaze::CompressedMatrix<int,blaze::rowMajor>;      //!< Row-major sparse matrix type.
+   using RVec = blaze::StaticVector<int,3UL,blaze::columnVector>;  //!< Result column vector type.
    //**********************************************************************************************
 
  public:

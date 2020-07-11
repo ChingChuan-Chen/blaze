@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/svecsveccross/OperationTest.h
 //  \brief Header file for the sparse vector/sparse vector cross product operation test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,29 +40,31 @@
 // Includes
 //*************************************************************************************************
 
+#include <algorithm>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
+#include <utility>
+#include <vector>
 #include <blaze/math/Aliases.h>
 #include <blaze/math/CompressedVector.h>
-#include <blaze/math/constraints/Computation.h>
 #include <blaze/math/constraints/DenseVector.h>
 #include <blaze/math/constraints/SparseVector.h>
 #include <blaze/math/constraints/TransposeFlag.h>
-#include <blaze/math/constraints/CrossExpr.h>
 #include <blaze/math/DynamicVector.h>
 #include <blaze/math/Functors.h>
 #include <blaze/math/shims/Equal.h>
 #include <blaze/math/shims/IsDivisor.h>
 #include <blaze/math/StaticVector.h>
-#include <blaze/math/traits/CrossExprTrait.h>
 #include <blaze/math/traits/CrossTrait.h>
 #include <blaze/math/typetraits/UnderlyingBuiltin.h>
 #include <blaze/math/typetraits/UnderlyingNumeric.h>
 #include <blaze/math/Views.h>
 #include <blaze/util/constraints/Numeric.h>
 #include <blaze/util/constraints/SameType.h>
+#include <blaze/util/Random.h>
+#include <blaze/util/typetraits/RemoveCVRef.h>
 #include <blazetest/system/MathTest.h>
 #include <blazetest/mathtest/Creator.h>
 #include <blazetest/mathtest/IsEqual.h>
@@ -99,33 +101,35 @@ class OperationTest
    //**********************************************************************************************
 
    //**Type definitions****************************************************************************
-   typedef blaze::ElementType_<VT1>  ET1;  //!< Element type 1
-   typedef blaze::ElementType_<VT2>  ET2;  //!< Element type 2
+   using ET1 = blaze::ElementType_t<VT1>;  //!< Element type 1
+   using ET2 = blaze::ElementType_t<VT2>;  //!< Element type 2
 
-   typedef blaze::TransposeType_<VT1>  TVT1;  //!< Transpose vector type 1
-   typedef blaze::TransposeType_<VT2>  TVT2;  //!< Transpose vector type 2
+   using TVT1 = blaze::TransposeType_t<VT1>;  //!< Transpose vector type 1
+   using TVT2 = blaze::TransposeType_t<VT2>;  //!< Transpose vector type 2
 
-   typedef blaze::CrossTrait_<VT1,VT2>    DRE;   //!< Dense result type
-   typedef blaze::CrossTrait_<TVT1,TVT2>  TDRE;  //!< Transpose dense result type
-   typedef blaze::ElementType_<DRE>       DET;   //!< Element type of the dense result
+   using DRE  = blaze::CrossTrait_t<VT1,VT2>;    //!< Dense result type
+   using TDRE = blaze::CrossTrait_t<TVT1,TVT2>;  //!< Transpose dense result type
+   using DET = blaze::ElementType_t<DRE>;        //!< Element type of the dense result
 
-   typedef blaze::CompressedVector<DET,TF>  SRE;   //!< Sparse result type
-   typedef blaze::TransposeType_<SRE>       TSRE;  //!< Transpose sparse result type
-   typedef blaze::ElementType_<SRE>         SET;   //!< Element type of the sparse result
+   using SRE  = blaze::CompressedVector<DET,TF>;  //!< Sparse result type
+   using TSRE = blaze::TransposeType_t<SRE>;      //!< Transpose sparse result type
+   using SET  = blaze::ElementType_t<SRE>;        //!< Element type of the sparse result
 
-   typedef blaze::DynamicVector<ET1,TF>  RT1;  //!< Reference type 1
-   typedef blaze::DynamicVector<ET2,TF>  RT2;  //!< Reference type 2
-   typedef blaze::CrossTrait_<RT1,RT2>   RRE;  //!< Reference result type
+   using RT1 = blaze::DynamicVector<ET1,TF>;  //!< Reference type 1
+   using RT2 = blaze::DynamicVector<ET2,TF>;  //!< Reference type 2
+   using RRE = blaze::CrossTrait_t<RT1,RT2>;  //!< Reference result type
 
-   typedef blaze::TransposeType_<RT1>     TRT1;  //!< Transpose reference type 1
-   typedef blaze::TransposeType_<RT2>     TRT2;  //!< Transpose reference type 2
-   typedef blaze::CrossTrait_<TRT1,TRT2>  TRRE;  //!< Transpose reference result type
+   using TRT1 = blaze::TransposeType_t<RT1>;     //!< Transpose reference type 1
+   using TRT2 = blaze::TransposeType_t<RT2>;     //!< Transpose reference type 2
+   using TRRE = blaze::CrossTrait_t<TRT1,TRT2>;  //!< Transpose reference result type
 
-   //! Type of the cross product expression
-   typedef blaze::CrossExprTrait_<VT1,VT2>  VecVecCrossExprType;
+   //! Type of the vector/vector cross product expression
+   using VecVecCrossExprType =
+      blaze::RemoveCVRef_t< decltype( std::declval<VT1>() % std::declval<VT2>() ) >;
 
-   //! Type of the transpose cross product expression
-   typedef blaze::CrossExprTrait_<TVT1,TVT2>  TVecTVecCrossExprType;
+   //! Type of the transpose vector/transpose vector cross product expression
+   using TVecTVecCrossExprType =
+      blaze::RemoveCVRef_t< decltype( std::declval<TVT1>() % std::declval<TVT2>() ) >;
    //**********************************************************************************************
 
  public:
@@ -160,7 +164,10 @@ class OperationTest
                           void testImagOperation     ();
                           void testEvalOperation     ();
                           void testSerialOperation   ();
+                          void testNoAliasOperation  ();
+                          void testNoSIMDOperation   ();
                           void testSubvectorOperation();
+                          void testElementsOperation ();
 
    template< typename OP > void testCustomOperation( OP op, const std::string& name );
    //@}
@@ -236,24 +243,24 @@ class OperationTest
    BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG( TVT1, TDRE );
    BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG( TVT1, TSRE );
 
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET1, blaze::ElementType_<TVT1>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET2, blaze::ElementType_<TVT2>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_<DRE>    );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_<TDRE>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_<SRE>    );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_<SRE>    );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_<TSRE>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_<DRE>    );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( VT1, blaze::TransposeType_<TVT1> );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( VT2, blaze::TransposeType_<TVT2> );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( RT1, blaze::TransposeType_<TRT1> );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( RT2, blaze::TransposeType_<TRT2> );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET1, blaze::ElementType_t<TVT1>   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET2, blaze::ElementType_t<TVT2>   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_t<DRE>    );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_t<TDRE>   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_t<SRE>    );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_t<SRE>    );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_t<TSRE>   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_t<DRE>    );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( VT1, blaze::TransposeType_t<TVT1> );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( VT2, blaze::TransposeType_t<TVT2> );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( RT1, blaze::TransposeType_t<TRT1> );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( RT2, blaze::TransposeType_t<TRT2> );
 
-   BLAZE_CONSTRAINT_MUST_BE_CROSSEXPR_TYPE( VecVecCrossExprType   );
-   BLAZE_CONSTRAINT_MUST_BE_CROSSEXPR_TYPE( TVecTVecCrossExprType );
+   BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG     ( VecVecCrossExprType, blaze::ResultType_t<VecVecCrossExprType>    );
+   BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_DIFFERENT_TRANSPOSE_FLAG( VecVecCrossExprType, blaze::TransposeType_t<VecVecCrossExprType> );
 
-   BLAZE_CONSTRAINT_MUST_BE_COMPUTATION_TYPE( VecVecCrossExprType   );
-   BLAZE_CONSTRAINT_MUST_BE_COMPUTATION_TYPE( TVecTVecCrossExprType );
+   BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_SAME_TRANSPOSE_FLAG     ( TVecTVecCrossExprType, blaze::ResultType_t<TVecTVecCrossExprType>    );
+   BLAZE_CONSTRAINT_VECTORS_MUST_HAVE_DIFFERENT_TRANSPOSE_FLAG( TVecTVecCrossExprType, blaze::TransposeType_t<TVecTVecCrossExprType> );
    /*! \endcond */
    //**********************************************************************************************
 };
@@ -295,7 +302,7 @@ OperationTest<VT1,VT2>::OperationTest( const Creator<VT1>& creator1, const Creat
    , test_()               // Label of the currently performed test
    , error_()              // Description of the current error type
 {
-   typedef blaze::UnderlyingNumeric_<DET>  Scalar;
+   using Scalar = blaze::UnderlyingNumeric_t<DET>;
 
    if( lhs_.size() != 3UL ) {
       throw std::runtime_error( "Invalid size of left-hand side operand" );
@@ -324,7 +331,10 @@ OperationTest<VT1,VT2>::OperationTest( const Creator<VT1>& creator1, const Creat
    testImagOperation();
    testEvalOperation();
    testSerialOperation();
+   testNoAliasOperation();
+   testNoSIMDOperation();
    testSubvectorOperation();
+   testElementsOperation();
 }
 //*************************************************************************************************
 
@@ -360,6 +370,7 @@ void OperationTest<VT1,VT2>::testInitialStatus()
       oss << " Test: Initial size comparison of left-hand side sparse operand\n"
           << " Error: Invalid vector size\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Sparse vector type:\n"
           << "     " << typeid( VT1 ).name() << "\n"
           << "   Detected size = " << lhs_.size() << "\n"
@@ -373,6 +384,7 @@ void OperationTest<VT1,VT2>::testInitialStatus()
       oss << " Test: Initial size comparison of right-hand side sparse operand\n"
           << " Error: Invalid vector size\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Sparse vector type:\n"
           << "     " << typeid( VT2 ).name() << "\n"
           << "   Detected size = " << rhs_.size() << "\n"
@@ -386,6 +398,7 @@ void OperationTest<VT1,VT2>::testInitialStatus()
       oss << " Test: Initial test of initialization of left-hand side sparse operand\n"
           << " Error: Invalid vector initialization\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Sparse vector type:\n"
           << "     " << typeid( VT1 ).name() << "\n"
           << "   Current initialization:\n" << lhs_ << "\n"
@@ -399,6 +412,7 @@ void OperationTest<VT1,VT2>::testInitialStatus()
       oss << " Test: Initial test of initialization of right-hand side sparse operand\n"
           << " Error: Invalid vector initialization\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Sparse vector type:\n"
           << "     " << typeid( VT2 ).name() << "\n"
           << "   Current initialization:\n" << rhs_ << "\n"
@@ -417,6 +431,7 @@ void OperationTest<VT1,VT2>::testInitialStatus()
       oss << " Test: Initial size comparison of transpose left-hand side sparse operand\n"
           << " Error: Invalid vector size\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Transpose sparse vector type:\n"
           << "     " << typeid( TVT1 ).name() << "\n"
           << "   Detected size = " << tlhs_.size() << "\n"
@@ -430,6 +445,7 @@ void OperationTest<VT1,VT2>::testInitialStatus()
       oss << " Test: Initial size comparison of transpose right-hand side sparse operand\n"
           << " Error: Invalid vector size\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Transpose sparse vector type:\n"
           << "     " << typeid( TVT2 ).name() << "\n"
           << "   Detected size = " << trhs_.size() << "\n"
@@ -443,6 +459,7 @@ void OperationTest<VT1,VT2>::testInitialStatus()
       oss << " Test: Initial test of initialization of transpose left-hand side sparse operand\n"
           << " Error: Invalid vector initialization\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Transpose sparse vector type:\n"
           << "     " << typeid( TVT1 ).name() << "\n"
           << "   Current initialization:\n" << tlhs_ << "\n"
@@ -456,6 +473,7 @@ void OperationTest<VT1,VT2>::testInitialStatus()
       oss << " Test: Initial test of initialization of transpose right-hand side sparse operand\n"
           << " Error: Invalid vector initialization\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Transpose sparse vector type:\n"
           << "     " << typeid( TVT2 ).name() << "\n"
           << "   Current initialization:\n" << trhs_ << "\n"
@@ -492,6 +510,7 @@ void OperationTest<VT1,VT2>::testAssignment()
       oss << " Test: Assignment with the given vectors\n"
           << " Error: Failed assignment\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side sparse vector type:\n"
           << "     " << typeid( VT1 ).name() << "\n"
           << "   Right-hand side sparse vector type:\n"
@@ -505,6 +524,7 @@ void OperationTest<VT1,VT2>::testAssignment()
       oss << " Test: Checking the assignment result of left-hand side sparse operand\n"
           << " Error: Invalid vector initialization\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Sparse vector type:\n"
           << "     " << typeid( VT1 ).name() << "\n"
           << "   Current initialization:\n" << lhs_ << "\n"
@@ -517,6 +537,7 @@ void OperationTest<VT1,VT2>::testAssignment()
       oss << " Test: Checking the assignment result of right-hand side sparse operand\n"
           << " Error: Invalid vector initialization\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Sparse vector type:\n"
           << "     " << typeid( VT2 ).name() << "\n"
           << "   Current initialization:\n" << rhs_ << "\n"
@@ -538,6 +559,7 @@ void OperationTest<VT1,VT2>::testAssignment()
       oss << " Test: Assignment with the transpose types\n"
           << " Error: Failed assignment\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Transpose left-hand side sparse vector type:\n"
           << "     " << typeid( TVT1 ).name() << "\n"
           << "   Transpose right-hand side sparse vector type:\n"
@@ -551,6 +573,7 @@ void OperationTest<VT1,VT2>::testAssignment()
       oss << " Test: Checking the assignment result of transpose left-hand side sparse operand\n"
           << " Error: Invalid vector initialization\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Transpose sparse vector type:\n"
           << "     " << typeid( TVT1 ).name() << "\n"
           << "   Current initialization:\n" << tlhs_ << "\n"
@@ -563,6 +586,7 @@ void OperationTest<VT1,VT2>::testAssignment()
       oss << " Test: Checking the assignment result of transpose right-hand side sparse operand\n"
           << " Error: Invalid vector initialization\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Transpose sparse vector type:\n"
           << "     " << typeid( TVT2 ).name() << "\n"
           << "   Current initialization:\n" << trhs_ << "\n"
@@ -602,6 +626,7 @@ void OperationTest<VT1,VT2>::testEvaluation()
          oss << " Test: Evaluation with the given vectors\n"
              << " Error: Failed evaluation\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side sparse " << ( IsRowVector<VT1>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
              << "     " << typeid( lhs_ ).name() << "\n"
              << "   Right-hand side sparse " << ( IsRowVector<VT2>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
@@ -625,6 +650,7 @@ void OperationTest<VT1,VT2>::testEvaluation()
          oss << " Test: Evaluation with evaluated vectors\n"
              << " Error: Failed evaluation\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side sparse " << ( IsRowVector<VT1>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
              << "     " << typeid( lhs_ ).name() << "\n"
              << "   Right-hand side sparse " << ( IsRowVector<VT2>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
@@ -653,6 +679,7 @@ void OperationTest<VT1,VT2>::testEvaluation()
          oss << " Test: Evaluation with the transpose vectors\n"
              << " Error: Failed evaluation\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side sparse " << ( IsRowVector<TVT1>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
              << "     " << typeid( tlhs_ ).name() << "\n"
              << "   Right-hand side sparse " << ( IsRowVector<TVT2>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
@@ -676,6 +703,7 @@ void OperationTest<VT1,VT2>::testEvaluation()
          oss << " Test: Evaluation with evaluated transpose vectors\n"
              << " Error: Failed evaluation\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side sparse " << ( IsRowVector<TVT1>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
              << "     " << typeid( tlhs_ ).name() << "\n"
              << "   Right-hand side sparse " << ( IsRowVector<TVT2>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
@@ -719,6 +747,7 @@ void OperationTest<VT1,VT2>::testElementAccess()
       oss << " Test : Element access of cross product expression\n"
           << " Error: Unequal resulting elements at index 2 detected\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side sparse vector type:\n"
           << "     " << typeid( VT1 ).name() << "\n"
           << "   Right-hand side sparse vector type:\n"
@@ -732,6 +761,7 @@ void OperationTest<VT1,VT2>::testElementAccess()
       oss << " Test : Element access of right evaluated cross product expression\n"
           << " Error: Unequal resulting elements at index 2 detected\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side sparse vector type:\n"
           << "     " << typeid( VT1 ).name() << "\n"
           << "   Right-hand side sparse vector type:\n"
@@ -745,6 +775,7 @@ void OperationTest<VT1,VT2>::testElementAccess()
       oss << " Test : Element access of left evaluated cross product expression\n"
           << " Error: Unequal resulting elements at index 2 detected\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side sparse vector type:\n"
           << "     " << typeid( VT1 ).name() << "\n"
           << "   Right-hand side sparse vector type:\n"
@@ -758,6 +789,7 @@ void OperationTest<VT1,VT2>::testElementAccess()
       oss << " Test : Element access of fully evaluated cross product expression\n"
           << " Error: Unequal resulting elements at index 2 detected\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side sparse vector type:\n"
           << "     " << typeid( VT1 ).name() << "\n"
           << "   Right-hand side sparse vector type:\n"
@@ -772,6 +804,7 @@ void OperationTest<VT1,VT2>::testElementAccess()
       oss << " Test : Checked element access of cross product expression\n"
           << " Error: Out-of-bound access succeeded\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side sparse vector type:\n"
           << "     " << typeid( VT1 ).name() << "\n"
           << "   Right-hand side sparse vector type:\n"
@@ -791,6 +824,7 @@ void OperationTest<VT1,VT2>::testElementAccess()
       oss << " Test : Element access of transpose cross product expression\n"
           << " Error: Unequal resulting elements at index 2 detected\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Transpose left-hand side sparse vector type:\n"
           << "     " << typeid( TVT1 ).name() << "\n"
           << "   Transpose right-hand side sparse vector type:\n"
@@ -804,6 +838,7 @@ void OperationTest<VT1,VT2>::testElementAccess()
       oss << " Test : Element access of right evaluated transpose cross product expression\n"
           << " Error: Unequal resulting elements at index 2 detected\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Transpose left-hand side sparse vector type:\n"
           << "     " << typeid( TVT1 ).name() << "\n"
           << "   Transpose right-hand side sparse vector type:\n"
@@ -817,6 +852,7 @@ void OperationTest<VT1,VT2>::testElementAccess()
       oss << " Test : Element access of left evaluated transpose cross product expression\n"
           << " Error: Unequal resulting elements at index 2 detected\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Transpose left-hand side sparse vector type:\n"
           << "     " << typeid( TVT1 ).name() << "\n"
           << "   Transpose right-hand side sparse vector type:\n"
@@ -830,6 +866,7 @@ void OperationTest<VT1,VT2>::testElementAccess()
       oss << " Test : Element access of fully evaluated transpose cross product expression\n"
           << " Error: Unequal resulting elements at index 2 detected\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Transpose left-hand side sparse vector type:\n"
           << "     " << typeid( TVT1 ).name() << "\n"
           << "   Transpose right-hand side sparse vector type:\n"
@@ -844,6 +881,7 @@ void OperationTest<VT1,VT2>::testElementAccess()
       oss << " Test : Checked element access of transpose cross product expression\n"
           << " Error: Out-of-bound access succeeded\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Transpose left-hand side sparse vector type:\n"
           << "     " << typeid( TVT1 ).name() << "\n"
           << "   Transpose right-hand side sparse vector type:\n"
@@ -862,9 +900,9 @@ void OperationTest<VT1,VT2>::testElementAccess()
 // \exception std::runtime_error Cross product error detected.
 //
 // This function tests the plain vector cross product with plain assignment, addition
-// assignment, subtraction assignment, and multiplication assignment. In case any error
-// resulting from the cros product or the subsequent assignment is detected, a
-// \a std::runtime_error exception is thrown.
+// assignment, subtraction assignment, multiplication assignment, and division assignment.
+// In case any error resulting from the cros product or the subsequent assignment is
+// detected, a \a std::runtime_error exception is thrown.
 */
 template< typename VT1    // Type of the left-hand side sparse vector
         , typename VT2 >  // Type of the right-hand side sparse vector
@@ -1212,9 +1250,9 @@ void OperationTest<VT1,VT2>::testBasicOperation()
 // \exception std::runtime_error Cross product error detected.
 //
 // This function tests the negated vector cross product with plain assignment, addition
-// assignment, subtraction assignment, and multiplication assignment. In case any error
-// resulting from the cross product or the subsequent assignment is detected, a
-// \a std::runtime_error exception is thrown.
+// assignment, subtraction assignment, multiplication assignment, and division assignment.
+// In case any error resulting from the cross product or the subsequent assignment is
+// detected, a \a std::runtime_error exception is thrown.
 */
 template< typename VT1    // Type of the left-hand side sparse vector
         , typename VT2 >  // Type of the right-hand side sparse vector
@@ -1563,9 +1601,9 @@ void OperationTest<VT1,VT2>::testNegatedOperation()
 // \exception std::runtime_error Cross product error detected.
 //
 // This function tests the scaled vector cross product with plain assignment, addition
-// assignment, subtraction assignment, and multiplication assignment. In case any error
-// resulting from the cross product or the subsequent assignment is detected, a
-// \a std::runtime_error exception is thrown.
+// assignment, subtraction assignment, multiplication assignment, and division assignment.
+// In case any error resulting from the cross product or the subsequent assignment is
+// detected, a \a std::runtime_error exception is thrown.
 */
 template< typename VT1    // Type of the left-hand side sparse vector
         , typename VT2 >  // Type of the right-hand side sparse vector
@@ -1603,6 +1641,7 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             oss << " Test : " << test_ << "\n"
                 << " Error: Failed self-scaling operation\n"
                 << " Details:\n"
+                << "   Random seed = " << blaze::getSeed() << "\n"
                 << "   Scalar = " << scalar << "\n"
                 << "   Error message: " << ex.what() << "\n";
             throw std::runtime_error( oss.str() );
@@ -1634,6 +1673,7 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             oss << " Test : " << test_ << "\n"
                 << " Error: Failed self-scaling operation\n"
                 << " Details:\n"
+                << "   Random seed = " << blaze::getSeed() << "\n"
                 << "   Scalar = " << scalar << "\n"
                 << "   Error message: " << ex.what() << "\n";
             throw std::runtime_error( oss.str() );
@@ -1665,6 +1705,7 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             oss << " Test : " << test_ << "\n"
                 << " Error: Failed self-scaling operation\n"
                 << " Details:\n"
+                << "   Random seed = " << blaze::getSeed() << "\n"
                 << "   Scalar = " << scalar << "\n"
                 << "   Error message: " << ex.what() << "\n";
             throw std::runtime_error( oss.str() );
@@ -1696,6 +1737,7 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             oss << " Test : " << test_ << "\n"
                 << " Error: Failed self-scaling operation\n"
                 << " Details:\n"
+                << "   Random seed = " << blaze::getSeed() << "\n"
                 << "   Scalar = " << scalar << "\n"
                 << "   Error message: " << ex.what() << "\n";
             throw std::runtime_error( oss.str() );
@@ -1727,6 +1769,7 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
             oss << " Test : " << test_ << "\n"
                 << " Error: Failed self-scaling operation\n"
                 << " Details:\n"
+                << "   Random seed = " << blaze::getSeed() << "\n"
                 << "   Scalar = " << scalar << "\n"
                 << "   Error message: " << ex.what() << "\n";
             throw std::runtime_error( oss.str() );
@@ -2731,9 +2774,9 @@ void OperationTest<VT1,VT2>::testScaledOperation( T scalar )
 // \exception std::runtime_error Cross product error detected.
 //
 // This function tests the transpose vector cross product with plain assignment, addition
-// assignment, subtraction assignment, and multiplication assignment. In case any error resulting
-// from the cross product or the subsequent assignment is detected, a \a std::runtime_error
-// exception is thrown.
+// assignment, subtraction assignment, multiplication assignment, and division assignment.
+// In case any error resulting from the cross product or the subsequent assignment is
+// detected, a \a std::runtime_error exception is thrown.
 */
 template< typename VT1    // Type of the left-hand side sparse vector
         , typename VT2 >  // Type of the right-hand side sparse vector
@@ -3081,9 +3124,9 @@ void OperationTest<VT1,VT2>::testTransOperation()
 // \exception std::runtime_error Cross product error detected.
 //
 // This function tests the conjugate transpose vector cross product with plain assignment,
-// addition assignment, subtraction assignment, and multiplication assignment. In case any
-// error resulting from the cross product or the subsequent assignment is detected, a
-// \a std::runtime_error exception is thrown.
+// addition assignment, subtraction assignment, multiplication assignment, and division
+// assignment. In case any error resulting from the cross product or the subsequent
+// assignment is detected, a \a std::runtime_error exception is thrown.
 */
 template< typename VT1    // Type of the left-hand side sparse vector
         , typename VT2 >  // Type of the right-hand side sparse vector
@@ -3430,10 +3473,10 @@ void OperationTest<VT1,VT2>::testCTransOperation()
 // \return void
 // \exception std::runtime_error Cross product error detected.
 //
-// This function tests the abs vector cross product with plain assignment, addition assignment,
-// subtraction assignment, and multiplication assignment. In case any error resulting from the
-// cross product or the subsequent assignment is detected, a \a std::runtime_error exception
-// is thrown.
+// This function tests the abs vector cross product with plain assignment, addition
+// assignment, subtraction assignment, multiplication assignment, and division assignment.
+// In case any error resulting from the cross product or the subsequent assignment is
+// detected, a \a std::runtime_error exception is thrown.
 */
 template< typename VT1    // Type of the left-hand side sparse vector
         , typename VT2 >  // Type of the right-hand side sparse vector
@@ -3456,9 +3499,9 @@ void OperationTest<VT1,VT2>::testAbsOperation()
 // \exception std::runtime_error Cross product error detected.
 //
 // This function tests the conjugate vector cross product with plain assignment, addition
-// assignment, subtraction assignment, and multiplication assignment. In case any error resulting
-// from the cross product or the subsequent assignment is detected, a \a std::runtime_error
-// exception is thrown.
+// assignment, subtraction assignment, multiplication assignment, and division assignment.
+// In case any error resulting from the cross product or the subsequent assignment is
+// detected, a \a std::runtime_error exception is thrown.
 */
 template< typename VT1    // Type of the left-hand side sparse vector
         , typename VT2 >  // Type of the right-hand side sparse vector
@@ -3480,10 +3523,10 @@ void OperationTest<VT1,VT2>::testConjOperation()
 // \return void
 // \exception std::runtime_error Cross product error detected.
 //
-// This function tests the \a real vector cross product with plain assignment, addition assignment,
-// subtraction assignment, and multiplication assignment. In case any error resulting from the
-// cross product or the subsequent assignment is detected, a \a std::runtime_error exception
-// is thrown.
+// This function tests the \a real vector cross product with plain assignment, addition
+// assignment, subtraction assignment, multiplication assignment, and division assignment.
+// In case any error resulting from the cross product or the subsequent assignment is
+// detected, a \a std::runtime_error exception is thrown.
 */
 template< typename VT1    // Type of the left-hand side sparse vector
         , typename VT2 >  // Type of the right-hand side sparse vector
@@ -3505,10 +3548,10 @@ void OperationTest<VT1,VT2>::testRealOperation()
 // \return void
 // \exception std::runtime_error Cross product error detected.
 //
-// This function tests the \a imag vector cross product with plain assignment, addition assignment,
-// subtraction assignment, and multiplication assignment. In case any error resulting from the
-// cross product or the subsequent assignment is detected, a \a std::runtime_error exception
-// is thrown.
+// This function tests the \a imag vector cross product with plain assignment, addition
+// assignment, subtraction assignment, multiplication assignment, and division assignment.
+// In case any error resulting from the cross product or the subsequent assignment is
+// detected, a \a std::runtime_error exception is thrown.
 */
 template< typename VT1    // Type of the left-hand side sparse vector
         , typename VT2 >  // Type of the right-hand side sparse vector
@@ -3531,9 +3574,9 @@ void OperationTest<VT1,VT2>::testImagOperation()
 // \exception std::runtime_error Cross product error detected.
 //
 // This function tests the evaluated vector cross product with plain assignment, addition
-// assignment, subtraction assignment, and multiplication assignment. In case any error resulting
-// from the cross product or the subsequent assignment is detected, a \a std::runtime_error
-// exception is thrown.
+// assignment, subtraction assignment, multiplication assignment, and division assignment.
+// In case any error resulting from the cross product or the subsequent assignment is
+// detected, a \a std::runtime_error exception is thrown.
 */
 template< typename VT1    // Type of the left-hand side sparse vector
         , typename VT2 >  // Type of the right-hand side sparse vector
@@ -3556,9 +3599,9 @@ void OperationTest<VT1,VT2>::testEvalOperation()
 // \exception std::runtime_error Cross product error detected.
 //
 // This function tests the serialized vector cross product with plain assignment, addition
-// assignment, subtraction assignment, and multiplication assignment. In case any error resulting
-// from the cross product or the subsequent assignment is detected, a \a std::runtime_error
-// exception is thrown.
+// assignment, subtraction assignment, multiplication assignment, and division assignment.
+// In case any error resulting from the cross product or the subsequent assignment is
+// detected, a \a std::runtime_error exception is thrown.
 */
 template< typename VT1    // Type of the left-hand side sparse vector
         , typename VT2 >  // Type of the right-hand side sparse vector
@@ -3575,14 +3618,65 @@ void OperationTest<VT1,VT2>::testSerialOperation()
 
 
 //*************************************************************************************************
+/*!\brief Testing the non-aliased sparse vector/sparse vector cross product.
+//
+// \return void
+// \exception std::runtime_error Cross product error detected.
+//
+// This function tests the non-aliased vector cross product with plain assignment, addition
+// assignment, subtraction assignment, multiplication assignment, and division assignment.
+// In case any error resulting from the cross product or the subsequent assignment is
+// detected, a \a std::runtime_error exception is thrown.
+*/
+template< typename VT1    // Type of the left-hand side sparse vector
+        , typename VT2 >  // Type of the right-hand side sparse vector
+void OperationTest<VT1,VT2>::testNoAliasOperation()
+{
+#if BLAZETEST_MATHTEST_TEST_NOALIAS_OPERATION
+   if( BLAZETEST_MATHTEST_TEST_NOALIAS_OPERATION > 1 )
+   {
+      testCustomOperation( blaze::NoAlias(), "noalias" );
+   }
+#endif
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the non-SIMD sparse vector/sparse vector cross product.
+//
+// \return void
+// \exception std::runtime_error Cross product error detected.
+//
+// This function tests the non-SIMD vector cross product with plain assignment, addition
+// assignment, subtraction assignment, multiplication assignment, and division assignment.
+// In case any error resulting from the cross product or the subsequent assignment is
+// detected, a \a std::runtime_error exception is thrown.
+*/
+template< typename VT1    // Type of the left-hand side sparse vector
+        , typename VT2 >  // Type of the right-hand side sparse vector
+void OperationTest<VT1,VT2>::testNoSIMDOperation()
+{
+#if BLAZETEST_MATHTEST_TEST_NOSIMD_OPERATION
+   if( BLAZETEST_MATHTEST_TEST_NOSIMD_OPERATION > 1 )
+   {
+      testCustomOperation( blaze::NoSIMD(), "nosimd" );
+   }
+#endif
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Testing the subvector-wise sparse vector/sparse vector cross product.
 //
 // \return void
 // \exception std::runtime_error Cross product error detected.
 //
 // This function tests the subvector-wise vector cross product with plain assignment, addition
-// assignment, and subtraction assignment. In case any error resulting from the cross product
-// or the subsequent assignment is detected, a \a std::runtime_error exception is thrown.
+// assignment, subtraction assignment, multiplication assignment, and division assignment. In
+// case any error resulting from the cross product or the subsequent assignment is detected,
+// a \a std::runtime_error exception is thrown.
 */
 template< typename VT1    // Type of the left-hand side sparse vector
         , typename VT2 >  // Type of the right-hand side sparse vector
@@ -3985,6 +4079,426 @@ void OperationTest<VT1,VT2>::testSubvectorOperation()
 
 
 //*************************************************************************************************
+/*!\brief Testing the elements-wise sparse vector/sparse vector cross product.
+//
+// \return void
+// \exception std::runtime_error Cross product error detected.
+//
+// This function tests the elements-wise vector cross product with plain assignment, addition
+// assignment, subtraction assignment, multiplication assignment, and division assignment. In
+// case any error resulting from the cross product or the subsequent assignment is detected,
+// a \a std::runtime_error exception is thrown.
+*/
+template< typename VT1    // Type of the left-hand side sparse vector
+        , typename VT2 >  // Type of the right-hand side sparse vector
+void OperationTest<VT1,VT2>::testElementsOperation()
+{
+#if BLAZETEST_MATHTEST_TEST_ELEMENTS_OPERATION
+   if( BLAZETEST_MATHTEST_TEST_ELEMENTS_OPERATION > 1 )
+   {
+      if( lhs_.size() == 0UL )
+         return;
+
+
+      std::vector<size_t> indices( lhs_.size() );
+      std::iota( indices.begin(), indices.end(), 0UL );
+      std::random_shuffle( indices.begin(), indices.end() );
+
+
+      //=====================================================================================
+      // Elements-wise cross product
+      //=====================================================================================
+
+      // Elements-wise cross product with the given vectors
+      {
+         test_  = "Elements-wise cross product with the given vectors";
+         error_ = "Failed cross product operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               elements( dres_  , &indices[index], n ) = elements( lhs_ % rhs_      , &indices[index], n );
+               elements( sres_  , &indices[index], n ) = elements( lhs_ % rhs_      , &indices[index], n );
+               elements( refres_, &indices[index], n ) = elements( reflhs_ % refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<VT1,VT2>( ex );
+         }
+
+         checkResults<VT1,VT2>();
+
+         try {
+            initTransposeResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               elements( tdres_  , &indices[index], n ) = elements( tlhs_ % trhs_      , &indices[index], n );
+               elements( tsres_  , &indices[index], n ) = elements( tlhs_ % trhs_      , &indices[index], n );
+               elements( trefres_, &indices[index], n ) = elements( treflhs_ % trefrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<TVT1,TVT2>( ex );
+         }
+
+         checkTransposeResults<TVT1,TVT2>();
+      }
+
+      // Elements-wise cross product with evaluated vectors
+      {
+         test_  = "Elements-wise cross product with evaluated vectors";
+         error_ = "Failed cross product operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               elements( dres_  , &indices[index], n ) = elements( eval( lhs_ ) % eval( rhs_ )      , &indices[index], n );
+               elements( sres_  , &indices[index], n ) = elements( eval( lhs_ ) % eval( rhs_ )      , &indices[index], n );
+               elements( refres_, &indices[index], n ) = elements( eval( reflhs_ ) % eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<VT1,VT2>( ex );
+         }
+
+         checkResults<VT1,VT2>();
+
+         try {
+            initTransposeResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               elements( tdres_  , &indices[index], n ) = elements( eval( tlhs_ ) % eval( trhs_ )      , &indices[index], n );
+               elements( tsres_  , &indices[index], n ) = elements( eval( tlhs_ ) % eval( trhs_ )      , &indices[index], n );
+               elements( trefres_, &indices[index], n ) = elements( eval( treflhs_ ) % eval( trefrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<TVT1,TVT2>( ex );
+         }
+
+         checkTransposeResults<TVT1,TVT2>();
+      }
+
+
+      //=====================================================================================
+      // Elements-wise cross product with addition assignment
+      //=====================================================================================
+
+      // Elements-wise cross product with addition assignment with the given vectors
+      {
+         test_  = "Elements-wise cross product with addition assignment with the given vectors";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               elements( dres_  , &indices[index], n ) += elements( lhs_ % rhs_      , &indices[index], n );
+               elements( sres_  , &indices[index], n ) += elements( lhs_ % rhs_      , &indices[index], n );
+               elements( refres_, &indices[index], n ) += elements( reflhs_ % refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<VT1,VT2>( ex );
+         }
+
+         checkResults<VT1,VT2>();
+
+         try {
+            initTransposeResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               elements( tdres_  , &indices[index], n ) += elements( tlhs_ % trhs_      , &indices[index], n );
+               elements( tsres_  , &indices[index], n ) += elements( tlhs_ % trhs_      , &indices[index], n );
+               elements( trefres_, &indices[index], n ) += elements( treflhs_ % trefrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<TVT1,TVT2>( ex );
+         }
+
+         checkTransposeResults<TVT1,TVT2>();
+      }
+
+      // Elements-wise cross product with addition assignment with evaluated vectors
+      {
+         test_  = "Elements-wise cross product with addition assignment with evaluated vectors";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               elements( dres_  , &indices[index], n ) += elements( eval( lhs_ ) % eval( rhs_ )      , &indices[index], n );
+               elements( sres_  , &indices[index], n ) += elements( eval( lhs_ ) % eval( rhs_ )      , &indices[index], n );
+               elements( refres_, &indices[index], n ) += elements( eval( reflhs_ ) % eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<VT1,VT2>( ex );
+         }
+
+         checkResults<VT1,VT2>();
+
+         try {
+            initTransposeResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               elements( tdres_  , &indices[index], n ) += elements( eval( tlhs_ ) % eval( trhs_ )      , &indices[index], n );
+               elements( tsres_  , &indices[index], n ) += elements( eval( tlhs_ ) % eval( trhs_ )      , &indices[index], n );
+               elements( trefres_, &indices[index], n ) += elements( eval( treflhs_ ) % eval( trefrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<TVT1,TVT2>( ex );
+         }
+
+         checkTransposeResults<TVT1,TVT2>();
+      }
+
+
+      //=====================================================================================
+      // Elements-wise cross product with subtraction assignment
+      //=====================================================================================
+
+      // Elements-wise cross product with subtraction assignment with the given vectors
+      {
+         test_  = "Elements-wise cross product with subtraction assignment with the given vectors";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               elements( dres_  , &indices[index], n ) -= elements( lhs_ % rhs_      , &indices[index], n );
+               elements( sres_  , &indices[index], n ) -= elements( lhs_ % rhs_      , &indices[index], n );
+               elements( refres_, &indices[index], n ) -= elements( reflhs_ % refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<VT1,VT2>( ex );
+         }
+
+         checkResults<VT1,VT2>();
+
+         try {
+            initTransposeResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               elements( tdres_  , &indices[index], n ) -= elements( tlhs_ % trhs_      , &indices[index], n );
+               elements( tsres_  , &indices[index], n ) -= elements( tlhs_ % trhs_      , &indices[index], n );
+               elements( trefres_, &indices[index], n ) -= elements( treflhs_ % trefrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<TVT1,TVT2>( ex );
+         }
+
+         checkTransposeResults<TVT1,TVT2>();
+      }
+
+      // Elements-wise cross product with subtraction assignment with evaluated vectors
+      {
+         test_  = "Elements-wise cross product with subtraction assignment with evaluated vectors";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               elements( dres_  , &indices[index], n ) -= elements( eval( lhs_ ) % eval( rhs_ )      , &indices[index], n );
+               elements( sres_  , &indices[index], n ) -= elements( eval( lhs_ ) % eval( rhs_ )      , &indices[index], n );
+               elements( refres_, &indices[index], n ) -= elements( eval( reflhs_ ) % eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<VT1,VT2>( ex );
+         }
+
+         checkResults<VT1,VT2>();
+
+         try {
+            initTransposeResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               elements( tdres_  , &indices[index], n ) -= elements( eval( tlhs_ ) % eval( trhs_ )      , &indices[index], n );
+               elements( tsres_  , &indices[index], n ) -= elements( eval( tlhs_ ) % eval( trhs_ )      , &indices[index], n );
+               elements( trefres_, &indices[index], n ) -= elements( eval( treflhs_ ) % eval( trefrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<TVT1,TVT2>( ex );
+         }
+
+         checkTransposeResults<TVT1,TVT2>();
+      }
+
+
+      //=====================================================================================
+      // Elements-wise cross product with multiplication assignment
+      //=====================================================================================
+
+      // Elements-wise cross product with multiplication assignment with the given vectors
+      {
+         test_  = "Elements-wise cross product with multiplication assignment with the given vectors";
+         error_ = "Failed multiplication assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               elements( dres_  , &indices[index], n ) *= elements( lhs_ % rhs_      , &indices[index], n );
+               elements( sres_  , &indices[index], n ) *= elements( lhs_ % rhs_      , &indices[index], n );
+               elements( refres_, &indices[index], n ) *= elements( reflhs_ % refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<VT1,VT2>( ex );
+         }
+
+         checkResults<VT1,VT2>();
+
+         try {
+            initTransposeResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               elements( tdres_  , &indices[index], n ) *= elements( tlhs_ % trhs_      , &indices[index], n );
+               elements( tsres_  , &indices[index], n ) *= elements( tlhs_ % trhs_      , &indices[index], n );
+               elements( trefres_, &indices[index], n ) *= elements( treflhs_ % trefrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<TVT1,TVT2>( ex );
+         }
+
+         checkTransposeResults<TVT1,TVT2>();
+      }
+
+      // Elements-wise cross product with multiplication assignment with evaluated vectors
+      {
+         test_  = "Elements-wise cross product with multiplication assignment with evaluated vectors";
+         error_ = "Failed multiplication assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               elements( dres_  , &indices[index], n ) *= elements( eval( lhs_ ) % eval( rhs_ )      , &indices[index], n );
+               elements( sres_  , &indices[index], n ) *= elements( eval( lhs_ ) % eval( rhs_ )      , &indices[index], n );
+               elements( refres_, &indices[index], n ) *= elements( eval( reflhs_ ) % eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<VT1,VT2>( ex );
+         }
+
+         checkResults<VT1,VT2>();
+
+         try {
+            initTransposeResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               elements( tdres_  , &indices[index], n ) *= elements( eval( tlhs_ ) % eval( trhs_ )      , &indices[index], n );
+               elements( tsres_  , &indices[index], n ) *= elements( eval( tlhs_ ) % eval( trhs_ )      , &indices[index], n );
+               elements( trefres_, &indices[index], n ) *= elements( eval( treflhs_ ) % eval( trefrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<TVT1,TVT2>( ex );
+         }
+
+         checkTransposeResults<TVT1,TVT2>();
+      }
+
+
+      //=====================================================================================
+      // Elements-wise cross product with division assignment
+      //=====================================================================================
+
+      // Elements-wise cross product with division assignment with the given vectors
+      {
+         test_  = "Elements-wise cross product with division assignment with the given vectors";
+         error_ = "Failed division assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               if( !blaze::isDivisor( elements( lhs_ % rhs_, &indices[index], n ) ) ) continue;
+               elements( dres_  , &indices[index], n ) /= elements( lhs_ % rhs_      , &indices[index], n );
+               elements( sres_  , &indices[index], n ) /= elements( lhs_ % rhs_      , &indices[index], n );
+               elements( refres_, &indices[index], n ) /= elements( reflhs_ % refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<VT1,VT2>( ex );
+         }
+
+         checkResults<VT1,VT2>();
+
+         try {
+            initTransposeResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               if( !blaze::isDivisor( elements( tlhs_ % trhs_, &indices[index], n ) ) ) continue;
+               elements( tdres_  , &indices[index], n ) /= elements( tlhs_ % trhs_      , &indices[index], n );
+               elements( tsres_  , &indices[index], n ) /= elements( tlhs_ % trhs_      , &indices[index], n );
+               elements( trefres_, &indices[index], n ) /= elements( treflhs_ % trefrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<TVT1,TVT2>( ex );
+         }
+
+         checkTransposeResults<TVT1,TVT2>();
+      }
+
+      // Elements-wise cross product with division assignment with evaluated vectors
+      {
+         test_  = "Elements-wise cross product with division assignment with evaluated vectors";
+         error_ = "Failed division assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               if( !blaze::isDivisor( elements( lhs_ % rhs_, &indices[index], n ) ) ) continue;
+               elements( dres_  , &indices[index], n ) /= elements( eval( lhs_ ) % eval( rhs_ )      , &indices[index], n );
+               elements( sres_  , &indices[index], n ) /= elements( eval( lhs_ ) % eval( rhs_ )      , &indices[index], n );
+               elements( refres_, &indices[index], n ) /= elements( eval( reflhs_ ) % eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<VT1,VT2>( ex );
+         }
+
+         checkResults<VT1,VT2>();
+
+         try {
+            initTransposeResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               if( !blaze::isDivisor( elements( tlhs_ % trhs_, &indices[index], n ) ) ) continue;
+               elements( tdres_  , &indices[index], n ) /= elements( eval( tlhs_ ) % eval( trhs_ )      , &indices[index], n );
+               elements( tsres_  , &indices[index], n ) /= elements( eval( tlhs_ ) % eval( trhs_ )      , &indices[index], n );
+               elements( trefres_, &indices[index], n ) /= elements( eval( treflhs_ ) % eval( trefrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<TVT1,TVT2>( ex );
+         }
+
+         checkTransposeResults<TVT1,TVT2>();
+      }
+   }
+#endif
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Testing the customized sparse vector/sparse vector cross product.
 //
 // \param op The custom operation to be tested.
@@ -3993,9 +4507,9 @@ void OperationTest<VT1,VT2>::testSubvectorOperation()
 // \exception std::runtime_error Cross product error detected.
 //
 // This function tests the vector cross product with plain assignment, addition assignment,
-// subtraction assignment, and multiplication assignment in combination with a custom operation.
-// In case any error resulting from the cross product or the subsequent assignment is detected,
-// a \a std::runtime_error exception is thrown.
+// subtraction assignment, multiplication assignment, and division assignment in combination
+// with a custom operation. In case any error resulting from the cross product or the
+// subsequent assignment is detected, a \a std::runtime_error exception is thrown.
 */
 template< typename VT1    // Type of the left-hand side sparse vector
         , typename VT2 >  // Type of the right-hand side sparse vector
@@ -4363,6 +4877,7 @@ void OperationTest<VT1,VT2>::checkResults()
       oss << " Test : " << test_ << "\n"
           << " Error: Incorrect dense result vector detected\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side sparse " << ( IsRowVector<LT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
           << "     " << typeid( LT ).name() << "\n"
           << "   Right-hand side sparse " << ( IsRowVector<RT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
@@ -4378,6 +4893,7 @@ void OperationTest<VT1,VT2>::checkResults()
       oss << " Test : " << test_ << "\n"
           << " Error: Incorrect sparse result vector detected\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side sparse " << ( IsRowVector<LT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
           << "     " << typeid( LT ).name() << "\n"
           << "   Right-hand side sparse " << ( IsRowVector<RT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
@@ -4414,6 +4930,7 @@ void OperationTest<VT1,VT2>::checkTransposeResults()
       oss << " Test : " << test_ << "\n"
           << " Error: Incorrect dense result vector detected\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side sparse " << ( IsRowVector<LT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
           << "     " << typeid( LT ).name() << "\n"
           << "   Right-hand side sparse " << ( IsRowVector<RT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
@@ -4429,6 +4946,7 @@ void OperationTest<VT1,VT2>::checkTransposeResults()
       oss << " Test : " << test_ << "\n"
           << " Error: Incorrect sparse result vector detected\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side sparse " << ( IsRowVector<LT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
           << "     " << typeid( LT ).name() << "\n"
           << "   Right-hand side sparse " << ( IsRowVector<RT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
@@ -4461,8 +4979,8 @@ template< typename VT1    // Type of the left-hand side sparse vector
         , typename VT2 >  // Type of the right-hand side sparse vector
 void OperationTest<VT1,VT2>::initResults()
 {
-   const blaze::UnderlyingBuiltin_<DRE> min( randmin );
-   const blaze::UnderlyingBuiltin_<DRE> max( randmax );
+   const blaze::UnderlyingBuiltin_t<DRE> min( randmin );
+   const blaze::UnderlyingBuiltin_t<DRE> max( randmax );
 
    resize( dres_, 3UL );
    randomize( dres_, min, max );
@@ -4485,8 +5003,8 @@ template< typename VT1    // Type of the left-hand side sparse vector
         , typename VT2 >  // Type of the right-hand side sparse vector
 void OperationTest<VT1,VT2>::initTransposeResults()
 {
-   const blaze::UnderlyingBuiltin_<TDRE> min( randmin );
-   const blaze::UnderlyingBuiltin_<TDRE> max( randmax );
+   const blaze::UnderlyingBuiltin_t<TDRE> min( randmin );
+   const blaze::UnderlyingBuiltin_t<TDRE> max( randmax );
 
    resize( tdres_, 3UL );
    randomize( tdres_, min, max );
@@ -4520,6 +5038,7 @@ void OperationTest<VT1,VT2>::convertException( const std::exception& ex )
    oss << " Test : " << test_ << "\n"
        << " Error: " << error_ << "\n"
        << " Details:\n"
+       << "   Random seed = " << blaze::getSeed() << "\n"
        << "   Left-hand side sparse " << ( IsRowVector<LT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
        << "     " << typeid( LT ).name() << "\n"
        << "   Right-hand side sparse " << ( IsRowVector<RT>::value ? ( "row" ) : ( "column" ) ) << " vector type:\n"
@@ -4549,9 +5068,14 @@ template< typename VT1    // Type of the left-hand side sparse vector
         , typename VT2 >  // Type of the right-hand side sparse vector
 void runTest( const Creator<VT1>& creator1, const Creator<VT2>& creator2 )
 {
-   for( size_t rep=0UL; rep<repetitions; ++rep ) {
-      OperationTest<VT1,VT2>( creator1, creator2 );
+#if BLAZETEST_MATHTEST_TEST_MULTIPLICATION
+   if( BLAZETEST_MATHTEST_TEST_MULTIPLICATION > 1 )
+   {
+      for( size_t rep=0UL; rep<repetitions; ++rep ) {
+         OperationTest<VT1,VT2>( creator1, creator2 );
+      }
    }
+#endif
 }
 //*************************************************************************************************
 

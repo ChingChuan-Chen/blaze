@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/simd/OperationTest.h
 //  \brief Header file for the SIMD operation test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,12 +45,14 @@
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
+#include <blaze/math/Accuracy.h>
 #include <blaze/math/shims/Abs.h>
 #include <blaze/math/shims/Acos.h>
 #include <blaze/math/shims/Acosh.h>
 #include <blaze/math/shims/Asin.h>
 #include <blaze/math/shims/Asinh.h>
 #include <blaze/math/shims/Atan.h>
+#include <blaze/math/shims/Atan2.h>
 #include <blaze/math/shims/Atanh.h>
 #include <blaze/math/shims/Cbrt.h>
 #include <blaze/math/shims/Ceil.h>
@@ -63,13 +65,19 @@
 #include <blaze/math/shims/Exp.h>
 #include <blaze/math/shims/Exp2.h>
 #include <blaze/math/shims/Floor.h>
+#include <blaze/math/shims/Hypot.h>
 #include <blaze/math/shims/InvCbrt.h>
 #include <blaze/math/shims/InvSqrt.h>
 #include <blaze/math/shims/Log.h>
 #include <blaze/math/shims/Log2.h>
 #include <blaze/math/shims/Log10.h>
 #include <blaze/math/shims/Pow.h>
+#include <blaze/math/shims/Pow2.h>
+#include <blaze/math/shims/Pow3.h>
+#include <blaze/math/shims/Pow4.h>
+#include <blaze/math/shims/Reset.h>
 #include <blaze/math/shims/Round.h>
+#include <blaze/math/shims/Sign.h>
 #include <blaze/math/shims/Sin.h>
 #include <blaze/math/shims/Sinh.h>
 #include <blaze/math/shims/Sqrt.h>
@@ -84,27 +92,40 @@
 #include <blaze/math/typetraits/HasSIMDAsin.h>
 #include <blaze/math/typetraits/HasSIMDAsinh.h>
 #include <blaze/math/typetraits/HasSIMDAtan.h>
+#include <blaze/math/typetraits/HasSIMDAtan2.h>
 #include <blaze/math/typetraits/HasSIMDAtanh.h>
+#include <blaze/math/typetraits/HasSIMDBitand.h>
+#include <blaze/math/typetraits/HasSIMDBitor.h>
+#include <blaze/math/typetraits/HasSIMDBitxor.h>
 #include <blaze/math/typetraits/HasSIMDCbrt.h>
 #include <blaze/math/typetraits/HasSIMDCeil.h>
 #include <blaze/math/typetraits/HasSIMDConj.h>
 #include <blaze/math/typetraits/HasSIMDCos.h>
 #include <blaze/math/typetraits/HasSIMDCosh.h>
 #include <blaze/math/typetraits/HasSIMDDiv.h>
+#include <blaze/math/typetraits/HasSIMDEqual.h>
 #include <blaze/math/typetraits/HasSIMDErf.h>
 #include <blaze/math/typetraits/HasSIMDErfc.h>
 #include <blaze/math/typetraits/HasSIMDExp.h>
 #include <blaze/math/typetraits/HasSIMDExp2.h>
 #include <blaze/math/typetraits/HasSIMDExp10.h>
 #include <blaze/math/typetraits/HasSIMDFloor.h>
+#include <blaze/math/typetraits/HasSIMDHypot.h>
 #include <blaze/math/typetraits/HasSIMDInvCbrt.h>
 #include <blaze/math/typetraits/HasSIMDInvSqrt.h>
 #include <blaze/math/typetraits/HasSIMDLog.h>
 #include <blaze/math/typetraits/HasSIMDLog2.h>
 #include <blaze/math/typetraits/HasSIMDLog10.h>
+#include <blaze/math/typetraits/HasSIMDMax.h>
+#include <blaze/math/typetraits/HasSIMDMin.h>
 #include <blaze/math/typetraits/HasSIMDMult.h>
 #include <blaze/math/typetraits/HasSIMDPow.h>
 #include <blaze/math/typetraits/HasSIMDRound.h>
+#include <blaze/math/typetraits/HasSIMDShiftLI.h>
+#include <blaze/math/typetraits/HasSIMDShiftLV.h>
+#include <blaze/math/typetraits/HasSIMDShiftRI.h>
+#include <blaze/math/typetraits/HasSIMDShiftRV.h>
+#include <blaze/math/typetraits/HasSIMDSign.h>
 #include <blaze/math/typetraits/HasSIMDSin.h>
 #include <blaze/math/typetraits/HasSIMDSinh.h>
 #include <blaze/math/typetraits/HasSIMDSqrt.h>
@@ -112,13 +133,14 @@
 #include <blaze/math/typetraits/HasSIMDTan.h>
 #include <blaze/math/typetraits/HasSIMDTanh.h>
 #include <blaze/math/typetraits/HasSIMDTrunc.h>
+#include <blaze/util/algorithms/Max.h>
+#include <blaze/util/algorithms/Min.h>
 #include <blaze/util/constraints/Numeric.h>
-#include <blaze/util/FalseType.h>
+#include <blaze/util/IntegralConstant.h>
 #include <blaze/util/Memory.h>
 #include <blaze/util/NonCopyable.h>
 #include <blaze/util/policies/Deallocate.h>
 #include <blaze/util/Random.h>
-#include <blaze/util/TrueType.h>
 
 
 namespace blazetest {
@@ -145,14 +167,14 @@ class OperationTest : private blaze::NonCopyable
 {
  private:
    //**Type definitions****************************************************************************
-   typedef blaze::SIMDTrait<T>  SIMD;      //!< SIMD trait for the given numeric type.
-   typedef typename SIMD::Type  SIMDType;  //!< SIMD type for the given numeric type.
+   using SIMD     = blaze::SIMDTrait<T>;  //!< SIMD trait for the given numeric type.
+   using SIMDType = typename SIMD::Type;  //!< SIMD type for the given numeric type.
    //**********************************************************************************************
 
    //**********************************************************************************************
-   enum : size_t { SIMDSIZE = SIMD::size };  //!< Number of elements in a single SIMD vector.
-   enum : size_t { N = 256UL };              //!< Number of numeric values to be worked on.
-   enum : size_t { NN = N + SIMDSIZE };      //!< Total number of numeric values in each array.
+   static constexpr size_t SIMDSIZE = SIMD::size;  //!< Number of elements in a single SIMD vector.
+   static constexpr size_t N = 256UL;              //!< Number of numeric values to be worked on.
+   static constexpr size_t NN = N + SIMDSIZE;      //!< Total number of numeric values in each array.
    //**********************************************************************************************
 
  public:
@@ -175,8 +197,18 @@ class OperationTest : private blaze::NonCopyable
    /*!\name Test functions */
    //@{
    void testStorea        ();
-   void testStream        ();
    void testStoreu        ( size_t offset );
+   void testStream        ();
+   void testSet           ();
+
+   void testEquality      ( blaze::TrueType , blaze::TrueType  );
+   void testEquality      ( blaze::TrueType , blaze::FalseType );
+   void testEquality      ( blaze::FalseType, blaze::TrueType  );
+   void testEquality      ( blaze::FalseType, blaze::FalseType );
+   void testInequality    ( blaze::TrueType , blaze::TrueType  );
+   void testInequality    ( blaze::TrueType , blaze::FalseType );
+   void testInequality    ( blaze::FalseType, blaze::TrueType  );
+   void testInequality    ( blaze::FalseType, blaze::FalseType );
 
    void testAddition      ( blaze::TrueType  );
    void testAddition      ( blaze::FalseType );
@@ -191,8 +223,41 @@ class OperationTest : private blaze::NonCopyable
    void testDivision      ( blaze::TrueType  );
    void testDivision      ( blaze::FalseType );
 
+   void testBitand        ( blaze::TrueType  );
+   void testBitand        ( blaze::FalseType );
+   void testBitor         ( blaze::TrueType  );
+   void testBitor         ( blaze::FalseType );
+   void testBitxor        ( blaze::TrueType  );
+   void testBitxor        ( blaze::FalseType );
+
+   void testShiftLI       ( blaze::TrueType  );
+   void testShiftLI       ( blaze::FalseType );
+   void testShiftLV       ( blaze::TrueType  );
+   void testShiftLV       ( blaze::FalseType );
+   void testShiftRI       ( blaze::TrueType  );
+   void testShiftRI       ( blaze::FalseType );
+   void testShiftRV       ( blaze::TrueType  );
+   void testShiftRV       ( blaze::FalseType );
+
+   void testMin           ( blaze::TrueType  );
+   void testMin           ( blaze::FalseType );
+   void testMax           ( blaze::TrueType  );
+   void testMax           ( blaze::FalseType );
+
    void testAbs           ( blaze::TrueType  );
    void testAbs           ( blaze::FalseType );
+   void testSign          ( blaze::TrueType  );
+   void testSign          ( blaze::FalseType );
+
+   void testFloor         ( blaze::TrueType  );
+   void testFloor         ( blaze::FalseType );
+   void testCeil          ( blaze::TrueType  );
+   void testCeil          ( blaze::FalseType );
+   void testTrunc         ( blaze::TrueType  );
+   void testTrunc         ( blaze::FalseType );
+   void testRound         ( blaze::TrueType  );
+   void testRound         ( blaze::FalseType );
+
    void testConj          ( blaze::TrueType  );
    void testConj          ( blaze::FalseType );
    void testSqrt          ( blaze::TrueType  );
@@ -203,23 +268,25 @@ class OperationTest : private blaze::NonCopyable
    void testCbrt          ( blaze::FalseType );
    void testInvCbrt       ( blaze::TrueType  );
    void testInvCbrt       ( blaze::FalseType );
-   void testFloor         ( blaze::TrueType  );
-   void testFloor         ( blaze::FalseType );
-   void testCeil          ( blaze::TrueType  );
-   void testCeil          ( blaze::FalseType );
-   void testTrunc         ( blaze::TrueType  );
-   void testTrunc         ( blaze::FalseType );
-   void testRound         ( blaze::TrueType  );
-   void testRound         ( blaze::FalseType );
+   void testHypot         ( blaze::TrueType  );
+   void testHypot         ( blaze::FalseType );
 
    void testPow           ( blaze::TrueType  );
    void testPow           ( blaze::FalseType );
+   void testPow2          ( blaze::TrueType  );
+   void testPow2          ( blaze::FalseType );
+   void testPow3          ( blaze::TrueType  );
+   void testPow3          ( blaze::FalseType );
+   void testPow4          ( blaze::TrueType  );
+   void testPow4          ( blaze::FalseType );
+
    void testExp           ( blaze::TrueType  );
    void testExp           ( blaze::FalseType );
    void testExp2          ( blaze::TrueType  );
    void testExp2          ( blaze::FalseType );
    void testExp10         ( blaze::TrueType  );
    void testExp10         ( blaze::FalseType );
+
    void testLog           ( blaze::TrueType  );
    void testLog           ( blaze::FalseType );
    void testLog2          ( blaze::TrueType  );
@@ -253,13 +320,16 @@ class OperationTest : private blaze::NonCopyable
    void testTanh          ( blaze::FalseType );
    void testAtanh         ( blaze::TrueType  );
    void testAtanh         ( blaze::FalseType );
+   void testAtan2         ( blaze::TrueType  );
+   void testAtan2         ( blaze::FalseType );
 
    void testErf           ( blaze::TrueType  );
    void testErf           ( blaze::FalseType );
    void testErfc          ( blaze::TrueType  );
    void testErfc          ( blaze::FalseType );
 
-   void testReduction     ();
+   void testSum           ();
+   void testProd          ();
    //@}
    //**********************************************************************************************
 
@@ -275,6 +345,8 @@ class OperationTest : private blaze::NonCopyable
    //@{
    void initialize();
    void initialize( T min, T max );
+   void initialize( T* array );
+   void initialize( T* array, T min, T max );
    //@}
    //**********************************************************************************************
 
@@ -323,57 +395,84 @@ OperationTest<T>::OperationTest()
    , test_ ()                            // Label of the currently performed test
 {
    testStorea();
-   testStream();
 
    for( size_t offset=0UL; offset<SIMDSIZE; ++offset ) {
       testStoreu( offset );
    }
 
-   testAddition      ( blaze::HasSIMDAdd    <T,T>() );
-   testSubtraction   ( blaze::HasSIMDSub    <T,T>() );
-   testMultiplication( blaze::HasSIMDMult   <T,T>() );
-   testFmadd         ( blaze::HasSIMDMult   <T,T>() );
-   testFmsub         ( blaze::HasSIMDMult   <T,T>() );
-   testDivision      ( blaze::HasSIMDDiv    <T,T>() );
+   testStream        ();
+   testSet           ();
 
-   testAbs           ( blaze::HasSIMDAbs    < T >() );
+   testEquality      ( blaze::HasSIMDEqual<T,T>(), blaze::IsFloatingPoint<T>() );
+   testInequality    ( blaze::HasSIMDEqual<T,T>(), blaze::IsFloatingPoint<T>() );
+
+   testAddition      ( blaze::HasSIMDAdd <T,T>() );
+   testSubtraction   ( blaze::HasSIMDSub <T,T>() );
+   testMultiplication( blaze::HasSIMDMult<T,T>() );
+   testFmadd         ( blaze::HasSIMDMult<T,T>() );
+   testFmsub         ( blaze::HasSIMDMult<T,T>() );
+   testDivision      ( blaze::HasSIMDDiv <T,T>() );
+
+   testBitand        ( blaze::HasSIMDBitand<T,T>() );
+   testBitor         ( blaze::HasSIMDBitor <T,T>() );
+   testBitxor        ( blaze::HasSIMDBitxor<T,T>() );
+
+   testShiftLI       ( blaze::HasSIMDShiftLI< T >() );
+   testShiftLV       ( blaze::HasSIMDShiftLV<T,T>() );
+   testShiftRI       ( blaze::HasSIMDShiftRI< T >() );
+   testShiftRV       ( blaze::HasSIMDShiftRV<T,T>() );
+
+   testMin           ( blaze::HasSIMDMin<T,T>() );
+   testMax           ( blaze::HasSIMDMax<T,T>() );
+
+   testAbs           ( blaze::HasSIMDAbs < T >() );
+   testSign          ( blaze::HasSIMDSign< T >() );
+
+   testFloor         ( blaze::HasSIMDFloor< T >() );
+   testCeil          ( blaze::HasSIMDCeil < T >() );
+   testTrunc         ( blaze::HasSIMDTrunc< T >() );
+   testRound         ( blaze::HasSIMDRound< T >() );
+
    testConj          ( blaze::HasSIMDConj   < T >() );
    testSqrt          ( blaze::HasSIMDSqrt   < T >() );
    testInvSqrt       ( blaze::HasSIMDInvSqrt< T >() );
    testCbrt          ( blaze::HasSIMDCbrt   < T >() );
    testInvCbrt       ( blaze::HasSIMDInvCbrt< T >() );
-   testFloor         ( blaze::HasSIMDFloor  < T >() );
-   testCeil          ( blaze::HasSIMDCeil   < T >() );
-   testTrunc         ( blaze::HasSIMDTrunc  < T >() );
-   testRound         ( blaze::HasSIMDRound  < T >() );
+   testHypot         ( blaze::HasSIMDHypot  <T,T>() );
 
-   testPow           ( blaze::HasSIMDPow    < T >() );
-   testExp           ( blaze::HasSIMDExp    < T >() );
-   testExp2          ( blaze::HasSIMDExp2   < T >() );
-   testExp10         ( blaze::HasSIMDExp10  < T >() );
-   testLog           ( blaze::HasSIMDLog    < T >() );
-   testLog2          ( blaze::HasSIMDLog2   < T >() );
-   testLog10         ( blaze::HasSIMDLog10  < T >() );
+   testPow           ( blaze::HasSIMDPow <T,T>() );
+   testPow2          ( blaze::HasSIMDMult<T,T>() );
+   testPow3          ( blaze::HasSIMDMult<T,T>() );
+   testPow4          ( blaze::HasSIMDMult<T,T>() );
 
-   testSin           ( blaze::HasSIMDSin    < T >() );
-   testAsin          ( blaze::HasSIMDAsin   < T >() );
-   testSinh          ( blaze::HasSIMDSinh   < T >() );
-   testAsinh         ( blaze::HasSIMDAsinh  < T >() );
+   testExp           ( blaze::HasSIMDExp  < T >() );
+   testExp2          ( blaze::HasSIMDExp2 < T >() );
+   testExp10         ( blaze::HasSIMDExp10< T >() );
+   testLog           ( blaze::HasSIMDLog  < T >() );
+   testLog2          ( blaze::HasSIMDLog2 < T >() );
+   testLog10         ( blaze::HasSIMDLog10< T >() );
 
-   testCos           ( blaze::HasSIMDCos    < T >() );
-   testAcos          ( blaze::HasSIMDAcos   < T >() );
-   testCosh          ( blaze::HasSIMDCosh   < T >() );
-   testAcosh         ( blaze::HasSIMDAcosh  < T >() );
+   testSin           ( blaze::HasSIMDSin  < T >() );
+   testAsin          ( blaze::HasSIMDAsin < T >() );
+   testSinh          ( blaze::HasSIMDSinh < T >() );
+   testAsinh         ( blaze::HasSIMDAsinh< T >() );
 
-   testTan           ( blaze::HasSIMDTan    < T >() );
-   testAtan          ( blaze::HasSIMDAtan   < T >() );
-   testTanh          ( blaze::HasSIMDTanh   < T >() );
-   testAtanh         ( blaze::HasSIMDAtanh  < T >() );
+   testCos           ( blaze::HasSIMDCos  < T >() );
+   testAcos          ( blaze::HasSIMDAcos < T >() );
+   testCosh          ( blaze::HasSIMDCosh < T >() );
+   testAcosh         ( blaze::HasSIMDAcosh< T >() );
 
-   testErf           ( blaze::HasSIMDErf    < T >() );
-   testErfc          ( blaze::HasSIMDErfc   < T >() );
+   testTan           ( blaze::HasSIMDTan  < T >() );
+   testAtan          ( blaze::HasSIMDAtan < T >() );
+   testTanh          ( blaze::HasSIMDTanh < T >() );
+   testAtanh         ( blaze::HasSIMDAtanh< T >() );
+   testAtan2         ( blaze::HasSIMDAtan2<T,T>() );
 
-   testReduction     ();
+   testErf           ( blaze::HasSIMDErf < T >() );
+   testErfc          ( blaze::HasSIMDErfc< T >() );
+
+   testSum           ();
+   testProd          ();
 }
 //*************************************************************************************************
 
@@ -491,6 +590,402 @@ void OperationTest<T>::testStoreu( size_t offset )
 
    compare( a_+offset, b_+offset );
 }
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the set operation.
+//
+// \return void
+// \exception std::runtime_error Set error detected.
+//
+// This function tests the set operation by comparing the results of a vectorized and a scalar
+// array assignment. In case any error is detected, a \a std::runtime_error exception is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testSet()
+{
+   using blaze::set;
+   using blaze::storea;
+   using blaze::rand;
+
+   test_  = "set() operation";
+
+   initialize();
+
+   const T value( rand<T>() );
+
+   for( size_t i=0UL; i<N; ++i ) {
+      b_[i] = value;
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( c_+i, set( value ) );
+   }
+
+   compare( b_, c_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the equality comparison.
+//
+// \return void
+// \exception std::runtime_error Comparison error detected.
+//
+// This function tests the equality comparison for the given floating point data type \a T. In
+// case any error is detected, a \a std::runtime_error exception is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testEquality( blaze::TrueType, blaze::TrueType )
+{
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Equality comparison";
+
+   {
+      initialize();
+
+      for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+         if( !( loada( a_+i ) == loada( a_+i ) ) ) {
+            std::ostringstream oss;
+            oss.precision( 20 );
+            oss << " Test : " << test_ << "\n"
+                << " Error: Equality comparison failed at index " << i << "\n"
+                << " Details:\n"
+                << "   a[" << i << "] = " << a_[i] << "\n"
+                << "   b[" << i << "] = " << a_[i] << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+         if( loada( a_+i ) == loada( b_+i ) ) {
+            std::ostringstream oss;
+            oss.precision( 20 );
+            oss << " Test : " << test_ << "\n"
+                << " Error: Equality comparison failed at index " << i << "\n"
+                << " Details:\n"
+                << "   a[" << i << "] = " << a_[i] << "\n"
+                << "   b[" << i << "] = " << b_[i] << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+         if( !equal( loada( a_+i ), loada( a_+i ) ) ) {
+            std::ostringstream oss;
+            oss.precision( 20 );
+            oss << " Test : " << test_ << "\n"
+                << " Error: Equality comparison failed at index " << i << "\n"
+                << " Details:\n"
+                << "   a[" << i << "] = " << a_[i] << "\n"
+                << "   b[" << i << "] = " << a_[i] << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+         if( equal( loada( a_+i ), loada( b_+i ) ) ) {
+            std::ostringstream oss;
+            oss.precision( 20 );
+            oss << " Test : " << test_ << "\n"
+                << " Error: Equality comparison failed at index " << i << "\n"
+                << " Details:\n"
+                << "   a[" << i << "] = " << a_[i] << "\n"
+                << "   b[" << i << "] = " << b_[i] << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+   {
+      const T accu( blaze::accuracy );
+      const T half( 0.5 );
+
+      initialize( -half*accu, half*accu );
+
+      for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+         if( !( loada( a_+i ) == loada( a_+i ) ) ) {
+            std::ostringstream oss;
+            oss.precision( 20 );
+            oss << " Test : " << test_ << "\n"
+                << " Error: Equality comparison failed at index " << i << "\n"
+                << " Details:\n"
+                << "   a[" << i << "] = " << a_[i] << "\n"
+                << "   b[" << i << "] = " << a_[i] << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+         if( loada( a_+i ) == loada( b_+i ) ) {
+            std::ostringstream oss;
+            oss.precision( 20 );
+            oss << " Test : " << test_ << "\n"
+                << " Error: Equality comparison failed at index " << i << "\n"
+                << " Details:\n"
+                << "   a[" << i << "] = " << a_[i] << "\n"
+                << "   b[" << i << "] = " << b_[i] << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+         if( !equal( loada( a_+i ), loada( a_+i ) ) ) {
+            std::ostringstream oss;
+            oss.precision( 20 );
+            oss << " Test : " << test_ << "\n"
+                << " Error: Equality comparison failed at index " << i << "\n"
+                << " Details:\n"
+                << "   a[" << i << "] = " << a_[i] << "\n"
+                << "   b[" << i << "] = " << a_[i] << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+         if( !equal( loada( a_+i ), loada( b_+i ) ) ) {
+            std::ostringstream oss;
+            oss.precision( 20 );
+            oss << " Test : " << test_ << "\n"
+                << " Error: Equality comparison failed at index " << i << "\n"
+                << " Details:\n"
+                << "   a[" << i << "] = " << a_[i] << "\n"
+                << "   b[" << i << "] = " << b_[i] << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the equality comparison.
+//
+// \return void
+// \exception std::runtime_error Comparison error detected.
+//
+// This function tests the equality comparison for the given integral data type \a T. In case
+// any error is detected, a \a std::runtime_error exception is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testEquality( blaze::TrueType, blaze::FalseType )
+{
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Equality comparison";
+
+   initialize();
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      if( !( loada( a_+i ) == loada( a_+i ) ) ) {
+         std::ostringstream oss;
+         oss.precision( 20 );
+         oss << " Test : " << test_ << "\n"
+             << " Error: Equality comparison failed at index " << i << "\n"
+             << " Details:\n"
+             << "   a[" << i << "] = " << a_[i] << "\n"
+             << "   b[" << i << "] = " << a_[i] << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      if( loada( a_+i ) == loada( b_+i ) ) {
+         std::ostringstream oss;
+         oss.precision( 20 );
+         oss << " Test : " << test_ << "\n"
+             << " Error: Equality comparison failed at index " << i << "\n"
+             << " Details:\n"
+             << "   a[" << i << "] = " << a_[i] << "\n"
+             << "   b[" << i << "] = " << b_[i] << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      if( !( equal( loada( a_+i ), loada( a_+i ) ) ) ) {
+         std::ostringstream oss;
+         oss.precision( 20 );
+         oss << " Test : " << test_ << "\n"
+             << " Error: Equality comparison failed at index " << i << "\n"
+             << " Details:\n"
+             << "   a[" << i << "] = " << a_[i] << "\n"
+             << "   b[" << i << "] = " << a_[i] << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      if( equal( loada( a_+i ), loada( b_+i ) ) ) {
+         std::ostringstream oss;
+         oss.precision( 20 );
+         oss << " Test : " << test_ << "\n"
+             << " Error: Equality comparison failed at index " << i << "\n"
+             << " Details:\n"
+             << "   a[" << i << "] = " << a_[i] << "\n"
+             << "   b[" << i << "] = " << b_[i] << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the equality comparison.
+//
+// \return void
+//
+// This function is called in case the equality comparison is not available for the given
+// floating point data type \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testEquality( blaze::FalseType, blaze::TrueType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the equality comparison.
+//
+// \return void
+//
+// This function is called in case the equality comparison is not available for the given
+// integral data type \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testEquality( blaze::FalseType, blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the inequality comparison.
+//
+// \return void
+// \exception std::runtime_error Comparison error detected.
+//
+// This function tests the inequality comparison for the given floating point data type \a T. In
+// case any error is detected, a \a std::runtime_error exception is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testInequality( blaze::TrueType, blaze::TrueType )
+{
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Inequality comparison";
+
+   initialize();
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      if( loada( a_+i ) != loada( a_+i ) ) {
+         std::ostringstream oss;
+         oss.precision( 20 );
+         oss << " Test : " << test_ << "\n"
+             << " Error: Inequality comparison failed at index " << i << "\n"
+             << " Details:\n"
+             << "   a[" << i << "] = " << a_[i] << "\n"
+             << "   b[" << i << "] = " << a_[i] << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      if( !( loada( a_+i ) != loada( b_+i ) ) ) {
+         std::ostringstream oss;
+         oss.precision( 20 );
+         oss << " Test : " << test_ << "\n"
+             << " Error: Inequality comparison failed at index " << i << "\n"
+             << " Details:\n"
+             << "   a[" << i << "] = " << a_[i] << "\n"
+             << "   b[" << i << "] = " << b_[i] << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the inequality comparison.
+//
+// \return void
+// \exception std::runtime_error Comparison error detected.
+//
+// This function tests the inequality comparison for the given integral data type \a T. In case
+// any error is detected, a \a std::runtime_error exception is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testInequality( blaze::TrueType, blaze::FalseType )
+{
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Inequality comparison";
+
+   initialize();
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      if( loada( a_+i ) != loada( a_+i ) ) {
+         std::ostringstream oss;
+         oss.precision( 20 );
+         oss << " Test : " << test_ << "\n"
+             << " Error: Inequality comparison failed at index " << i << "\n"
+             << " Details:\n"
+             << "   a[" << i << "] = " << a_[i] << "\n"
+             << "   b[" << i << "] = " << a_[i] << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      if( !( loada( a_+i ) != loada( b_+i ) ) ) {
+         std::ostringstream oss;
+         oss.precision( 20 );
+         oss << " Test : " << test_ << "\n"
+             << " Error: Inequality comparison failed at index " << i << "\n"
+             << " Details:\n"
+             << "   a[" << i << "] = " << a_[i] << "\n"
+             << "   b[" << i << "] = " << b_[i] << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the inequality comparison.
+//
+// \return void
+//
+// This function is called in case the inequality comparison is not available for the given
+// floating point data type \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testInequality( blaze::FalseType, blaze::TrueType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the inequality comparison.
+//
+// \return void
+//
+// This function is called in case the inequality comparison is not available for the given
+// integral data type \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testInequality( blaze::FalseType, blaze::FalseType )
+{}
 //*************************************************************************************************
 
 
@@ -774,6 +1269,441 @@ void OperationTest<T>::testDivision( blaze::FalseType )
 
 
 //*************************************************************************************************
+/*!\brief Testing the bitwise AND ('&') operation.
+//
+// \return void
+// \exception std::runtime_error Error in AND computation detected.
+//
+// This function tests the bitwise AND ('&') operation by comparing the results of a vectorized
+// and a scalar operation. In case any error is detected, a \a std::runtime_error exception is
+// thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testBitand( blaze::TrueType )
+{
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Bitwise AND ('&') operation";
+
+   initialize();
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = a_[i] & b_[i];
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, loada( a_+i ) & loada( b_+i ) );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the bitwise AND ('&') operation.
+//
+// \return void
+//
+// This function is called in case the bitwise AND ('&') operation is not available for the
+// given data type \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testBitand( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the bitwise OR ('|') operation.
+//
+// \return void
+// \exception std::runtime_error Error in OR computation detected.
+//
+// This function tests the bitwise OR ('|') operation by comparing the results of a vectorized
+// and a scalar operation. In case any error is detected, a \a std::runtime_error exception is
+// thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testBitor( blaze::TrueType )
+{
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Bitwise OR ('|') operation";
+
+   initialize();
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = a_[i] | b_[i];
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, loada( a_+i ) | loada( b_+i ) );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the bitwise OR ('|') operation.
+//
+// \return void
+//
+// This function is called in case the bitwise OR ('|') operation is not available for the
+// given data type \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testBitor( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the bitwise XOR ('^') operation.
+//
+// \return void
+// \exception std::runtime_error Error in XOR computation detected.
+//
+// This function tests the bitwise XOR ('^') operation by comparing the results of a vectorized
+// and a scalar operation. In case any error is detected, a \a std::runtime_error exception is
+// thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testBitxor( blaze::TrueType )
+{
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Bitwise XOR ('^') operation";
+
+   initialize();
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = a_[i] ^ b_[i];
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, loada( a_+i ) ^ loada( b_+i ) );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the bitwise XOR ('^') operation.
+//
+// \return void
+//
+// This function is called in case the bitwise XOR ('^') operation is not available for the
+// given data type \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testBitxor( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the uniform left-shift operation.
+//
+// \return void
+// \exception std::runtime_error Error in left-shift operation detected.
+//
+// This function tests the uniform left-shift operation by comparing the results of a vectorized
+// and a scalar operation. In case any error is detected, a \a std::runtime_error exception is
+// thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testShiftLI( blaze::TrueType )
+{
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Uniform left-shift operation";
+
+   initialize();
+
+   const int shift = blaze::rand<int>( 0, sizeof(T)*8UL-1UL );
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = a_[i] << shift;
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, loada( a_+i ) << shift );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the uniform left-shift operation.
+//
+// \return void
+//
+// This function is called in case the uniform left-shift operation is not available for the
+// given data type \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testShiftLI( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the componentwise left-shift operation.
+//
+// \return void
+// \exception std::runtime_error Error in left-shift operation detected.
+//
+// This function tests the componentwise left-shift operation by comparing the results of a
+// vectorized and a scalar operation. In case any error is detected, a \a std::runtime_error
+// exception is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testShiftLV( blaze::TrueType )
+{
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Componentwise left-shift operation";
+
+   initialize( a_ );
+   initialize( b_, 0, sizeof(T)*8UL-1UL );
+   initialize( c_ );
+   initialize( d_ );
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = a_[i] << b_[i];
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, loada( a_+i ) << loada( b_+i ) );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the componentwise left-shift operation.
+//
+// \return void
+//
+// This function is called in case the componentwise left-shift operation is not available for
+// the given data type \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testShiftLV( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the uniform right-shift operation.
+//
+// \return void
+// \exception std::runtime_error Error in right-shift operation detected.
+//
+// This function tests the uniform right-shift operation by comparing the results of a vectorized
+// and a scalar operation. In case any error is detected, a \a std::runtime_error exception is
+// thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testShiftRI( blaze::TrueType )
+{
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Uniform right-shift operation";
+
+   initialize();
+
+   const int shift = blaze::rand<int>( 0, sizeof(T)*8UL-1UL );
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = a_[i] >> shift;
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, loada( a_+i ) >> shift );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the uniform right-shift operation.
+//
+// \return void
+//
+// This function is called in case the uniform right-shift operation is not available for the
+// given data type \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testShiftRI( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the componentwise right-shift operation.
+//
+// \return void
+// \exception std::runtime_error Error in right-shift operation detected.
+//
+// This function tests the componentwise right-shift operation by comparing the results of a
+// vectorized and a scalar operation. In case any error is detected, a \a std::runtime_error
+// exception is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testShiftRV( blaze::TrueType )
+{
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Componentwise right-shift operation";
+
+   initialize( a_ );
+   initialize( b_, 0, sizeof(T)*8UL-1UL );
+   initialize( c_ );
+   initialize( d_ );
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = a_[i] >> b_[i];
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, loada( a_+i ) >> loada( b_+i ) );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the componentwise right-shift operation.
+//
+// \return void
+//
+// This function is called in case the componentwise right-shift operation is not available for
+// the given data type \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testShiftRV( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the mininum operation.
+//
+// \return void
+// \exception std::runtime_error Error in minimum computation detected.
+//
+// This function tests the minimum operation by comparing the results of a vectorized and a
+// scalar minimum operation. In case any error is detected, a \a std::runtime_error exception
+// is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testMin( blaze::TrueType )
+{
+   using blaze::loada;
+   using blaze::storea;
+   using blaze::min;
+
+   test_ = "Minimum operation";
+
+   initialize();
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = min( a_[i], b_[i] );
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, min( loada( a_+i ), loada( b_+i ) ) );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the minimum operation.
+//
+// \return void
+//
+// This function is called in case the minimum operation is not available for the given data
+// type \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testMin( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the maxinum operation.
+//
+// \return void
+// \exception std::runtime_error Error in maximum computation detected.
+//
+// This function tests the maximum operation by comparing the results of a vectorized and a
+// scalar maximum operation. In case any error is detected, a \a std::runtime_error exception
+// is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testMax( blaze::TrueType )
+{
+   using blaze::loada;
+   using blaze::storea;
+   using blaze::max;
+
+   test_ = "Maximum operation";
+
+   initialize();
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = max( a_[i], b_[i] );
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, max( loada( a_+i ), loada( b_+i ) ) );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the maximum operation.
+//
+// \return void
+//
+// This function is called in case the maximum operation is not available for the given data
+// type \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testMax( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Testing the absolute value operation.
 //
 // \return void
@@ -817,6 +1747,241 @@ void OperationTest<T>::testAbs( blaze::TrueType )
 */
 template< typename T >  // Data type of the SIMD test
 void OperationTest<T>::testAbs( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the sign operation.
+//
+// \return void
+// \exception std::runtime_error Error in sign computation detected.
+//
+// This function tests the sign operation by comparing the results of a vectorized and a scalar
+// sign operation. In case any error is detected, a \a std::runtime_error exception is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testSign( blaze::TrueType )
+{
+   using blaze::sign;
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Sign operation";
+
+   initialize();
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = sign( a_[i] );
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, sign( loada( a_+i ) ) );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the sign operation.
+//
+// \return void
+//
+// This function is called in case the sign operation is not available for the given data type
+// \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testSign( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the floor operation.
+//
+// \return void
+// \exception std::runtime_error Error in floor computation detected.
+//
+// This function tests the floor operation by comparing the results of a vectorized and a scalar
+// floor operation. In case any error is detected, a \a std::runtime_error exception is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testFloor( blaze::TrueType )
+{
+   using blaze::floor;
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Floor operation";
+
+   initialize();
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = floor( a_[i] );
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, floor( loada( a_+i ) ) );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the floor operation.
+//
+// \return void
+//
+// This function is called in case the floor operation is not available for the given data type
+// \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testFloor( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the ceil operation.
+//
+// \return void
+// \exception std::runtime_error Error in ceil computation detected.
+//
+// This function tests the ceil operation by comparing the results of a vectorized and a scalar
+// ceil operation. In case any error is detected, a \a std::runtime_error exception is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testCeil( blaze::TrueType )
+{
+   using blaze::ceil;
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Ceil operation";
+
+   initialize();
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = ceil( a_[i] );
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, ceil( loada( a_+i ) ) );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the ceil operation.
+//
+// \return void
+//
+// This function is called in case the ceil operation is not available for the given data type
+// \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testCeil( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the trunc operation.
+//
+// \return void
+// \exception std::runtime_error Error in trunc computation detected.
+//
+// This function tests the trunc operation by comparing the results of a vectorized and a scalar
+// trunc operation. In case any error is detected, a \a std::runtime_error exception is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testTrunc( blaze::TrueType )
+{
+   using blaze::trunc;
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Trunc operation";
+
+   initialize();
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = trunc( a_[i] );
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, trunc( loada( a_+i ) ) );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the trunc operation.
+//
+// \return void
+//
+// This function is called in case the trunc operation is not available for the given data type
+// \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testTrunc( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the round operation.
+//
+// \return void
+// \exception std::runtime_error Error in round computation detected.
+//
+// This function tests the round operation by comparing the results of a vectorized and a scalar
+// round operation. In case any error is detected, a \a std::runtime_error exception is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testRound( blaze::TrueType )
+{
+   using blaze::round;
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Round operation";
+
+   initialize();
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = round( a_[i] );
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, round( loada( a_+i ) ) );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the round operation.
+//
+// \return void
+//
+// This function is called in case the round operation is not available for the given data type
+// \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testRound( blaze::FalseType )
 {}
 //*************************************************************************************************
 
@@ -1062,31 +2227,32 @@ void OperationTest<T>::testInvCbrt( blaze::FalseType )
 
 
 //*************************************************************************************************
-/*!\brief Testing the floor operation.
+/*!\brief Testing the hypotenous operation.
 //
 // \return void
-// \exception std::runtime_error Error in floor computation detected.
+// \exception std::runtime_error Error in hypotenous computation detected.
 //
-// This function tests the floor operation by comparing the results of a vectorized and a scalar
-// floor operation. In case any error is detected, a \a std::runtime_error exception is thrown.
+// This function tests the hypotenous operation by comparing the results of a vectorized and a
+// scalar hypotenous operation. In case any error is detected, a \a std::runtime_error exception
+// is thrown.
 */
 template< typename T >  // Data type of the SIMD test
-void OperationTest<T>::testFloor( blaze::TrueType )
+void OperationTest<T>::testHypot( blaze::TrueType )
 {
-   using blaze::floor;
+   using blaze::hypot;
    using blaze::loada;
    using blaze::storea;
 
-   test_ = "Floor operation";
+   test_ = "Hypot operation";
 
    initialize();
 
    for( size_t i=0UL; i<N; ++i ) {
-      c_[i] = floor( a_[i] );
+      c_[i] = hypot( a_[i], b_[i] );
    }
 
    for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
-      storea( d_+i, floor( loada( a_+i ) ) );
+      storea( d_+i, hypot( loada( a_+i ), loada( b_+i ) ) );
    }
 
    compare( c_, d_ );
@@ -1095,156 +2261,15 @@ void OperationTest<T>::testFloor( blaze::TrueType )
 
 
 //*************************************************************************************************
-/*!\brief Skipping the test of the floor operation.
+/*!\brief Skipping the test of the hypotenous operation.
 //
 // \return void
 //
-// This function is called in case the floor operation is not available for the given data type
-// \a T.
+// This function is called in case the hypotenous operation is not available for the given data
+// type \a T.
 */
 template< typename T >  // Data type of the SIMD test
-void OperationTest<T>::testFloor( blaze::FalseType )
-{}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Testing the ceil operation.
-//
-// \return void
-// \exception std::runtime_error Error in ceil computation detected.
-//
-// This function tests the ceil operation by comparing the results of a vectorized and a scalar
-// ceil operation. In case any error is detected, a \a std::runtime_error exception is thrown.
-*/
-template< typename T >  // Data type of the SIMD test
-void OperationTest<T>::testCeil( blaze::TrueType )
-{
-   using blaze::ceil;
-   using blaze::loada;
-   using blaze::storea;
-
-   test_ = "Ceil operation";
-
-   initialize();
-
-   for( size_t i=0UL; i<N; ++i ) {
-      c_[i] = ceil( a_[i] );
-   }
-
-   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
-      storea( d_+i, ceil( loada( a_+i ) ) );
-   }
-
-   compare( c_, d_ );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Skipping the test of the ceil operation.
-//
-// \return void
-//
-// This function is called in case the ceil operation is not available for the given data type
-// \a T.
-*/
-template< typename T >  // Data type of the SIMD test
-void OperationTest<T>::testCeil( blaze::FalseType )
-{}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Testing the trunc operation.
-//
-// \return void
-// \exception std::runtime_error Error in trunc computation detected.
-//
-// This function tests the trunc operation by comparing the results of a vectorized and a scalar
-// trunc operation. In case any error is detected, a \a std::runtime_error exception is thrown.
-*/
-template< typename T >  // Data type of the SIMD test
-void OperationTest<T>::testTrunc( blaze::TrueType )
-{
-   using blaze::trunc;
-   using blaze::loada;
-   using blaze::storea;
-
-   test_ = "Trunc operation";
-
-   initialize();
-
-   for( size_t i=0UL; i<N; ++i ) {
-      c_[i] = trunc( a_[i] );
-   }
-
-   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
-      storea( d_+i, trunc( loada( a_+i ) ) );
-   }
-
-   compare( c_, d_ );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Skipping the test of the trunc operation.
-//
-// \return void
-//
-// This function is called in case the trunc operation is not available for the given data type
-// \a T.
-*/
-template< typename T >  // Data type of the SIMD test
-void OperationTest<T>::testTrunc( blaze::FalseType )
-{}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Testing the round operation.
-//
-// \return void
-// \exception std::runtime_error Error in round computation detected.
-//
-// This function tests the round operation by comparing the results of a vectorized and a scalar
-// round operation. In case any error is detected, a \a std::runtime_error exception is thrown.
-*/
-template< typename T >  // Data type of the SIMD test
-void OperationTest<T>::testRound( blaze::TrueType )
-{
-   using blaze::round;
-   using blaze::loada;
-   using blaze::storea;
-
-   test_ = "Round operation";
-
-   initialize();
-
-   for( size_t i=0UL; i<N; ++i ) {
-      c_[i] = round( a_[i] );
-   }
-
-   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
-      storea( d_+i, round( loada( a_+i ) ) );
-   }
-
-   compare( c_, d_ );
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Skipping the test of the round operation.
-//
-// \return void
-//
-// This function is called in case the round operation is not available for the given data type
-// \a T.
-*/
-template< typename T >  // Data type of the SIMD test
-void OperationTest<T>::testRound( blaze::FalseType )
+void OperationTest<T>::testHypot( blaze::FalseType )
 {}
 //*************************************************************************************************
 
@@ -1293,6 +2318,150 @@ void OperationTest<T>::testPow( blaze::TrueType )
 */
 template< typename T >  // Data type of the SIMD test
 void OperationTest<T>::testPow( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the pow2 operation.
+//
+// \return void
+// \exception std::runtime_error Error in pow2 computation detected.
+//
+// This function tests the pow2 operation by comparing the results of a vectorized and a
+// scalar pow2 operation. In case any error is detected, a \a std::runtime_error exception
+// is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testPow2( blaze::TrueType )
+{
+   using blaze::pow2;
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Pow2 operation";
+
+   initialize();
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = pow2( a_[i] );
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, pow2( loada( a_+i ) ) );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the pow2 operation.
+//
+// \return void
+//
+// This function is called in case the pow2 operation is not available for the given data type
+// \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testPow2( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the pow3 operation.
+//
+// \return void
+// \exception std::runtime_error Error in pow3 computation detected.
+//
+// This function tests the pow3 operation by comparing the results of a vectorized and a
+// scalar pow3 operation. In case any error is detected, a \a std::runtime_error exception
+// is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testPow3( blaze::TrueType )
+{
+   using blaze::pow3;
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Pow3 operation";
+
+   initialize();
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = pow3( a_[i] );
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, pow3( loada( a_+i ) ) );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the pow3 operation.
+//
+// \return void
+//
+// This function is called in case the pow3 operation is not available for the given data type
+// \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testPow3( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the pow4 operation.
+//
+// \return void
+// \exception std::runtime_error Error in pow4 computation detected.
+//
+// This function tests the pow4 operation by comparing the results of a vectorized and a
+// scalar pow4 operation. In case any error is detected, a \a std::runtime_error exception
+// is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testPow4( blaze::TrueType )
+{
+   using blaze::pow4;
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Pow4 operation";
+
+   initialize();
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = pow4( a_[i] );
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, pow4( loada( a_+i ) ) );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the pow4 operation.
+//
+// \return void
+//
+// This function is called in case the pow4 operation is not available for the given data type
+// \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testPow4( blaze::FalseType )
 {}
 //*************************************************************************************************
 
@@ -1747,7 +2916,7 @@ void OperationTest<T>::testAsinh( blaze::TrueType )
 
    test_ = "Inverse hyperbolic sine operation";
 
-   initialize(  );
+   initialize();
 
    for( size_t i=0UL; i<N; ++i ) {
       c_[i] = asinh( a_[i] );
@@ -2145,6 +3314,54 @@ void OperationTest<T>::testAtanh( blaze::TrueType )
 
 
 //*************************************************************************************************
+/*!\brief Testing the inverse tangent operation.
+//
+// \return void
+// \exception std::runtime_error Error in inverse tangent computation detected.
+//
+// This function tests the inverse tangent operation by comparing the results of a vectorized and
+// a scalar inverse tangent operation. In case any error is detected, a \a std::runtime_error
+// exception is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testAtan2( blaze::TrueType )
+{
+   using blaze::atan2;
+   using blaze::loada;
+   using blaze::storea;
+
+   test_ = "Inverse tangent operation";
+
+   initialize( T(1), T(5) );
+
+   for( size_t i=0UL; i<N; ++i ) {
+      c_[i] = atan2( a_[i], b_[i] );
+   }
+
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      storea( d_+i, atan2( loada( a_+i ), loada( b_+i ) ) );
+   }
+
+   compare( c_, d_ );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the test of the inverse tangent operation.
+//
+// \return void
+//
+// This function is called in case the inverse tangent operation is not available for the given
+// data type \a T.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testAtan2( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Skipping the test of the inverse hyperbolic tangent operation.
 //
 // \return void
@@ -2255,16 +3472,17 @@ void OperationTest<T>::testErfc( blaze::FalseType )
 
 
 //*************************************************************************************************
-/*!\brief Testing the reduction operation.
+/*!\brief Testing the addition reduction operation (\c sum).
 //
 // \return void
 // \exception std::runtime_error Error in reduction computation detected.
 //
-// This function tests the reduction operation by comparing the results of a vectorized and a
-// scalar reduction. In case any error is detected, a \a std::runtime_error exception is thrown.
+// This function tests the addition reduction operation by comparing the results of a vectorized
+// and a scalar reduction. In case any error is detected, a \a std::runtime_error exception is
+// thrown.
 */
 template< typename T >  // Data type of the SIMD test
-void OperationTest<T>::testReduction()
+void OperationTest<T>::testSum()
 {
    using blaze::loada;
    using blaze::sum;
@@ -2273,16 +3491,16 @@ void OperationTest<T>::testReduction()
 
    initialize();
 
-   T ssum = T();
+   T ssum{};
    for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
-      T tmp = T();
+      T tmp{};
       for( size_t j=0UL; j<SIMDSIZE; ++j ) {
          tmp += a_[i+j];
       }
       ssum += tmp;
    }
 
-   T vsum = T();
+   T vsum{};
    for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
       vsum += sum( loada( a_+i ) );
    }
@@ -2295,6 +3513,54 @@ void OperationTest<T>::testReduction()
           << " Details:\n"
           << "   ssum = " << ssum << "\n"
           << "   vsum = " << vsum << "\n";
+      throw std::runtime_error( oss.str() );
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the multiplication reduction operation (\c prod).
+//
+// \return void
+// \exception std::runtime_error Error in reduction computation detected.
+//
+// This function tests the multiplication reduction operation by comparing the results of a
+// vectorized and a scalar reduction. In case any error is detected, a \a std::runtime_error
+// exception is thrown.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::testProd()
+{
+   using blaze::loada;
+   using blaze::prod;
+
+   test_ = "prod() operation";
+
+   initialize();
+
+   T sprod{ 1 };
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      T tmp{ 1 };
+      for( size_t j=0UL; j<SIMDSIZE; ++j ) {
+         tmp *= a_[i+j];
+      }
+      sprod *= tmp;
+   }
+
+   T vprod{ 1 };
+   for( size_t i=0UL; i<N; i+=SIMDSIZE ) {
+      vprod *= prod( loada( a_+i ) );
+   }
+
+   if( !blaze::equal( sprod, vprod ) ) {
+      std::ostringstream oss;
+      oss.precision( 20 );
+      oss << " Test : " << test_ << "\n"
+          << " Error: Failed reduction operation\n"
+          << " Details:\n"
+          << "   sprod = " << sprod << "\n"
+          << "   vprod = " << vprod << "\n";
       throw std::runtime_error( oss.str() );
    }
 }
@@ -2352,21 +3618,17 @@ void OperationTest<T>::compare( const T* expected, const T* actual ) const
 //
 // \return void
 //
-// This function is called before each single test case to initialize all arrays with random
+// This function can be called before each single test case to initialize all arrays with random
 // values.
 */
 template< typename T >  // Data type of the SIMD test
 void OperationTest<T>::initialize()
 {
-   using blaze::randomize;
-
-   for( size_t i=0UL; i<NN; ++i ) {
-      randomize( a_[i] );
-      randomize( b_[i] );
-      randomize( c_[i] );
-      randomize( d_[i] );
-      randomize( e_[i] );
-   }
+   initialize( a_ );
+   initialize( b_ );
+   initialize( c_ );
+   initialize( d_ );
+   initialize( e_ );
 }
 //*************************************************************************************************
 
@@ -2378,20 +3640,60 @@ void OperationTest<T>::initialize()
 // \param max The largest possible value for a value.
 // \return void
 //
-// This function is called before each single test case to initialize all arrays with random
+// This function can be called before each single test case to initialize all arrays with random
 // values in the range \f$ [min,max] \f$.
 */
 template< typename T >  // Data type of the SIMD test
 void OperationTest<T>::initialize( T min, T max )
 {
+   initialize( a_, min, max );
+   initialize( b_, min, max );
+   initialize( c_, min, max );
+   initialize( d_, min, max );
+   initialize( e_, min, max );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Initialization of a specific member array.
+//
+// \param array The array to be initialized.
+// \return void
+//
+// This function can be called before each single test case to initialize the given array with
+// random values.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::initialize( T* array )
+{
    using blaze::randomize;
 
    for( size_t i=0UL; i<NN; ++i ) {
-      randomize( a_[i], min, max );
-      randomize( b_[i], min, max );
-      randomize( c_[i], min, max );
-      randomize( d_[i], min, max );
-      randomize( e_[i], min, max );
+      randomize( array[i] );
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Initialization of a specific member array.
+//
+// \param array The array to be initialized.
+// \param min The smallest possible value for a value.
+// \param max The largest possible value for a value.
+// \return void
+//
+// This function can be called before each single test case to initialize the given array with
+// random values in the range \f$ [min,max] \f$.
+*/
+template< typename T >  // Data type of the SIMD test
+void OperationTest<T>::initialize( T* array, T min, T max )
+{
+   using blaze::randomize;
+
+   for( size_t i=0UL; i<NN; ++i ) {
+      randomize( array[i], min, max );
    }
 }
 //*************************************************************************************************

@@ -3,7 +3,7 @@
 //  \file src/flens/TSMatDVecMult.cpp
 //  \brief Source file for the FLENS transpose sparse matrix/dense vector multiplication kernel
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -38,8 +38,8 @@
 //*************************************************************************************************
 
 #include <iostream>
-#include <boost/cast.hpp>
 #include <flens/flens.cxx>
+#include <blaze/util/NumericCast.h>
 #include <blaze/util/Timing.h>
 #include <blazemark/flens/init/DenseVector.h>
 #include <blazemark/flens/init/GeCCSMatrix.h>
@@ -71,11 +71,11 @@ namespace flens {
 double tsmatdvecmult( size_t N, size_t F, size_t steps )
 {
    using ::blazemark::element_t;
-   using ::boost::numeric_cast;
+   using ::blaze::numeric_cast;
 
-   typedef ::flens::IndexBaseZero<int>                                IndexBase;
-   typedef ::flens::GeCCSMatrix< ::flens::CCS<element_t,IndexBase> >  RowGeCCSMatrix;
-   typedef ::flens::DenseVector< ::flens::Array<element_t> >          DenseVector;
+   using IndexBase      = ::flens::IndexBaseZero<int>;
+   using RowGeCCSMatrix = ::flens::GeCCSMatrix< ::flens::CCS<element_t,IndexBase> >;
+   using DenseVector    = ::flens::DenseVector< ::flens::Array<element_t> >;
 
    ::blaze::setSeed( seed );
 

@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/compressedmatrix/ProxyTest.h
 //  \brief Header file for the CompressedMatrix proxy test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -95,6 +95,8 @@ class ProxyTest
    void testAddAssign();
    void testSubAssign();
    void testMultAssign();
+   void testDivAssign();
+   void testModAssign();
    void testScaling();
    void testSubscript();
    void testFunctionCall();
@@ -102,21 +104,21 @@ class ProxyTest
    void testNonZeros();
    void testReset();
    void testClear();
-   void testSet();
-   void testInsert();
-   void testAppend();
    void testResize();
    void testExtend();
    void testReserve();
    void testTrim();
-   void testTranspose();
-   void testCTranspose();
-   void testInvert();
    void testSwap();
+   void testSet();
+   void testInsert();
+   void testAppend();
    void testErase();
    void testFind();
    void testLowerBound();
    void testUpperBound();
+   void testTranspose();
+   void testCTranspose();
+   void testInvert();
 
    template< typename Type >
    void checkSize( const Type& vector, size_t expectedSize ) const;
@@ -149,34 +151,34 @@ class ProxyTest
    //**********************************************************************************************
 
    //**Type definitions****************************************************************************
-   typedef blaze::DynamicVector<int,blaze::rowVector>     DV;  //!< Type of the dense vector elements.
-   typedef blaze::CompressedVector<int,blaze::rowVector>  SV;  //!< Type of the sparse vector elements.
-   typedef blaze::DynamicMatrix<int,blaze::rowMajor>      DM;  //!< Type of the dense matrix elements.
-   typedef blaze::CompressedMatrix<int,blaze::rowMajor>   SM;  //!< Type of the sparse matrix elements.
+   using DV = blaze::DynamicVector<int,blaze::rowVector>;     //!< Type of the dense vector elements.
+   using SV = blaze::CompressedVector<int,blaze::rowVector>;  //!< Type of the sparse vector elements.
+   using DM = blaze::DynamicMatrix<int,blaze::rowMajor>;      //!< Type of the dense matrix elements.
+   using SM = blaze::CompressedMatrix<int,blaze::rowMajor>;   //!< Type of the sparse matrix elements.
 
    //! Row-major compressed matrix type with dense vector elements.
-   typedef blaze::CompressedMatrix<DV,blaze::rowMajor>  DVM;
+   using DVM = blaze::CompressedMatrix<DV,blaze::rowMajor>;
 
    //! Column-major compressed matrix type with dense vector elements.
-   typedef DVM::OppositeType  ODVM;
+   using ODVM = DVM::OppositeType;
 
    //! Row-major compressed matrix type with sparse vector elements.
-   typedef blaze::CompressedMatrix<SV,blaze::rowMajor>  SVM;
+   using SVM = blaze::CompressedMatrix<SV,blaze::rowMajor>;
 
    //! Column-major compressed matrix type with sparse vector elements.
-   typedef SVM::OppositeType  OSVM;
+   using OSVM = SVM::OppositeType;
 
    //! Row-major compressed matrix type with dense matrix elements.
-   typedef blaze::CompressedMatrix<DM,blaze::rowMajor>  DMM;
+   using DMM = blaze::CompressedMatrix<DM,blaze::rowMajor>;
 
    //! Column-major compressed matrix type with dense matrix elements.
-   typedef DMM::OppositeType  ODMM;
+   using ODMM = DMM::OppositeType;
 
    //! Row-major compressed matrix type with sparse matrix elements.
-   typedef blaze::CompressedMatrix<SM,blaze::rowMajor>  SMM;
+   using SMM = blaze::CompressedMatrix<SM,blaze::rowMajor>;
 
    //! Column-major compressed matrix type with sparse matrix elements.
-   typedef SMM::OppositeType  OSMM;
+   using OSMM = SMM::OppositeType;
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************

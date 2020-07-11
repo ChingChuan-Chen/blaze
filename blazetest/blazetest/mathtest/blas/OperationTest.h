@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/blas/OperationTest.h
 //  \brief Header file for the BLAS operation test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -126,7 +126,7 @@ class OperationTest
 template< typename Type >
 void OperationTest::testDotu()
 {
-#if BLAZETEST_MATHTEST_BLAS_MODE
+#if BLAZE_BLAS_MODE && BLAZETEST_MATHTEST_BLAS_MODE
 
    test_ = "Dot product";
 
@@ -170,7 +170,7 @@ void OperationTest::testDotu()
 template< typename Type >
 void OperationTest::testDotc()
 {
-#if BLAZETEST_MATHTEST_BLAS_MODE
+#if BLAZE_BLAS_MODE && BLAZETEST_MATHTEST_BLAS_MODE
 
    test_ = "Dot product";
 
@@ -214,7 +214,7 @@ void OperationTest::testDotc()
 template< typename Type >
 void OperationTest::testAxpy()
 {
-#if BLAZETEST_MATHTEST_BLAS_MODE
+#if BLAZE_BLAS_MODE && BLAZETEST_MATHTEST_BLAS_MODE
 
    test_ = "Axpy product";
 
@@ -263,7 +263,7 @@ void OperationTest::testAxpy()
 template< typename Type >
 void OperationTest::testTrsm()
 {
-#if BLAZETEST_MATHTEST_BLAS_MODE
+#if BLAZE_BLAS_MODE && BLAZETEST_MATHTEST_BLAS_MODE
 
    //=====================================================================================
    // Row-major matrix tests
@@ -279,6 +279,7 @@ void OperationTest::testTrsm()
       randomize( b );
 
       x = b;
+
 
       blaze::trsm( A, x, CblasLeft, CblasLower, 1.0 );
 

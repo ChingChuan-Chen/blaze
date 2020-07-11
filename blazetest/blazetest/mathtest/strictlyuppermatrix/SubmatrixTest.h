@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/strictlyuppermatrix/SubmatrixTest.h
 //  \brief Header file for the StrictlyUpperMatrix submatrix test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -47,7 +47,6 @@
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/StrictlyUpperMatrix.h>
 #include <blaze/math/Submatrix.h>
-#include <blaze/math/traits/SubmatrixExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blazetest/system/Types.h>
 
@@ -75,16 +74,16 @@ class SubmatrixTest
  private:
    //**Type definitions****************************************************************************
    //! Type of the dense strictly upper triangular matrix.
-   typedef blaze::StrictlyUpperMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> >  DUT;
+   using DUT = blaze::StrictlyUpperMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> >;
 
    //! Opposite dense strictly upper triangular matrix type.
-   typedef DUT::OppositeType  DOUT;
+   using DOUT = DUT::OppositeType;
 
    //! Type of the sparse strictly upper triangular matrix.
-   typedef blaze::StrictlyUpperMatrix< blaze::CompressedMatrix<int,blaze::rowMajor> >  SUT;
+   using SUT = blaze::StrictlyUpperMatrix< blaze::CompressedMatrix<int,blaze::rowMajor> >;
 
    //! Opposite sparse strictly upper triangular matrix type.
-   typedef SUT::OppositeType  SOUT;
+   using SOUT = SUT::OppositeType;
    //**********************************************************************************************
 
  public:
@@ -104,9 +103,10 @@ class SubmatrixTest
    //**Test functions******************************************************************************
    /*!\name Test functions */
    //@{
-   template< typename UT > void testAssignment();
-   template< typename UT > void testAddAssign ();
-   template< typename UT > void testSubAssign ();
+   template< typename UT > void testAssignment ();
+   template< typename UT > void testAddAssign  ();
+   template< typename UT > void testSubAssign  ();
+   template< typename UT > void testSchurAssign();
 
    template< typename Type >
    void checkRows( const Type& matrix, size_t expectedRows ) const;
@@ -156,9 +156,6 @@ class SubmatrixTest
 template< typename UT >  // Type of the strictly upper matrix
 void SubmatrixTest::testAssignment()
 {
-   typedef blaze::SubmatrixExprTrait_<UT,blaze::unaligned>  SMT;
-
-
    //=====================================================================================
    // Dense matrix assignment
    //=====================================================================================
@@ -178,7 +175,7 @@ void SubmatrixTest::testAssignment()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
+      auto sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
       sm = mat;
 
       checkRows    ( upper, 4UL );
@@ -230,7 +227,7 @@ void SubmatrixTest::testAssignment()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
+      auto sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
       sm = mat;
 
       checkRows    ( upper, 4UL );
@@ -281,7 +278,7 @@ void SubmatrixTest::testAssignment()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm = mat;
@@ -312,7 +309,7 @@ void SubmatrixTest::testAssignment()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm = mat;
@@ -342,7 +339,7 @@ void SubmatrixTest::testAssignment()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
+      auto sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
       sm = mat;
 
       checkRows    ( upper, 4UL );
@@ -394,7 +391,7 @@ void SubmatrixTest::testAssignment()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
+      auto sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
       sm = mat;
 
       checkRows    ( upper, 4UL );
@@ -445,7 +442,7 @@ void SubmatrixTest::testAssignment()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm = mat;
@@ -476,7 +473,7 @@ void SubmatrixTest::testAssignment()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm = mat;
@@ -512,7 +509,7 @@ void SubmatrixTest::testAssignment()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
+      auto sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
       sm = mat;
 
       checkRows    ( upper, 4UL );
@@ -565,7 +562,7 @@ void SubmatrixTest::testAssignment()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
+      auto sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
       sm = mat;
 
       checkRows    ( upper, 4UL );
@@ -614,7 +611,7 @@ void SubmatrixTest::testAssignment()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm = mat;
@@ -643,7 +640,7 @@ void SubmatrixTest::testAssignment()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm = mat;
@@ -674,7 +671,7 @@ void SubmatrixTest::testAssignment()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
+      auto sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
       sm = mat;
 
       checkRows    ( upper, 4UL );
@@ -727,7 +724,7 @@ void SubmatrixTest::testAssignment()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
+      auto sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
       sm = mat;
 
       checkRows    ( upper, 4UL );
@@ -776,7 +773,7 @@ void SubmatrixTest::testAssignment()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm = mat;
@@ -805,7 +802,7 @@ void SubmatrixTest::testAssignment()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm = mat;
@@ -829,15 +826,12 @@ void SubmatrixTest::testAssignment()
 // \return void
 // \exception std::runtime_error Error detected.
 //
-// This function performs a test of the addition assignment to a submatrix of a StrictlyUpperMatrix. In
-// case an error is detected, a \a std::runtime_error exception is thrown.
+// This function performs a test of the addition assignment to a submatrix of a StrictlyUpperMatrix.
+// In case an error is detected, a \a std::runtime_error exception is thrown.
 */
 template< typename UT >  // Type of the strictly upper matrix
 void SubmatrixTest::testAddAssign()
 {
-   typedef blaze::SubmatrixExprTrait_<UT,blaze::unaligned>  SMT;
-
-
    //=====================================================================================
    // Dense matrix addition assignment
    //=====================================================================================
@@ -857,7 +851,7 @@ void SubmatrixTest::testAddAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
+      auto sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
       sm += mat;
 
       checkRows    ( upper, 4UL );
@@ -909,7 +903,7 @@ void SubmatrixTest::testAddAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
+      auto sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
       sm += mat;
 
       checkRows    ( upper, 4UL );
@@ -960,7 +954,7 @@ void SubmatrixTest::testAddAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm += mat;
@@ -991,7 +985,7 @@ void SubmatrixTest::testAddAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm += mat;
@@ -1021,7 +1015,7 @@ void SubmatrixTest::testAddAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
+      auto sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
       sm += mat;
 
       checkRows    ( upper, 4UL );
@@ -1073,7 +1067,7 @@ void SubmatrixTest::testAddAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
+      auto sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
       sm += mat;
 
       checkRows    ( upper, 4UL );
@@ -1124,7 +1118,7 @@ void SubmatrixTest::testAddAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm += mat;
@@ -1155,7 +1149,7 @@ void SubmatrixTest::testAddAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm += mat;
@@ -1191,7 +1185,7 @@ void SubmatrixTest::testAddAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
+      auto sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
       sm += mat;
 
       checkRows    ( upper, 4UL );
@@ -1244,7 +1238,7 @@ void SubmatrixTest::testAddAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
+      auto sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
       sm += mat;
 
       checkRows    ( upper, 4UL );
@@ -1293,7 +1287,7 @@ void SubmatrixTest::testAddAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm += mat;
@@ -1322,7 +1316,7 @@ void SubmatrixTest::testAddAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm += mat;
@@ -1353,7 +1347,7 @@ void SubmatrixTest::testAddAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
+      auto sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
       sm += mat;
 
       checkRows    ( upper, 4UL );
@@ -1406,7 +1400,7 @@ void SubmatrixTest::testAddAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
+      auto sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
       sm += mat;
 
       checkRows    ( upper, 4UL );
@@ -1455,7 +1449,7 @@ void SubmatrixTest::testAddAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm += mat;
@@ -1484,7 +1478,7 @@ void SubmatrixTest::testAddAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm += mat;
@@ -1514,9 +1508,6 @@ void SubmatrixTest::testAddAssign()
 template< typename UT >  // Type of the strictly upper matrix
 void SubmatrixTest::testSubAssign()
 {
-   typedef blaze::SubmatrixExprTrait_<UT,blaze::unaligned>  SMT;
-
-
    //=====================================================================================
    // Dense matrix subtraction assignment
    //=====================================================================================
@@ -1536,7 +1527,7 @@ void SubmatrixTest::testSubAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
+      auto sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
       sm -= mat;
 
       checkRows    ( upper, 4UL );
@@ -1588,7 +1579,7 @@ void SubmatrixTest::testSubAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
+      auto sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
       sm -= mat;
 
       checkRows    ( upper, 4UL );
@@ -1639,7 +1630,7 @@ void SubmatrixTest::testSubAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm -= mat;
@@ -1670,7 +1661,7 @@ void SubmatrixTest::testSubAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm -= mat;
@@ -1700,7 +1691,7 @@ void SubmatrixTest::testSubAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
+      auto sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
       sm -= mat;
 
       checkRows    ( upper, 4UL );
@@ -1752,7 +1743,7 @@ void SubmatrixTest::testSubAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
+      auto sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
       sm -= mat;
 
       checkRows    ( upper, 4UL );
@@ -1803,7 +1794,7 @@ void SubmatrixTest::testSubAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm -= mat;
@@ -1834,7 +1825,7 @@ void SubmatrixTest::testSubAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm -= mat;
@@ -1870,7 +1861,7 @@ void SubmatrixTest::testSubAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
+      auto sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
       sm -= mat;
 
       checkRows    ( upper, 4UL );
@@ -1923,7 +1914,7 @@ void SubmatrixTest::testSubAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
+      auto sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
       sm -= mat;
 
       checkRows    ( upper, 4UL );
@@ -1972,7 +1963,7 @@ void SubmatrixTest::testSubAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm -= mat;
@@ -2001,7 +1992,7 @@ void SubmatrixTest::testSubAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm -= mat;
@@ -2032,7 +2023,7 @@ void SubmatrixTest::testSubAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
+      auto sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
       sm -= mat;
 
       checkRows    ( upper, 4UL );
@@ -2085,7 +2076,7 @@ void SubmatrixTest::testSubAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
+      auto sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
       sm -= mat;
 
       checkRows    ( upper, 4UL );
@@ -2134,7 +2125,7 @@ void SubmatrixTest::testSubAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm -= mat;
@@ -2163,7 +2154,7 @@ void SubmatrixTest::testSubAssign()
       UT upper;
       init( upper );
 
-      SMT sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
+      auto sm = submatrix( upper, 1UL, 1UL, 2UL, 2UL );
 
       try {
          sm -= mat;
@@ -2176,6 +2167,434 @@ void SubmatrixTest::testSubAssign()
          throw std::runtime_error( oss.str() );
       }
       catch( std::invalid_argument& ) {}
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the Schur product assignment to a submatrix of a StrictlyUpperMatrix.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the Schur product assignment to a submatrix of a
+// StrictlyUpperMatrix. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+template< typename UT >  // Type of the strictly upper matrix
+void SubmatrixTest::testSchurAssign()
+{
+   //=====================================================================================
+   // Dense matrix Schur product assignment
+   //=====================================================================================
+
+   // ( 0 -4  7 -2 )      ( 0  0 21 -2 )
+   // ( 0  0  0  0 )  =>  ( 0  0  0  0 )
+   // ( 0  0  0  1 )      ( 0  0  0  1 )
+   // ( 0  0  0  0 )      ( 0  0  0  0 )
+   {
+      test_ = "Row-major dense matrix Schur product assignment test 1";
+
+      blaze::DynamicMatrix<int,blaze::rowMajor> mat( 4UL, 2UL, 0 );
+      mat(0,1) = 3;
+      mat(3,1) = 9;
+
+      UT upper;
+      init( upper );
+
+      auto sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
+      sm %= mat;
+
+      checkRows    ( upper, 4UL );
+      checkColumns ( upper, 4UL );
+      checkNonZeros( upper, 3UL );
+
+      if( sm(0,0) != 0 || sm(0,1) != 21 ||
+          sm(1,0) != 0 || sm(1,1) !=  0 ||
+          sm(2,0) != 0 || sm(2,1) !=  0 ||
+          sm(3,0) != 0 || sm(3,1) !=  0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment to submatrix failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sm << "\n"
+             << "   Expected result:\n(  0 21 )\n(  0  0 )\n(  0  0 )\n(  0  0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( upper(0,0) != 0 || upper(0,1) != 0 || upper(0,2) != 21 || upper(0,3) != -2 ||
+          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) !=  0 || upper(1,3) !=  0 ||
+          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) !=  0 || upper(2,3) !=  1 ||
+          upper(3,0) != 0 || upper(3,1) != 0 || upper(3,2) !=  0 || upper(3,3) !=  0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment to submatrix failed\n"
+             << " Details:\n"
+             << "   Result:\n" << upper << "\n"
+             << "   Expected result:\n( 0  0 21 -2 )\n"
+                                     "( 0  0  0  0 )\n"
+                                     "( 0  0  0  1 )\n"
+                                     "( 0  0  0  0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   // ( 0 -4  7 -2 )      ( 0 -4  7 -2 )
+   // ( 0  0  0  0 )  =>  ( 0  0  0  0 )
+   // ( 0  0  0  1 )      ( 0  0  0  4 )
+   // ( 0  0  0  0 )      ( 0  0  0  0 )
+   {
+      test_ = "Row-major dense matrix Schur product assignment test 2";
+
+      blaze::DynamicMatrix<int,blaze::rowMajor> mat( 2UL, 4UL, 0 );
+      mat(0,0) = 9;
+      mat(1,3) = 4;
+
+      UT upper;
+      init( upper );
+
+      auto sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
+      sm %= mat;
+
+      checkRows    ( upper, 4UL );
+      checkColumns ( upper, 4UL );
+      checkNonZeros( upper, 4UL );
+
+      if( sm(0,0) != 0 || sm(0,1) != 0 || sm(0,2) != 0 || sm(0,3) != 0 ||
+          sm(1,0) != 0 || sm(1,1) != 0 || sm(1,2) != 0 || sm(1,3) != 4 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment to submatrix failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sm << "\n"
+             << "   Expected result:\n( 0  0  0  0 )\n( 0  0  0  4 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( upper(0,0) != 0 || upper(0,1) != -4 || upper(0,2) != 7 || upper(0,3) != -2 ||
+          upper(1,0) != 0 || upper(1,1) !=  0 || upper(1,2) != 0 || upper(1,3) !=  0 ||
+          upper(2,0) != 0 || upper(2,1) !=  0 || upper(2,2) != 0 || upper(2,3) !=  4 ||
+          upper(3,0) != 0 || upper(3,1) !=  0 || upper(3,2) != 0 || upper(3,3) !=  0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment to submatrix failed\n"
+             << " Details:\n"
+             << "   Result:\n" << upper << "\n"
+             << "   Expected result:\n( 0 -4  7 -2 )\n"
+                                     "( 0  0  0  0 )\n"
+                                     "( 0  0  0  4 )\n"
+                                     "( 0  0  0  0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   // ( 0 -4  7 -2 )      ( 0  0 21 -2 )
+   // ( 0  0  0  0 )  =>  ( 0  0  0  0 )
+   // ( 0  0  0  1 )      ( 0  0  0  1 )
+   // ( 0  0  0  0 )      ( 0  0  0  0 )
+   {
+      test_ = "Column-major dense matrix Schur product assignment test 1";
+
+      blaze::DynamicMatrix<int,blaze::columnMajor> mat( 4UL, 2UL, 0 );
+      mat(0,1) = 3;
+      mat(3,1) = 9;
+
+      UT upper;
+      init( upper );
+
+      auto sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
+      sm %= mat;
+
+      checkRows    ( upper, 4UL );
+      checkColumns ( upper, 4UL );
+      checkNonZeros( upper, 3UL );
+
+      if( sm(0,0) != 0 || sm(0,1) != 21 ||
+          sm(1,0) != 0 || sm(1,1) !=  0 ||
+          sm(2,0) != 0 || sm(2,1) !=  0 ||
+          sm(3,0) != 0 || sm(3,1) !=  0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment to submatrix failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sm << "\n"
+             << "   Expected result:\n(  0 21 )\n(  0  0 )\n(  0  0 )\n(  0  0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( upper(0,0) != 0 || upper(0,1) != 0 || upper(0,2) != 21 || upper(0,3) != -2 ||
+          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) !=  0 || upper(1,3) !=  0 ||
+          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) !=  0 || upper(2,3) !=  1 ||
+          upper(3,0) != 0 || upper(3,1) != 0 || upper(3,2) !=  0 || upper(3,3) !=  0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment to submatrix failed\n"
+             << " Details:\n"
+             << "   Result:\n" << upper << "\n"
+             << "   Expected result:\n( 0  0 21 -2 )\n"
+                                     "( 0  0  0  0 )\n"
+                                     "( 0  0  0  1 )\n"
+                                     "( 0  0  0  0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   // ( 0 -4  7 -2 )      ( 0 -4  7 -2 )
+   // ( 0  0  0  0 )  =>  ( 0  0  0  0 )
+   // ( 0  0  0  1 )      ( 0  0  0  4 )
+   // ( 0  0  0  0 )      ( 0  0  0  0 )
+   {
+      test_ = "Column-major dense matrix Schur product assignment test 2";
+
+      blaze::DynamicMatrix<int,blaze::columnMajor> mat( 2UL, 4UL, 0 );
+      mat(0,0) = 9;
+      mat(1,3) = 4;
+
+      UT upper;
+      init( upper );
+
+      auto sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
+      sm %= mat;
+
+      checkRows    ( upper, 4UL );
+      checkColumns ( upper, 4UL );
+      checkNonZeros( upper, 4UL );
+
+      if( sm(0,0) != 0 || sm(0,1) != 0 || sm(0,2) != 0 || sm(0,3) != 0 ||
+          sm(1,0) != 0 || sm(1,1) != 0 || sm(1,2) != 0 || sm(1,3) != 4 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment to submatrix failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sm << "\n"
+             << "   Expected result:\n( 0  0  0  0 )\n( 0  0  0  4 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( upper(0,0) != 0 || upper(0,1) != -4 || upper(0,2) != 7 || upper(0,3) != -2 ||
+          upper(1,0) != 0 || upper(1,1) !=  0 || upper(1,2) != 0 || upper(1,3) !=  0 ||
+          upper(2,0) != 0 || upper(2,1) !=  0 || upper(2,2) != 0 || upper(2,3) !=  4 ||
+          upper(3,0) != 0 || upper(3,1) !=  0 || upper(3,2) != 0 || upper(3,3) !=  0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment to submatrix failed\n"
+             << " Details:\n"
+             << "   Result:\n" << upper << "\n"
+             << "   Expected result:\n( 0 -4  7 -2 )\n"
+                                     "( 0  0  0  0 )\n"
+                                     "( 0  0  0  4 )\n"
+                                     "( 0  0  0  0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Sparse matrix Schur product assignment
+   //=====================================================================================
+
+   // ( 0 -4  7 -2 )      ( 0  0 21 -2 )
+   // ( 0  0  0  0 )  =>  ( 0  0  0  0 )
+   // ( 0  0  0  1 )      ( 0  0  0  1 )
+   // ( 0  0  0  0 )      ( 0  0  0  0 )
+   {
+      test_ = "Row-major sparse matrix Schur product assignment test 1";
+
+      blaze::CompressedMatrix<int,blaze::rowMajor> mat( 4UL, 2UL, 3UL );
+      mat(0,1) = 3;
+      mat(3,1) = 9;
+      mat.insert( 3UL, 0UL, 0 );
+
+      UT upper;
+      init( upper );
+
+      auto sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
+      sm %= mat;
+
+      checkRows    ( upper, 4UL );
+      checkColumns ( upper, 4UL );
+      checkNonZeros( upper, 3UL );
+
+      if( sm(0,0) != 0 || sm(0,1) != 21 ||
+          sm(1,0) != 0 || sm(1,1) !=  0 ||
+          sm(2,0) != 0 || sm(2,1) !=  0 ||
+          sm(3,0) != 0 || sm(3,1) !=  0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment to submatrix failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sm << "\n"
+             << "   Expected result:\n(  0 21 )\n(  0  0 )\n(  0  0 )\n(  0  0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( upper(0,0) != 0 || upper(0,1) != 0 || upper(0,2) != 21 || upper(0,3) != -2 ||
+          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) !=  0 || upper(1,3) !=  0 ||
+          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) !=  0 || upper(2,3) !=  1 ||
+          upper(3,0) != 0 || upper(3,1) != 0 || upper(3,2) !=  0 || upper(3,3) !=  0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment to submatrix failed\n"
+             << " Details:\n"
+             << "   Result:\n" << upper << "\n"
+             << "   Expected result:\n( 0  0 21 -2 )\n"
+                                     "( 0  0  0  0 )\n"
+                                     "( 0  0  0  1 )\n"
+                                     "( 0  0  0  0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   // ( 0 -4  7 -2 )      ( 0 -4  7 -2 )
+   // ( 0  0  0  0 )  =>  ( 0  0  0  0 )
+   // ( 0  0  0  1 )      ( 0  0  0  4 )
+   // ( 0  0  0  0 )      ( 0  0  0  0 )
+   {
+      test_ = "Row-major sparse matrix Schur product assignment test 2";
+
+      blaze::CompressedMatrix<int,blaze::rowMajor> mat( 2UL, 4UL, 3UL );
+      mat(0,0) = 9;
+      mat(1,3) = 4;
+      mat.insert( 1UL, 0UL, 0 );
+
+      UT upper;
+      init( upper );
+
+      auto sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
+      sm %= mat;
+
+      checkRows    ( upper, 4UL );
+      checkColumns ( upper, 4UL );
+      checkNonZeros( upper, 4UL );
+
+      if( sm(0,0) != 0 || sm(0,1) != 0 || sm(0,2) != 0 || sm(0,3) != 0 ||
+          sm(1,0) != 0 || sm(1,1) != 0 || sm(1,2) != 0 || sm(1,3) != 4 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment to submatrix failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sm << "\n"
+             << "   Expected result:\n( 0  0  0  0 )\n( 0  0  0  4 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( upper(0,0) != 0 || upper(0,1) != -4 || upper(0,2) != 7 || upper(0,3) != -2 ||
+          upper(1,0) != 0 || upper(1,1) !=  0 || upper(1,2) != 0 || upper(1,3) !=  0 ||
+          upper(2,0) != 0 || upper(2,1) !=  0 || upper(2,2) != 0 || upper(2,3) !=  4 ||
+          upper(3,0) != 0 || upper(3,1) !=  0 || upper(3,2) != 0 || upper(3,3) !=  0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment to submatrix failed\n"
+             << " Details:\n"
+             << "   Result:\n" << upper << "\n"
+             << "   Expected result:\n( 0 -4  7 -2 )\n"
+                                     "( 0  0  0  0 )\n"
+                                     "( 0  0  0  4 )\n"
+                                     "( 0  0  0  0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   // ( 0 -4  7 -2 )      ( 0  0 21 -2 )
+   // ( 0  0  0  0 )  =>  ( 0  0  0  0 )
+   // ( 0  0  0  1 )      ( 0  0  0  1 )
+   // ( 0  0  0  0 )      ( 0  0  0  0 )
+   {
+      test_ = "Column-major sparse matrix Schur product assignment test 1";
+
+      blaze::CompressedMatrix<int,blaze::columnMajor> mat( 4UL, 2UL, 3UL );
+      mat(0,1) = 3;
+      mat(3,1) = 9;
+      mat.insert( 3UL, 0UL, 0 );
+
+      UT upper;
+      init( upper );
+
+      auto sm = submatrix( upper, 0UL, 1UL, 4UL, 2UL );
+      sm %= mat;
+
+      checkRows    ( upper, 4UL );
+      checkColumns ( upper, 4UL );
+      checkNonZeros( upper, 3UL );
+
+      if( sm(0,0) != 0 || sm(0,1) != 21 ||
+          sm(1,0) != 0 || sm(1,1) !=  0 ||
+          sm(2,0) != 0 || sm(2,1) !=  0 ||
+          sm(3,0) != 0 || sm(3,1) !=  0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment to submatrix failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sm << "\n"
+             << "   Expected result:\n(  0 21 )\n(  0  0 )\n(  0  0 )\n(  0  0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( upper(0,0) != 0 || upper(0,1) != 0 || upper(0,2) != 21 || upper(0,3) != -2 ||
+          upper(1,0) != 0 || upper(1,1) != 0 || upper(1,2) !=  0 || upper(1,3) !=  0 ||
+          upper(2,0) != 0 || upper(2,1) != 0 || upper(2,2) !=  0 || upper(2,3) !=  1 ||
+          upper(3,0) != 0 || upper(3,1) != 0 || upper(3,2) !=  0 || upper(3,3) !=  0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment to submatrix failed\n"
+             << " Details:\n"
+             << "   Result:\n" << upper << "\n"
+             << "   Expected result:\n( 0  0 21 -2 )\n"
+                                     "( 0  0  0  0 )\n"
+                                     "( 0  0  0  1 )\n"
+                                     "( 0  0  0  0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   // ( 0 -4  7 -2 )      ( 0 -4  7 -2 )
+   // ( 0  0  0  0 )  =>  ( 0  0  0  0 )
+   // ( 0  0  0  1 )      ( 0  0  0  4 )
+   // ( 0  0  0  0 )      ( 0  0  0  0 )
+   {
+      test_ = "Column-major sparse matrix Schur product assignment test 2";
+
+      blaze::CompressedMatrix<int,blaze::columnMajor> mat( 2UL, 4UL, 3UL );
+      mat(0,0) = 9;
+      mat(1,3) = 4;
+      mat.insert( 1UL, 0UL, 0 );
+
+      UT upper;
+      init( upper );
+
+      auto sm = submatrix( upper, 1UL, 0UL, 2UL, 4UL );
+      sm %= mat;
+
+      checkRows    ( upper, 4UL );
+      checkColumns ( upper, 4UL );
+      checkNonZeros( upper, 4UL );
+
+      if( sm(0,0) != 0 || sm(0,1) != 0 || sm(0,2) != 0 || sm(0,3) != 0 ||
+          sm(1,0) != 0 || sm(1,1) != 0 || sm(1,2) != 0 || sm(1,3) != 4 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment to submatrix failed\n"
+             << " Details:\n"
+             << "   Result:\n" << sm << "\n"
+             << "   Expected result:\n( 0  0  0  0 )\n( 0  0  0  4 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( upper(0,0) != 0 || upper(0,1) != -4 || upper(0,2) != 7 || upper(0,3) != -2 ||
+          upper(1,0) != 0 || upper(1,1) !=  0 || upper(1,2) != 0 || upper(1,3) !=  0 ||
+          upper(2,0) != 0 || upper(2,1) !=  0 || upper(2,2) != 0 || upper(2,3) !=  4 ||
+          upper(3,0) != 0 || upper(3,1) !=  0 || upper(3,2) != 0 || upper(3,3) !=  0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment to submatrix failed\n"
+             << " Details:\n"
+             << "   Result:\n" << upper << "\n"
+             << "   Expected result:\n( 0 -4  7 -2 )\n"
+                                     "( 0  0  0  0 )\n"
+                                     "( 0  0  0  4 )\n"
+                                     "( 0  0  0  0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
    }
 }
 //*************************************************************************************************

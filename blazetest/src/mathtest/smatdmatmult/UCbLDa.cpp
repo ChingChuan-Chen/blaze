@@ -3,7 +3,7 @@
 //  \file src/mathtest/smatdmatmult/UCbLDa.cpp
 //  \brief Source file for the UCbLDa sparse matrix/dense matrix multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -47,6 +47,10 @@
 #include <blazetest/mathtest/smatdmatmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -65,12 +69,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::UpperMatrix< blaze::CompressedMatrix<TypeB> >  UCb;
-      typedef blaze::LowerMatrix< blaze::DynamicMatrix<TypeA> >     LDa;
+      using UCb = blaze::UpperMatrix< blaze::CompressedMatrix<TypeB> >;
+      using LDa = blaze::LowerMatrix< blaze::DynamicMatrix<TypeA> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<UCb>  CUCb;
-      typedef blazetest::Creator<LDa>  CLDa;
+      using CUCb = blazetest::Creator<UCb>;
+      using CLDa = blazetest::Creator<LDa>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {

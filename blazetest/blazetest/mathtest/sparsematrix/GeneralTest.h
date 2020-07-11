@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/sparsematrix/GeneralTest.h
 //  \brief Header file for the general SparseMatrix operation test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -68,7 +68,7 @@ class GeneralTest
 {
  private:
    //**Type definitions****************************************************************************
-   typedef blaze::complex<int>  cplx;  //!< Complex element type.
+   using cplx = blaze::complex<int>;  //!< Complex element type.
    //**********************************************************************************************
 
  public:
@@ -93,6 +93,7 @@ class GeneralTest
    void testIsSymmetric();
    void testIsHermitian();
    void testIsUniform();
+   void testIsZero();
    void testIsLower();
    void testIsUniLower();
    void testIsStrictlyLower();
@@ -104,6 +105,15 @@ class GeneralTest
    void testMinimum();
    void testMaximum();
    void testTrace();
+   void testL1Norm();
+   void testL2Norm();
+   void testL3Norm();
+   void testL4Norm();
+   void testLpNorm();
+   void testLinfNorm();
+   void testMean();
+   void testVar();
+   void testStdDev();
 
    template< typename Type >
    void checkRows( const Type& matrix, size_t expectedRows ) const;

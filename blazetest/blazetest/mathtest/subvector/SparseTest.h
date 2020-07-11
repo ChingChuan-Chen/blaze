@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/subvector/SparseTest.h
 //  \brief Header file for the Subvector sparse test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -92,16 +92,17 @@ class SparseTest
    void testSubAssign   ();
    void testMultAssign  ();
    void testDivAssign   ();
+   void testCrossAssign ();
    void testScaling     ();
    void testSubscript   ();
    void testIterator    ();
    void testNonZeros    ();
    void testReset       ();
    void testClear       ();
+   void testReserve     ();
    void testSet         ();
    void testInsert      ();
    void testAppend      ();
-   void testReserve     ();
    void testErase       ();
    void testFind        ();
    void testLowerBound  ();
@@ -109,6 +110,7 @@ class SparseTest
    void testIsDefault   ();
    void testIsSame      ();
    void testSubvector   ();
+   void testElements    ();
 
    template< typename Type >
    void checkSize( const Type& vector, size_t expectedSize ) const;
@@ -129,8 +131,8 @@ class SparseTest
    //**********************************************************************************************
 
    //**Type definitions****************************************************************************
-   typedef blaze::CompressedVector<int,blaze::rowVector>  VT;   //!< Compressed row vector type
-   typedef blaze::Subvector<VT>                           SVT;  //!< Subvector type for compressed row vectors.
+   using VT  = blaze::CompressedVector<int,blaze::rowVector>;  //!< Compressed row vector type
+   using SVT = blaze::Subvector<VT>;                           //!< Subvector type for compressed row vectors.
    //**********************************************************************************************
 
    //**Member variables****************************************************************************

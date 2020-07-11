@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/hermitianmatrix/SubmatrixComplexTest.h
 //  \brief Header file for the HermitianMatrix submatrix complex test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -47,7 +47,6 @@
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/HermitianMatrix.h>
 #include <blaze/math/Submatrix.h>
-#include <blaze/math/traits/SubmatrixExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blazetest/system/Types.h>
 
@@ -75,19 +74,19 @@ class SubmatrixComplexTest
  private:
    //**Type definitions****************************************************************************
    //! Complex element type.
-   typedef blaze::complex<int>  cplx;
+   using cplx = blaze::complex<int>;
 
    //! Type of the dense Hermitian matrix.
-   typedef blaze::HermitianMatrix< blaze::DynamicMatrix<cplx,blaze::rowMajor> >  DHT;
+   using DHT = blaze::HermitianMatrix< blaze::DynamicMatrix<cplx,blaze::rowMajor> >;
 
    //! Opposite dense Hermitian matrix type.
-   typedef DHT::OppositeType  DOHT;
+   using DOHT = DHT::OppositeType;
 
    //! Type of the sparse Hermitian matrix.
-   typedef blaze::HermitianMatrix< blaze::CompressedMatrix<cplx,blaze::rowMajor> >  SHT;
+   using SHT = blaze::HermitianMatrix< blaze::CompressedMatrix<cplx,blaze::rowMajor> >;
 
    //! Opposite sparse Hermitian matrix type.
-   typedef SHT::OppositeType  SOHT;
+   using SOHT = SHT::OppositeType;
    //**********************************************************************************************
 
  public:
@@ -107,9 +106,10 @@ class SubmatrixComplexTest
    //**Test functions******************************************************************************
    /*!\name Test functions */
    //@{
-   template< typename HT > void testAssignment();
-   template< typename HT > void testAddAssign ();
-   template< typename HT > void testSubAssign ();
+   template< typename HT > void testAssignment ();
+   template< typename HT > void testAddAssign  ();
+   template< typename HT > void testSubAssign  ();
+   template< typename HT > void testSchurAssign();
 
    template< typename Type >
    void checkRows( const Type& matrix, size_t expectedRows ) const;
@@ -159,9 +159,6 @@ class SubmatrixComplexTest
 template< typename HT >  // Type of the Hermitian matrix
 void SubmatrixComplexTest::testAssignment()
 {
-   typedef blaze::SubmatrixExprTrait_<HT,blaze::unaligned>  SMT;
-
-
    //=====================================================================================
    // Dense matrix assignment
    //=====================================================================================
@@ -189,7 +186,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
          sm = mat;
 
          checkRows    ( herm,  6UL );
@@ -243,7 +240,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
          sm = mat;
 
          checkRows    ( herm,  6UL );
@@ -311,7 +308,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
          sm = mat;
 
          checkRows    ( herm,  6UL );
@@ -365,7 +362,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
          sm = mat;
 
          checkRows    ( herm,  6UL );
@@ -433,7 +430,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
          sm = mat;
 
          checkRows    ( herm,  6UL );
@@ -487,7 +484,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
          sm = mat;
 
          checkRows    ( herm,  6UL );
@@ -559,7 +556,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
          sm = mat;
 
          checkRows    ( herm,  6UL );
@@ -619,7 +616,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
          sm = mat;
 
          checkRows    ( herm,  6UL );
@@ -687,7 +684,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -716,7 +713,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -755,7 +752,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -784,7 +781,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -823,7 +820,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -852,7 +849,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -895,7 +892,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm = mat;
@@ -928,7 +925,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm = mat;
@@ -967,7 +964,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -996,7 +993,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -1035,7 +1032,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -1064,7 +1061,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -1103,7 +1100,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -1132,7 +1129,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -1175,7 +1172,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm = mat;
@@ -1208,7 +1205,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm = mat;
@@ -1247,7 +1244,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -1276,7 +1273,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -1315,7 +1312,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -1344,7 +1341,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -1383,7 +1380,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -1412,7 +1409,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -1455,7 +1452,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm = mat;
@@ -1488,7 +1485,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm = mat;
@@ -1532,7 +1529,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
          sm = mat;
 
          checkRows    ( herm,  6UL );
@@ -1586,7 +1583,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
          sm = mat;
 
          checkRows    ( herm,  6UL );
@@ -1654,7 +1651,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
          sm = mat;
 
          checkRows    ( herm,  6UL );
@@ -1708,7 +1705,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
          sm = mat;
 
          checkRows    ( herm,  6UL );
@@ -1776,7 +1773,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
          sm = mat;
 
          checkRows    ( herm,  6UL );
@@ -1830,7 +1827,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
          sm = mat;
 
          checkRows    ( herm,  6UL );
@@ -1902,7 +1899,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
          sm = mat;
 
          checkRows    ( herm,  6UL );
@@ -1962,7 +1959,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
          sm = mat;
 
          checkRows    ( herm,  6UL );
@@ -2030,7 +2027,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -2059,7 +2056,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -2098,7 +2095,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -2127,7 +2124,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -2166,7 +2163,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -2195,7 +2192,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -2238,7 +2235,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm = mat;
@@ -2271,7 +2268,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm = mat;
@@ -2310,7 +2307,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -2339,7 +2336,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -2378,7 +2375,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -2407,7 +2404,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -2446,7 +2443,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -2475,7 +2472,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -2518,7 +2515,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm = mat;
@@ -2551,7 +2548,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm = mat;
@@ -2590,7 +2587,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -2619,7 +2616,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -2658,7 +2655,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -2687,7 +2684,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -2726,7 +2723,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm = mat;
@@ -2755,7 +2752,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm = mat;
@@ -2798,7 +2795,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm = mat;
@@ -2831,7 +2828,7 @@ void SubmatrixComplexTest::testAssignment()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm = mat;
@@ -2856,15 +2853,12 @@ void SubmatrixComplexTest::testAssignment()
 // \return void
 // \exception std::runtime_error Error detected.
 //
-// This function performs a test of the addition assignment to a submatrix of a HermitianMatrix. In
-// case an error is detected, a \a std::runtime_error exception is thrown.
+// This function performs a test of the addition assignment to a submatrix of a HermitianMatrix.
+// In case an error is detected, a \a std::runtime_error exception is thrown.
 */
 template< typename HT >  // Type of the Hermitian matrix
 void SubmatrixComplexTest::testAddAssign()
 {
-   typedef blaze::SubmatrixExprTrait_<HT,blaze::unaligned>  SMT;
-
-
    //=====================================================================================
    // Dense matrix addition assignment
    //=====================================================================================
@@ -2892,7 +2886,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
          sm += mat;
 
          checkRows    ( herm,  6UL );
@@ -2946,7 +2940,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
          sm += mat;
 
          checkRows    ( herm,  6UL );
@@ -3014,7 +3008,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
          sm += mat;
 
          checkRows    ( herm,  6UL );
@@ -3068,7 +3062,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
          sm += mat;
 
          checkRows    ( herm,  6UL );
@@ -3136,7 +3130,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
          sm += mat;
 
          checkRows    ( herm,  6UL );
@@ -3190,7 +3184,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
          sm += mat;
 
          checkRows    ( herm,  6UL );
@@ -3262,7 +3256,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
          sm += mat;
 
          checkRows    ( herm,  6UL );
@@ -3322,7 +3316,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
          sm += mat;
 
          checkRows    ( herm,  6UL );
@@ -3390,7 +3384,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -3419,7 +3413,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -3458,7 +3452,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -3487,7 +3481,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -3526,7 +3520,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -3555,7 +3549,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -3598,7 +3592,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm += mat;
@@ -3631,7 +3625,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm += mat;
@@ -3670,7 +3664,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -3699,7 +3693,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -3738,7 +3732,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -3767,7 +3761,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -3806,7 +3800,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -3835,7 +3829,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -3878,7 +3872,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm += mat;
@@ -3911,7 +3905,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm += mat;
@@ -3950,7 +3944,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -3979,7 +3973,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -4018,7 +4012,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -4047,7 +4041,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -4086,7 +4080,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -4115,7 +4109,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -4158,7 +4152,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm += mat;
@@ -4191,7 +4185,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm += mat;
@@ -4235,7 +4229,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
          sm += mat;
 
          checkRows    ( herm,  6UL );
@@ -4289,7 +4283,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
          sm += mat;
 
          checkRows    ( herm,  6UL );
@@ -4357,7 +4351,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
          sm += mat;
 
          checkRows    ( herm,  6UL );
@@ -4411,7 +4405,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
          sm += mat;
 
          checkRows    ( herm,  6UL );
@@ -4479,7 +4473,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
          sm += mat;
 
          checkRows    ( herm,  6UL );
@@ -4533,7 +4527,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
          sm += mat;
 
          checkRows    ( herm,  6UL );
@@ -4605,7 +4599,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
          sm += mat;
 
          checkRows    ( herm,  6UL );
@@ -4665,7 +4659,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
          sm += mat;
 
          checkRows    ( herm,  6UL );
@@ -4733,7 +4727,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -4762,7 +4756,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -4801,7 +4795,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -4830,7 +4824,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -4869,7 +4863,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -4898,7 +4892,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -4941,7 +4935,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm += mat;
@@ -4974,7 +4968,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm += mat;
@@ -5013,7 +5007,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -5042,7 +5036,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -5081,7 +5075,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -5110,7 +5104,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -5149,7 +5143,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -5178,7 +5172,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -5221,7 +5215,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm += mat;
@@ -5254,7 +5248,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm += mat;
@@ -5293,7 +5287,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -5322,7 +5316,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -5361,7 +5355,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -5390,7 +5384,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -5429,7 +5423,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm += mat;
@@ -5458,7 +5452,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm += mat;
@@ -5501,7 +5495,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm += mat;
@@ -5534,7 +5528,7 @@ void SubmatrixComplexTest::testAddAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm += mat;
@@ -5565,9 +5559,6 @@ void SubmatrixComplexTest::testAddAssign()
 template< typename HT >  // Type of the Hermitian matrix
 void SubmatrixComplexTest::testSubAssign()
 {
-   typedef blaze::SubmatrixExprTrait_<HT,blaze::unaligned>  SMT;
-
-
    //=====================================================================================
    // Dense matrix subtraction assignment
    //=====================================================================================
@@ -5595,7 +5586,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
          sm -= mat;
 
          checkRows    ( herm,  6UL );
@@ -5649,7 +5640,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
          sm -= mat;
 
          checkRows    ( herm,  6UL );
@@ -5717,7 +5708,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
          sm -= mat;
 
          checkRows    ( herm,  6UL );
@@ -5771,7 +5762,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
          sm -= mat;
 
          checkRows    ( herm,  6UL );
@@ -5839,7 +5830,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
          sm -= mat;
 
          checkRows    ( herm,  6UL );
@@ -5893,7 +5884,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
          sm -= mat;
 
          checkRows    ( herm,  6UL );
@@ -5965,7 +5956,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
          sm -= mat;
 
          checkRows    ( herm,  6UL );
@@ -6025,7 +6016,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
          sm -= mat;
 
          checkRows    ( herm,  6UL );
@@ -6093,7 +6084,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -6122,7 +6113,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -6161,7 +6152,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -6190,7 +6181,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -6229,7 +6220,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -6258,7 +6249,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -6301,7 +6292,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm -= mat;
@@ -6334,7 +6325,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm -= mat;
@@ -6373,7 +6364,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -6402,7 +6393,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -6441,7 +6432,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -6470,7 +6461,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -6509,7 +6500,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -6538,7 +6529,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -6581,7 +6572,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm -= mat;
@@ -6614,7 +6605,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm -= mat;
@@ -6653,7 +6644,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -6682,7 +6673,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -6721,7 +6712,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -6750,7 +6741,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -6789,7 +6780,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -6818,7 +6809,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -6861,7 +6852,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm -= mat;
@@ -6894,7 +6885,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm -= mat;
@@ -6938,7 +6929,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
          sm -= mat;
 
          checkRows    ( herm,  6UL );
@@ -6992,7 +6983,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
          sm -= mat;
 
          checkRows    ( herm,  6UL );
@@ -7060,7 +7051,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
          sm -= mat;
 
          checkRows    ( herm,  6UL );
@@ -7114,7 +7105,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
          sm -= mat;
 
          checkRows    ( herm,  6UL );
@@ -7182,7 +7173,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
          sm -= mat;
 
          checkRows    ( herm,  6UL );
@@ -7236,7 +7227,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
          sm -= mat;
 
          checkRows    ( herm,  6UL );
@@ -7308,7 +7299,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
          sm -= mat;
 
          checkRows    ( herm,  6UL );
@@ -7368,7 +7359,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
          sm -= mat;
 
          checkRows    ( herm,  6UL );
@@ -7436,7 +7427,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -7465,7 +7456,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -7504,7 +7495,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -7533,7 +7524,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -7572,7 +7563,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -7601,7 +7592,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -7644,7 +7635,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm -= mat;
@@ -7677,7 +7668,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm -= mat;
@@ -7716,7 +7707,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -7745,7 +7736,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -7784,7 +7775,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -7813,7 +7804,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -7852,7 +7843,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -7881,7 +7872,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -7924,7 +7915,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm -= mat;
@@ -7957,7 +7948,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm -= mat;
@@ -7996,7 +7987,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -8025,7 +8016,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -8064,7 +8055,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -8093,7 +8084,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -8132,7 +8123,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
 
          try {
             sm -= mat;
@@ -8161,7 +8152,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
 
          try {
             sm -= mat;
@@ -8204,7 +8195,7 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
 
          try {
             sm -= mat;
@@ -8237,10 +8228,2150 @@ void SubmatrixComplexTest::testSubAssign()
          HT herm;
          init( herm );
 
-         SMT sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
 
          try {
             sm -= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the Schur product assignment to a submatrix of a HermitianMatrix.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the Schur product assignment to a submatrix of a HermitianMatrix.
+// In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+template< typename HT >  // Type of the Hermitian matrix
+void SubmatrixComplexTest::testSchurAssign()
+{
+   //=====================================================================================
+   // Dense matrix Schur product assignment
+   //=====================================================================================
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( (11,  0) (20, 5) (28,12) (16,-8) ( 5,0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (20, -5) (12, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( (28,-12) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (16,  8) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5,  0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0,  0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )
+   {
+      test_ = "Dense matrix Schur product assignment test 1";
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL );
+         mat(0,0) = cplx(11, 0);
+         mat(0,1) = cplx(-5, 0);
+         mat(0,2) = cplx( 4, 0);
+         mat(0,3) = cplx(-8, 0);
+         mat(1,0) = cplx(-5, 0);
+         mat(1,1) = cplx( 6, 0);
+         mat(1,2) = cplx(99,99);
+         mat(1,3) = cplx(99,99);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         sm %= mat;
+
+         checkRows    ( herm,  6UL );
+         checkColumns ( herm,  6UL );
+         checkNonZeros( herm, 26UL );
+
+         if( sm(0,0) != cplx(11, 0) || sm(0,1) != cplx(20,5) || sm(0,2) != cplx(28,12) || sm(0,3) != cplx(16,-8) ||
+             sm(1,0) != cplx(20,-5) || sm(1,1) != cplx(12,0) || sm(1,2) != cplx( 0, 0) || sm(1,3) != cplx( 0, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sm << "\n"
+                << "   Expected result:\n( (11, 0) (20,5) (28,12) (16,-8) )\n"
+                                        "( (20,-5) (12,0) ( 0, 0) ( 0, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( herm(0,0) != cplx(11,  0) || herm(0,1) != cplx(20, 5) || herm(0,2) != cplx(28,12) || herm(0,3) != cplx(16,-8) || herm(0,4) != cplx( 5,0) || herm(0,5) != cplx( 0, 0) ||
+             herm(1,0) != cplx(20, -5) || herm(1,1) != cplx(12, 0) || herm(1,2) != cplx( 0, 0) || herm(1,3) != cplx( 0, 0) || herm(1,4) != cplx(-1,2) || herm(1,5) != cplx( 8,-2) ||
+             herm(2,0) != cplx(28,-12) || herm(2,1) != cplx( 0, 0) || herm(2,2) != cplx( 3, 0) || herm(2,3) != cplx( 1, 1) || herm(2,4) != cplx( 0,0) || herm(2,5) != cplx(-2, 0) ||
+             herm(3,0) != cplx(16,  8) || herm(3,1) != cplx( 0, 0) || herm(3,2) != cplx( 1,-1) || herm(3,3) != cplx( 5, 0) || herm(3,4) != cplx( 7,1) || herm(3,5) != cplx( 0, 0) ||
+             herm(4,0) != cplx( 5,  0) || herm(4,1) != cplx(-1,-2) || herm(4,2) != cplx( 0, 0) || herm(4,3) != cplx( 7,-1) || herm(4,4) != cplx( 1,0) || herm(4,5) != cplx(-4, 0) ||
+             herm(5,0) != cplx( 0,  0) || herm(5,1) != cplx( 8, 2) || herm(5,2) != cplx(-2, 0) || herm(5,3) != cplx( 0, 0) || herm(5,4) != cplx(-4,0) || herm(5,5) != cplx( 7, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (11,  0) (20, 5) (28,12) (16,-8) ( 5,0) ( 0, 0) )\n"
+                                        "( (20, -5) (12, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )\n"
+                                        "( (28,-12) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )\n"
+                                        "( (16,  8) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )\n"
+                                        "( ( 5,  0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )\n"
+                                        "( ( 0,  0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL );
+         mat(0,0) = cplx(11, 0);
+         mat(0,1) = cplx(-5, 0);
+         mat(1,0) = cplx(-5, 0);
+         mat(1,1) = cplx( 6, 0);
+         mat(2,0) = cplx( 4, 0);
+         mat(2,1) = cplx(99,99);
+         mat(3,0) = cplx(-8, 0);
+         mat(3,1) = cplx(99,99);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         sm %= mat;
+
+         checkRows    ( herm,  6UL );
+         checkColumns ( herm,  6UL );
+         checkNonZeros( herm, 26UL );
+
+         if( sm(0,0) != cplx(11,  0) || sm(0,1) != cplx(20,5) ||
+             sm(1,0) != cplx(20, -5) || sm(1,1) != cplx(12,0) ||
+             sm(2,0) != cplx(28,-12) || sm(2,1) != cplx( 0,0) ||
+             sm(3,0) != cplx(16,  8) || sm(3,1) != cplx( 0,0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sm << "\n"
+                << "   Expected result:\n( (11,  0) (20,5) )\n"
+                                        "( (20, -5) (12,0) )\n"
+                                        "( (28,-12) ( 0,0) )\n"
+                                        "( (16,  8) ( 0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( herm(0,0) != cplx(11,  0) || herm(0,1) != cplx(20, 5) || herm(0,2) != cplx(28,12) || herm(0,3) != cplx(16,-8) || herm(0,4) != cplx( 5,0) || herm(0,5) != cplx( 0, 0) ||
+             herm(1,0) != cplx(20, -5) || herm(1,1) != cplx(12, 0) || herm(1,2) != cplx( 0, 0) || herm(1,3) != cplx( 0, 0) || herm(1,4) != cplx(-1,2) || herm(1,5) != cplx( 8,-2) ||
+             herm(2,0) != cplx(28,-12) || herm(2,1) != cplx( 0, 0) || herm(2,2) != cplx( 3, 0) || herm(2,3) != cplx( 1, 1) || herm(2,4) != cplx( 0,0) || herm(2,5) != cplx(-2, 0) ||
+             herm(3,0) != cplx(16,  8) || herm(3,1) != cplx( 0, 0) || herm(3,2) != cplx( 1,-1) || herm(3,3) != cplx( 5, 0) || herm(3,4) != cplx( 7,1) || herm(3,5) != cplx( 0, 0) ||
+             herm(4,0) != cplx( 5,  0) || herm(4,1) != cplx(-1,-2) || herm(4,2) != cplx( 0, 0) || herm(4,3) != cplx( 7,-1) || herm(4,4) != cplx( 1,0) || herm(4,5) != cplx(-4, 0) ||
+             herm(5,0) != cplx( 0,  0) || herm(5,1) != cplx( 8, 2) || herm(5,2) != cplx(-2, 0) || herm(5,3) != cplx( 0, 0) || herm(5,4) != cplx(-4,0) || herm(5,5) != cplx( 7, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (11,  0) (20, 5) (28,12) (16,-8) ( 5,0) ( 0, 0) )\n"
+                                        "( (20, -5) (12, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )\n"
+                                        "( (28,-12) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )\n"
+                                        "( (16,  8) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )\n"
+                                        "( ( 5,  0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )\n"
+                                        "( ( 0,  0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) ( 7,  3) (-2, 1) ( 5, 0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) (-1, 2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( ( 7,-3) ( 0, 0) (18,  0) (14,14) ( 0, 0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (-2,-1) ( 0, 0) (14,-14) (20, 0) (21, 3) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5, 0) (-1,-2) ( 0,  0) (21,-3) ( 1, 0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4, 0) ( 7, 0) )
+   {
+      test_ = "Dense matrix Schur product assignment test 2";
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx( 6, 0);
+         mat(0,2) = cplx(14, 0);
+         mat(0,3) = cplx(99,99);
+         mat(1,0) = cplx(99,99);
+         mat(1,1) = cplx(14, 0);
+         mat(1,2) = cplx( 4, 0);
+         mat(1,3) = cplx( 3, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         sm %= mat;
+
+         checkRows    ( herm,  6UL );
+         checkColumns ( herm,  6UL );
+         checkNonZeros( herm, 26UL );
+
+         if( sm(0,0) != cplx(0,0) || sm(0,1) != cplx(18,  0) || sm(0,2) != cplx(14,14) || sm(0,3) != cplx( 0,0) ||
+             sm(1,0) != cplx(0,0) || sm(1,1) != cplx(14,-14) || sm(1,2) != cplx(20, 0) || sm(1,3) != cplx(21,3) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sm << "\n"
+                << "   Expected result:\n( (0,0) (18,  0) (14,14) ( 0,0) )\n"
+                                        "( (0,0) (14,-14) (20, 0) (21,3) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( herm(0,0) != cplx( 1, 0) || herm(0,1) != cplx(-4,-1) || herm(0,2) != cplx( 7,  3) || herm(0,3) != cplx(-2, 1) || herm(0,4) != cplx( 5, 0) || herm(0,5) != cplx( 0, 0) ||
+             herm(1,0) != cplx(-4, 1) || herm(1,1) != cplx( 2, 0) || herm(1,2) != cplx( 0,  0) || herm(1,3) != cplx( 0, 0) || herm(1,4) != cplx(-1, 2) || herm(1,5) != cplx( 8,-2) ||
+             herm(2,0) != cplx( 7,-3) || herm(2,1) != cplx( 0, 0) || herm(2,2) != cplx(18,  0) || herm(2,3) != cplx(14,14) || herm(2,4) != cplx( 0, 0) || herm(2,5) != cplx(-2, 0) ||
+             herm(3,0) != cplx(-2,-1) || herm(3,1) != cplx( 0, 0) || herm(3,2) != cplx(14,-14) || herm(3,3) != cplx(20, 0) || herm(3,4) != cplx(21, 3) || herm(3,5) != cplx( 0, 0) ||
+             herm(4,0) != cplx( 5, 0) || herm(4,1) != cplx(-1,-2) || herm(4,2) != cplx( 0,  0) || herm(4,3) != cplx(21,-3) || herm(4,4) != cplx( 1, 0) || herm(4,5) != cplx(-4, 0) ||
+             herm(5,0) != cplx( 0, 0) || herm(5,1) != cplx( 8, 2) || herm(5,2) != cplx(-2,  0) || herm(5,3) != cplx( 0, 0) || herm(5,4) != cplx(-4, 0) || herm(5,5) != cplx( 7, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( ( 1, 0) (-4,-1) ( 7,  3) (-2, 1) ( 5, 0) ( 0, 0) )\n"
+                                        "( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) (-1, 2) ( 8,-2) )\n"
+                                        "( ( 7,-3) ( 0, 0) (18,  0) (14,14) ( 0, 0) (-2, 0) )\n"
+                                        "( (-2,-1) ( 0, 0) (14,-14) (20, 0) (21, 3) ( 0, 0) )\n"
+                                        "( ( 5, 0) (-1,-2) ( 0,  0) (21,-3) ( 1, 0) (-4, 0) )\n"
+                                        "( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4, 0) ( 7, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx(99,99);
+         mat(1,0) = cplx( 6, 0);
+         mat(1,1) = cplx(14, 0);
+         mat(2,0) = cplx(14, 0);
+         mat(2,1) = cplx( 4, 0);
+         mat(3,0) = cplx(99,99);
+         mat(3,1) = cplx( 3, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         sm %= mat;
+
+         checkRows    ( herm,  6UL );
+         checkColumns ( herm,  6UL );
+         checkNonZeros( herm, 26UL );
+
+         if( sm(0,0) != cplx( 0,  0) || sm(0,1) != cplx( 0, 0) ||
+             sm(1,0) != cplx(18,  0) || sm(1,1) != cplx(14,14) ||
+             sm(2,0) != cplx(14,-14) || sm(2,1) != cplx(20, 0) ||
+             sm(3,0) != cplx( 0,  0) || sm(3,1) != cplx(21,-3) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sm << "\n"
+                << "   Expected result:\n( ( 0,  0) ( 0, 0) )\n"
+                                        "( (18,  0) (14,14) )\n"
+                                        "( (14,-14) (20, 0) )\n"
+                                        "( ( 0,  0) (21,-3) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( herm(0,0) != cplx( 1, 0) || herm(0,1) != cplx(-4,-1) || herm(0,2) != cplx( 7,  3) || herm(0,3) != cplx(-2, 1) || herm(0,4) != cplx( 5, 0) || herm(0,5) != cplx( 0, 0) ||
+             herm(1,0) != cplx(-4, 1) || herm(1,1) != cplx( 2, 0) || herm(1,2) != cplx( 0,  0) || herm(1,3) != cplx( 0, 0) || herm(1,4) != cplx(-1, 2) || herm(1,5) != cplx( 8,-2) ||
+             herm(2,0) != cplx( 7,-3) || herm(2,1) != cplx( 0, 0) || herm(2,2) != cplx(18,  0) || herm(2,3) != cplx(14,14) || herm(2,4) != cplx( 0, 0) || herm(2,5) != cplx(-2, 0) ||
+             herm(3,0) != cplx(-2,-1) || herm(3,1) != cplx( 0, 0) || herm(3,2) != cplx(14,-14) || herm(3,3) != cplx(20, 0) || herm(3,4) != cplx(21, 3) || herm(3,5) != cplx( 0, 0) ||
+             herm(4,0) != cplx( 5, 0) || herm(4,1) != cplx(-1,-2) || herm(4,2) != cplx( 0,  0) || herm(4,3) != cplx(21,-3) || herm(4,4) != cplx( 1, 0) || herm(4,5) != cplx(-4, 0) ||
+             herm(5,0) != cplx( 0, 0) || herm(5,1) != cplx( 8, 2) || herm(5,2) != cplx(-2,  0) || herm(5,3) != cplx( 0, 0) || herm(5,4) != cplx(-4, 0) || herm(5,5) != cplx( 7, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( ( 1, 0) (-4,-1) ( 7,  3) (-2, 1) ( 5, 0) ( 0, 0) )\n"
+                                        "( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) (-1, 2) ( 8,-2) )\n"
+                                        "( ( 7,-3) ( 0, 0) (18,  0) (14,14) ( 0, 0) (-2, 0) )\n"
+                                        "( (-2,-1) ( 0, 0) (14,-14) (20, 0) (21, 3) ( 0, 0) )\n"
+                                        "( ( 5, 0) (-1,-2) ( 0,  0) (21,-3) ( 1, 0) (-4, 0) )\n"
+                                        "( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4, 0) ( 7, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (16, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) (21,3) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5, 0) (-1,-2) ( 0, 0) (21,-3) (14,0) (20, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (16, 0) ( 0, 0) (20,0) (28, 0) )
+   {
+      test_ = "Dense matrix Schur product assignment test 3";
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx( 3, 0);
+         mat(0,2) = cplx(14, 0);
+         mat(0,3) = cplx(-5, 0);
+         mat(1,0) = cplx(-8, 0);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(-5, 0);
+         mat(1,3) = cplx( 4, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         sm %= mat;
+
+         checkRows    ( herm,  6UL );
+         checkColumns ( herm,  6UL );
+         checkNonZeros( herm, 26UL );
+
+         if( sm(0,0) != cplx( 0,0) || sm(0,1) != cplx(21,-3) || sm(0,2) != cplx(14,0) || sm(0,3) != cplx(20,0) ||
+             sm(1,0) != cplx(16,0) || sm(1,1) != cplx( 0, 0) || sm(1,2) != cplx(20,0) || sm(1,3) != cplx(28,0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sm << "\n"
+                << "   Expected result:\n( ( 0,0) (21,-3) (14,0) (20,0) )\n"
+                                        "( (16,0) ( 0, 0) (20,0) (28,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( herm(0,0) != cplx( 1, 0) || herm(0,1) != cplx(-4,-1) || herm(0,2) != cplx( 7, 3) || herm(0,3) != cplx(-2, 1) || herm(0,4) != cplx( 5,0) || herm(0,5) != cplx( 0, 0) ||
+             herm(1,0) != cplx(-4, 1) || herm(1,1) != cplx( 2, 0) || herm(1,2) != cplx( 0, 0) || herm(1,3) != cplx( 0, 0) || herm(1,4) != cplx(-1,2) || herm(1,5) != cplx( 8,-2) ||
+             herm(2,0) != cplx( 7,-3) || herm(2,1) != cplx( 0, 0) || herm(2,2) != cplx( 3, 0) || herm(2,3) != cplx( 1, 1) || herm(2,4) != cplx( 0,0) || herm(2,5) != cplx(16, 0) ||
+             herm(3,0) != cplx(-2,-1) || herm(3,1) != cplx( 0, 0) || herm(3,2) != cplx( 1,-1) || herm(3,3) != cplx( 5, 0) || herm(3,4) != cplx(21,3) || herm(3,5) != cplx( 0, 0) ||
+             herm(4,0) != cplx( 5, 0) || herm(4,1) != cplx(-1,-2) || herm(4,2) != cplx( 0, 0) || herm(4,3) != cplx(21,-3) || herm(4,4) != cplx(14,0) || herm(4,5) != cplx(20, 0) ||
+             herm(5,0) != cplx( 0, 0) || herm(5,1) != cplx( 8, 2) || herm(5,2) != cplx(16, 0) || herm(5,3) != cplx( 0, 0) || herm(5,4) != cplx(20,0) || herm(5,5) != cplx(28, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5, 0) ( 0, 0) )\n"
+                                        "( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1, 2) ( 8,-2) )\n"
+                                        "( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0, 0) (16, 0) )\n"
+                                        "( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) (21, 3) ( 0, 0) )\n"
+                                        "( ( 5, 0) (-1,-2) ( 0, 0) (21,-3) (14, 0) (20, 0) )\n"
+                                        "( ( 0, 0) ( 8, 2) (16, 0) ( 0, 0) (20, 0) (28, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx(-8, 0);
+         mat(1,0) = cplx( 3, 0);
+         mat(1,1) = cplx(99,99);
+         mat(2,0) = cplx(14, 0);
+         mat(2,1) = cplx(-5, 0);
+         mat(3,0) = cplx(-5, 0);
+         mat(3,1) = cplx( 4, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         sm %= mat;
+
+         checkRows    ( herm,  6UL );
+         checkColumns ( herm,  6UL );
+         checkNonZeros( herm, 26UL );
+
+         if( sm(0,0) != cplx( 0,0) || sm(0,1) != cplx(16,0) ||
+             sm(1,0) != cplx(21,3) || sm(1,1) != cplx( 0,0) ||
+             sm(2,0) != cplx(14,0) || sm(2,1) != cplx(20,0) ||
+             sm(3,0) != cplx(20,0) || sm(3,1) != cplx(28,0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sm << "\n"
+                << "   Expected result:\n( ( 0,0) (16,0) )\n"
+                                        "( (21,3) ( 0,0) )\n"
+                                        "( (14,0) (20,0) )\n"
+                                        "( (20,0) (28,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( herm(0,0) != cplx( 1, 0) || herm(0,1) != cplx(-4,-1) || herm(0,2) != cplx( 7, 3) || herm(0,3) != cplx(-2, 1) || herm(0,4) != cplx( 5,0) || herm(0,5) != cplx( 0, 0) ||
+             herm(1,0) != cplx(-4, 1) || herm(1,1) != cplx( 2, 0) || herm(1,2) != cplx( 0, 0) || herm(1,3) != cplx( 0, 0) || herm(1,4) != cplx(-1,2) || herm(1,5) != cplx( 8,-2) ||
+             herm(2,0) != cplx( 7,-3) || herm(2,1) != cplx( 0, 0) || herm(2,2) != cplx( 3, 0) || herm(2,3) != cplx( 1, 1) || herm(2,4) != cplx( 0,0) || herm(2,5) != cplx(16, 0) ||
+             herm(3,0) != cplx(-2,-1) || herm(3,1) != cplx( 0, 0) || herm(3,2) != cplx( 1,-1) || herm(3,3) != cplx( 5, 0) || herm(3,4) != cplx(21,3) || herm(3,5) != cplx( 0, 0) ||
+             herm(4,0) != cplx( 5, 0) || herm(4,1) != cplx(-1,-2) || herm(4,2) != cplx( 0, 0) || herm(4,3) != cplx(21,-3) || herm(4,4) != cplx(14,0) || herm(4,5) != cplx(20, 0) ||
+             herm(5,0) != cplx( 0, 0) || herm(5,1) != cplx( 8, 2) || herm(5,2) != cplx(16, 0) || herm(5,3) != cplx( 0, 0) || herm(5,4) != cplx(20,0) || herm(5,5) != cplx(28, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5, 0) ( 0, 0) )\n"
+                                        "( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1, 2) ( 8,-2) )\n"
+                                        "( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0, 0) (16, 0) )\n"
+                                        "( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) (21, 3) ( 0, 0) )\n"
+                                        "( ( 5, 0) (-1,-2) ( 0, 0) (21,-3) (14, 0) (20, 0) )\n"
+                                        "( ( 0, 0) ( 8, 2) (16, 0) ( 0, 0) (20, 0) (28, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) (14,  6) (18,-9) (25, 0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) ( 7,14) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( (14,-6) ( 0, 0) (18,  0) (11,11) ( 0, 0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (18, 9) ( 0, 0) (11,-11) (20, 0) (14, 2) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( (25, 0) ( 7,14) ( 0,  0) (14,-2) ( 1, 0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4, 0) ( 7, 0) )
+   {
+      test_ = "Dense matrix Schur product assignment test 4";
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::rowMajor> mat( 3UL, 4UL );
+         mat(0,0) = cplx( 2, 0);
+         mat(0,1) = cplx(99,99);
+         mat(0,2) = cplx( 6, 0);
+         mat(0,3) = cplx(11, 0);
+         mat(1,0) = cplx(-9, 0);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(11, 0);
+         mat(1,3) = cplx( 4, 0);
+         mat(2,0) = cplx( 5, 0);
+         mat(2,1) = cplx(-7, 0);
+         mat(2,2) = cplx(99,99);
+         mat(2,3) = cplx( 2, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         sm %= mat;
+
+         checkRows    ( herm,  6UL );
+         checkColumns ( herm,  6UL );
+         checkNonZeros( herm, 26UL );
+
+         if( sm(0,0) != cplx(14,-6) || sm(0,1) != cplx(0, 0) || sm(0,2) != cplx(18,  0) || sm(0,3) != cplx(11,11) ||
+             sm(1,0) != cplx(18, 9) || sm(1,1) != cplx(0, 0) || sm(1,2) != cplx(11,-11) || sm(1,3) != cplx(20, 0) ||
+             sm(2,0) != cplx(25, 0) || sm(2,1) != cplx(7,14) || sm(2,2) != cplx( 0,  0) || sm(2,3) != cplx(14,-2) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sm << "\n"
+                << "   Expected result:\n( (14,-6) (0, 0) (18,  0) (11,11) )\n"
+                                        "( (18, 9) (0, 0) (11,-11) (20, 0) )\n"
+                                        "( (25, 0) (7,14) ( 0,  0) (14,-2) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( herm(0,0) != cplx( 1, 0) || herm(0,1) != cplx(-4,-1) || herm(0,2) != cplx(14,  6) || herm(0,3) != cplx(18,-9) || herm(0,4) != cplx(25,  0) || herm(0,5) != cplx( 0, 0) ||
+             herm(1,0) != cplx(-4, 1) || herm(1,1) != cplx( 2, 0) || herm(1,2) != cplx( 0,  0) || herm(1,3) != cplx( 0, 0) || herm(1,4) != cplx( 7,-14) || herm(1,5) != cplx( 8,-2) ||
+             herm(2,0) != cplx(14,-6) || herm(2,1) != cplx( 0, 0) || herm(2,2) != cplx(18,  0) || herm(2,3) != cplx(11,11) || herm(2,4) != cplx( 0,  0) || herm(2,5) != cplx(-2, 0) ||
+             herm(3,0) != cplx(18, 9) || herm(3,1) != cplx( 0, 0) || herm(3,2) != cplx(11,-11) || herm(3,3) != cplx(20, 0) || herm(3,4) != cplx(14,  2) || herm(3,5) != cplx( 0, 0) ||
+             herm(4,0) != cplx(25, 0) || herm(4,1) != cplx( 7,14) || herm(4,2) != cplx( 0,  0) || herm(4,3) != cplx(14,-2) || herm(4,4) != cplx( 1,  0) || herm(4,5) != cplx(-4, 0) ||
+             herm(5,0) != cplx( 0, 0) || herm(5,1) != cplx( 8, 2) || herm(5,2) != cplx(-2,  0) || herm(5,3) != cplx( 0, 0) || herm(5,4) != cplx(-4,  0) || herm(5,5) != cplx( 7, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( ( 1, 0) (-4,-1) (14,  6) (18,-9) (25,  0) ( 0, 0) )\n"
+                                        "( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) ( 7,-14) ( 8,-2) )\n"
+                                        "( (14,-6) ( 0, 0) (18,  0) (11,11) ( 0,  0) (-2, 0) )\n"
+                                        "( (18, 9) ( 0, 0) (11,-11) (20, 0) (14,  2) ( 0, 0) )\n"
+                                        "( (25, 0) ( 7,14) ( 0,  0) (14,-2) ( 1,  0) (-4, 0) )\n"
+                                        "( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4,  0) ( 7, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::columnMajor> mat( 4UL, 3UL );
+         mat(0,0) = cplx( 2, 0);
+         mat(0,1) = cplx(-9, 0);
+         mat(0,2) = cplx( 5, 0);
+         mat(1,0) = cplx(99,99);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(-7, 0);
+         mat(2,0) = cplx( 6, 0);
+         mat(2,1) = cplx(11, 0);
+         mat(2,2) = cplx(99,99);
+         mat(3,0) = cplx(11, 0);
+         mat(3,1) = cplx( 4, 0);
+         mat(3,2) = cplx( 2, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         sm %= mat;
+
+         checkRows    ( herm,  6UL );
+         checkColumns ( herm,  6UL );
+         checkNonZeros( herm, 26UL );
+
+         if( sm(0,0) != cplx(14,  6) || sm(0,1) != cplx(18,-9) || sm(0,2) != cplx(25,  0) ||
+             sm(1,0) != cplx( 0,  0) || sm(1,1) != cplx( 0, 0) || sm(1,2) != cplx( 7,-14) ||
+             sm(2,0) != cplx(18,  0) || sm(2,1) != cplx(11,11) || sm(2,2) != cplx( 0,  0) ||
+             sm(3,0) != cplx(11,-11) || sm(3,1) != cplx(20, 0) || sm(3,2) != cplx(14,  2) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sm << "\n"
+                << "   Expected result:\n( (14,  6) (18,-9) (25,  0) )\n"
+                                        "( ( 0,  0) ( 0, 0) ( 7,-14) )\n"
+                                        "( (18,  0) (11,11) ( 0,  0) )\n"
+                                        "( (11,-11) (20, 0) (14,  2) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( herm(0,0) != cplx( 1, 0) || herm(0,1) != cplx(-4,-1) || herm(0,2) != cplx(14,  6) || herm(0,3) != cplx(18,-9) || herm(0,4) != cplx(25,  0) || herm(0,5) != cplx( 0, 0) ||
+             herm(1,0) != cplx(-4, 1) || herm(1,1) != cplx( 2, 0) || herm(1,2) != cplx( 0,  0) || herm(1,3) != cplx( 0, 0) || herm(1,4) != cplx( 7,-14) || herm(1,5) != cplx( 8,-2) ||
+             herm(2,0) != cplx(14,-6) || herm(2,1) != cplx( 0, 0) || herm(2,2) != cplx(18,  0) || herm(2,3) != cplx(11,11) || herm(2,4) != cplx( 0,  0) || herm(2,5) != cplx(-2, 0) ||
+             herm(3,0) != cplx(18, 9) || herm(3,1) != cplx( 0, 0) || herm(3,2) != cplx(11,-11) || herm(3,3) != cplx(20, 0) || herm(3,4) != cplx(14,  2) || herm(3,5) != cplx( 0, 0) ||
+             herm(4,0) != cplx(25, 0) || herm(4,1) != cplx( 7,14) || herm(4,2) != cplx( 0,  0) || herm(4,3) != cplx(14,-2) || herm(4,4) != cplx( 1,  0) || herm(4,5) != cplx(-4, 0) ||
+             herm(5,0) != cplx( 0, 0) || herm(5,1) != cplx( 8, 2) || herm(5,2) != cplx(-2,  0) || herm(5,3) != cplx( 0, 0) || herm(5,4) != cplx(-4,  0) || herm(5,5) != cplx( 7, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( ( 1, 0) (-4,-1) (14,  6) (18,-9) (25,  0) ( 0, 0) )\n"
+                                        "( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) ( 7,-14) ( 8,-2) )\n"
+                                        "( (14,-6) ( 0, 0) (18,  0) (11,11) ( 0,  0) (-2, 0) )\n"
+                                        "( (18, 9) ( 0, 0) (11,-11) (20, 0) (14,  2) ( 0, 0) )\n"
+                                        "( (25, 0) ( 7,14) ( 0,  0) (14,-2) ( 1,  0) (-4, 0) )\n"
+                                        "( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4,  0) ( 7, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( (11,  0) (20, 5) (28,12) (16,-8) ( 5,0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (24, -6) (12, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( (28,-12) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (16,  8) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5,  0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0,  0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )
+   {
+      test_ = "Dense matrix Schur product assignment test 5";
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL );
+         mat(0,0) = cplx(11, 0);
+         mat(0,1) = cplx(-5, 0);
+         mat(0,2) = cplx( 4, 0);
+         mat(0,3) = cplx(-8, 0);
+         mat(1,0) = cplx(-6, 0);
+         mat(1,1) = cplx( 6, 0);
+         mat(1,2) = cplx(99,99);
+         mat(1,3) = cplx(99,99);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL );
+         mat(0,0) = cplx(11, 0);
+         mat(0,1) = cplx(-6, 0);
+         mat(1,0) = cplx(-5, 0);
+         mat(1,1) = cplx( 6, 0);
+         mat(2,0) = cplx( 4, 0);
+         mat(2,1) = cplx(99,99);
+         mat(3,0) = cplx(-8, 0);
+         mat(3,1) = cplx(99,99);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) ( 7,  3) (-2, 1) ( 5, 0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) (-1, 2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( ( 7,-3) ( 0, 0) (18,  0) (14,14) ( 0, 0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (-2,-1) ( 0, 0) (22,-22) (20, 0) (21, 3) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5, 0) (-1,-2) ( 0,  0) (21,-3) ( 1, 0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4, 0) ( 7, 0) )
+   {
+      test_ = "Dense matrix Schur product assignment test 6";
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx( 6, 0);
+         mat(0,2) = cplx(14, 0);
+         mat(0,3) = cplx(99,99);
+         mat(1,0) = cplx(99,99);
+         mat(1,1) = cplx(22, 0);
+         mat(1,2) = cplx( 4, 0);
+         mat(1,3) = cplx( 3, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx(99,99);
+         mat(1,0) = cplx( 6, 0);
+         mat(1,1) = cplx(22, 0);
+         mat(2,0) = cplx(14, 0);
+         mat(2,1) = cplx( 4, 0);
+         mat(3,0) = cplx(99,99);
+         mat(3,1) = cplx( 3, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (16, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) (21,3) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5, 0) (-1,-2) ( 0, 0) (21,-3) (14,0) (20, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (16, 0) ( 0, 0) (24,0) (28, 0) )
+   {
+      test_ = "Dense matrix Schur product assignment test 7";
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx( 3, 0);
+         mat(0,2) = cplx(14, 0);
+         mat(0,3) = cplx(-5, 0);
+         mat(1,0) = cplx(-8, 0);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(-6, 0);
+         mat(1,3) = cplx( 4, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx(-8, 0);
+         mat(1,0) = cplx( 3, 0);
+         mat(1,1) = cplx(99,99);
+         mat(2,0) = cplx(14, 0);
+         mat(2,1) = cplx(-6, 0);
+         mat(3,0) = cplx(-5, 0);
+         mat(3,1) = cplx( 4, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) (14,  6) (18,-9) (25, 0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) ( 7,14) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( (14,-6) ( 0, 0) (18,  0) (11,11) ( 0, 0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (18, 9) ( 0, 0) (22,-22) (20, 0) (14, 2) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( (25, 0) ( 7,14) ( 0,  0) (14,-2) ( 1, 0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4, 0) ( 7, 0) )
+   {
+      test_ = "Dense matrix Schur product assignment test 8";
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::rowMajor> mat( 3UL, 4UL );
+         mat(0,0) = cplx( 2, 0);
+         mat(0,1) = cplx(99,99);
+         mat(0,2) = cplx( 6, 0);
+         mat(0,3) = cplx(11, 0);
+         mat(1,0) = cplx(-9, 0);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(22, 0);
+         mat(1,3) = cplx( 4, 0);
+         mat(2,0) = cplx( 5, 0);
+         mat(2,1) = cplx(-7, 0);
+         mat(2,2) = cplx(99,99);
+         mat(2,3) = cplx( 2, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::columnMajor> mat( 4UL, 3UL );
+         mat(0,0) = cplx( 2, 0);
+         mat(0,1) = cplx(-9, 0);
+         mat(0,2) = cplx( 5, 0);
+         mat(1,0) = cplx(99,99);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(-7, 0);
+         mat(2,0) = cplx( 6, 0);
+         mat(2,1) = cplx(22, 0);
+         mat(2,2) = cplx(99,99);
+         mat(3,0) = cplx(11, 0);
+         mat(3,1) = cplx( 4, 0);
+         mat(3,2) = cplx( 2, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( (11,  0) (20, 5) (28,12) (16,-8) ( 5,0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (20, -5) (12, 4) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( (28,-12) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (16,  8) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5,  0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0,  0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )
+   {
+      test_ = "Dense matrix Schur product assignment test 9";
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL );
+         mat(0,0) = cplx(11, 0);
+         mat(0,1) = cplx(-5, 0);
+         mat(0,2) = cplx( 4, 0);
+         mat(0,3) = cplx(-8, 0);
+         mat(1,0) = cplx(-5, 0);
+         mat(1,1) = cplx( 6, 2);
+         mat(1,2) = cplx(99,99);
+         mat(1,3) = cplx(99,99);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL );
+         mat(0,0) = cplx(11, 0);
+         mat(0,1) = cplx(-5, 0);
+         mat(1,0) = cplx(-5, 0);
+         mat(1,1) = cplx( 6, 2);
+         mat(2,0) = cplx( 4, 0);
+         mat(2,1) = cplx(99,99);
+         mat(3,0) = cplx(-8, 0);
+         mat(3,1) = cplx(99,99);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) ( 7,  3) (-2, 1) ( 5, 0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) (-1, 2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( ( 7,-3) ( 0, 0) (18,  0) (14,14) ( 0, 0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (-2,-1) ( 0, 0) (14,-14) (20, 5) (21, 3) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5, 0) (-1,-2) ( 0,  0) (21,-3) ( 1, 0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4, 0) ( 7, 0) )
+   {
+      test_ = "Dense matrix Schur product assignment test 10";
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx( 6, 0);
+         mat(0,2) = cplx(14, 0);
+         mat(0,3) = cplx(99,99);
+         mat(1,0) = cplx(99,99);
+         mat(1,1) = cplx(14, 0);
+         mat(1,2) = cplx( 4, 1);
+         mat(1,3) = cplx( 3, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx(99,99);
+         mat(1,0) = cplx( 6, 0);
+         mat(1,1) = cplx(14, 0);
+         mat(2,0) = cplx(14, 0);
+         mat(2,1) = cplx( 4, 1);
+         mat(3,0) = cplx(99,99);
+         mat(3,1) = cplx( 3, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (16, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) (21,3) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5, 0) (-1,-2) ( 0, 0) (21,-3) (14,0) (20, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (16, 0) ( 0, 0) (20,0) (28, 7) )
+   {
+      test_ = "Dense matrix Schur product assignment test 11";
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx( 3, 0);
+         mat(0,2) = cplx(14, 0);
+         mat(0,3) = cplx(-5, 0);
+         mat(1,0) = cplx(-8, 0);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(-5, 0);
+         mat(1,3) = cplx( 4, 1);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx(-8, 0);
+         mat(1,0) = cplx( 3, 0);
+         mat(1,1) = cplx(99,99);
+         mat(2,0) = cplx(14, 0);
+         mat(2,1) = cplx(-5, 0);
+         mat(3,0) = cplx(-5, 0);
+         mat(3,1) = cplx( 4, 1);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) (14,  6) (18,-9) (25, 0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) ( 7,14) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( (14,-6) ( 0, 0) (18,  0) (11,11) ( 0, 0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (18, 9) ( 0, 0) (11,-11) (20, 5) (14, 2) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( (25, 0) ( 7,14) ( 0,  0) (14,-2) ( 1, 0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4, 0) ( 7, 0) )
+   {
+      test_ = "Dense matrix Schur product assignment test 12";
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::rowMajor> mat( 3UL, 4UL );
+         mat(0,0) = cplx( 2, 0);
+         mat(0,1) = cplx(99,99);
+         mat(0,2) = cplx( 6, 0);
+         mat(0,3) = cplx(11, 0);
+         mat(1,0) = cplx(-9, 0);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(11, 0);
+         mat(1,3) = cplx( 4, 1);
+         mat(2,0) = cplx( 5, 0);
+         mat(2,1) = cplx(-7, 0);
+         mat(2,2) = cplx(99,99);
+         mat(2,3) = cplx( 2, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+
+      {
+         blaze::DynamicMatrix<cplx,blaze::columnMajor> mat( 4UL, 3UL );
+         mat(0,0) = cplx( 2, 0);
+         mat(0,1) = cplx(-9, 0);
+         mat(0,2) = cplx( 5, 0);
+         mat(1,0) = cplx(99,99);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(-7, 0);
+         mat(2,0) = cplx( 6, 0);
+         mat(2,1) = cplx(11, 0);
+         mat(2,2) = cplx(99,99);
+         mat(3,0) = cplx(11, 0);
+         mat(3,1) = cplx( 4, 1);
+         mat(3,2) = cplx( 2, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+   }
+
+
+   //=====================================================================================
+   // Sparse matrix Schur product assignment
+   //=====================================================================================
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( (11,  0) (20, 5) (28,12) (16,-8) ( 5,0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (20, -5) (12, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( (28,-12) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (16,  8) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5,  0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0,  0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )
+   {
+      test_ = "Sparse matrix Schur product assignment test 1";
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL, 8UL );
+         mat(0,0) = cplx(11, 0);
+         mat(0,1) = cplx(-5, 0);
+         mat(0,2) = cplx( 4, 0);
+         mat(0,3) = cplx(-8, 0);
+         mat(1,0) = cplx(-5, 0);
+         mat(1,1) = cplx( 6, 0);
+         mat(1,2) = cplx(99,99);
+         mat(1,3) = cplx(99,99);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+         sm %= mat;
+
+         checkRows    ( herm,  6UL );
+         checkColumns ( herm,  6UL );
+         checkNonZeros( herm, 26UL );
+
+         if( sm(0,0) != cplx(11, 0) || sm(0,1) != cplx(20,5) || sm(0,2) != cplx(28,12) || sm(0,3) != cplx(16,-8) ||
+             sm(1,0) != cplx(20,-5) || sm(1,1) != cplx(12,0) || sm(1,2) != cplx( 0, 0) || sm(1,3) != cplx( 0, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sm << "\n"
+                << "   Expected result:\n( (11, 0) (20,5) (28,12) (16,-8) )\n"
+                                        "( (20,-5) (12,0) ( 0, 0) ( 0, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( herm(0,0) != cplx(11,  0) || herm(0,1) != cplx(20, 5) || herm(0,2) != cplx(28,12) || herm(0,3) != cplx(16,-8) || herm(0,4) != cplx( 5,0) || herm(0,5) != cplx( 0, 0) ||
+             herm(1,0) != cplx(20, -5) || herm(1,1) != cplx(12, 0) || herm(1,2) != cplx( 0, 0) || herm(1,3) != cplx( 0, 0) || herm(1,4) != cplx(-1,2) || herm(1,5) != cplx( 8,-2) ||
+             herm(2,0) != cplx(28,-12) || herm(2,1) != cplx( 0, 0) || herm(2,2) != cplx( 3, 0) || herm(2,3) != cplx( 1, 1) || herm(2,4) != cplx( 0,0) || herm(2,5) != cplx(-2, 0) ||
+             herm(3,0) != cplx(16,  8) || herm(3,1) != cplx( 0, 0) || herm(3,2) != cplx( 1,-1) || herm(3,3) != cplx( 5, 0) || herm(3,4) != cplx( 7,1) || herm(3,5) != cplx( 0, 0) ||
+             herm(4,0) != cplx( 5,  0) || herm(4,1) != cplx(-1,-2) || herm(4,2) != cplx( 0, 0) || herm(4,3) != cplx( 7,-1) || herm(4,4) != cplx( 1,0) || herm(4,5) != cplx(-4, 0) ||
+             herm(5,0) != cplx( 0,  0) || herm(5,1) != cplx( 8, 2) || herm(5,2) != cplx(-2, 0) || herm(5,3) != cplx( 0, 0) || herm(5,4) != cplx(-4,0) || herm(5,5) != cplx( 7, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (11,  0) (20, 5) (28,12) (16,-8) ( 5,0) ( 0, 0) )\n"
+                                        "( (20, -5) (12, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )\n"
+                                        "( (28,-12) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )\n"
+                                        "( (16,  8) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )\n"
+                                        "( ( 5,  0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )\n"
+                                        "( ( 0,  0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL, 8UL );
+         mat(0,0) = cplx(11, 0);
+         mat(0,1) = cplx(-5, 0);
+         mat(1,0) = cplx(-5, 0);
+         mat(1,1) = cplx( 6, 0);
+         mat(2,0) = cplx( 4, 0);
+         mat(2,1) = cplx(99,99);
+         mat(3,0) = cplx(-8, 0);
+         mat(3,1) = cplx(99,99);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+         sm %= mat;
+
+         checkRows    ( herm,  6UL );
+         checkColumns ( herm,  6UL );
+         checkNonZeros( herm, 26UL );
+
+         if( sm(0,0) != cplx(11,  0) || sm(0,1) != cplx(20,5) ||
+             sm(1,0) != cplx(20, -5) || sm(1,1) != cplx(12,0) ||
+             sm(2,0) != cplx(28,-12) || sm(2,1) != cplx( 0,0) ||
+             sm(3,0) != cplx(16,  8) || sm(3,1) != cplx( 0,0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sm << "\n"
+                << "   Expected result:\n( (11,  0) (20,5) )\n"
+                                        "( (20, -5) (12,0) )\n"
+                                        "( (28,-12) ( 0,0) )\n"
+                                        "( (16,  8) ( 0,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( herm(0,0) != cplx(11,  0) || herm(0,1) != cplx(20, 5) || herm(0,2) != cplx(28,12) || herm(0,3) != cplx(16,-8) || herm(0,4) != cplx( 5,0) || herm(0,5) != cplx( 0, 0) ||
+             herm(1,0) != cplx(20, -5) || herm(1,1) != cplx(12, 0) || herm(1,2) != cplx( 0, 0) || herm(1,3) != cplx( 0, 0) || herm(1,4) != cplx(-1,2) || herm(1,5) != cplx( 8,-2) ||
+             herm(2,0) != cplx(28,-12) || herm(2,1) != cplx( 0, 0) || herm(2,2) != cplx( 3, 0) || herm(2,3) != cplx( 1, 1) || herm(2,4) != cplx( 0,0) || herm(2,5) != cplx(-2, 0) ||
+             herm(3,0) != cplx(16,  8) || herm(3,1) != cplx( 0, 0) || herm(3,2) != cplx( 1,-1) || herm(3,3) != cplx( 5, 0) || herm(3,4) != cplx( 7,1) || herm(3,5) != cplx( 0, 0) ||
+             herm(4,0) != cplx( 5,  0) || herm(4,1) != cplx(-1,-2) || herm(4,2) != cplx( 0, 0) || herm(4,3) != cplx( 7,-1) || herm(4,4) != cplx( 1,0) || herm(4,5) != cplx(-4, 0) ||
+             herm(5,0) != cplx( 0,  0) || herm(5,1) != cplx( 8, 2) || herm(5,2) != cplx(-2, 0) || herm(5,3) != cplx( 0, 0) || herm(5,4) != cplx(-4,0) || herm(5,5) != cplx( 7, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( (11,  0) (20, 5) (28,12) (16,-8) ( 5,0) ( 0, 0) )\n"
+                                        "( (20, -5) (12, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )\n"
+                                        "( (28,-12) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )\n"
+                                        "( (16,  8) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )\n"
+                                        "( ( 5,  0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )\n"
+                                        "( ( 0,  0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) ( 7,  3) (-2, 1) ( 5, 0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) (-1, 2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( ( 7,-3) ( 0, 0) (18,  0) (14,14) ( 0, 0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (-2,-1) ( 0, 0) (14,-14) (20, 0) (21, 3) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5, 0) (-1,-2) ( 0,  0) (21,-3) ( 1, 0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4, 0) ( 7, 0) )
+   {
+      test_ = "Sparse matrix Schur product assignment test 2";
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL, 8UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx( 6, 0);
+         mat(0,2) = cplx(14, 0);
+         mat(0,3) = cplx(99,99);
+         mat(1,0) = cplx(99,99);
+         mat(1,1) = cplx(14, 0);
+         mat(1,2) = cplx( 4, 0);
+         mat(1,3) = cplx( 3, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+         sm %= mat;
+
+         checkRows    ( herm,  6UL );
+         checkColumns ( herm,  6UL );
+         checkNonZeros( herm, 26UL );
+
+         if( sm(0,0) != cplx(0,0) || sm(0,1) != cplx(18,  0) || sm(0,2) != cplx(14,14) || sm(0,3) != cplx( 0,0) ||
+             sm(1,0) != cplx(0,0) || sm(1,1) != cplx(14,-14) || sm(1,2) != cplx(20, 0) || sm(1,3) != cplx(21,3) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sm << "\n"
+                << "   Expected result:\n( (0,0) (18,  0) (14,14) ( 0,0) )\n"
+                                        "( (0,0) (14,-14) (20, 0) (21,3) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( herm(0,0) != cplx( 1, 0) || herm(0,1) != cplx(-4,-1) || herm(0,2) != cplx( 7,  3) || herm(0,3) != cplx(-2, 1) || herm(0,4) != cplx( 5, 0) || herm(0,5) != cplx( 0, 0) ||
+             herm(1,0) != cplx(-4, 1) || herm(1,1) != cplx( 2, 0) || herm(1,2) != cplx( 0,  0) || herm(1,3) != cplx( 0, 0) || herm(1,4) != cplx(-1, 2) || herm(1,5) != cplx( 8,-2) ||
+             herm(2,0) != cplx( 7,-3) || herm(2,1) != cplx( 0, 0) || herm(2,2) != cplx(18,  0) || herm(2,3) != cplx(14,14) || herm(2,4) != cplx( 0, 0) || herm(2,5) != cplx(-2, 0) ||
+             herm(3,0) != cplx(-2,-1) || herm(3,1) != cplx( 0, 0) || herm(3,2) != cplx(14,-14) || herm(3,3) != cplx(20, 0) || herm(3,4) != cplx(21, 3) || herm(3,5) != cplx( 0, 0) ||
+             herm(4,0) != cplx( 5, 0) || herm(4,1) != cplx(-1,-2) || herm(4,2) != cplx( 0,  0) || herm(4,3) != cplx(21,-3) || herm(4,4) != cplx( 1, 0) || herm(4,5) != cplx(-4, 0) ||
+             herm(5,0) != cplx( 0, 0) || herm(5,1) != cplx( 8, 2) || herm(5,2) != cplx(-2,  0) || herm(5,3) != cplx( 0, 0) || herm(5,4) != cplx(-4, 0) || herm(5,5) != cplx( 7, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( ( 1, 0) (-4,-1) ( 7,  3) (-2, 1) ( 5, 0) ( 0, 0) )\n"
+                                        "( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) (-1, 2) ( 8,-2) )\n"
+                                        "( ( 7,-3) ( 0, 0) (18,  0) (14,14) ( 0, 0) (-2, 0) )\n"
+                                        "( (-2,-1) ( 0, 0) (14,-14) (20, 0) (21, 3) ( 0, 0) )\n"
+                                        "( ( 5, 0) (-1,-2) ( 0,  0) (21,-3) ( 1, 0) (-4, 0) )\n"
+                                        "( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4, 0) ( 7, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL, 8UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx(99,99);
+         mat(1,0) = cplx( 6, 0);
+         mat(1,1) = cplx(14, 0);
+         mat(2,0) = cplx(14, 0);
+         mat(2,1) = cplx( 4, 0);
+         mat(3,0) = cplx(99,99);
+         mat(3,1) = cplx( 3, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+         sm %= mat;
+
+         checkRows    ( herm,  6UL );
+         checkColumns ( herm,  6UL );
+         checkNonZeros( herm, 26UL );
+
+         if( sm(0,0) != cplx( 0,  0) || sm(0,1) != cplx( 0, 0) ||
+             sm(1,0) != cplx(18,  0) || sm(1,1) != cplx(14,14) ||
+             sm(2,0) != cplx(14,-14) || sm(2,1) != cplx(20, 0) ||
+             sm(3,0) != cplx( 0,  0) || sm(3,1) != cplx(21,-3) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sm << "\n"
+                << "   Expected result:\n( ( 0,  0) ( 0, 0) )\n"
+                                        "( (18,  0) (14,14) )\n"
+                                        "( (14,-14) (20, 0) )\n"
+                                        "( ( 0,  0) (21,-3) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( herm(0,0) != cplx( 1, 0) || herm(0,1) != cplx(-4,-1) || herm(0,2) != cplx( 7,  3) || herm(0,3) != cplx(-2, 1) || herm(0,4) != cplx( 5, 0) || herm(0,5) != cplx( 0, 0) ||
+             herm(1,0) != cplx(-4, 1) || herm(1,1) != cplx( 2, 0) || herm(1,2) != cplx( 0,  0) || herm(1,3) != cplx( 0, 0) || herm(1,4) != cplx(-1, 2) || herm(1,5) != cplx( 8,-2) ||
+             herm(2,0) != cplx( 7,-3) || herm(2,1) != cplx( 0, 0) || herm(2,2) != cplx(18,  0) || herm(2,3) != cplx(14,14) || herm(2,4) != cplx( 0, 0) || herm(2,5) != cplx(-2, 0) ||
+             herm(3,0) != cplx(-2,-1) || herm(3,1) != cplx( 0, 0) || herm(3,2) != cplx(14,-14) || herm(3,3) != cplx(20, 0) || herm(3,4) != cplx(21, 3) || herm(3,5) != cplx( 0, 0) ||
+             herm(4,0) != cplx( 5, 0) || herm(4,1) != cplx(-1,-2) || herm(4,2) != cplx( 0,  0) || herm(4,3) != cplx(21,-3) || herm(4,4) != cplx( 1, 0) || herm(4,5) != cplx(-4, 0) ||
+             herm(5,0) != cplx( 0, 0) || herm(5,1) != cplx( 8, 2) || herm(5,2) != cplx(-2,  0) || herm(5,3) != cplx( 0, 0) || herm(5,4) != cplx(-4, 0) || herm(5,5) != cplx( 7, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( ( 1, 0) (-4,-1) ( 7,  3) (-2, 1) ( 5, 0) ( 0, 0) )\n"
+                                        "( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) (-1, 2) ( 8,-2) )\n"
+                                        "( ( 7,-3) ( 0, 0) (18,  0) (14,14) ( 0, 0) (-2, 0) )\n"
+                                        "( (-2,-1) ( 0, 0) (14,-14) (20, 0) (21, 3) ( 0, 0) )\n"
+                                        "( ( 5, 0) (-1,-2) ( 0,  0) (21,-3) ( 1, 0) (-4, 0) )\n"
+                                        "( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4, 0) ( 7, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (16, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) (21,3) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5, 0) (-1,-2) ( 0, 0) (21,-3) (14,0) (20, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (16, 0) ( 0, 0) (20,0) (28, 0) )
+   {
+      test_ = "Sparse matrix Schur product assignment test 3";
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL, 8UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx( 3, 0);
+         mat(0,2) = cplx(14, 0);
+         mat(0,3) = cplx(-5, 0);
+         mat(1,0) = cplx(-8, 0);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(-5, 0);
+         mat(1,3) = cplx( 4, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+         sm %= mat;
+
+         checkRows    ( herm,  6UL );
+         checkColumns ( herm,  6UL );
+         checkNonZeros( herm, 26UL );
+
+         if( sm(0,0) != cplx( 0,0) || sm(0,1) != cplx(21,-3) || sm(0,2) != cplx(14,0) || sm(0,3) != cplx(20,0) ||
+             sm(1,0) != cplx(16,0) || sm(1,1) != cplx( 0, 0) || sm(1,2) != cplx(20,0) || sm(1,3) != cplx(28,0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sm << "\n"
+                << "   Expected result:\n( ( 0,0) (21,-3) (14,0) (20,0) )\n"
+                                        "( (16,0) ( 0, 0) (20,0) (28,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( herm(0,0) != cplx( 1, 0) || herm(0,1) != cplx(-4,-1) || herm(0,2) != cplx( 7, 3) || herm(0,3) != cplx(-2, 1) || herm(0,4) != cplx( 5,0) || herm(0,5) != cplx( 0, 0) ||
+             herm(1,0) != cplx(-4, 1) || herm(1,1) != cplx( 2, 0) || herm(1,2) != cplx( 0, 0) || herm(1,3) != cplx( 0, 0) || herm(1,4) != cplx(-1,2) || herm(1,5) != cplx( 8,-2) ||
+             herm(2,0) != cplx( 7,-3) || herm(2,1) != cplx( 0, 0) || herm(2,2) != cplx( 3, 0) || herm(2,3) != cplx( 1, 1) || herm(2,4) != cplx( 0,0) || herm(2,5) != cplx(16, 0) ||
+             herm(3,0) != cplx(-2,-1) || herm(3,1) != cplx( 0, 0) || herm(3,2) != cplx( 1,-1) || herm(3,3) != cplx( 5, 0) || herm(3,4) != cplx(21,3) || herm(3,5) != cplx( 0, 0) ||
+             herm(4,0) != cplx( 5, 0) || herm(4,1) != cplx(-1,-2) || herm(4,2) != cplx( 0, 0) || herm(4,3) != cplx(21,-3) || herm(4,4) != cplx(14,0) || herm(4,5) != cplx(20, 0) ||
+             herm(5,0) != cplx( 0, 0) || herm(5,1) != cplx( 8, 2) || herm(5,2) != cplx(16, 0) || herm(5,3) != cplx( 0, 0) || herm(5,4) != cplx(20,0) || herm(5,5) != cplx(28, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5, 0) ( 0, 0) )\n"
+                                        "( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1, 2) ( 8,-2) )\n"
+                                        "( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0, 0) (16, 0) )\n"
+                                        "( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) (21, 3) ( 0, 0) )\n"
+                                        "( ( 5, 0) (-1,-2) ( 0, 0) (21,-3) (14, 0) (20, 0) )\n"
+                                        "( ( 0, 0) ( 8, 2) (16, 0) ( 0, 0) (20, 0) (28, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL, 8UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx(-8, 0);
+         mat(1,0) = cplx( 3, 0);
+         mat(1,1) = cplx(99,99);
+         mat(2,0) = cplx(14, 0);
+         mat(2,1) = cplx(-5, 0);
+         mat(3,0) = cplx(-5, 0);
+         mat(3,1) = cplx( 4, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+         sm %= mat;
+
+         checkRows    ( herm,  6UL );
+         checkColumns ( herm,  6UL );
+         checkNonZeros( herm, 26UL );
+
+         if( sm(0,0) != cplx( 0,0) || sm(0,1) != cplx(16,0) ||
+             sm(1,0) != cplx(21,3) || sm(1,1) != cplx( 0,0) ||
+             sm(2,0) != cplx(14,0) || sm(2,1) != cplx(20,0) ||
+             sm(3,0) != cplx(20,0) || sm(3,1) != cplx(28,0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sm << "\n"
+                << "   Expected result:\n( ( 0,0) (16,0) )\n"
+                                        "( (21,3) ( 0,0) )\n"
+                                        "( (14,0) (20,0) )\n"
+                                        "( (20,0) (28,0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( herm(0,0) != cplx( 1, 0) || herm(0,1) != cplx(-4,-1) || herm(0,2) != cplx( 7, 3) || herm(0,3) != cplx(-2, 1) || herm(0,4) != cplx( 5,0) || herm(0,5) != cplx( 0, 0) ||
+             herm(1,0) != cplx(-4, 1) || herm(1,1) != cplx( 2, 0) || herm(1,2) != cplx( 0, 0) || herm(1,3) != cplx( 0, 0) || herm(1,4) != cplx(-1,2) || herm(1,5) != cplx( 8,-2) ||
+             herm(2,0) != cplx( 7,-3) || herm(2,1) != cplx( 0, 0) || herm(2,2) != cplx( 3, 0) || herm(2,3) != cplx( 1, 1) || herm(2,4) != cplx( 0,0) || herm(2,5) != cplx(16, 0) ||
+             herm(3,0) != cplx(-2,-1) || herm(3,1) != cplx( 0, 0) || herm(3,2) != cplx( 1,-1) || herm(3,3) != cplx( 5, 0) || herm(3,4) != cplx(21,3) || herm(3,5) != cplx( 0, 0) ||
+             herm(4,0) != cplx( 5, 0) || herm(4,1) != cplx(-1,-2) || herm(4,2) != cplx( 0, 0) || herm(4,3) != cplx(21,-3) || herm(4,4) != cplx(14,0) || herm(4,5) != cplx(20, 0) ||
+             herm(5,0) != cplx( 0, 0) || herm(5,1) != cplx( 8, 2) || herm(5,2) != cplx(16, 0) || herm(5,3) != cplx( 0, 0) || herm(5,4) != cplx(20,0) || herm(5,5) != cplx(28, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5, 0) ( 0, 0) )\n"
+                                        "( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1, 2) ( 8,-2) )\n"
+                                        "( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0, 0) (16, 0) )\n"
+                                        "( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) (21, 3) ( 0, 0) )\n"
+                                        "( ( 5, 0) (-1,-2) ( 0, 0) (21,-3) (14, 0) (20, 0) )\n"
+                                        "( ( 0, 0) ( 8, 2) (16, 0) ( 0, 0) (20, 0) (28, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) (14,  6) (18,-9) (25, 0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) ( 7,14) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( (14,-6) ( 0, 0) (18,  0) (11,11) ( 0, 0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (18, 9) ( 0, 0) (11,-11) (20, 0) (14, 2) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( (25, 0) ( 7,14) ( 0,  0) (14,-2) ( 1, 0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4, 0) ( 7, 0) )
+   {
+      test_ = "Sparse matrix Schur product assignment test 4";
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::rowMajor> mat( 3UL, 4UL, 12UL );
+         mat(0,0) = cplx( 2, 0);
+         mat(0,1) = cplx(99,99);
+         mat(0,2) = cplx( 6, 0);
+         mat(0,3) = cplx(11, 0);
+         mat(1,0) = cplx(-9, 0);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(11, 0);
+         mat(1,3) = cplx( 4, 0);
+         mat(2,0) = cplx( 5, 0);
+         mat(2,1) = cplx(-7, 0);
+         mat(2,2) = cplx(99,99);
+         mat(2,3) = cplx( 2, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+         sm %= mat;
+
+         checkRows    ( herm,  6UL );
+         checkColumns ( herm,  6UL );
+         checkNonZeros( herm, 26UL );
+
+         if( sm(0,0) != cplx(14,-6) || sm(0,1) != cplx(0, 0) || sm(0,2) != cplx(18,  0) || sm(0,3) != cplx(11,11) ||
+             sm(1,0) != cplx(18, 9) || sm(1,1) != cplx(0, 0) || sm(1,2) != cplx(11,-11) || sm(1,3) != cplx(20, 0) ||
+             sm(2,0) != cplx(25, 0) || sm(2,1) != cplx(7,14) || sm(2,2) != cplx( 0,  0) || sm(2,3) != cplx(14,-2) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sm << "\n"
+                << "   Expected result:\n( (14,-6) (0, 0) (18,  0) (11,11) )\n"
+                                        "( (18, 9) (0, 0) (11,-11) (20, 0) )\n"
+                                        "( (25, 0) (7,14) ( 0,  0) (14,-2) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( herm(0,0) != cplx( 1, 0) || herm(0,1) != cplx(-4,-1) || herm(0,2) != cplx(14,  6) || herm(0,3) != cplx(18,-9) || herm(0,4) != cplx(25,  0) || herm(0,5) != cplx( 0, 0) ||
+             herm(1,0) != cplx(-4, 1) || herm(1,1) != cplx( 2, 0) || herm(1,2) != cplx( 0,  0) || herm(1,3) != cplx( 0, 0) || herm(1,4) != cplx( 7,-14) || herm(1,5) != cplx( 8,-2) ||
+             herm(2,0) != cplx(14,-6) || herm(2,1) != cplx( 0, 0) || herm(2,2) != cplx(18,  0) || herm(2,3) != cplx(11,11) || herm(2,4) != cplx( 0,  0) || herm(2,5) != cplx(-2, 0) ||
+             herm(3,0) != cplx(18, 9) || herm(3,1) != cplx( 0, 0) || herm(3,2) != cplx(11,-11) || herm(3,3) != cplx(20, 0) || herm(3,4) != cplx(14,  2) || herm(3,5) != cplx( 0, 0) ||
+             herm(4,0) != cplx(25, 0) || herm(4,1) != cplx( 7,14) || herm(4,2) != cplx( 0,  0) || herm(4,3) != cplx(14,-2) || herm(4,4) != cplx( 1,  0) || herm(4,5) != cplx(-4, 0) ||
+             herm(5,0) != cplx( 0, 0) || herm(5,1) != cplx( 8, 2) || herm(5,2) != cplx(-2,  0) || herm(5,3) != cplx( 0, 0) || herm(5,4) != cplx(-4,  0) || herm(5,5) != cplx( 7, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( ( 1, 0) (-4,-1) (14,  6) (18,-9) (25,  0) ( 0, 0) )\n"
+                                        "( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) ( 7,-14) ( 8,-2) )\n"
+                                        "( (14,-6) ( 0, 0) (18,  0) (11,11) ( 0,  0) (-2, 0) )\n"
+                                        "( (18, 9) ( 0, 0) (11,-11) (20, 0) (14,  2) ( 0, 0) )\n"
+                                        "( (25, 0) ( 7,14) ( 0,  0) (14,-2) ( 1,  0) (-4, 0) )\n"
+                                        "( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4,  0) ( 7, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::columnMajor> mat( 4UL, 3UL, 12UL );
+         mat(0,0) = cplx( 2, 0);
+         mat(0,1) = cplx(-9, 0);
+         mat(0,2) = cplx( 5, 0);
+         mat(1,0) = cplx(99,99);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(-7, 0);
+         mat(2,0) = cplx( 6, 0);
+         mat(2,1) = cplx(11, 0);
+         mat(2,2) = cplx(99,99);
+         mat(3,0) = cplx(11, 0);
+         mat(3,1) = cplx( 4, 0);
+         mat(3,2) = cplx( 2, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+         sm %= mat;
+
+         checkRows    ( herm,  6UL );
+         checkColumns ( herm,  6UL );
+         checkNonZeros( herm, 26UL );
+
+         if( sm(0,0) != cplx(14,  6) || sm(0,1) != cplx(18,-9) || sm(0,2) != cplx(25,  0) ||
+             sm(1,0) != cplx( 0,  0) || sm(1,1) != cplx( 0, 0) || sm(1,2) != cplx( 7,-14) ||
+             sm(2,0) != cplx(18,  0) || sm(2,1) != cplx(11,11) || sm(2,2) != cplx( 0,  0) ||
+             sm(3,0) != cplx(11,-11) || sm(3,1) != cplx(20, 0) || sm(3,2) != cplx(14,  2) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << sm << "\n"
+                << "   Expected result:\n( (14,  6) (18,-9) (25,  0) )\n"
+                                        "( ( 0,  0) ( 0, 0) ( 7,-14) )\n"
+                                        "( (18,  0) (11,11) ( 0,  0) )\n"
+                                        "( (11,-11) (20, 0) (14,  2) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( herm(0,0) != cplx( 1, 0) || herm(0,1) != cplx(-4,-1) || herm(0,2) != cplx(14,  6) || herm(0,3) != cplx(18,-9) || herm(0,4) != cplx(25,  0) || herm(0,5) != cplx( 0, 0) ||
+             herm(1,0) != cplx(-4, 1) || herm(1,1) != cplx( 2, 0) || herm(1,2) != cplx( 0,  0) || herm(1,3) != cplx( 0, 0) || herm(1,4) != cplx( 7,-14) || herm(1,5) != cplx( 8,-2) ||
+             herm(2,0) != cplx(14,-6) || herm(2,1) != cplx( 0, 0) || herm(2,2) != cplx(18,  0) || herm(2,3) != cplx(11,11) || herm(2,4) != cplx( 0,  0) || herm(2,5) != cplx(-2, 0) ||
+             herm(3,0) != cplx(18, 9) || herm(3,1) != cplx( 0, 0) || herm(3,2) != cplx(11,-11) || herm(3,3) != cplx(20, 0) || herm(3,4) != cplx(14,  2) || herm(3,5) != cplx( 0, 0) ||
+             herm(4,0) != cplx(25, 0) || herm(4,1) != cplx( 7,14) || herm(4,2) != cplx( 0,  0) || herm(4,3) != cplx(14,-2) || herm(4,4) != cplx( 1,  0) || herm(4,5) != cplx(-4, 0) ||
+             herm(5,0) != cplx( 0, 0) || herm(5,1) != cplx( 8, 2) || herm(5,2) != cplx(-2,  0) || herm(5,3) != cplx( 0, 0) || herm(5,4) != cplx(-4,  0) || herm(5,5) != cplx( 7, 0) ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment to submatrix failed\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n"
+                << "   Expected result:\n( ( 1, 0) (-4,-1) (14,  6) (18,-9) (25,  0) ( 0, 0) )\n"
+                                        "( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) ( 7,-14) ( 8,-2) )\n"
+                                        "( (14,-6) ( 0, 0) (18,  0) (11,11) ( 0,  0) (-2, 0) )\n"
+                                        "( (18, 9) ( 0, 0) (11,-11) (20, 0) (14,  2) ( 0, 0) )\n"
+                                        "( (25, 0) ( 7,14) ( 0,  0) (14,-2) ( 1,  0) (-4, 0) )\n"
+                                        "( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4,  0) ( 7, 0) )\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( (11,  0) (20, 5) (28,12) (16,-8) ( 5,0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (24, -6) (12, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( (28,-12) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (16,  8) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5,  0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0,  0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )
+   {
+      test_ = "Sparse matrix Schur product assignment test 5";
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL, 8UL );
+         mat(0,0) = cplx(11, 0);
+         mat(0,1) = cplx(-5, 0);
+         mat(0,2) = cplx( 4, 0);
+         mat(0,3) = cplx(-8, 0);
+         mat(1,0) = cplx(-6, 0);
+         mat(1,1) = cplx( 6, 0);
+         mat(1,2) = cplx(99,99);
+         mat(1,3) = cplx(99,99);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL, 8UL );
+         mat(0,0) = cplx(11, 0);
+         mat(0,1) = cplx(-6, 0);
+         mat(1,0) = cplx(-5, 0);
+         mat(1,1) = cplx( 6, 0);
+         mat(2,0) = cplx( 4, 0);
+         mat(2,1) = cplx(99,99);
+         mat(3,0) = cplx(-8, 0);
+         mat(3,1) = cplx(99,99);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) ( 7,  3) (-2, 1) ( 5, 0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) (-1, 2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( ( 7,-3) ( 0, 0) (18,  0) (14,14) ( 0, 0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (-2,-1) ( 0, 0) (22,-22) (20, 0) (21, 3) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5, 0) (-1,-2) ( 0,  0) (21,-3) ( 1, 0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4, 0) ( 7, 0) )
+   {
+      test_ = "Sparse matrix Schur product assignment test 6";
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL, 8UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx( 6, 0);
+         mat(0,2) = cplx(14, 0);
+         mat(0,3) = cplx(99,99);
+         mat(1,0) = cplx(99,99);
+         mat(1,1) = cplx(22, 0);
+         mat(1,2) = cplx( 4, 0);
+         mat(1,3) = cplx( 3, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL, 8UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx(99,99);
+         mat(1,0) = cplx( 6, 0);
+         mat(1,1) = cplx(22, 0);
+         mat(2,0) = cplx(14, 0);
+         mat(2,1) = cplx( 4, 0);
+         mat(3,0) = cplx(99,99);
+         mat(3,1) = cplx( 3, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (16, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) (21,3) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5, 0) (-1,-2) ( 0, 0) (21,-3) (14,0) (20, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (16, 0) ( 0, 0) (24,0) (28, 0) )
+   {
+      test_ = "Sparse matrix Schur product assignment test 7";
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL, 8UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx( 3, 0);
+         mat(0,2) = cplx(14, 0);
+         mat(0,3) = cplx(-5, 0);
+         mat(1,0) = cplx(-8, 0);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(-6, 0);
+         mat(1,3) = cplx( 4, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL, 8UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx(-8, 0);
+         mat(1,0) = cplx( 3, 0);
+         mat(1,1) = cplx(99,99);
+         mat(2,0) = cplx(14, 0);
+         mat(2,1) = cplx(-6, 0);
+         mat(3,0) = cplx(-5, 0);
+         mat(3,1) = cplx( 4, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) (14,  6) (18,-9) (25, 0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) ( 7,14) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( (14,-6) ( 0, 0) (18,  0) (11,11) ( 0, 0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (18, 9) ( 0, 0) (22,-22) (20, 0) (14, 2) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( (25, 0) ( 7,14) ( 0,  0) (14,-2) ( 1, 0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4, 0) ( 7, 0) )
+   {
+      test_ = "Sparse matrix Schur product assignment test 8";
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::rowMajor> mat( 3UL, 4UL, 12UL );
+         mat(0,0) = cplx( 2, 0);
+         mat(0,1) = cplx(99,99);
+         mat(0,2) = cplx( 6, 0);
+         mat(0,3) = cplx(11, 0);
+         mat(1,0) = cplx(-9, 0);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(22, 0);
+         mat(1,3) = cplx( 4, 0);
+         mat(2,0) = cplx( 5, 0);
+         mat(2,1) = cplx(-7, 0);
+         mat(2,2) = cplx(99,99);
+         mat(2,3) = cplx( 2, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::columnMajor> mat( 4UL, 3UL, 12UL );
+         mat(0,0) = cplx( 2, 0);
+         mat(0,1) = cplx(-9, 0);
+         mat(0,2) = cplx( 5, 0);
+         mat(1,0) = cplx(99,99);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(-7, 0);
+         mat(2,0) = cplx( 6, 0);
+         mat(2,1) = cplx(22, 0);
+         mat(2,2) = cplx(99,99);
+         mat(3,0) = cplx(11, 0);
+         mat(3,1) = cplx( 4, 0);
+         mat(3,2) = cplx( 2, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( (11,  0) (20, 5) (28,12) (16,-8) ( 5,0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (20, -5) (12, 4) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( (28,-12) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (16,  8) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5,  0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0,  0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )
+   {
+      test_ = "Sparse matrix Schur product assignment test 9";
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL, 8UL );
+         mat(0,0) = cplx(11, 0);
+         mat(0,1) = cplx(-5, 0);
+         mat(0,2) = cplx( 4, 0);
+         mat(0,3) = cplx(-8, 0);
+         mat(1,0) = cplx(-5, 0);
+         mat(1,1) = cplx( 6, 2);
+         mat(1,2) = cplx(99,99);
+         mat(1,3) = cplx(99,99);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 0UL, 2UL, 4UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL, 8UL );
+         mat(0,0) = cplx(11, 0);
+         mat(0,1) = cplx(-5, 0);
+         mat(1,0) = cplx(-5, 0);
+         mat(1,1) = cplx( 6, 2);
+         mat(2,0) = cplx( 4, 0);
+         mat(2,1) = cplx(99,99);
+         mat(3,0) = cplx(-8, 0);
+         mat(3,1) = cplx(99,99);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 0UL, 4UL, 2UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) ( 7,  3) (-2, 1) ( 5, 0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) (-1, 2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( ( 7,-3) ( 0, 0) (18,  0) (14,14) ( 0, 0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (-2,-1) ( 0, 0) (14,-14) (20, 5) (21, 3) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5, 0) (-1,-2) ( 0,  0) (21,-3) ( 1, 0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4, 0) ( 7, 0) )
+   {
+      test_ = "Sparse matrix Schur product assignment test 10";
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL, 8UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx( 6, 0);
+         mat(0,2) = cplx(14, 0);
+         mat(0,3) = cplx(99,99);
+         mat(1,0) = cplx(99,99);
+         mat(1,1) = cplx(14, 0);
+         mat(1,2) = cplx( 4, 1);
+         mat(1,3) = cplx( 3, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 1UL, 2UL, 4UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL, 8UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx(99,99);
+         mat(1,0) = cplx( 6, 0);
+         mat(1,1) = cplx(14, 0);
+         mat(2,0) = cplx(14, 0);
+         mat(2,1) = cplx( 4, 1);
+         mat(3,0) = cplx(99,99);
+         mat(3,1) = cplx( 3, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 1UL, 2UL, 4UL, 2UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (16, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) (21,3) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( ( 5, 0) (-1,-2) ( 0, 0) (21,-3) (14,0) (20, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (16, 0) ( 0, 0) (20,0) (28, 7) )
+   {
+      test_ = "Sparse matrix Schur product assignment test 11";
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::rowMajor> mat( 2UL, 4UL, 8UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx( 3, 0);
+         mat(0,2) = cplx(14, 0);
+         mat(0,3) = cplx(-5, 0);
+         mat(1,0) = cplx(-8, 0);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(-5, 0);
+         mat(1,3) = cplx( 4, 1);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 4UL, 2UL, 2UL, 4UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::columnMajor> mat( 4UL, 2UL, 8UL );
+         mat(0,0) = cplx(99,99);
+         mat(0,1) = cplx(-8, 0);
+         mat(1,0) = cplx( 3, 0);
+         mat(1,1) = cplx(99,99);
+         mat(2,0) = cplx(14, 0);
+         mat(2,1) = cplx(-5, 0);
+         mat(3,0) = cplx(-5, 0);
+         mat(3,1) = cplx( 4, 1);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 4UL, 4UL, 2UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+   }
+
+   // ( ( 1, 0) (-4,-1) ( 7, 3) (-2, 1) ( 5,0) ( 0, 0) )      ( ( 1, 0) (-4,-1) (14,  6) (18,-9) (25, 0) ( 0, 0) )
+   // ( (-4, 1) ( 2, 0) ( 0, 0) ( 0, 0) (-1,2) ( 8,-2) )      ( (-4, 1) ( 2, 0) ( 0,  0) ( 0, 0) ( 7,14) ( 8,-2) )
+   // ( ( 7,-3) ( 0, 0) ( 3, 0) ( 1, 1) ( 0,0) (-2, 0) )  =>  ( (14,-6) ( 0, 0) (18,  0) (11,11) ( 0, 0) (-2, 0) )
+   // ( (-2,-1) ( 0, 0) ( 1,-1) ( 5, 0) ( 7,1) ( 0, 0) )      ( (18, 9) ( 0, 0) (11,-11) (20, 5) (14, 2) ( 0, 0) )
+   // ( ( 5, 0) (-1,-2) ( 0, 0) ( 7,-1) ( 1,0) (-4, 0) )      ( (25, 0) ( 7,14) ( 0,  0) (14,-2) ( 1, 0) (-4, 0) )
+   // ( ( 0, 0) ( 8, 2) (-2, 0) ( 0, 0) (-4,0) ( 7, 0) )      ( ( 0, 0) ( 8, 2) (-2,  0) ( 0, 0) (-4, 0) ( 7, 0) )
+   {
+      test_ = "Sparse matrix Schur product assignment test 12";
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::rowMajor> mat( 3UL, 4UL, 12UL );
+         mat(0,0) = cplx( 2, 0);
+         mat(0,1) = cplx(99,99);
+         mat(0,2) = cplx( 6, 0);
+         mat(0,3) = cplx(11, 0);
+         mat(1,0) = cplx(-9, 0);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(11, 0);
+         mat(1,3) = cplx( 4, 1);
+         mat(2,0) = cplx( 5, 0);
+         mat(2,1) = cplx(-7, 0);
+         mat(2,2) = cplx(99,99);
+         mat(2,3) = cplx( 2, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 2UL, 0UL, 3UL, 4UL );
+
+         try {
+            sm %= mat;
+
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Assignment of invalid matrix succeeded\n"
+                << " Details:\n"
+                << "   Result:\n" << herm << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+         catch( std::invalid_argument& ) {}
+      }
+
+      {
+         blaze::CompressedMatrix<cplx,blaze::columnMajor> mat( 4UL, 3UL, 12UL );
+         mat(0,0) = cplx( 2, 0);
+         mat(0,1) = cplx(-9, 0);
+         mat(0,2) = cplx( 5, 0);
+         mat(1,0) = cplx(99,99);
+         mat(1,1) = cplx(99,99);
+         mat(1,2) = cplx(-7, 0);
+         mat(2,0) = cplx( 6, 0);
+         mat(2,1) = cplx(11, 0);
+         mat(2,2) = cplx(99,99);
+         mat(3,0) = cplx(11, 0);
+         mat(3,1) = cplx( 4, 1);
+         mat(3,2) = cplx( 2, 0);
+
+         HT herm;
+         init( herm );
+
+         auto sm = submatrix( herm, 0UL, 2UL, 4UL, 3UL );
+
+         try {
+            sm %= mat;
 
             std::ostringstream oss;
             oss << " Test: " << test_ << "\n"

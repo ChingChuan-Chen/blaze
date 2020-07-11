@@ -3,7 +3,7 @@
 //  \file src/mathtest/tsvecdmatmult/VCaM16x8b.cpp
 //  \brief Source file for the VCaM16x8b sparse vector/dense matrix multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/tsvecdmatmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::CompressedVector<TypeA>       VCa;
-      typedef blaze::StaticMatrix<TypeB,16UL,8UL>  M16x8b;
+      using VCa = blaze::CompressedVector<TypeA>;
+      using M16x8b = blaze::StaticMatrix<TypeB,16UL,8UL>;
 
       // Creator type definitions
-      typedef blazetest::Creator<VCa>     CVCa;
-      typedef blazetest::Creator<M16x8b>  CM16x8b;
+      using CVCa = blazetest::Creator<VCa>;
+      using CM16x8b = blazetest::Creator<M16x8b>;
 
       // Running the tests
       RUN_TSVECDMATMULT_OPERATION_TEST( CVCa( 16UL,  0UL ), CM16x8b() );

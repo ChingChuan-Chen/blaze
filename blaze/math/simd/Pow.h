@@ -3,7 +3,7 @@
 //  \file blaze/math/simd/Pow.h
 //  \brief Header file for the SIMD power functionality
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -61,11 +61,11 @@ namespace blaze {
 // \param b The vector of single precision floating point exponents.
 // \return The resulting vector.
 //
-// This operation is only available via the SVML for SSE, AVX, and AVX-512.
+// This operation is only available via the SVML for SSE, AVX, MIC, and AVX-512.
 */
 template< typename T >  // Type of the operands
 BLAZE_ALWAYS_INLINE const SIMDfloat pow( const SIMDf32<T>& a, const SIMDf32<T>& b ) noexcept
-#if BLAZE_SVML_MODE && BLAZE_MIC_MODE
+#if BLAZE_SVML_MODE && ( BLAZE_AVX512F_MODE || BLAZE_MIC_MODE )
 {
    return _mm512_pow_ps( (~a).eval().value, (~b).eval().value );
 }
@@ -99,11 +99,11 @@ BLAZE_ALWAYS_INLINE const SIMDfloat pow( const SIMDf32<T>& a, const SIMDf32<T>& 
 // \param b The vector of double precision floating point exponents.
 // \return The resulting vector.
 //
-// This operation is only available via the SVML for SSE, AVX, and AVX-512.
+// This operation is only available via the SVML for SSE, AVX, MIC, and AVX-512.
 */
 template< typename T >  // Type of the operands
 BLAZE_ALWAYS_INLINE const SIMDdouble pow( const SIMDf64<T>& a, const SIMDf64<T>& b ) noexcept
-#if BLAZE_SVML_MODE && BLAZE_MIC_MODE
+#if BLAZE_SVML_MODE && ( BLAZE_AVX512F_MODE || BLAZE_MIC_MODE )
 {
    return _mm512_pow_pd( (~a).eval().value, (~b).eval().value );
 }

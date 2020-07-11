@@ -3,7 +3,7 @@
 //  \file src/mathtest/uppermatrix/SubmatrixTest.cpp
 //  \brief Source file for the UpperMatrix submatrix test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -41,6 +41,10 @@
 #include <iostream>
 #include <blazetest/mathtest/uppermatrix/SubmatrixTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 namespace blazetest {
 
@@ -64,18 +68,22 @@ SubmatrixTest::SubmatrixTest()
    testAssignment<DUT>();
    testAddAssign<DUT>();
    testSubAssign<DUT>();
+   testSchurAssign<DUT>();
 
    testAssignment<DOUT>();
    testAddAssign<DOUT>();
    testSubAssign<DOUT>();
+   testSchurAssign<DOUT>();
 
    testAssignment<SUT>();
    testAddAssign<SUT>();
    testSubAssign<SUT>();
+   testSchurAssign<SUT>();
 
    testAssignment<SOUT>();
    testAddAssign<SOUT>();
    testSubAssign<SOUT>();
+   testSchurAssign<SOUT>();
 }
 //*************************************************************************************************
 

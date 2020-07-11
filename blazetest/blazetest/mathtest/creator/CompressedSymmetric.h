@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/creator/CompressedSymmetric.h
 //  \brief Specialization of the Creator class template for SymmetricMatrix<CompressedMatrix>
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -70,7 +70,7 @@ class Creator< blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > >
  public:
    //**Type definitions****************************************************************************
    //! Type to be created by the Creator.
-   typedef blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> >  Type;
+   using Type = blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> >;
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
@@ -91,10 +91,10 @@ class Creator< blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > >
    //@{
    // No explicitly declared copy assignment operator.
 
-   const blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > operator()() const;
+   blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > operator()() const;
 
    template< typename CP >
-   const blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > operator()( const CP& policy ) const;
+   blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > operator()( const CP& policy ) const;
    //@}
    //**********************************************************************************************
 
@@ -172,7 +172,7 @@ inline Creator< blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > >::Creat
 */
 template< typename T  // Element type of the compressed matrix
         , bool SO >   // Storage order of the compressed matrix
-inline const blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> >
+inline blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> >
    Creator< blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > >::operator()() const
 {
    return (*this)( Default() );
@@ -189,7 +189,7 @@ inline const blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> >
 template< typename T     // Element type of the compressed matrix
         , bool SO >      // Storage order of the compressed matrix
 template< typename CP >  // Creation policy
-inline const blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> >
+inline blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> >
    Creator< blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > >::operator()( const CP& policy ) const
 {
    blaze::SymmetricMatrix< blaze::CompressedMatrix<T,SO> > matrix( n_, nonzeros_ );

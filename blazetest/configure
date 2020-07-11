@@ -3,7 +3,7 @@
 #
 #  Configuration script for the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -105,7 +105,7 @@ BLAZE_PATH="${INSTALL_PATH%%/blazetest}"
 CXXFLAGS="$CXXFLAGS -isystem $INSTALL_PATH -isystem $BLAZE_PATH "
 
 BOOST_INCLUDE_PATH=${BOOST_INCLUDE_PATH%"/"}
-if [ -n "$BOOST_INCLUDE_PATH" ]; then
+if [ "$BOOST" = "yes" ] && [ -n "$BOOST_INCLUDE_PATH" ]; then
    if [[ ! "$CXXFLAGS" =~ "$BOOST_INCLUDE_PATH " ]]; then
       CXXFLAGS="${CXXFLAGS%" "} -isystem $BOOST_INCLUDE_PATH "
    fi
@@ -121,25 +121,31 @@ fi
 CXXFLAGS=${CXXFLAGS%" "}
 
 # Configuration of the library path and link libraries
-LIBRARIES="-L$BLAZE_PATH/lib -lblaze $LIBRARY_DIRECTIVES"
+LIBRARIES="$LIBRARY_DIRECTIVES"
 
 BOOST_LIBRARY_PATH=${BOOST_LIBRARY_PATH%"/"}
-if [ -n "$BOOST_LIBRARY_PATH" ] && [[ ! "$LIBRARIES" =~ "$BOOST_LIBRARY_PATH " ]]; then
-   LIBRARIES="${LIBRARIES%" "} -L$BOOST_LIBRARY_PATH "
+if [ "$BOOST" = "yes" ]; then
+   if [ -n "$BOOST_LIBRARY_PATH" ] && [[ ! "$LIBRARIES" =~ "$BOOST_LIBRARY_PATH " ]]; then
+      LIBRARIES="${LIBRARIES%" "} -L$BOOST_LIBRARY_PATH "
+   fi
 fi
 
 BOOST_SYSTEM_LIBRARY=${BOOST_SYSTEM_LIBRARY#"lib"}
-if [ -n "$BOOST_SYSTEM_LIBRARY" ]; then
-   LIBRARIES="${LIBRARIES%" "} -l$BOOST_SYSTEM_LIBRARY"
-else
-   LIBRARIES="${LIBRARIES%" "} -lboost_system"
+if [ "$BOOST" = "yes" ]; then
+   if [ -n "$BOOST_SYSTEM_LIBRARY" ]; then
+      LIBRARIES="${LIBRARIES%" "} -l$BOOST_SYSTEM_LIBRARY"
+   else
+      LIBRARIES="${LIBRARIES%" "} -lboost_system"
+   fi
 fi
 
 BOOST_THREAD_LIBRARY=${BOOST_THREAD_LIBRARY#"lib"}
-if [ -n "$BOOST_THREAD_LIBRARY" ]; then
-   LIBRARIES="${LIBRARIES%" "} -l$BOOST_THREAD_LIBRARY"
-else
-   LIBRARIES="${LIBRARIES%" "} -lboost_thread"
+if [ "$BOOST" = "yes" ]; then
+   if [ -n "$BOOST_THREAD_LIBRARY" ]; then
+      LIBRARIES="${LIBRARIES%" "} -l$BOOST_THREAD_LIBRARY"
+   else
+      LIBRARIES="${LIBRARIES%" "} -lboost_thread"
+   fi
 fi
 
 BLAS_LIBRARY_PATH=${BLAS_LIBRARY_PATH%"/"}
@@ -173,7 +179,7 @@ cat > Makefile <<EOF
 #
 #  Makefile for the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -228,15 +234,19 @@ utiltest:
 
 
 # Cleanup
+reset:
+	@echo "Cleaning up..."
+	@\$(MAKE) --no-print-directory -C $INSTALL_PATH/src/mathtest reset
+	@\$(MAKE) --no-print-directory -C $INSTALL_PATH/src/utiltest reset
+
 clean:
 	@echo "Cleaning up..."
 	@\$(MAKE) --no-print-directory -C $INSTALL_PATH/src/mathtest clean
 	@\$(MAKE) --no-print-directory -C $INSTALL_PATH/src/utiltest clean
-	@\$(RM) bin/* *.o
 
 
 # Setting the independent commands
-.PHONY: default all essential single noop clean \
+.PHONY: default all essential single noop reset clean \
         mathtest utiltest
 EOF
 
@@ -249,7 +259,7 @@ cat > src/Makeconfig <<EOF
 #
 #  System configuration for the Makefiles of the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -297,7 +307,7 @@ cat > blazetest/system/BLAS.h <<EOF
 //  \file blazetest/system/BLAS.h
 //  \brief System settings for the BLAS mode
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -376,7 +386,7 @@ cat > blazetest/system/LAPACK.h <<EOF
 //  \file blazetest/system/LAPACK.h
 //  \brief System settings for the LAPACK mode
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -437,6 +447,35 @@ EOF
 else
 cat >> ./blazetest/system/LAPACK.h <<EOF
 #define BLAZETEST_MATHTEST_LAPACK_MODE 0
+EOF
+fi
+
+cat >> ./blazetest/system/LAPACK.h <<EOF
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Compilation switch for the LAPACK support of the gesvdx() functions.
+// \ingroup system
+//
+// The LAPACK gesvdx() functions are not supported by all LAPACK libraries. Via this compilation
+// switch tests for the gesvdx() function can be explicitly enabled/disabled. In case both the
+// LAPACK mode and this switch are enabled, all gesvdx() tests are included, in case either one
+// is disabled the gesvdx() tests are ignored.
+//
+// Possible settings for the LAPACK gesvdx() switch:
+//  - Deactivated: \b 0
+//  - Activated  : \b 1
+*/
+EOF
+
+if test $LAPACK_SUPPORTS_GESVDX = "yes"; then
+cat >> ./blazetest/system/LAPACK.h <<EOF
+#define BLAZETEST_MATHTEST_LAPACK_SUPPORTS_GESVDX 1
+EOF
+else
+cat >> ./blazetest/system/LAPACK.h <<EOF
+#define BLAZETEST_MATHTEST_LAPACK_SUPPORTS_GESVDX 0
 EOF
 fi
 

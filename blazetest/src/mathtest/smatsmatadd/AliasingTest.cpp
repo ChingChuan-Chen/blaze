@@ -3,7 +3,7 @@
 //  \file src/mathtest/smatsmatadd/AliasingTest.cpp
 //  \brief Source file for the sparse matrix/sparse matrix addition aliasing test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,6 +40,10 @@
 #include <cstdlib>
 #include <iostream>
 #include <blazetest/mathtest/smatsmatadd/AliasingTest.h>
+
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
 
 
 namespace blazetest {
@@ -101,14 +105,26 @@ void AliasingTest::testSMatSMatAdd()
    // Addition
    //=====================================================================================
 
-   // Assignment to left-hand side operand
+   // Assignment to left-hand side operand (1)
    {
-      test_ = "SMatSMatAdd - Assignment to left-hand side operand";
+      test_ = "SMatSMatAdd - Assignment to left-hand side operand (1)";
 
       initialize();
 
       result_ = sC3x3_ + sD3x3_;
       sC3x3_  = sC3x3_ + sD3x3_;
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Assignment to left-hand side operand (2)
+   {
+      test_ = "SMatSMatAdd - Assignment to left-hand side operand (2)";
+
+      initialize();
+
+      result_ = sC3x3_ + eval( sD3x3_ );
+      sC3x3_  = sC3x3_ + eval( sD3x3_ );
 
       checkResult( sC3x3_, result_ );
    }
@@ -137,14 +153,26 @@ void AliasingTest::testSMatSMatAdd()
       checkResult( sB4x3_, result_ );
    }
 
-   // Assignment to right-hand side operand
+   // Assignment to right-hand side operand (1)
    {
-      test_ = "SMatSMatAdd - Assignment to right-hand side operand";
+      test_ = "SMatSMatAdd - Assignment to right-hand side operand (1)";
 
       initialize();
 
       result_ = sC3x3_ + sD3x3_;
       sD3x3_  = sC3x3_ + sD3x3_;
+
+      checkResult( sD3x3_, result_ );
+   }
+
+   // Assignment to right-hand side operand (2)
+   {
+      test_ = "SMatSMatAdd - Assignment to right-hand side operand (2)";
+
+      initialize();
+
+      result_ = eval( sC3x3_ ) + sD3x3_;
+      sD3x3_  = eval( sC3x3_ ) + sD3x3_;
 
       checkResult( sD3x3_, result_ );
    }
@@ -173,20 +201,57 @@ void AliasingTest::testSMatSMatAdd()
       checkResult( sB4x3_, result_ );
    }
 
+   // Complex operation: A = ( 2*A ) + ( B * C )
+   {
+      test_ = "SMatSMatAdd - Complex operation: A = ( 2*A ) + ( B * C )";
+
+      initialize();
+
+      result_ = ( 2*sC3x3_ ) + ( sA3x4_ * sB4x3_ );
+      sC3x3_  = ( 2*sC3x3_ ) + ( sA3x4_ * sB4x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Complex operation: A = ( B * C ) + ( 2*A )
+   {
+      test_ = "SMatSMatAdd - Complex operation: A = ( B * C ) + ( 2*A )";
+
+      initialize();
+
+      result_ = ( sA3x4_ * sB4x3_ ) + ( 2*sC3x3_ );
+      sC3x3_  = ( sA3x4_ * sB4x3_ ) + ( 2*sC3x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
 
    //=====================================================================================
    // Addition with addition assignment
    //=====================================================================================
 
-   // Addition assignment to left-hand side operand
+   // Addition assignment to left-hand side operand (1)
    {
-      test_ = "SMatSMatAdd - Addition assignment to left-hand side operand";
+      test_ = "SMatSMatAdd - Addition assignment to left-hand side operand (1)";
 
       initialize();
 
       result_ =  sC3x3_;
       result_ += sC3x3_ + sD3x3_;
       sC3x3_  += sC3x3_ + sD3x3_;
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Addition assignment to left-hand side operand (2)
+   {
+      test_ = "SMatSMatAdd - Addition assignment to left-hand side operand (2)";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ += sC3x3_ + eval( sD3x3_ );
+      sC3x3_  += sC3x3_ + eval( sD3x3_ );
 
       checkResult( sC3x3_, result_ );
    }
@@ -217,15 +282,28 @@ void AliasingTest::testSMatSMatAdd()
       checkResult( sD3x3_, result_ );
    }
 
-   // Addition assignment to right-hand side operand
+   // Addition assignment to right-hand side operand (1)
    {
-      test_ = "SMatSMatAdd - Addition assignment to right-hand side operand";
+      test_ = "SMatSMatAdd - Addition assignment to right-hand side operand (1)";
 
       initialize();
 
       result_ =  sD3x3_;
       result_ += sC3x3_ + sD3x3_;
       sD3x3_  += sC3x3_ + sD3x3_;
+
+      checkResult( sD3x3_, result_ );
+   }
+
+   // Addition assignment to right-hand side operand (2)
+   {
+      test_ = "SMatSMatAdd - Addition assignment to right-hand side operand (2)";
+
+      initialize();
+
+      result_ =  sD3x3_;
+      result_ += eval( sC3x3_ ) + sD3x3_;
+      sD3x3_  += eval( sC3x3_ ) + sD3x3_;
 
       checkResult( sD3x3_, result_ );
    }
@@ -256,20 +334,59 @@ void AliasingTest::testSMatSMatAdd()
       checkResult( sE3x3_, result_ );
    }
 
+   // Complex operation: A += ( 2*A ) + ( B * C )
+   {
+      test_ = "SMatSMatAdd - Complex operation: A += ( 2*A ) + ( B * C )";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ += ( 2*sC3x3_ ) + ( sA3x4_ * sB4x3_ );
+      sC3x3_  += ( 2*sC3x3_ ) + ( sA3x4_ * sB4x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Complex operation: A += ( B * C ) + ( 2*A )
+   {
+      test_ = "SMatSMatAdd - Complex operation: A += ( B * C ) + ( 2*A )";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ += ( sA3x4_ * sB4x3_ ) + ( 2*sC3x3_ );
+      sC3x3_  += ( sA3x4_ * sB4x3_ ) + ( 2*sC3x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
 
    //=====================================================================================
    // Addition with subtraction assignment
    //=====================================================================================
 
-   // Subtraction assignment to left-hand side operand
+   // Subtraction assignment to left-hand side operand (1)
    {
-      test_ = "SMatSMatAdd - Subtraction assignment to left-hand side operand";
+      test_ = "SMatSMatAdd - Subtraction assignment to left-hand side operand (1)";
 
       initialize();
 
       result_ =  sC3x3_;
       result_ -= sC3x3_ + sD3x3_;
       sC3x3_  -= sC3x3_ + sD3x3_;
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Subtraction assignment to left-hand side operand (2)
+   {
+      test_ = "SMatSMatAdd - Subtraction assignment to left-hand side operand (2)";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ -= sC3x3_ + eval( sD3x3_ );
+      sC3x3_  -= sC3x3_ + eval( sD3x3_ );
 
       checkResult( sC3x3_, result_ );
    }
@@ -300,15 +417,28 @@ void AliasingTest::testSMatSMatAdd()
       checkResult( sD3x3_, result_ );
    }
 
-   // Subtraction assignment to right-hand side operand
+   // Subtraction assignment to right-hand side operand (1)
    {
-      test_ = "SMatSMatAdd - Subtraction assignment to right-hand side operand";
+      test_ = "SMatSMatAdd - Subtraction assignment to right-hand side operand (1)";
 
       initialize();
 
       result_ =  sD3x3_;
       result_ -= sC3x3_ + sD3x3_;
       sD3x3_  -= sC3x3_ + sD3x3_;
+
+      checkResult( sD3x3_, result_ );
+   }
+
+   // Subtraction assignment to right-hand side operand (2)
+   {
+      test_ = "SMatSMatAdd - Subtraction assignment to right-hand side operand (2)";
+
+      initialize();
+
+      result_ =  sD3x3_;
+      result_ -= eval( sC3x3_ ) + sD3x3_;
+      sD3x3_  -= eval( sC3x3_ ) + sD3x3_;
 
       checkResult( sD3x3_, result_ );
    }
@@ -339,20 +469,194 @@ void AliasingTest::testSMatSMatAdd()
       checkResult( sE3x3_, result_ );
    }
 
+   // Complex operation: A -= ( 2*A ) + ( B * C )
+   {
+      test_ = "SMatSMatAdd - Complex operation: A -= ( 2*A ) + ( B * C )";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ -= ( 2*sC3x3_ ) + ( sA3x4_ * sB4x3_ );
+      sC3x3_  -= ( 2*sC3x3_ ) + ( sA3x4_ * sB4x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Complex operation: A -= ( B * C ) + ( 2*A )
+   {
+      test_ = "SMatSMatAdd - Complex operation: A -= ( B * C ) + ( 2*A )";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ -= ( sA3x4_ * sB4x3_ ) + ( 2*sC3x3_ );
+      sC3x3_  -= ( sA3x4_ * sB4x3_ ) + ( 2*sC3x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
+
+   //=====================================================================================
+   // Addition with Schur product assignment
+   //=====================================================================================
+
+   // Schur product assignment to left-hand side operand (1)
+   {
+      test_ = "SMatSMatAdd - Schur product assignment to left-hand side operand (1)";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ %= sC3x3_ + sD3x3_;
+      sC3x3_  %= sC3x3_ + sD3x3_;
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Schur product assignment to left-hand side operand (2)
+   {
+      test_ = "SMatSMatAdd - Schur product assignment to left-hand side operand (2)";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ %= sC3x3_ + eval( sD3x3_ );
+      sC3x3_  %= sC3x3_ + eval( sD3x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Schur product assignment to first operand of left-hand side compound
+   {
+      test_ = "SMatSMatAdd - Schur product assignment to first operand of left-hand side compound";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ %= ( sC3x3_ * sD3x3_ ) + sE3x3_;
+      sC3x3_  %= ( sC3x3_ * sD3x3_ ) + sE3x3_;
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Schur product assignment to second operand of left-hand side compound
+   {
+      test_ = "SMatSMatAdd - Schur product assignment to second operand of left-hand side compound";
+
+      initialize();
+
+      result_ =  sD3x3_;
+      result_ %= ( sC3x3_ * sD3x3_ ) + sE3x3_;
+      sD3x3_  %= ( sC3x3_ * sD3x3_ ) + sE3x3_;
+
+      checkResult( sD3x3_, result_ );
+   }
+
+   // Schur product assignment to right-hand side operand (1)
+   {
+      test_ = "SMatSMatAdd - Schur product assignment to right-hand side operand (1)";
+
+      initialize();
+
+      result_ =  sD3x3_;
+      result_ %= sC3x3_ + sD3x3_;
+      sD3x3_  %= sC3x3_ + sD3x3_;
+
+      checkResult( sD3x3_, result_ );
+   }
+
+   // Schur product assignment to right-hand side operand (2)
+   {
+      test_ = "SMatSMatAdd - Schur product assignment to right-hand side operand (2)";
+
+      initialize();
+
+      result_ =  sD3x3_;
+      result_ %= eval( sC3x3_ ) + sD3x3_;
+      sD3x3_  %= eval( sC3x3_ ) + sD3x3_;
+
+      checkResult( sD3x3_, result_ );
+   }
+
+   // Schur product assignment to first operand of right-hand side compound
+   {
+      test_ = "SMatSMatAdd - Schur product assignment to first operand of right-hand side compound";
+
+      initialize();
+
+      result_ =  sD3x3_;
+      result_ %= sC3x3_ + ( sD3x3_ * sE3x3_ );
+      sD3x3_  %= sC3x3_ + ( sD3x3_ * sE3x3_ );
+
+      checkResult( sD3x3_, result_ );
+   }
+
+   // Schur product assignment to second operand of right-hand side compound
+   {
+      test_ = "SMatSMatAdd - Schur product assignment to second operand of right-hand side compound";
+
+      initialize();
+
+      result_ =  sE3x3_;
+      result_ %= sC3x3_ + ( sD3x3_ * sE3x3_ );
+      sE3x3_  %= sC3x3_ + ( sD3x3_ * sE3x3_ );
+
+      checkResult( sE3x3_, result_ );
+   }
+
+   // Complex operation: A %= ( 2*A ) + ( B * C )
+   {
+      test_ = "SMatSMatAdd - Complex operation: A %= ( 2*A ) + ( B * C )";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ %= ( 2*sC3x3_ ) + ( sA3x4_ * sB4x3_ );
+      sC3x3_  %= ( 2*sC3x3_ ) + ( sA3x4_ * sB4x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Complex operation: A %= ( B * C ) + ( 2*A )
+   {
+      test_ = "SMatSMatAdd - Complex operation: A %= ( B * C ) + ( 2*A )";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ %= ( sA3x4_ * sB4x3_ ) + ( 2*sC3x3_ );
+      sC3x3_  %= ( sA3x4_ * sB4x3_ ) + ( 2*sC3x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
 
    //=====================================================================================
    // Addition with multiplication assignment
    //=====================================================================================
 
-   // Multiplication assignment to left-hand side operand
+   // Multiplication assignment to left-hand side operand (1)
    {
-      test_ = "SMatSMatAdd - Multiplication assignment to left-hand side operand";
+      test_ = "SMatSMatAdd - Multiplication assignment to left-hand side operand (1)";
 
       initialize();
 
       result_ =  sC3x3_;
       result_ *= sC3x3_ + sD3x3_;
       sC3x3_  *= sC3x3_ + sD3x3_;
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Multiplication assignment to left-hand side operand (2)
+   {
+      test_ = "SMatSMatAdd - Multiplication assignment to left-hand side operand (2)";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ *= sC3x3_ + eval( sD3x3_ );
+      sC3x3_  *= sC3x3_ + eval( sD3x3_ );
 
       checkResult( sC3x3_, result_ );
    }
@@ -383,15 +687,28 @@ void AliasingTest::testSMatSMatAdd()
       checkResult( sD3x3_, result_ );
    }
 
-   // Multiplication assignment to right-hand side operand
+   // Multiplication assignment to right-hand side operand (1)
    {
-      test_ = "SMatSMatAdd - Multiplication assignment to right-hand side operand";
+      test_ = "SMatSMatAdd - Multiplication assignment to right-hand side operand (1)";
 
       initialize();
 
       result_ =  sD3x3_;
       result_ *= sC3x3_ + sD3x3_;
       sD3x3_  *= sC3x3_ + sD3x3_;
+
+      checkResult( sD3x3_, result_ );
+   }
+
+   // Multiplication assignment to right-hand side operand (2)
+   {
+      test_ = "SMatSMatAdd - Multiplication assignment to right-hand side operand (2)";
+
+      initialize();
+
+      result_ =  sD3x3_;
+      result_ *= eval( sC3x3_ )+ sD3x3_;
+      sD3x3_  *= eval( sC3x3_ )+ sD3x3_;
 
       checkResult( sD3x3_, result_ );
    }
@@ -421,6 +738,32 @@ void AliasingTest::testSMatSMatAdd()
 
       checkResult( sE3x3_, result_ );
    }
+
+   // Complex operation: A *= ( 2*A ) + ( B * C )
+   {
+      test_ = "SMatSMatAdd - Complex operation: A *= ( 2*A ) + ( B * C )";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ *= ( 2*sC3x3_ ) + ( sA3x4_ * sB4x3_ );
+      sC3x3_  *= ( 2*sC3x3_ ) + ( sA3x4_ * sB4x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Complex operation: A *= ( B * C ) + ( 2*A )
+   {
+      test_ = "SMatSMatAdd - Complex operation: A *= ( B * C ) + ( 2*A )";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ *= ( sA3x4_ * sB4x3_ ) + ( 2*sC3x3_ );
+      sC3x3_  *= ( sA3x4_ * sB4x3_ ) + ( 2*sC3x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
 }
 //*************************************************************************************************
 
@@ -440,14 +783,26 @@ void AliasingTest::testSMatTSMatAdd()
    // Addition
    //=====================================================================================
 
-   // Assignment to left-hand side operand
+   // Assignment to left-hand side operand (1)
    {
-      test_ = "SMatTSMatAdd - Assignment to left-hand side operand";
+      test_ = "SMatTSMatAdd - Assignment to left-hand side operand (1)";
 
       initialize();
 
       result_ = sC3x3_ + tsD3x3_;
       sC3x3_  = sC3x3_ + tsD3x3_;
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Assignment to left-hand side operand (2)
+   {
+      test_ = "SMatTSMatAdd - Assignment to left-hand side operand (2)";
+
+      initialize();
+
+      result_ = sC3x3_ + eval( tsD3x3_ );
+      sC3x3_  = sC3x3_ + eval( tsD3x3_ );
 
       checkResult( sC3x3_, result_ );
    }
@@ -476,14 +831,26 @@ void AliasingTest::testSMatTSMatAdd()
       checkResult( sB4x3_, result_ );
    }
 
-   // Assignment to right-hand side operand
+   // Assignment to right-hand side operand (1)
    {
-      test_ = "SMatTSMatAdd - Assignment to right-hand side operand";
+      test_ = "SMatTSMatAdd - Assignment to right-hand side operand (1)";
 
       initialize();
 
       result_ = sC3x3_ + tsD3x3_;
       tsD3x3_ = sC3x3_ + tsD3x3_;
+
+      checkResult( tsD3x3_, result_ );
+   }
+
+   // Assignment to right-hand side operand (2)
+   {
+      test_ = "SMatTSMatAdd - Assignment to right-hand side operand (2)";
+
+      initialize();
+
+      result_ = eval( sC3x3_ ) + tsD3x3_;
+      tsD3x3_ = eval( sC3x3_ ) + tsD3x3_;
 
       checkResult( tsD3x3_, result_ );
    }
@@ -512,20 +879,57 @@ void AliasingTest::testSMatTSMatAdd()
       checkResult( tsB4x3_, result_ );
    }
 
+   // Complex operation: A = ( 2*A ) + ( B * C )
+   {
+      test_ = "SMatTSMatAdd - Complex operation: A = ( 2*A ) + ( B * C )";
+
+      initialize();
+
+      result_ = ( 2*sC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+      sC3x3_  = ( 2*sC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Complex operation: A = ( B * C ) + ( 2*A )
+   {
+      test_ = "SMatTSMatAdd - Complex operation: A = ( B * C ) + ( 2*A )";
+
+      initialize();
+
+      result_ = ( sA3x4_ * sB4x3_ ) + ( 2*tsC3x3_ );
+      tsC3x3_ = ( sA3x4_ * sB4x3_ ) + ( 2*tsC3x3_ );
+
+      checkResult( tsC3x3_, result_ );
+   }
+
 
    //=====================================================================================
    // Addition with addition assignment
    //=====================================================================================
 
-   // Addition assignment to left-hand side operand
+   // Addition assignment to left-hand side operand (1)
    {
-      test_ = "SMatTSMatAdd - Addition assignment to left-hand side operand";
+      test_ = "SMatTSMatAdd - Addition assignment to left-hand side operand (1)";
 
       initialize();
 
       result_ =  sC3x3_;
       result_ += sC3x3_ + tsD3x3_;
       sC3x3_  += sC3x3_ + tsD3x3_;
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Addition assignment to left-hand side operand (2)
+   {
+      test_ = "SMatTSMatAdd - Addition assignment to left-hand side operand (2)";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ += sC3x3_ + eval( tsD3x3_ );
+      sC3x3_  += sC3x3_ + eval( tsD3x3_ );
 
       checkResult( sC3x3_, result_ );
    }
@@ -556,15 +960,28 @@ void AliasingTest::testSMatTSMatAdd()
       checkResult( sD3x3_, result_ );
    }
 
-   // Addition assignment to right-hand side operand
+   // Addition assignment to right-hand side operand (1)
    {
-      test_ = "SMatTSMatAdd - Addition assignment to right-hand side operand";
+      test_ = "SMatTSMatAdd - Addition assignment to right-hand side operand (1)";
 
       initialize();
 
       result_ =  tsD3x3_;
       result_ += sC3x3_ + tsD3x3_;
       tsD3x3_ += sC3x3_ + tsD3x3_;
+
+      checkResult( tsD3x3_, result_ );
+   }
+
+   // Addition assignment to right-hand side operand (2)
+   {
+      test_ = "SMatTSMatAdd - Addition assignment to right-hand side operand (2)";
+
+      initialize();
+
+      result_ =  tsD3x3_;
+      result_ += eval( sC3x3_ ) + tsD3x3_;
+      tsD3x3_ += eval( sC3x3_ ) + tsD3x3_;
 
       checkResult( tsD3x3_, result_ );
    }
@@ -595,20 +1012,59 @@ void AliasingTest::testSMatTSMatAdd()
       checkResult( tsE3x3_, result_ );
    }
 
+   // Complex operation: A += ( 2*A ) + ( B * C )
+   {
+      test_ = "SMatTSMatAdd - Complex operation: A += ( 2*A ) + ( B * C )";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ += ( 2*sC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+      sC3x3_  += ( 2*sC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Complex operation: A += ( B * C ) + ( 2*A )
+   {
+      test_ = "SMatTSMatAdd - Complex operation: A += ( B * C ) + ( 2*A )";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ += ( sA3x4_ * sB4x3_ ) + ( 2*tsC3x3_ );
+      tsC3x3_ += ( sA3x4_ * sB4x3_ ) + ( 2*tsC3x3_ );
+
+      checkResult( tsC3x3_, result_ );
+   }
+
 
    //=====================================================================================
    // Addition with subtraction assignment
    //=====================================================================================
 
-   // Subtraction assignment to left-hand side operand
+   // Subtraction assignment to left-hand side operand (1)
    {
-      test_ = "SMatTSMatAdd - Subtraction assignment to left-hand side operand";
+      test_ = "SMatTSMatAdd - Subtraction assignment to left-hand side operand (1)";
 
       initialize();
 
       result_ =  sC3x3_;
       result_ -= sC3x3_ + tsD3x3_;
       sC3x3_  -= sC3x3_ + tsD3x3_;
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Subtraction assignment to left-hand side operand (2)
+   {
+      test_ = "SMatTSMatAdd - Subtraction assignment to left-hand side operand (2)";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ -= sC3x3_ + eval( tsD3x3_ );
+      sC3x3_  -= sC3x3_ + eval( tsD3x3_ );
 
       checkResult( sC3x3_, result_ );
    }
@@ -639,15 +1095,28 @@ void AliasingTest::testSMatTSMatAdd()
       checkResult( sD3x3_, result_ );
    }
 
-   // Subtraction assignment to right-hand side operand
+   // Subtraction assignment to right-hand side operand (1)
    {
-      test_ = "SMatTSMatAdd - Subtraction assignment to right-hand side operand";
+      test_ = "SMatTSMatAdd - Subtraction assignment to right-hand side operand (1)";
 
       initialize();
 
       result_ =  tsD3x3_;
       result_ -= sC3x3_ + tsD3x3_;
       tsD3x3_ -= sC3x3_ + tsD3x3_;
+
+      checkResult( tsD3x3_, result_ );
+   }
+
+   // Subtraction assignment to right-hand side operand (2)
+   {
+      test_ = "SMatTSMatAdd - Subtraction assignment to right-hand side operand (2)";
+
+      initialize();
+
+      result_ =  tsD3x3_;
+      result_ -= eval( sC3x3_ ) + tsD3x3_;
+      tsD3x3_ -= eval( sC3x3_ ) + tsD3x3_;
 
       checkResult( tsD3x3_, result_ );
    }
@@ -678,20 +1147,194 @@ void AliasingTest::testSMatTSMatAdd()
       checkResult( tsE3x3_, result_ );
    }
 
+   // Complex operation: A -= ( 2*A ) + ( B * C )
+   {
+      test_ = "SMatTSMatAdd - Complex operation: A -= ( 2*A ) + ( B * C )";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ -= ( 2*sC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+      sC3x3_  -= ( 2*sC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Complex operation: A -= ( B * C ) + ( 2*A )
+   {
+      test_ = "SMatTSMatAdd - Complex operation: A -= ( B * C ) + ( 2*A )";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ -= ( sA3x4_ * sB4x3_ ) + ( 2*tsC3x3_ );
+      tsC3x3_ -= ( sA3x4_ * sB4x3_ ) + ( 2*tsC3x3_ );
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+
+   //=====================================================================================
+   // Addition with Schur product assignment
+   //=====================================================================================
+
+   // Schur product assignment to left-hand side operand (1)
+   {
+      test_ = "SMatTSMatAdd - Schur product assignment to left-hand side operand (1)";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ %= sC3x3_ + tsD3x3_;
+      sC3x3_  %= sC3x3_ + tsD3x3_;
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Schur product assignment to left-hand side operand (2)
+   {
+      test_ = "SMatTSMatAdd - Schur product assignment to left-hand side operand (2)";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ %= sC3x3_ + eval( tsD3x3_ );
+      sC3x3_  %= sC3x3_ + eval( tsD3x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Schur product assignment to first operand of left-hand side compound
+   {
+      test_ = "SMatTSMatAdd - Schur product assignment to first operand of left-hand side compound";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ %= ( sC3x3_ * sD3x3_ ) + tsE3x3_;
+      sC3x3_  %= ( sC3x3_ * sD3x3_ ) + tsE3x3_;
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Schur product assignment to second operand of left-hand side compound
+   {
+      test_ = "SMatTSMatAdd - Schur product assignment to second operand of left-hand side compound";
+
+      initialize();
+
+      result_ =  sD3x3_;
+      result_ %= ( sC3x3_ * sD3x3_ ) + tsE3x3_;
+      sD3x3_  %= ( sC3x3_ * sD3x3_ ) + tsE3x3_;
+
+      checkResult( sD3x3_, result_ );
+   }
+
+   // Schur product assignment to right-hand side operand (1)
+   {
+      test_ = "SMatTSMatAdd - Schur product assignment to right-hand side operand (1)";
+
+      initialize();
+
+      result_ =  tsD3x3_;
+      result_ %= sC3x3_ + tsD3x3_;
+      tsD3x3_ %= sC3x3_ + tsD3x3_;
+
+      checkResult( tsD3x3_, result_ );
+   }
+
+   // Schur product assignment to right-hand side operand (2)
+   {
+      test_ = "SMatTSMatAdd - Schur product assignment to right-hand side operand (2)";
+
+      initialize();
+
+      result_ =  tsD3x3_;
+      result_ %= eval( sC3x3_ ) + tsD3x3_;
+      tsD3x3_ %= eval( sC3x3_ ) + tsD3x3_;
+
+      checkResult( tsD3x3_, result_ );
+   }
+
+   // Schur product assignment to first operand of right-hand side compound
+   {
+      test_ = "SMatTSMatAdd - Schur product assignment to first operand of right-hand side compound";
+
+      initialize();
+
+      result_ =  tsD3x3_;
+      result_ %= sC3x3_ + ( tsD3x3_ * tsE3x3_ );
+      tsD3x3_ %= sC3x3_ + ( tsD3x3_ * tsE3x3_ );
+
+      checkResult( tsD3x3_, result_ );
+   }
+
+   // Schur product assignment to second operand of right-hand side compound
+   {
+      test_ = "SMatTSMatAdd - Schur product assignment to second operand of right-hand side compound";
+
+      initialize();
+
+      result_ =  tsE3x3_;
+      result_ %= sC3x3_ + ( tsD3x3_ * tsE3x3_ );
+      tsE3x3_ %= sC3x3_ + ( tsD3x3_ * tsE3x3_ );
+
+      checkResult( tsE3x3_, result_ );
+   }
+
+   // Complex operation: A %= ( 2*A ) + ( B * C )
+   {
+      test_ = "SMatTSMatAdd - Complex operation: A %= ( 2*A ) + ( B * C )";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ %= ( 2*sC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+      sC3x3_  %= ( 2*sC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Complex operation: A %= ( B * C ) + ( 2*A )
+   {
+      test_ = "SMatTSMatAdd - Complex operation: A %= ( B * C ) + ( 2*A )";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ %= ( sA3x4_ * sB4x3_ ) + ( 2*tsC3x3_ );
+      tsC3x3_ %= ( sA3x4_ * sB4x3_ ) + ( 2*tsC3x3_ );
+
+      checkResult( tsC3x3_, result_ );
+   }
+
 
    //=====================================================================================
    // Addition with multiplication assignment
    //=====================================================================================
 
-   // Multiplication assignment to left-hand side operand
+   // Multiplication assignment to left-hand side operand (1)
    {
-      test_ = "SMatTSMatAdd - Multiplication assignment to left-hand side operand";
+      test_ = "SMatTSMatAdd - Multiplication assignment to left-hand side operand (1)";
 
       initialize();
 
       result_ =  sC3x3_;
       result_ *= sC3x3_ + tsD3x3_;
       sC3x3_  *= sC3x3_ + tsD3x3_;
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Multiplication assignment to left-hand side operand (2)
+   {
+      test_ = "SMatTSMatAdd - Multiplication assignment to left-hand side operand (2)";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ *= sC3x3_ + eval( tsD3x3_ );
+      sC3x3_  *= sC3x3_ + eval( tsD3x3_ );
 
       checkResult( sC3x3_, result_ );
    }
@@ -722,15 +1365,28 @@ void AliasingTest::testSMatTSMatAdd()
       checkResult( sD3x3_, result_ );
    }
 
-   // Multiplication assignment to right-hand side operand
+   // Multiplication assignment to right-hand side operand (1)
    {
-      test_ = "SMatTSMatAdd - Multiplication assignment to right-hand side operand";
+      test_ = "SMatTSMatAdd - Multiplication assignment to right-hand side operand (1)";
 
       initialize();
 
       result_ =  tsD3x3_;
       result_ *= sC3x3_ + tsD3x3_;
       tsD3x3_ *= sC3x3_ + tsD3x3_;
+
+      checkResult( tsD3x3_, result_ );
+   }
+
+   // Multiplication assignment to right-hand side operand (2)
+   {
+      test_ = "SMatTSMatAdd - Multiplication assignment to right-hand side operand (2)";
+
+      initialize();
+
+      result_ =  tsD3x3_;
+      result_ *= eval( sC3x3_ ) + tsD3x3_;
+      tsD3x3_ *= eval( sC3x3_ ) + tsD3x3_;
 
       checkResult( tsD3x3_, result_ );
    }
@@ -760,6 +1416,32 @@ void AliasingTest::testSMatTSMatAdd()
 
       checkResult( tsE3x3_, result_ );
    }
+
+   // Complex operation: A *= ( 2*A ) + ( B * C )
+   {
+      test_ = "SMatTSMatAdd - Complex operation: A *= ( 2*A ) + ( B * C )";
+
+      initialize();
+
+      result_ =  sC3x3_;
+      result_ *= ( 2*sC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+      sC3x3_  *= ( 2*sC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+
+      checkResult( sC3x3_, result_ );
+   }
+
+   // Complex operation: A *= ( B * C ) + ( 2*A )
+   {
+      test_ = "SMatTSMatAdd - Complex operation: A *= ( B * C ) + ( 2*A )";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ *= ( sA3x4_ * sB4x3_ ) + ( 2*tsC3x3_ );
+      tsC3x3_ *= ( sA3x4_ * sB4x3_ ) + ( 2*tsC3x3_ );
+
+      checkResult( tsC3x3_, result_ );
+   }
 }
 //*************************************************************************************************
 
@@ -779,14 +1461,26 @@ void AliasingTest::testTSMatTSMatAdd()
    // Addition
    //=====================================================================================
 
-   // Assignment to left-hand side operand
+   // Assignment to left-hand side operand (1)
    {
-      test_ = "TSMatTSMatAdd - Assignment to left-hand side operand";
+      test_ = "TSMatTSMatAdd - Assignment to left-hand side operand (1)";
 
       initialize();
 
       result_ = tsC3x3_ + tsD3x3_;
       tsC3x3_ = tsC3x3_ + tsD3x3_;
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+   // Assignment to left-hand side operand (2)
+   {
+      test_ = "TSMatTSMatAdd - Assignment to left-hand side operand (2)";
+
+      initialize();
+
+      result_ = tsC3x3_ + eval( tsD3x3_ );
+      tsC3x3_ = tsC3x3_ + eval( tsD3x3_ );
 
       checkResult( tsC3x3_, result_ );
    }
@@ -815,14 +1509,26 @@ void AliasingTest::testTSMatTSMatAdd()
       checkResult( tsB4x3_, result_ );
    }
 
-   // Assignment to right-hand side operand
+   // Assignment to right-hand side operand (1)
    {
-      test_ = "TSMatTSMatAdd - Assignment to right-hand side operand";
+      test_ = "TSMatTSMatAdd - Assignment to right-hand side operand (1)";
 
       initialize();
 
       result_ = tsC3x3_ + tsD3x3_;
       tsD3x3_ = tsC3x3_ + tsD3x3_;
+
+      checkResult( tsD3x3_, result_ );
+   }
+
+   // Assignment to right-hand side operand (2)
+   {
+      test_ = "TSMatTSMatAdd - Assignment to right-hand side operand (2)";
+
+      initialize();
+
+      result_ = eval( tsC3x3_ ) + tsD3x3_;
+      tsD3x3_ = eval( tsC3x3_ ) + tsD3x3_;
 
       checkResult( tsD3x3_, result_ );
    }
@@ -851,20 +1557,57 @@ void AliasingTest::testTSMatTSMatAdd()
       checkResult( tsB4x3_, result_ );
    }
 
+   // Complex operation: A = ( 2*A ) + ( B * C )
+   {
+      test_ = "TSMatTSMatAdd - Complex operation: A = ( 2*A ) + ( B * C )";
+
+      initialize();
+
+      result_ = ( 2*tsC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+      tsC3x3_ = ( 2*tsC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+   // Complex operation: A = ( B * C ) + ( 2*A )
+   {
+      test_ = "TSMatTSMatAdd - Complex operation: A = ( B * C ) + ( 2*A )";
+
+      initialize();
+
+      result_ = ( tsA3x4_ * tsB4x3_ ) + ( 2*tsC3x3_ );
+      tsC3x3_ = ( tsA3x4_ * tsB4x3_ ) + ( 2*tsC3x3_ );
+
+      checkResult( tsC3x3_, result_ );
+   }
+
 
    //=====================================================================================
    // Addition with addition assignment
    //=====================================================================================
 
-   // Addition assignment to left-hand side operand
+   // Addition assignment to left-hand side operand (1)
    {
-      test_ = "TSMatTSMatAdd - Addition assignment to left-hand side operand";
+      test_ = "TSMatTSMatAdd - Addition assignment to left-hand side operand (1)";
 
       initialize();
 
       result_ =  tsC3x3_;
       result_ += tsC3x3_ + tsD3x3_;
       tsC3x3_ += tsC3x3_ + tsD3x3_;
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+   // Addition assignment to left-hand side operand (2)
+   {
+      test_ = "TSMatTSMatAdd - Addition assignment to left-hand side operand (2)";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ += tsC3x3_ + eval( tsD3x3_ );
+      tsC3x3_ += tsC3x3_ + eval( tsD3x3_ );
 
       checkResult( tsC3x3_, result_ );
    }
@@ -895,15 +1638,28 @@ void AliasingTest::testTSMatTSMatAdd()
       checkResult( tsD3x3_, result_ );
    }
 
-   // Addition assignment to right-hand side operand
+   // Addition assignment to right-hand side operand (1)
    {
-      test_ = "TSMatTSMatAdd - Addition assignment to right-hand side operand";
+      test_ = "TSMatTSMatAdd - Addition assignment to right-hand side operand (1)";
 
       initialize();
 
       result_ =  tsD3x3_;
       result_ += tsC3x3_ + tsD3x3_;
       tsD3x3_ += tsC3x3_ + tsD3x3_;
+
+      checkResult( tsD3x3_, result_ );
+   }
+
+   // Addition assignment to right-hand side operand (2)
+   {
+      test_ = "TSMatTSMatAdd - Addition assignment to right-hand side operand (2)";
+
+      initialize();
+
+      result_ =  tsD3x3_;
+      result_ += eval( tsC3x3_ ) + tsD3x3_;
+      tsD3x3_ += eval( tsC3x3_ ) + tsD3x3_;
 
       checkResult( tsD3x3_, result_ );
    }
@@ -934,20 +1690,59 @@ void AliasingTest::testTSMatTSMatAdd()
       checkResult( tsE3x3_, result_ );
    }
 
+   // Complex operation: A += ( 2*A ) + ( B * C )
+   {
+      test_ = "TSMatTSMatAdd - Complex operation: A += ( 2*A ) + ( B * C )";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ += ( 2*tsC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+      tsC3x3_ += ( 2*tsC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+   // Complex operation: A += ( B * C ) + ( 2*A )
+   {
+      test_ = "TSMatTSMatAdd - Complex operation: A += ( B * C ) + ( 2*A )";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ += ( tsA3x4_ * tsB4x3_ ) + ( 2*tsC3x3_ );
+      tsC3x3_ += ( tsA3x4_ * tsB4x3_ ) + ( 2*tsC3x3_ );
+
+      checkResult( tsC3x3_, result_ );
+   }
+
 
    //=====================================================================================
    // Addition with subtraction assignment
    //=====================================================================================
 
-   // Subtraction assignment to left-hand side operand
+   // Subtraction assignment to left-hand side operand (1)
    {
-      test_ = "TSMatTSMatAdd - Subtraction assignment to left-hand side operand";
+      test_ = "TSMatTSMatAdd - Subtraction assignment to left-hand side operand (1)";
 
       initialize();
 
       result_ =  tsC3x3_;
       result_ -= tsC3x3_ + tsD3x3_;
       tsC3x3_ -= tsC3x3_ + tsD3x3_;
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+   // Subtraction assignment to left-hand side operand (2)
+   {
+      test_ = "TSMatTSMatAdd - Subtraction assignment to left-hand side operand (2)";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ -= tsC3x3_ + eval( tsD3x3_ );
+      tsC3x3_ -= tsC3x3_ + eval( tsD3x3_ );
 
       checkResult( tsC3x3_, result_ );
    }
@@ -978,15 +1773,28 @@ void AliasingTest::testTSMatTSMatAdd()
       checkResult( tsD3x3_, result_ );
    }
 
-   // Subtraction assignment to right-hand side operand
+   // Subtraction assignment to right-hand side operand (1)
    {
-      test_ = "TSMatTSMatAdd - Subtraction assignment to right-hand side operand";
+      test_ = "TSMatTSMatAdd - Subtraction assignment to right-hand side operand (1)";
 
       initialize();
 
       result_ =  tsD3x3_;
       result_ -= tsC3x3_ + tsD3x3_;
       tsD3x3_ -= tsC3x3_ + tsD3x3_;
+
+      checkResult( tsD3x3_, result_ );
+   }
+
+   // Subtraction assignment to right-hand side operand (2)
+   {
+      test_ = "TSMatTSMatAdd - Subtraction assignment to right-hand side operand (2)";
+
+      initialize();
+
+      result_ =  tsD3x3_;
+      result_ -= eval( tsC3x3_ ) + tsD3x3_;
+      tsD3x3_ -= eval( tsC3x3_ ) + tsD3x3_;
 
       checkResult( tsD3x3_, result_ );
    }
@@ -1017,20 +1825,194 @@ void AliasingTest::testTSMatTSMatAdd()
       checkResult( tsE3x3_, result_ );
    }
 
+   // Complex operation: A -= ( 2*A ) + ( B * C )
+   {
+      test_ = "TSMatTSMatAdd - Complex operation: A -= ( 2*A ) + ( B * C )";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ -= ( 2*tsC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+      tsC3x3_ -= ( 2*tsC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+   // Complex operation: A -= ( B * C ) + ( 2*A )
+   {
+      test_ = "TSMatTSMatAdd - Complex operation: A -= ( B * C ) + ( 2*A )";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ -= ( tsA3x4_ * tsB4x3_ ) + ( 2*tsC3x3_ );
+      tsC3x3_ -= ( tsA3x4_ * tsB4x3_ ) + ( 2*tsC3x3_ );
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+
+   //=====================================================================================
+   // Addition with Schur product assignment
+   //=====================================================================================
+
+   // Schur product assignment to left-hand side operand (1)
+   {
+      test_ = "TSMatTSMatAdd - Schur product assignment to left-hand side operand (1)";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ %= tsC3x3_ + tsD3x3_;
+      tsC3x3_ %= tsC3x3_ + tsD3x3_;
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+   // Schur product assignment to left-hand side operand (2)
+   {
+      test_ = "TSMatTSMatAdd - Schur product assignment to left-hand side operand (2)";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ %= tsC3x3_ + eval( tsD3x3_ );
+      tsC3x3_ %= tsC3x3_ + eval( tsD3x3_ );
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+   // Schur product assignment to first operand of left-hand side compound
+   {
+      test_ = "TSMatTSMatAdd - Schur product assignment to first operand of left-hand side compound";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ %= ( tsC3x3_ * tsD3x3_ ) + tsE3x3_;
+      tsC3x3_ %= ( tsC3x3_ * tsD3x3_ ) + tsE3x3_;
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+   // Schur product assignment to second operand of left-hand side compound
+   {
+      test_ = "TSMatTSMatAdd - Schur product assignment to second operand of left-hand side compound";
+
+      initialize();
+
+      result_ =  tsD3x3_;
+      result_ %= ( tsC3x3_ * tsD3x3_ ) + tsE3x3_;
+      tsD3x3_  %= ( tsC3x3_ * tsD3x3_ ) + tsE3x3_;
+
+      checkResult( tsD3x3_, result_ );
+   }
+
+   // Schur product assignment to right-hand side operand (1)
+   {
+      test_ = "TSMatTSMatAdd - Schur product assignment to right-hand side operand (1)";
+
+      initialize();
+
+      result_ =  tsD3x3_;
+      result_ %= tsC3x3_ + tsD3x3_;
+      tsD3x3_ %= tsC3x3_ + tsD3x3_;
+
+      checkResult( tsD3x3_, result_ );
+   }
+
+   // Schur product assignment to right-hand side operand (2)
+   {
+      test_ = "TSMatTSMatAdd - Schur product assignment to right-hand side operand (2)";
+
+      initialize();
+
+      result_ =  tsD3x3_;
+      result_ %= eval( tsC3x3_ ) + tsD3x3_;
+      tsD3x3_ %= eval( tsC3x3_ ) + tsD3x3_;
+
+      checkResult( tsD3x3_, result_ );
+   }
+
+   // Schur product assignment to first operand of right-hand side compound
+   {
+      test_ = "TSMatTSMatAdd - Schur product assignment to first operand of right-hand side compound";
+
+      initialize();
+
+      result_ =  tsD3x3_;
+      result_ %= tsC3x3_ + ( tsD3x3_ * tsE3x3_ );
+      tsD3x3_ %= tsC3x3_ + ( tsD3x3_ * tsE3x3_ );
+
+      checkResult( tsD3x3_, result_ );
+   }
+
+   // Schur product assignment to second operand of right-hand side compound
+   {
+      test_ = "TSMatTSMatAdd - Schur product assignment to second operand of right-hand side compound";
+
+      initialize();
+
+      result_ =  tsE3x3_;
+      result_ %= tsC3x3_ + ( tsD3x3_ * tsE3x3_ );
+      tsE3x3_ %= tsC3x3_ + ( tsD3x3_ * tsE3x3_ );
+
+      checkResult( tsE3x3_, result_ );
+   }
+
+   // Complex operation: A %= ( 2*A ) + ( B * C )
+   {
+      test_ = "TSMatTSMatAdd - Complex operation: A %= ( 2*A ) + ( B * C )";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ %= ( 2*tsC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+      tsC3x3_ %= ( 2*tsC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+   // Complex operation: A %= ( B * C ) + ( 2*A )
+   {
+      test_ = "TSMatTSMatAdd - Complex operation: A %= ( B * C ) + ( 2*A )";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ %= ( tsA3x4_ * tsB4x3_ ) + ( 2*tsC3x3_ );
+      tsC3x3_ %= ( tsA3x4_ * tsB4x3_ ) + ( 2*tsC3x3_ );
+
+      checkResult( tsC3x3_, result_ );
+   }
+
 
    //=====================================================================================
    // Addition with multiplication assignment
    //=====================================================================================
 
-   // Multiplication assignment to left-hand side operand
+   // Multiplication assignment to left-hand side operand (1)
    {
-      test_ = "TSMatTSMatAdd - Multiplication assignment to left-hand side operand";
+      test_ = "TSMatTSMatAdd - Multiplication assignment to left-hand side operand (1)";
 
       initialize();
 
       result_ =  tsC3x3_;
       result_ *= tsC3x3_ + tsD3x3_;
       tsC3x3_ *= tsC3x3_ + tsD3x3_;
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+   // Multiplication assignment to left-hand side operand (2)
+   {
+      test_ = "TSMatTSMatAdd - Multiplication assignment to left-hand side operand (2)";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ *= tsC3x3_ + eval( tsD3x3_ );
+      tsC3x3_ *= tsC3x3_ + eval( tsD3x3_ );
 
       checkResult( tsC3x3_, result_ );
    }
@@ -1061,15 +2043,28 @@ void AliasingTest::testTSMatTSMatAdd()
       checkResult( tsD3x3_, result_ );
    }
 
-   // Multiplication assignment to right-hand side operand
+   // Multiplication assignment to right-hand side operand (1)
    {
-      test_ = "TSMatTSMatAdd - Multiplication assignment to right-hand side operand";
+      test_ = "TSMatTSMatAdd - Multiplication assignment to right-hand side operand (1)";
 
       initialize();
 
       result_ =  tsD3x3_;
       result_ *= tsC3x3_ + tsD3x3_;
       tsD3x3_ *= tsC3x3_ + tsD3x3_;
+
+      checkResult( tsD3x3_, result_ );
+   }
+
+   // Multiplication assignment to right-hand side operand (2)
+   {
+      test_ = "TSMatTSMatAdd - Multiplication assignment to right-hand side operand (2)";
+
+      initialize();
+
+      result_ =  tsD3x3_;
+      result_ *= eval( tsC3x3_ ) + tsD3x3_;
+      tsD3x3_ *= eval( tsC3x3_ ) + tsD3x3_;
 
       checkResult( tsD3x3_, result_ );
    }
@@ -1098,6 +2093,32 @@ void AliasingTest::testTSMatTSMatAdd()
       tsE3x3_ *= tsC3x3_ + ( tsD3x3_ * tsE3x3_ );
 
       checkResult( tsE3x3_, result_ );
+   }
+
+   // Complex operation: A *= ( 2*A ) + ( B * C )
+   {
+      test_ = "TSMatTSMatAdd - Complex operation: A *= ( 2*A ) + ( B * C )";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ *= ( 2*tsC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+      tsC3x3_ *= ( 2*tsC3x3_ ) + ( tsA3x4_ * tsB4x3_ );
+
+      checkResult( tsC3x3_, result_ );
+   }
+
+   // Complex operation: A *= ( B * C ) + ( 2*A )
+   {
+      test_ = "TSMatTSMatAdd - Complex operation: A *= ( B * C ) + ( 2*A )";
+
+      initialize();
+
+      result_ =  tsC3x3_;
+      result_ *= ( tsA3x4_ * tsB4x3_ ) + ( 2*tsC3x3_ );
+      tsC3x3_ *= ( tsA3x4_ * tsB4x3_ ) + ( 2*tsC3x3_ );
+
+      checkResult( tsC3x3_, result_ );
    }
 }
 //*************************************************************************************************

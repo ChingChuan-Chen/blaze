@@ -2,7 +2,7 @@
 #
 #  Makefile for the tsvecdmatmult module of the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -33,8 +33,10 @@
 
 
 # Including the compiler and library settings
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include ../../Makeconfig
+endif
 endif
 
 
@@ -49,6 +51,7 @@ BIN = $(SRC:.cpp=)
 default: VCaM3x3a VCaM3x3b VCbM3x3a VCbM3x3b \
          VCaMHa VCaMHb VCbMHa VCbMHb \
          VCaMDa VCaMDb VCbMDa VCbMDb \
+         VCaMUa VCaMUb VCbMUa VCbMUb \
          VCaSDa VCaSDb VCbSDa VCbSDb \
          VCaHDa VCaHDb VCbHDa VCbHDb \
          VCaLDa VCaLDb VCbLDa VCbLDb \
@@ -56,7 +59,7 @@ default: VCaM3x3a VCaM3x3b VCbM3x3a VCbM3x3b \
          VCaDDa VCaDDb VCbDDa VCbDDb \
          AliasingTest
 all: $(BIN)
-essential: VCaM3x3a VCaMHa VCaMDa VCaSDa VCaHDa VCaLDa VCaUDa VCaDDa AliasingTest
+essential: VCaM3x3a VCaMHa VCaMDa VCaMUa VCaSDa VCaHDa VCaLDa VCaUDa VCaDDa AliasingTest
 single: VCaMDa
 
 
@@ -108,6 +111,10 @@ VCaMDb: VCaMDb.o
 VCaMHa: VCaMHa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VCaMHb: VCaMHb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VCaMUa: VCaMUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VCaMUb: VCaMUb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VCaSDa: VCaSDa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
@@ -174,6 +181,10 @@ VCbMHa: VCbMHa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VCbMHb: VCbMHb.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VCbMUa: VCbMUa.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+VCbMUb: VCbMUb.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VCbSDa: VCbSDa.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 VCbSDb: VCbSDb.o
@@ -196,13 +207,17 @@ AliasingTest: AliasingTest.o
 
 
 # Cleanup
+reset:
+	@$(RM) $(OBJ) $(BIN)
 clean:
-	@$(RM) $(DEP) $(OBJ) $(BIN)
+	@$(RM) $(OBJ) $(BIN) $(DEP)
 
 
 # Makefile includes
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP)
+endif
 endif
 
 
@@ -212,4 +227,4 @@ endif
 
 
 # Setting the independent commands
-.PHONY: default all essential single clean
+.PHONY: default all essential single reset clean

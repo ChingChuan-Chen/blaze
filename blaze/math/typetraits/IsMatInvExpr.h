@@ -3,7 +3,7 @@
 //  \file blaze/math/typetraits/IsMatInvExpr.h
 //  \brief Header file for the IsMatInvExpr type trait class
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -42,9 +42,6 @@
 
 #include <blaze/math/expressions/MatInvExpr.h>
 #include <blaze/util/IntegralConstant.h>
-#include <blaze/util/mpl/And.h>
-#include <blaze/util/mpl/Not.h>
-#include <blaze/util/typetraits/IsBaseOf.h>
 
 
 namespace blaze {
@@ -56,21 +53,82 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Auxiliary helper struct for the IsMatInvExpr type trait.
+// \ingroup math_type_traits
+*/
+template< typename T >
+struct IsMatInvExprHelper
+{
+ private:
+   //**********************************************************************************************
+   static T* create();
+
+   template< typename MT >
+   static TrueType test( const MatInvExpr<MT>* );
+
+   template< typename MT >
+   static TrueType test( const volatile MatInvExpr<MT>* );
+
+   static FalseType test( ... );
+   //**********************************************************************************************
+
+ public:
+   //**********************************************************************************************
+   using Type = decltype( test( create() ) );
+   //**********************************************************************************************
+};
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Compile time check whether the given type is a matrix inversion expression template.
 // \ingroup math_type_traits
 //
 // This type trait class tests whether or not the given type \a Type is a matrix inversion
 // expression template. In order to qualify as a valid matrix inversion expression template,
-// the given type has to derive (publicly or privately) from the MatInvExpr base class. In
-// case the given type is a valid matrix inversion expression template, the \a value member
-// constant is set to \a true, the nested type definition \a Type is \a TrueType, and the
-// class derives from \a TrueType. Otherwise \a value is set to \a false, \a Type is
-// \a FalseType, and the class derives from \a FalseType.
+// the given type has to derive publicly from the MatInvExpr base class. In case the given
+// type is a valid matrix inversion expression template, the \a value member constant is set
+// to \a true, the nested type definition \a Type is \a TrueType, and the class derives from
+// \a TrueType. Otherwise \a value is set to \a false, \a Type is \a FalseType, and the class
+// derives from \a FalseType.
 */
 template< typename T >
 struct IsMatInvExpr
-   : public BoolConstant< And< IsBaseOf<MatInvExpr,T>, Not< IsBaseOf<T,MatInvExpr> > >::value >
+   : public IsMatInvExprHelper<T>::Type
 {};
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Specialization of the IsMatInvExpr type trait for references.
+// \ingroup math_type_traits
+*/
+template< typename T >
+struct IsMatInvExpr<T&>
+   : public FalseType
+{};
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Auxiliary variable template for the IsMatInvExpr type trait.
+// \ingroup math_type_traits
+//
+// The IsMatInvExpr_v variable template provides a convenient shortcut to access the nested
+// \a value of the IsMatInvExpr class template. For instance, given the type \a T the
+// following two statements are identical:
+
+   \code
+   constexpr bool value1 = blaze::IsMatInvExpr<T>::value;
+   constexpr bool value2 = blaze::IsMatInvExpr_v<T>;
+   \endcode
+*/
+template< typename T >
+constexpr bool IsMatInvExpr_v = IsMatInvExpr<T>::value;
 //*************************************************************************************************
 
 } // namespace blaze

@@ -3,7 +3,7 @@
 //  \file blaze/math/typetraits/IsDenseMatrix.h
 //  \brief Header file for the IsDenseMatrix type trait
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,11 +40,8 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/expressions/DenseMatrix.h>
+#include <blaze/math/expressions/Forward.h>
 #include <blaze/util/IntegralConstant.h>
-#include <blaze/util/mpl/Or.h>
-#include <blaze/util/typetraits/IsBaseOf.h>
-#include <blaze/util/typetraits/RemoveCV.h>
 
 
 namespace blaze {
@@ -54,6 +51,36 @@ namespace blaze {
 //  CLASS DEFINITION
 //
 //=================================================================================================
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Auxiliary helper struct for the IsDenseMatrix type trait.
+// \ingroup math_type_traits
+*/
+template< typename T >
+struct IsDenseMatrixHelper
+{
+ private:
+   //**********************************************************************************************
+   static T* create();
+
+   template< typename MT, bool SO >
+   static TrueType test( const DenseMatrix<MT,SO>* );
+
+   template< typename MT, bool SO >
+   static TrueType test( const volatile DenseMatrix<MT,SO>* );
+
+   static FalseType test( ... );
+   //**********************************************************************************************
+
+ public:
+   //**********************************************************************************************
+   using Type = decltype( test( create() ) );
+   //**********************************************************************************************
+};
+/*! \endcond */
+//*************************************************************************************************
+
 
 //*************************************************************************************************
 /*!\brief Compile time check for dense matrix types.
@@ -76,9 +103,39 @@ namespace blaze {
 */
 template< typename T >
 struct IsDenseMatrix
-   : public BoolConstant< Or< IsBaseOf<DenseMatrix<RemoveCV_<T>,false>,T>
-                            , IsBaseOf<DenseMatrix<RemoveCV_<T>,true>,T> >::value >
+   : public IsDenseMatrixHelper<T>::Type
 {};
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Specialization of the IsDenseMatrix type trait for references.
+// \ingroup math_type_traits
+*/
+template< typename T >
+struct IsDenseMatrix<T&>
+   : public FalseType
+{};
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Auxiliary variable template for the IsDenseMatrix type trait.
+// \ingroup math_type_traits
+//
+// The IsDenseMatrix_v variable template provides a convenient shortcut to access the nested
+// \a value of the IsDenseMatrix class template. For instance, given the type \a T the
+// following two statements are identical:
+
+   \code
+   constexpr bool value1 = blaze::IsDenseMatrix<T>::value;
+   constexpr bool value2 = blaze::IsDenseMatrix_v<T>;
+   \endcode
+*/
+template< typename T >
+constexpr bool IsDenseMatrix_v = IsDenseMatrix<T>::value;
 //*************************************************************************************************
 
 } // namespace blaze

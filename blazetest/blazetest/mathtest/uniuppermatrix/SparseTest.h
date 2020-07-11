@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/uniuppermatrix/SparseTest.h
 //  \brief Header file for the UniUpperMatrix sparse test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -97,19 +97,21 @@ class SparseTest
    void testAssignment  ();
    void testAddAssign   ();
    void testSubAssign   ();
+   void testSchurAssign ();
    void testMultAssign  ();
    void testFunctionCall();
    void testIterator    ();
    void testNonZeros    ();
    void testReset       ();
    void testClear       ();
-   void testSet         ();
-   void testInsert      ();
-   void testAppend      ();
    void testResize      ();
    void testReserve     ();
    void testTrim        ();
+   void testShrinkToFit ();
    void testSwap        ();
+   void testSet         ();
+   void testInsert      ();
+   void testAppend      ();
    void testErase       ();
    void testFind        ();
    void testLowerBound  ();
@@ -148,13 +150,13 @@ class SparseTest
 
    //**Type definitions****************************************************************************
    //! Type of the row-major uniupper matrix.
-   typedef blaze::UniUpperMatrix< blaze::CompressedMatrix<int,blaze::rowMajor> >  UT;
+   using UT = blaze::UniUpperMatrix< blaze::CompressedMatrix<int,blaze::rowMajor> >;
 
    //! Type of the column-major uniupper matrix.
-   typedef blaze::UniUpperMatrix< blaze::CompressedMatrix<int,blaze::columnMajor> >  OUT;
+   using OUT = blaze::UniUpperMatrix< blaze::CompressedMatrix<int,blaze::columnMajor> >;
 
-   typedef UT::Rebind<double>::Other   RUT;   //!< Rebound row-major uniupper matrix type.
-   typedef OUT::Rebind<double>::Other  ORUT;  //!< Rebound column-major uniupper matrix type.
+   using RUT  = UT::Rebind<double>::Other;   //!< Rebound row-major uniupper matrix type.
+   using ORUT = OUT::Rebind<double>::Other;  //!< Rebound column-major uniupper matrix type.
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************

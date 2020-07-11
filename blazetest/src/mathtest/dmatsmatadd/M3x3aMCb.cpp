@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsmatadd/M3x3aMCb.cpp
 //  \brief Source file for the M3x3aMCb dense matrix/sparse matrix addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dmatsmatadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StaticMatrix<TypeA,3UL,3UL>  M3x3a;
-      typedef blaze::CompressedMatrix<TypeB>      MCb;
+      using M3x3a = blaze::StaticMatrix<TypeA,3UL,3UL>;
+      using MCb = blaze::CompressedMatrix<TypeB>;
 
       // Creator type definitions
-      typedef blazetest::Creator<M3x3a>  CM3x3a;
-      typedef blazetest::Creator<MCb>    CMCb;
+      using CM3x3a = blazetest::Creator<M3x3a>;
+      using CMCb = blazetest::Creator<MCb>;
 
       // Running the tests
       for( size_t i=0UL; i<=9UL; ++i ) {

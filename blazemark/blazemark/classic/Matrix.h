@@ -3,7 +3,7 @@
 //  \file blazemark/classic/Matrix.h
 //  \brief Implementation of classic arbitrary sized matrix
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -815,7 +815,7 @@ inline const Vector<Type> operator*( const Vector<Type>& x, const Matrix<Type,fa
 */
 template< typename Type  // Data type of the matrix
         , bool SO >      // Storage order
-inline const ::blaze::EnableIf_< ::blaze::IsNumeric<Type>, Matrix<Type,SO> >
+inline const ::blaze::EnableIf_t< ::blaze::IsNumeric_v<Type>, Matrix<Type,SO> >
    operator*( const Matrix<Type,SO>& mat, Type scalar )
 {
    Matrix<Type,SO> res( mat.rows(), mat.columns() );
@@ -852,7 +852,7 @@ inline const ::blaze::EnableIf_< ::blaze::IsNumeric<Type>, Matrix<Type,SO> >
 */
 template< typename Type  // Data type of the matrix
         , bool SO >      // Storage order
-inline const ::blaze::EnableIf_< ::blaze::IsNumeric<Type>, Matrix<Type,SO> >
+inline const ::blaze::EnableIf_t< ::blaze::IsNumeric_v<Type>, Matrix<Type,SO> >
    operator*( Type scalar, const Matrix<Type,SO>& mat )
 {
    Matrix<Type,SO> res( mat.rows(), mat.columns() );

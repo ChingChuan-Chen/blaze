@@ -3,7 +3,7 @@
 //  \file src/mathtest/dvecdvecadd/V6bV6b.cpp
 //  \brief Source file for the V6bV6b dense vector/dense vector addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -44,6 +44,10 @@
 #include <blazetest/mathtest/dvecdvecadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -61,10 +65,10 @@ int main()
    try
    {
       // Vector type definitions
-      typedef blaze::StaticVector<TypeB,6UL>  V6b;
+      using V6b = blaze::StaticVector<TypeB,6UL>;
 
       // Creator type definitions
-      typedef blazetest::Creator<V6b>  CV6b;
+      using CV6b = blazetest::Creator<V6b>;
 
       // Running the tests
       RUN_DVECDVECADD_OPERATION_TEST( CV6b(), CV6b() );

@@ -3,7 +3,7 @@
 //  \file blaze/util/typetraits/AddReference.h
 //  \brief Header file for the AddReference type trait
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -71,7 +71,7 @@ struct AddReference
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   typedef typename std::add_lvalue_reference<T>::type  Type;
+   using Type = typename std::add_lvalue_reference<T>::type;
    /*! \endcond */
    //**********************************************************************************************
 };
@@ -82,17 +82,17 @@ struct AddReference
 /*!\brief Auxiliary alias declaration for the AddReference type trait.
 // \ingroup type_traits
 //
-// The AddReference_ alias declaration provides a convenient shortcut to access the nested \a Type
+// The AddReference_t alias declaration provides a convenient shortcut to access the nested \a Type
 // of the AddReference class template. For instance, given the type \a T the following two type
 // definitions are identical:
 
    \code
-   using Type1 = typename AddReference<T>::Type;
-   using Type2 = AddReference_<T>;
+   using Type1 = typename blaze::AddReference<T>::Type;
+   using Type2 = blaze::AddReference_t<T>;
    \endcode
 */
 template< typename T >
-using AddReference_ = typename AddReference<T>::Type;
+using AddReference_t = typename AddReference<T>::Type;
 //*************************************************************************************************
 
 } // namespace blaze

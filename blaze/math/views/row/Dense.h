@@ -3,7 +3,7 @@
 //  \file blaze/math/views/row/Dense.h
 //  \brief Row specialization for dense matrices
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -50,18 +50,23 @@
 #include <blaze/math/constraints/RequiresEvaluation.h>
 #include <blaze/math/constraints/RowMajorMatrix.h>
 #include <blaze/math/constraints/RowVector.h>
+#include <blaze/math/constraints/Submatrix.h>
 #include <blaze/math/constraints/Symmetric.h>
 #include <blaze/math/constraints/TransExpr.h>
 #include <blaze/math/constraints/UniTriangular.h>
+#include <blaze/math/dense/InitializerVector.h>
 #include <blaze/math/Exception.h>
 #include <blaze/math/expressions/DenseVector.h>
 #include <blaze/math/expressions/View.h>
 #include <blaze/math/InitializerList.h>
 #include <blaze/math/shims/Clear.h>
 #include <blaze/math/shims/IsDefault.h>
+#include <blaze/math/shims/PrevMultiple.h>
+#include <blaze/math/shims/Reset.h>
 #include <blaze/math/SIMD.h>
-#include <blaze/math/traits/DerestrictTrait.h>
+#include <blaze/math/traits/CrossTrait.h>
 #include <blaze/math/traits/RowTrait.h>
+#include <blaze/math/typetraits/HasMutableDataAccess.h>
 #include <blaze/math/typetraits/HasSIMDAdd.h>
 #include <blaze/math/typetraits/HasSIMDDiv.h>
 #include <blaze/math/typetraits/HasSIMDMult.h>
@@ -74,10 +79,13 @@
 #include <blaze/math/typetraits/IsSparseVector.h>
 #include <blaze/math/typetraits/IsStrictlyLower.h>
 #include <blaze/math/typetraits/IsStrictlyUpper.h>
+#include <blaze/math/typetraits/IsTriangular.h>
 #include <blaze/math/typetraits/IsUniLower.h>
 #include <blaze/math/typetraits/IsUniUpper.h>
 #include <blaze/math/typetraits/IsUpper.h>
+#include <blaze/math/views/Check.h>
 #include <blaze/math/views/row/BaseTemplate.h>
+#include <blaze/math/views/row/RowData.h>
 #include <blaze/system/CacheSize.h>
 #include <blaze/system/Inline.h>
 #include <blaze/system/Optimizations.h>
@@ -86,17 +94,12 @@
 #include <blaze/util/constraints/Pointer.h>
 #include <blaze/util/constraints/Reference.h>
 #include <blaze/util/constraints/Vectorizable.h>
-#include <blaze/util/DisableIf.h>
 #include <blaze/util/EnableIf.h>
 #include <blaze/util/mpl/If.h>
-#include <blaze/util/mpl/Not.h>
-#include <blaze/util/mpl/Or.h>
-#include <blaze/util/Template.h>
+#include <blaze/util/TypeList.h>
 #include <blaze/util/Types.h>
 #include <blaze/util/typetraits/IsConst.h>
-#include <blaze/util/typetraits/IsNumeric.h>
 #include <blaze/util/typetraits/IsReference.h>
-#include <blaze/util/typetraits/RemoveReference.h>
 
 
 namespace blaze {
@@ -110,71 +113,83 @@ namespace blaze {
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 /*!\brief Specialization of Row for rows on row-major dense matrices.
-// \ingroup views
+// \ingroup row
 //
-// This specialization of Row adapts the class template to the requirements of row-major dense
-// matrices.
+// This specialization of Row adapts the class template to the requirements of row-major
+// dense matrices.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-class Row<MT,true,true,SF>
-   : public DenseVector< Row<MT,true,true,SF>, true >
-   , private View
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+class Row<MT,true,true,SF,CRAs...>
+   : public View< DenseVector< Row<MT,true,true,SF,CRAs...>, true > >
+   , private RowData<CRAs...>
 {
  private:
    //**Type definitions****************************************************************************
-   //! Composite data type of the dense matrix expression.
-   typedef If_< IsExpression<MT>, MT, MT& >  Operand;
+   using DataType = RowData<CRAs...>;                     //!< The type of the RowData base class.
+   using Operand  = If_t< IsExpression_v<MT>, MT, MT& >;  //!< Composite data type of the dense matrix expression.
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
-   typedef Row<MT,true,true,SF>        This;           //!< Type of this Row instance.
-   typedef DenseVector<This,true>      BaseType;       //!< Base type of this Row instance.
-   typedef RowTrait_<MT>               ResultType;     //!< Result type for expression template evaluations.
-   typedef TransposeType_<ResultType>  TransposeType;  //!< Transpose type for expression template evaluations.
-   typedef ElementType_<MT>            ElementType;    //!< Type of the row elements.
-   typedef SIMDTrait_<ElementType>     SIMDType;       //!< SIMD type of the row elements.
-   typedef ReturnType_<MT>             ReturnType;     //!< Return type for expression template evaluations
-   typedef const Row&                  CompositeType;  //!< Data type for composite expression templates.
+   //! Type of this Row instance.
+   using This = Row<MT,true,true,SF,CRAs...>;
+
+   using BaseType      = DenseVector<This,true>;       //!< Base type of this Row instance.
+   using ViewedType    = MT;                           //!< The type viewed by this Row instance.
+   using ResultType    = RowTrait_t<MT,CRAs...>;       //!< Result type for expression template evaluations.
+   using TransposeType = TransposeType_t<ResultType>;  //!< Transpose type for expression template evaluations.
+   using ElementType   = ElementType_t<MT>;            //!< Type of the row elements.
+   using SIMDType      = SIMDTrait_t<ElementType>;     //!< SIMD type of the row elements.
+   using ReturnType    = ReturnType_t<MT>;             //!< Return type for expression template evaluations
+   using CompositeType = const Row&;                   //!< Data type for composite expression templates.
 
    //! Reference to a constant row value.
-   typedef ConstReference_<MT>  ConstReference;
+   using ConstReference = ConstReference_t<MT>;
 
    //! Reference to a non-constant row value.
-   typedef If_< IsConst<MT>, ConstReference, Reference_<MT> >  Reference;
+   using Reference = If_t< IsConst_v<MT>, ConstReference, Reference_t<MT> >;
 
    //! Pointer to a constant row value.
-   typedef const ElementType*  ConstPointer;
+   using ConstPointer = ConstPointer_t<MT>;
 
    //! Pointer to a non-constant row value.
-   typedef If_< Or< IsConst<MT>, Not< HasMutableDataAccess<MT> > >, ConstPointer, ElementType* >  Pointer;
+   using Pointer = If_t< IsConst_v<MT> || !HasMutableDataAccess_v<MT>, ConstPointer, Pointer_t<MT> >;
 
    //! Iterator over constant elements.
-   typedef ConstIterator_<MT>  ConstIterator;
+   using ConstIterator = ConstIterator_t<MT>;
 
    //! Iterator over non-constant elements.
-   typedef If_< IsConst<MT>, ConstIterator, Iterator_<MT> >  Iterator;
+   using Iterator = If_t< IsConst_v<MT>, ConstIterator, Iterator_t<MT> >;
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template evaluation strategy.
-   enum : bool { simdEnabled = MT::simdEnabled };
+   static constexpr bool simdEnabled = MT::simdEnabled;
 
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = MT::smpAssignable };
+   static constexpr bool smpAssignable = MT::smpAssignable;
+
+   //! Compilation switch for the expression template evaluation strategy.
+   static constexpr bool compileTimeArgs = DataType::compileTimeArgs;
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
    /*!\name Constructors */
    //@{
-   explicit inline Row( Operand matrix, size_t index );
-   // No explicitly declared copy constructor.
+   template< typename... RRAs >
+   explicit inline Row( MT& matrix, RRAs... args );
+
+   Row( const Row& ) = default;
    //@}
    //**********************************************************************************************
 
    //**Destructor**********************************************************************************
-   // No explicitly declared destructor.
+   /*!\name Destructor */
+   //@{
+   ~Row() = default;
+   //@}
    //**********************************************************************************************
 
    //**Data access functions***********************************************************************
@@ -205,87 +220,80 @@ class Row<MT,true,true,SF>
    template< typename VT > inline Row& operator= ( const Vector<VT,true>& rhs );
    template< typename VT > inline Row& operator+=( const Vector<VT,true>& rhs );
    template< typename VT > inline Row& operator-=( const Vector<VT,true>& rhs );
-   template< typename VT > inline Row& operator*=( const DenseVector<VT,true>&  rhs );
-   template< typename VT > inline Row& operator*=( const SparseVector<VT,true>& rhs );
+   template< typename VT > inline Row& operator*=( const Vector<VT,true>& rhs );
    template< typename VT > inline Row& operator/=( const DenseVector<VT,true>&  rhs );
-
-   template< typename Other >
-   inline EnableIf_< IsNumeric<Other>, Row >& operator*=( Other rhs );
-
-   template< typename Other >
-   inline EnableIf_< IsNumeric<Other>, Row >& operator/=( Other rhs );
+   template< typename VT > inline Row& operator%=( const Vector<VT,true>& rhs );
    //@}
    //**********************************************************************************************
 
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-                              inline size_t size() const noexcept;
-                              inline size_t capacity() const noexcept;
-                              inline size_t nonZeros() const;
-                              inline void   reset();
-   template< typename Other > inline Row&   scale( const Other& scalar );
+   using DataType::row;
+
+   inline MT&       operand() noexcept;
+   inline const MT& operand() const noexcept;
+
+   inline size_t  size() const noexcept;
+   inline size_t  spacing() const noexcept;
+   inline size_t  capacity() const noexcept;
+   inline size_t  nonZeros() const;
+   inline void    reset();
+   //@}
+   //**********************************************************************************************
+
+   //**Numeric functions***************************************************************************
+   /*!\name Numeric functions */
+   //@{
+   template< typename Other > inline Row& scale( const Other& scalar );
    //@}
    //**********************************************************************************************
 
  private:
    //**********************************************************************************************
-   //! Helper structure for the explicit application of the SFINAE principle.
+   //! Helper variable template for the explicit application of the SFINAE principle.
    template< typename VT >
-   struct VectorizedAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && VT::simdEnabled &&
-                            IsSIMDCombinable< ElementType, ElementType_<VT> >::value };
-   };
+   static constexpr bool VectorizedAssign_v =
+      ( useOptimizedKernels &&
+        simdEnabled && VT::simdEnabled &&
+        IsSIMDCombinable_v< ElementType, ElementType_t<VT> > );
    //**********************************************************************************************
 
    //**********************************************************************************************
-   //! Helper structure for the explicit application of the SFINAE principle.
+   //! Helper variable template for the explicit application of the SFINAE principle.
    template< typename VT >
-   struct VectorizedAddAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && VT::simdEnabled &&
-                            IsSIMDCombinable< ElementType, ElementType_<VT> >::value &&
-                            HasSIMDAdd< ElementType, ElementType_<VT> >::value };
-   };
+   static constexpr bool VectorizedAddAssign_v =
+      ( VectorizedAssign_v<VT> &&
+        HasSIMDAdd_v< ElementType, ElementType_t<VT> > );
    //**********************************************************************************************
 
    //**********************************************************************************************
-   //! Helper structure for the explicit application of the SFINAE principle.
+   //! Helper variable template for the explicit application of the SFINAE principle.
    template< typename VT >
-   struct VectorizedSubAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && VT::simdEnabled &&
-                            IsSIMDCombinable< ElementType, ElementType_<VT> >::value &&
-                            HasSIMDSub< ElementType, ElementType_<VT> >::value };
-   };
+   static constexpr bool VectorizedSubAssign_v =
+      ( VectorizedAssign_v<VT> &&
+        HasSIMDSub_v< ElementType, ElementType_t<VT> > );
    //**********************************************************************************************
 
    //**********************************************************************************************
-   //! Helper structure for the explicit application of the SFINAE principle.
+   //! Helper variable template for the explicit application of the SFINAE principle.
    template< typename VT >
-   struct VectorizedMultAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && VT::simdEnabled &&
-                            IsSIMDCombinable< ElementType, ElementType_<VT> >::value &&
-                            HasSIMDMult< ElementType, ElementType_<VT> >::value };
-   };
+   static constexpr bool VectorizedMultAssign_v =
+      ( VectorizedAssign_v<VT> &&
+        HasSIMDMult_v< ElementType, ElementType_t<VT> > );
    //**********************************************************************************************
 
    //**********************************************************************************************
-   //! Helper structure for the explicit application of the SFINAE principle.
+   //! Helper variable template for the explicit application of the SFINAE principle.
    template< typename VT >
-   struct VectorizedDivAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && VT::simdEnabled &&
-                            IsSIMDCombinable< ElementType, ElementType_<VT> >::value &&
-                            HasSIMDDiv< ElementType, ElementType_<VT> >::value };
-   };
+   static constexpr bool VectorizedDivAssign_v =
+      ( VectorizedAssign_v<VT> &&
+        HasSIMDDiv_v< ElementType, ElementType_t<VT> > );
    //**********************************************************************************************
 
    //**SIMD properties*****************************************************************************
    //! The number of elements packed within a single SIMD element.
-   enum : size_t { SIMDSIZE = SIMDTrait<ElementType>::size };
+   static constexpr size_t SIMDSIZE = SIMDTrait<ElementType>::size;
    //**********************************************************************************************
 
  public:
@@ -295,14 +303,14 @@ class Row<MT,true,true,SF>
    template< typename Other >
    inline bool canAlias( const Other* alias ) const noexcept;
 
-   template< typename MT2, bool SO2, bool SF2 >
-   inline bool canAlias( const Row<MT2,SO2,true,SF2>* alias ) const noexcept;
+   template< typename MT2, bool SO2, bool SF2, size_t... CRAs2 >
+   inline bool canAlias( const Row<MT2,SO2,true,SF2,CRAs2...>* alias ) const noexcept;
 
    template< typename Other >
    inline bool isAliased( const Other* alias ) const noexcept;
 
-   template< typename MT2, bool SO2, bool SF2 >
-   inline bool isAliased( const Row<MT2,SO2,true,SF2>* alias ) const noexcept;
+   template< typename MT2, bool SO2, bool SF2, size_t... CRAs2 >
+   inline bool isAliased( const Row<MT2,SO2,true,SF2,CRAs2...>* alias ) const noexcept;
 
    inline bool isAligned   () const noexcept;
    inline bool canSMPAssign() const noexcept;
@@ -317,42 +325,42 @@ class Row<MT,true,true,SF>
    BLAZE_ALWAYS_INLINE void stream( size_t index, const SIMDType& value ) noexcept;
 
    template< typename VT >
-   inline DisableIf_< VectorizedAssign<VT> > assign( const DenseVector<VT,true>& rhs );
+   inline auto assign( const DenseVector<VT,true>& rhs ) -> DisableIf_t< VectorizedAssign_v<VT> >;
 
    template< typename VT >
-   inline EnableIf_< VectorizedAssign<VT> > assign( const DenseVector<VT,true>& rhs );
+   inline auto assign( const DenseVector<VT,true>& rhs ) -> EnableIf_t< VectorizedAssign_v<VT> >;
 
    template< typename VT > inline void assign( const SparseVector<VT,true>& rhs );
 
    template< typename VT >
-   inline DisableIf_< VectorizedAddAssign<VT> > addAssign( const DenseVector<VT,true>& rhs );
+   inline auto addAssign( const DenseVector<VT,true>& rhs ) -> DisableIf_t< VectorizedAddAssign_v<VT> >;
 
    template< typename VT >
-   inline EnableIf_< VectorizedAddAssign<VT> > addAssign( const DenseVector<VT,true>& rhs );
+   inline auto addAssign( const DenseVector<VT,true>& rhs ) -> EnableIf_t< VectorizedAddAssign_v<VT> >;
 
    template< typename VT > inline void addAssign( const SparseVector<VT,true>& rhs );
 
    template< typename VT >
-   inline DisableIf_< VectorizedSubAssign<VT> > subAssign( const DenseVector<VT,true>& rhs );
+   inline auto subAssign( const DenseVector<VT,true>& rhs ) -> DisableIf_t< VectorizedSubAssign_v<VT> >;
 
    template< typename VT >
-   inline EnableIf_< VectorizedSubAssign<VT> > subAssign( const DenseVector<VT,true>& rhs );
+   inline auto subAssign( const DenseVector<VT,true>& rhs ) -> EnableIf_t< VectorizedSubAssign_v<VT> >;
 
    template< typename VT > inline void subAssign( const SparseVector<VT,true>& rhs );
 
    template< typename VT >
-   inline DisableIf_< VectorizedMultAssign<VT> > multAssign( const DenseVector<VT,true>& rhs );
+   inline auto multAssign( const DenseVector<VT,true>& rhs ) -> DisableIf_t< VectorizedMultAssign_v<VT> >;
 
    template< typename VT >
-   inline EnableIf_< VectorizedMultAssign<VT> > multAssign( const DenseVector<VT,true>& rhs );
+   inline auto multAssign( const DenseVector<VT,true>& rhs ) -> EnableIf_t< VectorizedMultAssign_v<VT> >;
 
    template< typename VT > inline void multAssign( const SparseVector<VT,true>& rhs );
 
    template< typename VT >
-   inline DisableIf_< VectorizedDivAssign<VT> > divAssign( const DenseVector<VT,true>& rhs );
+   inline auto divAssign( const DenseVector<VT,true>& rhs ) -> DisableIf_t< VectorizedDivAssign_v<VT> >;
 
    template< typename VT >
-   inline EnableIf_< VectorizedDivAssign<VT> > divAssign( const DenseVector<VT,true>& rhs );
+   inline auto divAssign( const DenseVector<VT,true>& rhs ) -> EnableIf_t< VectorizedDivAssign_v<VT> >;
    //@}
    //**********************************************************************************************
 
@@ -360,37 +368,12 @@ class Row<MT,true,true,SF>
    //**Member variables****************************************************************************
    /*!\name Member variables */
    //@{
-   Operand      matrix_;  //!< The dense matrix containing the row.
-   const size_t row_;     //!< The index of the row in the matrix.
+   Operand matrix_;  //!< The matrix containing the row.
    //@}
    //**********************************************************************************************
 
    //**Friend declarations*************************************************************************
-   template< typename MT2, bool SO2, bool DF2, bool SF2 > friend class Row;
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2 >
-   friend bool isIntact( const Row<MT2,SO2,DF2,SF2>& row ) noexcept;
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2 >
-   friend bool isSame( const Row<MT2,SO2,DF2,SF2>& a, const Row<MT2,SO2,DF2,SF2>& b ) noexcept;
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2, typename VT >
-   friend bool tryAssign( const Row<MT2,SO2,DF2,SF2>& lhs, const Vector<VT,true>& rhs, size_t index );
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2, typename VT >
-   friend bool tryAddAssign( const Row<MT2,SO2,DF2,SF2>& lhs, const Vector<VT,true>& rhs, size_t index );
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2, typename VT >
-   friend bool trySubAssign( const Row<MT2,SO2,DF2,SF2>& lhs, const Vector<VT,true>& rhs, size_t index );
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2, typename VT >
-   friend bool tryMultAssign( const Row<MT2,SO2,DF2,SF2>& lhs, const Vector<VT,true>& rhs, size_t index );
-
-   template< typename MT2, bool SO2, bool DF2,bool SF2, typename VT >
-   friend bool tryDivAssign( const Row<MT2,SO2,DF2,SF2>& lhs, const Vector<VT,true>& rhs, size_t index );
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2 >
-   friend DerestrictTrait_< Row<MT2,SO2,DF2,SF2> > derestrict( Row<MT2,SO2,DF2,SF2>& row );
+   template< typename MT2, bool SO2, bool DF2, bool SF2, size_t... CRAs2 > friend class Row;
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************
@@ -398,6 +381,7 @@ class Row<MT,true,true,SF>
    BLAZE_CONSTRAINT_MUST_BE_ROW_MAJOR_MATRIX_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_COMPUTATION_TYPE ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_TRANSEXPR_TYPE   ( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_SUBMATRIX_TYPE   ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_POINTER_TYPE     ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_REFERENCE_TYPE   ( MT );
    //**********************************************************************************************
@@ -410,26 +394,38 @@ class Row<MT,true,true,SF>
 
 //=================================================================================================
 //
-//  CONSTRUCTOR
+//  CONSTRUCTORS
 //
 //=================================================================================================
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief The constructor for Row.
+/*!\brief Constructor for rows on row-major dense matrices.
 //
 // \param matrix The matrix containing the row.
-// \param index The index of the row.
+// \param args The runtime row arguments.
 // \exception std::invalid_argument Invalid row access index.
+//
+// By default, the provided row arguments are checked at runtime. In case the row is not properly
+// specified (i.e. if the specified index is greater than the number of rows of the given matrix)
+// a \a std::invalid_argument exception is thrown. The checks can be skipped by providing the
+// optional \a blaze::unchecked argument.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline Row<MT,true,true,SF>::Row( Operand matrix, size_t index )
-   : matrix_( matrix )  // The dense matrix containing the row
-   , row_   ( index  )  // The index of the row in the matrix
+template< typename MT         // Type of the dense matrix
+        , bool SF             // Symmetry flag
+        , size_t... CRAs >    // Compile time row arguments
+template< typename... RRAs >  // Runtime row arguments
+inline Row<MT,true,true,SF,CRAs...>::Row( MT& matrix, RRAs... args )
+   : DataType( args... )  // Base class initialization
+   , matrix_ ( matrix  )  // The matrix containing the row
 {
-   if( matrix_.rows() <= index ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid row access index" );
+   if( !Contains_v< TypeList<RRAs...>, Unchecked > ) {
+      if( matrix_.rows() <= row() ) {
+         BLAZE_THROW_INVALID_ARGUMENT( "Invalid row access index" );
+      }
+   }
+   else {
+      BLAZE_USER_ASSERT( row() < matrix_.rows(), "Invalid row access index" );
    }
 }
 /*! \endcond */
@@ -454,12 +450,14 @@ inline Row<MT,true,true,SF>::Row( Operand matrix, size_t index )
 // This function only performs an index check in case BLAZE_USER_ASSERT() is active. In contrast,
 // the at() function is guaranteed to perform a check of the given access index.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline typename Row<MT,true,true,SF>::Reference Row<MT,true,true,SF>::operator[]( size_t index )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,true,true,SF,CRAs...>::Reference
+   Row<MT,true,true,SF,CRAs...>::operator[]( size_t index )
 {
    BLAZE_USER_ASSERT( index < size(), "Invalid row access index" );
-   return matrix_(row_,index);
+   return matrix_(row(),index);
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -475,13 +473,14 @@ inline typename Row<MT,true,true,SF>::Reference Row<MT,true,true,SF>::operator[]
 // This function only performs an index check in case BLAZE_USER_ASSERT() is active. In contrast,
 // the at() function is guaranteed to perform a check of the given access index.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline typename Row<MT,true,true,SF>::ConstReference
-   Row<MT,true,true,SF>::operator[]( size_t index ) const
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,true,true,SF,CRAs...>::ConstReference
+   Row<MT,true,true,SF,CRAs...>::operator[]( size_t index ) const
 {
    BLAZE_USER_ASSERT( index < size(), "Invalid row access index" );
-   return const_cast<const MT&>( matrix_ )(row_,index);
+   return const_cast<const MT&>( matrix_ )(row(),index);
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -498,9 +497,11 @@ inline typename Row<MT,true,true,SF>::ConstReference
 // In contrast to the subscript operator this function always performs a check of the given
 // access index.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline typename Row<MT,true,true,SF>::Reference Row<MT,true,true,SF>::at( size_t index )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,true,true,SF,CRAs...>::Reference
+   Row<MT,true,true,SF,CRAs...>::at( size_t index )
 {
    if( index >= size() ) {
       BLAZE_THROW_OUT_OF_RANGE( "Invalid row access index" );
@@ -522,9 +523,11 @@ inline typename Row<MT,true,true,SF>::Reference Row<MT,true,true,SF>::at( size_t
 // In contrast to the subscript operator this function always performs a check of the given
 // access index.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline typename Row<MT,true,true,SF>::ConstReference Row<MT,true,true,SF>::at( size_t index ) const
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,true,true,SF,CRAs...>::ConstReference
+   Row<MT,true,true,SF,CRAs...>::at( size_t index ) const
 {
    if( index >= size() ) {
       BLAZE_THROW_OUT_OF_RANGE( "Invalid row access index" );
@@ -544,11 +547,13 @@ inline typename Row<MT,true,true,SF>::ConstReference Row<MT,true,true,SF>::at( s
 // This function returns a pointer to the internal storage of the dense row. Note that in case
 // of a column-major matrix you can NOT assume that the row elements lie adjacent to each other!
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline typename Row<MT,true,true,SF>::Pointer Row<MT,true,true,SF>::data() noexcept
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,true,true,SF,CRAs...>::Pointer
+   Row<MT,true,true,SF,CRAs...>::data() noexcept
 {
-   return matrix_.data( row_ );
+   return matrix_.data( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -563,11 +568,13 @@ inline typename Row<MT,true,true,SF>::Pointer Row<MT,true,true,SF>::data() noexc
 // This function returns a pointer to the internal storage of the dense row. Note that in case
 // of a column-major matrix you can NOT assume that the row elements lie adjacent to each other!
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline typename Row<MT,true,true,SF>::ConstPointer Row<MT,true,true,SF>::data() const noexcept
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,true,true,SF,CRAs...>::ConstPointer
+   Row<MT,true,true,SF,CRAs...>::data() const noexcept
 {
-   return matrix_.data( row_ );
+   return matrix_.data( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -581,11 +588,13 @@ inline typename Row<MT,true,true,SF>::ConstPointer Row<MT,true,true,SF>::data() 
 //
 // This function returns an iterator to the first element of the row.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline typename Row<MT,true,true,SF>::Iterator Row<MT,true,true,SF>::begin()
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,true,true,SF,CRAs...>::Iterator
+   Row<MT,true,true,SF,CRAs...>::begin()
 {
-   return matrix_.begin( row_ );
+   return matrix_.begin( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -599,11 +608,13 @@ inline typename Row<MT,true,true,SF>::Iterator Row<MT,true,true,SF>::begin()
 //
 // This function returns an iterator to the first element of the row.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline typename Row<MT,true,true,SF>::ConstIterator Row<MT,true,true,SF>::begin() const
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,true,true,SF,CRAs...>::ConstIterator
+   Row<MT,true,true,SF,CRAs...>::begin() const
 {
-   return matrix_.cbegin( row_ );
+   return matrix_.cbegin( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -617,11 +628,13 @@ inline typename Row<MT,true,true,SF>::ConstIterator Row<MT,true,true,SF>::begin(
 //
 // This function returns an iterator to the first element of the row.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline typename Row<MT,true,true,SF>::ConstIterator Row<MT,true,true,SF>::cbegin() const
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,true,true,SF,CRAs...>::ConstIterator
+   Row<MT,true,true,SF,CRAs...>::cbegin() const
 {
-   return matrix_.cbegin( row_ );
+   return matrix_.cbegin( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -635,11 +648,13 @@ inline typename Row<MT,true,true,SF>::ConstIterator Row<MT,true,true,SF>::cbegin
 //
 // This function returns an iterator just past the last element of the row.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline typename Row<MT,true,true,SF>::Iterator Row<MT,true,true,SF>::end()
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,true,true,SF,CRAs...>::Iterator
+   Row<MT,true,true,SF,CRAs...>::end()
 {
-   return matrix_.end( row_ );
+   return matrix_.end( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -653,11 +668,13 @@ inline typename Row<MT,true,true,SF>::Iterator Row<MT,true,true,SF>::end()
 //
 // This function returns an iterator just past the last element of the row.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline typename Row<MT,true,true,SF>::ConstIterator Row<MT,true,true,SF>::end() const
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,true,true,SF,CRAs...>::ConstIterator
+   Row<MT,true,true,SF,CRAs...>::end() const
 {
-   return matrix_.cend( row_ );
+   return matrix_.cend( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -671,11 +688,13 @@ inline typename Row<MT,true,true,SF>::ConstIterator Row<MT,true,true,SF>::end() 
 //
 // This function returns an iterator just past the last element of the row.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline typename Row<MT,true,true,SF>::ConstIterator Row<MT,true,true,SF>::cend() const
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,true,true,SF,CRAs...>::ConstIterator
+   Row<MT,true,true,SF,CRAs...>::cend() const
 {
-   return matrix_.cend( row_ );
+   return matrix_.cend( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -700,23 +719,29 @@ inline typename Row<MT,true,true,SF>::ConstIterator Row<MT,true,true,SF>::cend()
 // case the underlying dense matrix is a lower/upper matrix only lower/upper and diagonal elements
 // of the underlying matrix are modified.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator=( const ElementType& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline Row<MT,true,true,SF,CRAs...>&
+   Row<MT,true,true,SF,CRAs...>::operator=( const ElementType& rhs )
 {
-   const size_t jbegin( ( IsUpper<MT>::value )
-                        ?( ( IsUniUpper<MT>::value || IsStrictlyUpper<MT>::value )
-                           ?( row_+1UL )
-                           :( row_ ) )
+   decltype(auto) left( derestrict( matrix_ ) );
+
+   const size_t jbegin( ( IsUpper_v<MT> )
+                        ?( ( IsUniUpper_v<MT> || IsStrictlyUpper_v<MT> )
+                           ?( row()+1UL )
+                           :( row() ) )
                         :( 0UL ) );
-   const size_t jend  ( ( IsLower<MT>::value )
-                        ?( ( IsUniLower<MT>::value || IsStrictlyLower<MT>::value )
-                           ?( row_ )
-                           :( row_+1UL ) )
+   const size_t jend  ( ( IsLower_v<MT> )
+                        ?( ( IsUniLower_v<MT> || IsStrictlyLower_v<MT> )
+                           ?( row() )
+                           :( row()+1UL ) )
                         :( size() ) );
 
-   for( size_t j=jbegin; j<jend; ++j )
-      matrix_(row_,j) = rhs;
+   for( size_t j=jbegin; j<jend; ++j ) {
+      if( !IsRestricted_v<MT> || IsTriangular_v<MT> || trySet( matrix_, row(), j, rhs ) )
+         left(row(),j) = rhs;
+   }
 
    return *this;
 }
@@ -730,22 +755,35 @@ inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator=( const ElementType&
 //
 // \param list The initializer list.
 // \exception std::invalid_argument Invalid assignment to row.
+// \exception std::invalid_argument Invalid assignment to restricted matrix.
 //
 // This assignment operator offers the option to directly assign to all elements of the dense
 // row by means of an initializer list. The row elements are assigned the values from the given
 // initializer list. Missing values are reset to their default state. Note that in case the size
 // of the initializer list exceeds the size of the row, a \a std::invalid_argument exception is
-// thrown.
+// thrown. Also, if the underlying matrix \a MT is restricted and the assignment would violate
+// an invariant of the matrix, a \a std::invalid_argument exception is thrown.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator=( initializer_list<ElementType> list )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline Row<MT,true,true,SF,CRAs...>&
+   Row<MT,true,true,SF,CRAs...>::operator=( initializer_list<ElementType> list )
 {
    if( list.size() > size() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to row" );
    }
 
-   std::fill( std::copy( list.begin(), list.end(), begin() ), end(), ElementType() );
+   if( IsRestricted_v<MT> ) {
+      const InitializerVector<ElementType,true> tmp( list, size() );
+      if( !tryAssign( matrix_, tmp, row(), 0UL ) ) {
+         BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
+      }
+   }
+
+   decltype(auto) left( derestrict( *this ) );
+
+   std::fill( std::copy( list.begin(), list.end(), left.begin() ), left.end(), ElementType() );
 
    BLAZE_INTERNAL_ASSERT( isIntact( matrix_ ), "Invariant violation detected" );
 
@@ -769,9 +807,11 @@ inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator=( initializer_list<E
 // assignment would violate its lower or upper property, respectively, a \a std::invalid_argument
 // exception is thrown.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator=( const Row& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline Row<MT,true,true,SF,CRAs...>&
+   Row<MT,true,true,SF,CRAs...>::operator=( const Row& rhs )
 {
    if( &rhs == this ) return *this;
 
@@ -779,13 +819,19 @@ inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator=( const Row& rhs )
       BLAZE_THROW_INVALID_ARGUMENT( "Row sizes do not match" );
    }
 
-   if( !tryAssign( matrix_, rhs, row_, 0UL ) ) {
+   if( !tryAssign( matrix_, rhs, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   smpAssign( left, rhs );
+   if( IsExpression_v<MT> && rhs.canAlias( this ) ) {
+      const ResultType tmp( rhs );
+      smpAssign( left, tmp );
+   }
+   else {
+      smpAssign( left, rhs );
+   }
 
    BLAZE_INTERNAL_ASSERT( isIntact( matrix_ ), "Invariant violation detected" );
 
@@ -809,33 +855,35 @@ inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator=( const Row& rhs )
 // assignment would violate its lower or upper property, respectively, a \a std::invalid_argument
 // exception is thrown.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side vector
-inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator=( const Vector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side vector
+inline Row<MT,true,true,SF,CRAs...>&
+   Row<MT,true,true,SF,CRAs...>::operator=( const Vector<VT,true>& rhs )
 {
-   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_<VT> );
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_<VT> );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_t<VT> );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_t<VT> );
 
    if( size() != (~rhs).size() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   typedef If_< IsRestricted<MT>, CompositeType_<VT>, const VT& >  Right;
+   using Right = If_t< IsRestricted_v<MT>, CompositeType_t<VT>, const VT& >;
    Right right( ~rhs );
 
-   if( !tryAssign( matrix_, right, row_, 0UL ) ) {
+   if( !tryAssign( matrix_, right, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   if( IsReference<Right>::value && right.canAlias( &matrix_ ) ) {
-      const ResultType_<VT> tmp( right );
+   if( IsReference_v<Right> && right.canAlias( this ) ) {
+      const ResultType_t<VT> tmp( right );
       smpAssign( left, tmp );
    }
    else {
-      if( IsSparseVector<VT>::value )
+      if( IsSparseVector_v<VT> )
          reset();
       smpAssign( left, right );
    }
@@ -862,29 +910,31 @@ inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator=( const Vector<VT,tr
 // assignment would violate its lower or upper property, respectively, a \a std::invalid_argument
 // exception is thrown.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side vector
-inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator+=( const Vector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side vector
+inline Row<MT,true,true,SF,CRAs...>&
+   Row<MT,true,true,SF,CRAs...>::operator+=( const Vector<VT,true>& rhs )
 {
-   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_<VT> );
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_<VT> );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_t<VT> );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_t<VT> );
 
    if( size() != (~rhs).size() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   typedef If_< IsRestricted<MT>, CompositeType_<VT>, const VT& >  Right;
+   using Right = If_t< IsRestricted_v<MT>, CompositeType_t<VT>, const VT& >;
    Right right( ~rhs );
 
-   if( !tryAddAssign( matrix_, right, row_, 0UL ) ) {
+   if( !tryAddAssign( matrix_, right, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   if( IsReference<Right>::value && right.canAlias( &matrix_ ) ) {
-      const ResultType_<VT> tmp( right );
+   if( IsReference_v<Right> && right.canAlias( this ) ) {
+      const ResultType_t<VT> tmp( right );
       smpAddAssign( left, tmp );
    }
    else {
@@ -913,29 +963,31 @@ inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator+=( const Vector<VT,t
 // assignment would violate its lower or upper property, respectively, a \a std::invalid_argument
 // exception is thrown.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side vector
-inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator-=( const Vector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side vector
+inline Row<MT,true,true,SF,CRAs...>&
+   Row<MT,true,true,SF,CRAs...>::operator-=( const Vector<VT,true>& rhs )
 {
-   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_<VT> );
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_<VT> );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_t<VT> );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_t<VT> );
 
    if( size() != (~rhs).size() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   typedef If_< IsRestricted<MT>, CompositeType_<VT>, const VT& >  Right;
+   using Right = If_t< IsRestricted_v<MT>, CompositeType_t<VT>, const VT& >;
    Right right( ~rhs );
 
-   if( !trySubAssign( matrix_, right, row_, 0UL ) ) {
+   if( !trySubAssign( matrix_, right, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   if( IsReference<Right>::value && right.canAlias( &matrix_ ) ) {
-      const ResultType_<VT> tmp( right );
+   if( IsReference_v<Right> && right.canAlias( this ) ) {
+      const ResultType_t<VT> tmp( right );
       smpSubAssign( left, tmp );
    }
    else {
@@ -952,10 +1004,10 @@ inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator-=( const Vector<VT,t
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Multiplication assignment operator for the multiplication of a dense vector
+/*!\brief Multiplication assignment operator for the multiplication of a vector
 //        (\f$ \vec{a}*=\vec{b} \f$).
 //
-// \param rhs The right-hand side dense vector to be multiplied with the dense row.
+// \param rhs The right-hand side vector to be multiplied with the dense row.
 // \return Reference to the assigned row.
 // \exception std::invalid_argument Vector sizes do not match.
 // \exception std::invalid_argument Invalid assignment to restricted matrix.
@@ -963,78 +1015,36 @@ inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator-=( const Vector<VT,t
 // In case the current sizes of the two vectors don't match, a \a std::invalid_argument exception
 // is thrown.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side dense vector
-inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator*=( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side vector
+inline Row<MT,true,true,SF,CRAs...>&
+   Row<MT,true,true,SF,CRAs...>::operator*=( const Vector<VT,true>& rhs )
 {
-   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_<VT> );
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_<VT> );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_t<VT> );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_t<VT> );
 
    if( size() != (~rhs).size() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   typedef If_< IsRestricted<MT>, CompositeType_<VT>, const VT& >  Right;
+   using Right = If_t< IsRestricted_v<MT>, CompositeType_t<VT>, const VT& >;
    Right right( ~rhs );
 
-   if( !tryMultAssign( matrix_, right, row_, 0UL ) ) {
+   if( !tryMultAssign( matrix_, right, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   if( IsReference<Right>::value && right.canAlias( &matrix_ ) ) {
-      const ResultType_<VT> tmp( right );
+   if( IsReference_v<Right> && right.canAlias( this ) ) {
+      const ResultType_t<VT> tmp( right );
       smpMultAssign( left, tmp );
    }
    else {
       smpMultAssign( left, right );
    }
-
-   BLAZE_INTERNAL_ASSERT( isIntact( matrix_ ), "Invariant violation detected" );
-
-   return *this;
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Multiplication assignment operator for the multiplication of a sparse vector
-//        (\f$ \vec{a}*=\vec{b} \f$).
-//
-// \param rhs The right-hand side sparse vector to be multiplied with the dense row.
-// \return Reference to the assigned row.
-// \exception std::invalid_argument Vector sizes do not match.
-// \exception std::invalid_argument Invalid assignment to restricted matrix.
-//
-// In case the current sizes of the two vectors don't match, a \a std::invalid_argument exception
-// is thrown.
-*/
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side sparse vector
-inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator*=( const SparseVector<VT,true>& rhs )
-{
-   BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE  ( ResultType );
-   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType );
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType );
-
-   if( size() != (~rhs).size() ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
-   }
-
-   const ResultType right( *this * (~rhs) );
-
-   if( !tryAssign( matrix_, right, row_, 0UL ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
-   }
-
-   DerestrictTrait_<This> left( derestrict( *this ) );
-
-   smpAssign( left, right );
 
    BLAZE_INTERNAL_ASSERT( isIntact( matrix_ ), "Invariant violation detected" );
 
@@ -1056,29 +1066,31 @@ inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator*=( const SparseVecto
 // In case the current sizes of the two vectors don't match, a \a std::invalid_argument exception
 // is thrown.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side dense vector
-inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator/=( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline Row<MT,true,true,SF,CRAs...>&
+   Row<MT,true,true,SF,CRAs...>::operator/=( const DenseVector<VT,true>& rhs )
 {
-   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_<VT> );
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_<VT> );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_t<VT> );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_t<VT> );
 
    if( size() != (~rhs).size() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   typedef If_< IsRestricted<MT>, CompositeType_<VT>, const VT& >  Right;
+   using Right = If_t< IsRestricted_v<MT>, CompositeType_t<VT>, const VT& >;
    Right right( ~rhs );
 
-   if( !tryDivAssign( matrix_, right, row_, 0UL ) ) {
+   if( !tryDivAssign( matrix_, right, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   if( IsReference<Right>::value && right.canAlias( &matrix_ ) ) {
-      const ResultType_<VT> tmp( right );
+   if( IsReference_v<Right> && right.canAlias( this ) ) {
+      const ResultType_t<VT> tmp( right );
       smpDivAssign( left, tmp );
    }
    else {
@@ -1095,53 +1107,52 @@ inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::operator/=( const DenseVector
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Multiplication assignment operator for the multiplication between a dense row and
-//        a scalar value (\f$ \vec{a}*=s \f$).
+/*!\brief Cross product assignment operator for the multiplication of a vector
+//        (\f$ \vec{a}\times=\vec{b} \f$).
 //
-// \param rhs The right-hand side scalar value for the multiplication.
-// \return Reference to the vector.
+// \param rhs The right-hand side vector for the cross product.
+// \return Reference to the assigned row.
+// \exception std::invalid_argument Invalid vector size for cross product.
+// \exception std::invalid_argument Invalid assignment to restricted matrix.
 //
-// This operator cannot be used for rows on lower or upper unitriangular matrices. The attempt
-// to scale such a row results in a compilation error!
+// In case the current size of any of the two vectors is not equal to 3, a \a std::invalid_argument
+// exception is thrown.
 */
 template< typename MT       // Type of the dense matrix
-        , bool SF >         // Symmetry flag
-template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_< IsNumeric<Other>, Row<MT,true,true,SF> >&
-   Row<MT,true,true,SF>::operator*=( Other rhs )
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side vector
+inline Row<MT,true,true,SF,CRAs...>&
+   Row<MT,true,true,SF,CRAs...>::operator%=( const Vector<VT,true>& rhs )
 {
-   BLAZE_CONSTRAINT_MUST_NOT_BE_UNITRIANGULAR_MATRIX_TYPE( MT );
+   using blaze::assign;
 
-   return operator=( (*this) * rhs );
-}
-/*! \endcond */
-//*************************************************************************************************
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_t<VT> );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_t<VT> );
 
+   using CrossType = CrossTrait_t< ResultType, ResultType_t<VT> >;
 
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Division assignment operator for the division of a dense row by a scalar value
-//        (\f$ \vec{a}/=s \f$).
-//
-// \param rhs The right-hand side scalar value for the division.
-// \return Reference to the vector.
-//
-// This operator cannot be used for rows on lower or upper unitriangular matrices. The attempt
-// to scale such a row results in a compilation error!
-//
-// \note A division by zero is only checked by an user assert.
-*/
-template< typename MT       // Type of the dense matrix
-        , bool SF >         // Symmetry flag
-template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_< IsNumeric<Other>, Row<MT,true,true,SF> >&
-   Row<MT,true,true,SF>::operator/=( Other rhs )
-{
-   BLAZE_CONSTRAINT_MUST_NOT_BE_UNITRIANGULAR_MATRIX_TYPE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE  ( CrossType );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( CrossType );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( CrossType );
 
-   BLAZE_USER_ASSERT( rhs != Other(0), "Division by zero detected" );
+   if( size() != 3UL || (~rhs).size() != 3UL ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid vector size for cross product" );
+   }
 
-   return operator=( (*this) / rhs );
+   const CrossType right( *this % (~rhs) );
+
+   if( !tryAssign( matrix_, right, row(), 0UL ) ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
+   }
+
+   decltype(auto) left( derestrict( *this ) );
+
+   assign( left, right );
+
+   BLAZE_INTERNAL_ASSERT( isIntact( matrix_ ), "Invariant violation detected" );
+
+   return *this;
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1157,13 +1168,48 @@ inline EnableIf_< IsNumeric<Other>, Row<MT,true,true,SF> >&
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
+/*!\brief Returns the matrix containing the row.
+//
+// \return The matrix containing the row.
+*/
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline MT& Row<MT,true,true,SF,CRAs...>::operand() noexcept
+{
+   return matrix_;
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Returns the matrix containing the row.
+//
+// \return The matrix containing the row.
+*/
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline const MT& Row<MT,true,true,SF,CRAs...>::operand() const noexcept
+{
+   return matrix_;
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
 /*!\brief Returns the current size/dimension of the row.
 //
 // \return The size of the row.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline size_t Row<MT,true,true,SF>::size() const noexcept
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline size_t Row<MT,true,true,SF,CRAs...>::size() const noexcept
 {
    return matrix_.columns();
 }
@@ -1173,15 +1219,36 @@ inline size_t Row<MT,true,true,SF>::size() const noexcept
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
+/*!\brief Returns the minimum capacity of the row.
+//
+// \return The minimum capacity of the row.
+//
+// This function returns the minimum capacity of the row, which corresponds to the current size
+// plus padding.
+*/
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline size_t Row<MT,true,true,SF,CRAs...>::spacing() const noexcept
+{
+   return matrix_.spacing();
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
 /*!\brief Returns the maximum capacity of the dense row.
 //
-// \return The capacity of the dense row.
+// \return The maximum capacity of the dense row.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline size_t Row<MT,true,true,SF>::capacity() const noexcept
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline size_t Row<MT,true,true,SF,CRAs...>::capacity() const noexcept
 {
-   return matrix_.capacity( row_ );
+   return matrix_.capacity( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1196,11 +1263,12 @@ inline size_t Row<MT,true,true,SF>::capacity() const noexcept
 // Note that the number of non-zero elements is always less than or equal to the current number
 // of columns of the matrix containing the row.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline size_t Row<MT,true,true,SF>::nonZeros() const
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline size_t Row<MT,true,true,SF,CRAs...>::nonZeros() const
 {
-   return matrix_.nonZeros( row_ );
+   return matrix_.nonZeros( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1212,15 +1280,24 @@ inline size_t Row<MT,true,true,SF>::nonZeros() const
 //
 // \return void
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline void Row<MT,true,true,SF>::reset()
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline void Row<MT,true,true,SF,CRAs...>::reset()
 {
-   matrix_.reset( row_ );
+   matrix_.reset( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
 
+
+
+
+//=================================================================================================
+//
+//  NUMERIC FUNCTIONS
+//
+//=================================================================================================
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
@@ -1229,30 +1306,34 @@ inline void Row<MT,true,true,SF>::reset()
 // \param scalar The scalar value for the row scaling.
 // \return Reference to the dense row.
 //
-// This function scales all elements of the row by the given scalar value \a scalar. Note that
-// the function cannot be used to scale a row on a lower or upper unitriangular matrix. The
-// attempt to scale such a row results in a compile time error!
+// This function scales the row by applying the given scalar value \a scalar to each element
+// of the row. For built-in and \c complex data types it has the same effect as using the
+// multiplication assignment operator. Note that the function cannot be used to scale a row
+// on a lower or upper unitriangular matrix. The attempt to scale such a row results in a
+// compile time error!
 */
 template< typename MT       // Type of the dense matrix
-        , bool SF >         // Symmetry flag
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
 template< typename Other >  // Data type of the scalar value
-inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::scale( const Other& scalar )
+inline Row<MT,true,true,SF,CRAs...>&
+   Row<MT,true,true,SF,CRAs...>::scale( const Other& scalar )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_UNITRIANGULAR_MATRIX_TYPE( MT );
 
-   const size_t jbegin( ( IsUpper<MT>::value )
-                        ?( ( IsStrictlyUpper<MT>::value )
-                           ?( row_+1UL )
-                           :( row_ ) )
+   const size_t jbegin( ( IsUpper_v<MT> )
+                        ?( ( IsStrictlyUpper_v<MT> )
+                           ?( row()+1UL )
+                           :( row() ) )
                         :( 0UL ) );
-   const size_t jend  ( ( IsLower<MT>::value )
-                        ?( ( IsStrictlyLower<MT>::value )
-                           ?( row_ )
-                           :( row_+1UL ) )
+   const size_t jend  ( ( IsLower_v<MT> )
+                        ?( ( IsStrictlyLower_v<MT> )
+                           ?( row() )
+                           :( row()+1UL ) )
                         :( size() ) );
 
    for( size_t j=jbegin; j<jend; ++j ) {
-      matrix_(row_,j) *= scalar;
+      matrix_(row(),j) *= scalar;
    }
 
    return *this;
@@ -1281,11 +1362,12 @@ inline Row<MT,true,true,SF>& Row<MT,true,true,SF>::scale( const Other& scalar )
 // optimize the evaluation.
 */
 template< typename MT       // Type of the dense matrix
-        , bool SF >         // Symmetry flag
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
 template< typename Other >  // Data type of the foreign expression
-inline bool Row<MT,true,true,SF>::canAlias( const Other* alias ) const noexcept
+inline bool Row<MT,true,true,SF,CRAs...>::canAlias( const Other* alias ) const noexcept
 {
-   return matrix_.isAliased( alias );
+   return matrix_.isAliased( &unview( *alias ) );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1302,14 +1384,17 @@ inline bool Row<MT,true,true,SF>::canAlias( const Other* alias ) const noexcept
 // to the isAliased() function this function is allowed to use compile time expressions to
 // optimize the evaluation.
 */
-template< typename MT   // Type of the dense matrix
-        , bool SF >     // Symmetry flag
-template< typename MT2  // Data type of the foreign dense row
-        , bool SO2      // Storage order of the foreign dense row
-        , bool SF2 >    // Symmetry flag of the foreign dense row
-inline bool Row<MT,true,true,SF>::canAlias( const Row<MT2,SO2,true,SF2>* alias ) const noexcept
+template< typename MT        // Type of the dense matrix
+        , bool SF            // Symmetry flag
+        , size_t... CRAs >   // Compile time row arguments
+template< typename MT2       // Data type of the foreign dense row
+        , bool SO2           // Storage order of the foreign dense row
+        , bool SF2           // Symmetry flag of the foreign dense row
+        , size_t... CRAs2 >  // Compile time row arguments of the foreign dense row
+inline bool
+   Row<MT,true,true,SF,CRAs...>::canAlias( const Row<MT2,SO2,true,SF2,CRAs2...>* alias ) const noexcept
 {
-   return matrix_.isAliased( &alias->matrix_ ) && ( row_ == alias->row_ );
+   return matrix_.isAliased( &alias->matrix_ ) && ( row() == alias->row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1327,11 +1412,12 @@ inline bool Row<MT,true,true,SF>::canAlias( const Row<MT2,SO2,true,SF2>* alias )
 // optimize the evaluation.
 */
 template< typename MT       // Type of the dense matrix
-        , bool SF >         // Symmetry flag
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
 template< typename Other >  // Data type of the foreign expression
-inline bool Row<MT,true,true,SF>::isAliased( const Other* alias ) const noexcept
+inline bool Row<MT,true,true,SF,CRAs...>::isAliased( const Other* alias ) const noexcept
 {
-   return matrix_.isAliased( alias );
+   return matrix_.isAliased( &unview( *alias ) );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1348,14 +1434,17 @@ inline bool Row<MT,true,true,SF>::isAliased( const Other* alias ) const noexcept
 // to the canAlias() function this function is not allowed to use compile time expressions to
 // optimize the evaluation.
 */
-template< typename MT   // Type of the dense matrix
-        , bool SF >     // Symmetry flag
-template< typename MT2  // Data type of the foreign dense row
-        , bool SO2      // Storage order of the foreign dense row
-        , bool SF2 >    // Symmetry flag of the foreign dense row
-inline bool Row<MT,true,true,SF>::isAliased( const Row<MT2,SO2,true,SF2>* alias ) const noexcept
+template< typename MT        // Type of the dense matrix
+        , bool SF            // Symmetry flag
+        , size_t... CRAs >   // Compile time row arguments
+template< typename MT2       // Data type of the foreign dense row
+        , bool SO2           // Storage order of the foreign dense row
+        , bool SF2           // Symmetry flag of the foreign dense row
+        , size_t... CRAs2 >  // Compile time row arguments of the foreign dense row
+inline bool
+   Row<MT,true,true,SF,CRAs...>::isAliased( const Row<MT2,SO2,true,SF2,CRAs2...>* alias ) const noexcept
 {
-   return matrix_.isAliased( &alias->matrix_ ) && ( row_ == alias->row_ );
+   return matrix_.isAliased( &alias->matrix_ ) && ( row() == alias->row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1371,9 +1460,10 @@ inline bool Row<MT,true,true,SF>::isAliased( const Row<MT2,SO2,true,SF2>* alias 
 // i.e. whether the beginning and the end of the dense row are guaranteed to conform to the
 // alignment restrictions of the element type \a Type.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline bool Row<MT,true,true,SF>::isAligned() const noexcept
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline bool Row<MT,true,true,SF,CRAs...>::isAligned() const noexcept
 {
    return matrix_.isAligned();
 }
@@ -1392,9 +1482,10 @@ inline bool Row<MT,true,true,SF>::isAligned() const noexcept
 // this function additionally provides runtime information (as for instance the current size
 // of the dense row).
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-inline bool Row<MT,true,true,SF>::canSMPAssign() const noexcept
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+inline bool Row<MT,true,true,SF,CRAs...>::canSMPAssign() const noexcept
 {
    return ( size() > SMP_DVECASSIGN_THRESHOLD );
 }
@@ -1415,12 +1506,13 @@ inline bool Row<MT,true,true,SF>::canSMPAssign() const noexcept
 // templates. Calling this function explicitly might result in erroneous results and/or in
 // compilation errors.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-BLAZE_ALWAYS_INLINE typename Row<MT,true,true,SF>::SIMDType
-   Row<MT,true,true,SF>::load( size_t index ) const noexcept
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+BLAZE_ALWAYS_INLINE typename Row<MT,true,true,SF,CRAs...>::SIMDType
+   Row<MT,true,true,SF,CRAs...>::load( size_t index ) const noexcept
 {
-   return matrix_.load( row_, index );
+   return matrix_.load( row(), index );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1439,12 +1531,13 @@ BLAZE_ALWAYS_INLINE typename Row<MT,true,true,SF>::SIMDType
 // expression templates. Calling this function explicitly might result in erroneous results
 // and/or in compilation errors.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-BLAZE_ALWAYS_INLINE typename Row<MT,true,true,SF>::SIMDType
-   Row<MT,true,true,SF>::loada( size_t index ) const noexcept
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+BLAZE_ALWAYS_INLINE typename Row<MT,true,true,SF,CRAs...>::SIMDType
+   Row<MT,true,true,SF,CRAs...>::loada( size_t index ) const noexcept
 {
-   return matrix_.loada( row_, index );
+   return matrix_.loada( row(), index );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1463,12 +1556,13 @@ BLAZE_ALWAYS_INLINE typename Row<MT,true,true,SF>::SIMDType
 // expression templates. Calling this function explicitly might result in erroneous results
 // and/or in compilation errors.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
-BLAZE_ALWAYS_INLINE typename Row<MT,true,true,SF>::SIMDType
-   Row<MT,true,true,SF>::loadu( size_t index ) const noexcept
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+BLAZE_ALWAYS_INLINE typename Row<MT,true,true,SF,CRAs...>::SIMDType
+   Row<MT,true,true,SF,CRAs...>::loadu( size_t index ) const noexcept
 {
-   return matrix_.loadu( row_, index );
+   return matrix_.loadu( row(), index );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1488,12 +1582,13 @@ BLAZE_ALWAYS_INLINE typename Row<MT,true,true,SF>::SIMDType
 // templates. Calling this function explicitly might result in erroneous results and/or in
 // compilation errors.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
 BLAZE_ALWAYS_INLINE void
-   Row<MT,true,true,SF>::store( size_t index, const SIMDType& value ) noexcept
+   Row<MT,true,true,SF,CRAs...>::store( size_t index, const SIMDType& value ) noexcept
 {
-   matrix_.store( row_, index, value );
+   matrix_.store( row(), index, value );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1513,12 +1608,13 @@ BLAZE_ALWAYS_INLINE void
 // expression templates. Calling this function explicitly might result in erroneous results
 // and/or in compilation errors.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
 BLAZE_ALWAYS_INLINE void
-   Row<MT,true,true,SF>::storea( size_t index, const SIMDType& value ) noexcept
+   Row<MT,true,true,SF,CRAs...>::storea( size_t index, const SIMDType& value ) noexcept
 {
-   matrix_.storea( row_, index, value );
+   matrix_.storea( row(), index, value );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1538,12 +1634,13 @@ BLAZE_ALWAYS_INLINE void
 // expression templates. Calling this function explicitly might result in erroneous results
 // and/or in compilation errors.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
 BLAZE_ALWAYS_INLINE void
-   Row<MT,true,true,SF>::storeu( size_t index, const SIMDType& value ) noexcept
+   Row<MT,true,true,SF,CRAs...>::storeu( size_t index, const SIMDType& value ) noexcept
 {
-   matrix_.storeu( row_, index, value );
+   matrix_.storeu( row(), index, value );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1563,12 +1660,13 @@ BLAZE_ALWAYS_INLINE void
 // expression templates. Calling this function explicitly might result in erroneous results
 // and/or in compilation errors.
 */
-template< typename MT  // Type of the dense matrix
-        , bool SF >    // Symmetry flag
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
 BLAZE_ALWAYS_INLINE void
-   Row<MT,true,true,SF>::stream( size_t index, const SIMDType& value ) noexcept
+   Row<MT,true,true,SF,CRAs...>::stream( size_t index, const SIMDType& value ) noexcept
 {
-   matrix_.stream( row_, index, value );
+   matrix_.stream( row(), index, value );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1586,21 +1684,24 @@ BLAZE_ALWAYS_INLINE void
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side dense vector
-inline DisableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedAssign<VT> >
-   Row<MT,true,true,SF>::assign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,true,true,SF,CRAs...>::assign( const DenseVector<VT,true>& rhs )
+   -> DisableIf_t< VectorizedAssign_v<VT> >
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const size_t jpos( (~rhs).size() & size_t(-2) );
+   const size_t jpos( prevMultiple( (~rhs).size(), 2UL ) );
+   BLAZE_INTERNAL_ASSERT( jpos <= (~rhs).size(), "Invalid end calculation" );
+
    for( size_t j=0UL; j<jpos; j+=2UL ) {
-      matrix_(row_,j    ) = (~rhs)[j    ];
-      matrix_(row_,j+1UL) = (~rhs)[j+1UL];
+      matrix_(row(),j    ) = (~rhs)[j    ];
+      matrix_(row(),j+1UL) = (~rhs)[j+1UL];
    }
    if( jpos < (~rhs).size() )
-      matrix_(row_,jpos) = (~rhs)[jpos];
+      matrix_(row(),jpos) = (~rhs)[jpos];
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1618,28 +1719,29 @@ inline DisableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedAssig
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side dense vector
-inline EnableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedAssign<VT> >
-   Row<MT,true,true,SF>::assign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,true,true,SF,CRAs...>::assign( const DenseVector<VT,true>& rhs )
+   -> EnableIf_t< VectorizedAssign_v<VT> >
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( ElementType );
 
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   constexpr bool remainder( !IsPadded<MT>::value || !IsPadded<VT>::value );
+   constexpr bool remainder( !IsPadded_v<MT> || !IsPadded_v<VT> );
 
    const size_t columns( size() );
 
-   const size_t jpos( ( remainder )?( columns & size_t(-SIMDSIZE) ):( columns ) );
-   BLAZE_INTERNAL_ASSERT( !remainder || ( columns - ( columns % (SIMDSIZE) ) ) == jpos, "Invalid end calculation" );
+   const size_t jpos( remainder ? prevMultiple( columns, SIMDSIZE ) : columns );
+   BLAZE_INTERNAL_ASSERT( jpos <= columns, "Invalid end calculation" );
 
    size_t j( 0UL );
    Iterator left( begin() );
-   ConstIterator_<VT> right( (~rhs).begin() );
+   ConstIterator_t<VT> right( (~rhs).begin() );
 
-   if( useStreaming && columns > ( cacheSize/( sizeof(ElementType) * 3UL ) ) && !(~rhs).isAliased( &matrix_ ) )
+   if( useStreaming && columns > ( cacheSize/( sizeof(ElementType) * 3UL ) ) && !(~rhs).isAliased( this ) )
    {
       for( ; j<jpos; j+=SIMDSIZE ) {
          left.stream( right.load() ); left += SIMDSIZE; right += SIMDSIZE;
@@ -1680,15 +1782,16 @@ inline EnableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedAssign
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side sparse vector
-inline void Row<MT,true,true,SF>::assign( const SparseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side sparse vector
+inline void Row<MT,true,true,SF,CRAs...>::assign( const SparseVector<VT,true>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   for( ConstIterator_<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
-      matrix_(row_,element->index()) = element->value();
+   for( ConstIterator_t<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
+      matrix_(row(),element->index()) = element->value();
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1706,21 +1809,24 @@ inline void Row<MT,true,true,SF>::assign( const SparseVector<VT,true>& rhs )
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side dense vector
-inline DisableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedAddAssign<VT> >
-   Row<MT,true,true,SF>::addAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,true,true,SF,CRAs...>::addAssign( const DenseVector<VT,true>& rhs )
+   -> DisableIf_t< VectorizedAddAssign_v<VT> >
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const size_t jpos( (~rhs).size() & size_t(-2) );
+   const size_t jpos( prevMultiple( (~rhs).size(), 2UL ) );
+   BLAZE_INTERNAL_ASSERT( jpos <= (~rhs).size(), "Invalid end calculation" );
+
    for( size_t j=0UL; j<jpos; j+=2UL ) {
-      matrix_(row_,j    ) += (~rhs)[j    ];
-      matrix_(row_,j+1UL) += (~rhs)[j+1UL];
+      matrix_(row(),j    ) += (~rhs)[j    ];
+      matrix_(row(),j+1UL) += (~rhs)[j+1UL];
    }
    if( jpos < (~rhs).size() )
-      matrix_(row_,jpos) += (~rhs)[jpos];
+      matrix_(row(),jpos) += (~rhs)[jpos];
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1738,26 +1844,27 @@ inline DisableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedAddAs
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side dense vector
-inline EnableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedAddAssign<VT> >
-   Row<MT,true,true,SF>::addAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,true,true,SF,CRAs...>::addAssign( const DenseVector<VT,true>& rhs )
+   -> EnableIf_t< VectorizedAddAssign_v<VT> >
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( ElementType );
 
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   constexpr bool remainder( !IsPadded<MT>::value || !IsPadded<VT>::value );
+   constexpr bool remainder( !IsPadded_v<MT> || !IsPadded_v<VT> );
 
    const size_t columns( size() );
 
-   const size_t jpos( ( remainder )?( columns & size_t(-SIMDSIZE) ):( columns ) );
-   BLAZE_INTERNAL_ASSERT( !remainder || ( columns - ( columns % (SIMDSIZE) ) ) == jpos, "Invalid end calculation" );
+   const size_t jpos( remainder ? prevMultiple( columns, SIMDSIZE ) : columns );
+   BLAZE_INTERNAL_ASSERT( jpos <= columns, "Invalid end calculation" );
 
    size_t j( 0UL );
    Iterator left( begin() );
-   ConstIterator_<VT> right( (~rhs).begin() );
+   ConstIterator_t<VT> right( (~rhs).begin() );
 
    for( ; (j+SIMDSIZE*3UL) < jpos; j+=SIMDSIZE*4UL ) {
       left.store( left.load() + right.load() ); left += SIMDSIZE; right += SIMDSIZE;
@@ -1788,15 +1895,16 @@ inline EnableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedAddAss
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side sparse vector
-inline void Row<MT,true,true,SF>::addAssign( const SparseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side sparse vector
+inline void Row<MT,true,true,SF,CRAs...>::addAssign( const SparseVector<VT,true>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   for( ConstIterator_<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
-      matrix_(row_,element->index()) += element->value();
+   for( ConstIterator_t<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
+      matrix_(row(),element->index()) += element->value();
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1814,21 +1922,24 @@ inline void Row<MT,true,true,SF>::addAssign( const SparseVector<VT,true>& rhs )
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side dense vector
-inline DisableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedSubAssign<VT> >
-   Row<MT,true,true,SF>::subAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,true,true,SF,CRAs...>::subAssign( const DenseVector<VT,true>& rhs )
+   -> DisableIf_t< VectorizedSubAssign_v<VT> >
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const size_t jpos( (~rhs).size() & size_t(-2) );
+   const size_t jpos( prevMultiple( (~rhs).size(), 2UL ) );
+   BLAZE_INTERNAL_ASSERT( jpos <= (~rhs).size(), "Invalid end calculation" );
+
    for( size_t j=0UL; j<jpos; j+=2UL ) {
-      matrix_(row_,j    ) -= (~rhs)[j    ];
-      matrix_(row_,j+1UL) -= (~rhs)[j+1UL];
+      matrix_(row(),j    ) -= (~rhs)[j    ];
+      matrix_(row(),j+1UL) -= (~rhs)[j+1UL];
    }
    if( jpos < (~rhs).size() )
-      matrix_(row_,jpos) -= (~rhs)[jpos];
+      matrix_(row(),jpos) -= (~rhs)[jpos];
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1846,26 +1957,27 @@ inline DisableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedSubAs
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side dense vector
-inline EnableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedSubAssign<VT> >
-   Row<MT,true,true,SF>::subAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,true,true,SF,CRAs...>::subAssign( const DenseVector<VT,true>& rhs )
+   -> EnableIf_t< VectorizedSubAssign_v<VT> >
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( ElementType );
 
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   constexpr bool remainder( !IsPadded<MT>::value || !IsPadded<VT>::value );
+   constexpr bool remainder( !IsPadded_v<MT> || !IsPadded_v<VT> );
 
    const size_t columns( size() );
 
-   const size_t jpos( ( remainder )?( columns & size_t(-SIMDSIZE) ):( columns ) );
-   BLAZE_INTERNAL_ASSERT( !remainder || ( columns - ( columns % (SIMDSIZE) ) ) == jpos, "Invalid end calculation" );
+   const size_t jpos( remainder ? prevMultiple( columns, SIMDSIZE ) : columns );
+   BLAZE_INTERNAL_ASSERT( jpos <= columns, "Invalid end calculation" );
 
    size_t j( 0UL );
    Iterator left( begin() );
-   ConstIterator_<VT> right( (~rhs).begin() );
+   ConstIterator_t<VT> right( (~rhs).begin() );
 
    for( ; (j+SIMDSIZE*3UL) < jpos; j+=SIMDSIZE*4UL ) {
       left.store( left.load() - right.load() ); left += SIMDSIZE; right += SIMDSIZE;
@@ -1896,15 +2008,16 @@ inline EnableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedSubAss
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side sparse vector
-inline void Row<MT,true,true,SF>::subAssign( const SparseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side sparse vector
+inline void Row<MT,true,true,SF,CRAs...>::subAssign( const SparseVector<VT,true>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   for( ConstIterator_<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
-      matrix_(row_,element->index()) -= element->value();
+   for( ConstIterator_t<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
+      matrix_(row(),element->index()) -= element->value();
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1922,21 +2035,24 @@ inline void Row<MT,true,true,SF>::subAssign( const SparseVector<VT,true>& rhs )
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side dense vector
-inline DisableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedMultAssign<VT> >
-   Row<MT,true,true,SF>::multAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,true,true,SF,CRAs...>::multAssign( const DenseVector<VT,true>& rhs )
+   -> DisableIf_t< VectorizedMultAssign_v<VT> >
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const size_t jpos( (~rhs).size() & size_t(-2) );
+   const size_t jpos( prevMultiple( (~rhs).size(), 2UL ) );
+   BLAZE_INTERNAL_ASSERT( jpos <= (~rhs).size(), "Invalid end calculation" );
+
    for( size_t j=0UL; j<jpos; j+=2UL ) {
-      matrix_(row_,j    ) *= (~rhs)[j    ];
-      matrix_(row_,j+1UL) *= (~rhs)[j+1UL];
+      matrix_(row(),j    ) *= (~rhs)[j    ];
+      matrix_(row(),j+1UL) *= (~rhs)[j+1UL];
    }
    if( jpos < (~rhs).size() )
-      matrix_(row_,jpos) *= (~rhs)[jpos];
+      matrix_(row(),jpos) *= (~rhs)[jpos];
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1954,26 +2070,27 @@ inline DisableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedMultA
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side dense vector
-inline EnableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedMultAssign<VT> >
-   Row<MT,true,true,SF>::multAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,true,true,SF,CRAs...>::multAssign( const DenseVector<VT,true>& rhs )
+   -> EnableIf_t< VectorizedMultAssign_v<VT> >
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( ElementType );
 
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   constexpr bool remainder( !IsPadded<MT>::value || !IsPadded<VT>::value );
+   constexpr bool remainder( !IsPadded_v<MT> || !IsPadded_v<VT> );
 
    const size_t columns( size() );
 
-   const size_t jpos( ( remainder )?( columns & size_t(-SIMDSIZE) ):( columns ) );
-   BLAZE_INTERNAL_ASSERT( !remainder || ( columns - ( columns % (SIMDSIZE) ) ) == jpos, "Invalid end calculation" );
+   const size_t jpos( remainder ? prevMultiple( columns, SIMDSIZE ) : columns );
+   BLAZE_INTERNAL_ASSERT( jpos <= columns, "Invalid end calculation" );
 
    size_t j( 0UL );
    Iterator left( begin() );
-   ConstIterator_<VT> right( (~rhs).begin() );
+   ConstIterator_t<VT> right( (~rhs).begin() );
 
    for( ; (j+SIMDSIZE*3UL) < jpos; j+=SIMDSIZE*4UL ) {
       left.store( left.load() * right.load() ); left += SIMDSIZE; right += SIMDSIZE;
@@ -2004,19 +2121,29 @@ inline EnableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedMultAs
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side sparse vector
-inline void Row<MT,true,true,SF>::multAssign( const SparseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side sparse vector
+inline void Row<MT,true,true,SF,CRAs...>::multAssign( const SparseVector<VT,true>& rhs )
 {
+   using blaze::reset;
+
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const ResultType tmp( serial( *this ) );
+   size_t j( 0UL );
 
-   reset();
+   for( ConstIterator_t<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element ) {
+      const size_t index( element->index() );
+      for( ; j<index; ++j )
+         reset( matrix_(row(),j) );
+      matrix_(row(),j) *= element->value();
+      ++j;
+   }
 
-   for( ConstIterator_<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
-      matrix_(row_,element->index()) = tmp[element->index()] * element->value();
+   for( ; j<size(); ++j ) {
+      reset( matrix_(row(),j) );
+   }
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -2034,21 +2161,24 @@ inline void Row<MT,true,true,SF>::multAssign( const SparseVector<VT,true>& rhs )
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side dense vector
-inline DisableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedDivAssign<VT> >
-   Row<MT,true,true,SF>::divAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,true,true,SF,CRAs...>::divAssign( const DenseVector<VT,true>& rhs )
+   -> DisableIf_t< VectorizedDivAssign_v<VT> >
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const size_t jpos( (~rhs).size() & size_t(-2) );
+   const size_t jpos( prevMultiple( (~rhs).size(), 2UL ) );
+   BLAZE_INTERNAL_ASSERT( jpos <= (~rhs).size(), "Invalid end calculation" );
+
    for( size_t j=0UL; j<jpos; j+=2UL ) {
-      matrix_(row_,j    ) /= (~rhs)[j    ];
-      matrix_(row_,j+1UL) /= (~rhs)[j+1UL];
+      matrix_(row(),j    ) /= (~rhs)[j    ];
+      matrix_(row(),j+1UL) /= (~rhs)[j+1UL];
    }
    if( jpos < (~rhs).size() )
-      matrix_(row_,jpos) /= (~rhs)[jpos];
+      matrix_(row(),jpos) /= (~rhs)[jpos];
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -2066,11 +2196,12 @@ inline DisableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedDivAs
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT    // Type of the dense matrix
-        , bool SF >      // Symmetry flag
-template< typename VT >  // Type of the right-hand side dense vector
-inline EnableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedDivAssign<VT> >
-   Row<MT,true,true,SF>::divAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , bool SF           // Symmetry flag
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,true,true,SF,CRAs...>::divAssign( const DenseVector<VT,true>& rhs )
+   -> EnableIf_t< VectorizedDivAssign_v<VT> >
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( ElementType );
 
@@ -2078,12 +2209,12 @@ inline EnableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedDivAss
 
    const size_t columns( size() );
 
-   const size_t jpos( columns & size_t(-SIMDSIZE) );
-   BLAZE_INTERNAL_ASSERT( ( columns - ( columns % (SIMDSIZE) ) ) == jpos, "Invalid end calculation" );
+   const size_t jpos( prevMultiple( columns, SIMDSIZE ) );
+   BLAZE_INTERNAL_ASSERT( jpos <= columns, "Invalid end calculation" );
 
    size_t j( 0UL );
    Iterator left( begin() );
-   ConstIterator_<VT> right( (~rhs).begin() );
+   ConstIterator_t<VT> right( (~rhs).begin() );
 
    for( ; (j+SIMDSIZE*3UL) < jpos; j+=SIMDSIZE*4UL ) {
       left.store( left.load() / right.load() ); left += SIMDSIZE; right += SIMDSIZE;
@@ -2117,77 +2248,89 @@ inline EnableIf_< typename Row<MT,true,true,SF>::BLAZE_TEMPLATE VectorizedDivAss
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 /*!\brief Specialization of Row for general column-major dense matrices.
-// \ingroup dense_row
+// \ingroup row
 //
 // This specialization of Row adapts the class template to the requirements of general
 // column-major dense matrices.
 */
-template< typename MT >  // Type of the dense matrix
-class Row<MT,false,true,false>
-   : public DenseVector< Row<MT,false,true,false>, true >
-   , private View
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+class Row<MT,false,true,false,CRAs...>
+   : public View< DenseVector< Row<MT,false,true,false,CRAs...>, true > >
+   , private RowData<CRAs...>
 {
  private:
    //**Type definitions****************************************************************************
-   //! Composite data type of the dense matrix expression.
-   typedef If_< IsExpression<MT>, MT, MT& >  Operand;
+   using DataType = RowData<CRAs...>;                     //!< The type of the RowData base class.
+   using Operand  = If_t< IsExpression_v<MT>, MT, MT& >;  //!< Composite data type of the dense matrix expression.
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
-   typedef Row<MT,false,true,false>    This;           //!< Type of this Row instance.
-   typedef DenseVector<This,true>      BaseType;       //!< Base type of this Row instance.
-   typedef RowTrait_<MT>               ResultType;     //!< Result type for expression template evaluations.
-   typedef TransposeType_<ResultType>  TransposeType;  //!< Transpose type for expression template evaluations.
-   typedef ElementType_<MT>            ElementType;    //!< Type of the row elements.
-   typedef ElementType_<MT>            ReturnType;     //!< Return type for expression template evaluations
-   typedef const Row&                  CompositeType;  //!< Data type for composite expression templates.
+   //! Type of this Row instance.
+   using This = Row<MT,false,true,false,CRAs...>;
+
+   using BaseType      = DenseVector<This,true>;       //!< Base type of this Row instance.
+   using ViewedType    = MT;                           //!< The type viewed by this Row instance.
+   using ResultType    = RowTrait_t<MT,CRAs...>;       //!< Result type for expression template evaluations.
+   using TransposeType = TransposeType_t<ResultType>;  //!< Transpose type for expression template evaluations.
+   using ElementType   = ElementType_t<MT>;            //!< Type of the row elements.
+   using ReturnType    = ElementType_t<MT>;            //!< Return type for expression template evaluations
+   using CompositeType = const Row&;                   //!< Data type for composite expression templates.
 
    //! Reference to a constant row value.
-   typedef ConstReference_<MT>  ConstReference;
+   using ConstReference = ConstReference_t<MT>;
 
    //! Reference to a non-constant row value.
-   typedef If_< IsConst<MT>, ConstReference, Reference_<MT> >  Reference;
+   using Reference = If_t< IsConst_v<MT>, ConstReference, Reference_t<MT> >;
 
    //! Pointer to a constant row value.
-   typedef const ElementType*  ConstPointer;
+   using ConstPointer = ConstPointer_t<MT>;
 
    //! Pointer to a non-constant row value.
-   typedef If_< Or< IsConst<MT>, Not< HasMutableDataAccess<MT> > >, ConstPointer, ElementType* >  Pointer;
+   using Pointer = If_t< IsConst_v<MT> || !HasMutableDataAccess_v<MT>, ConstPointer, Pointer_t<MT> >;
    //**********************************************************************************************
 
    //**RowIterator class definition****************************************************************
    /*!\brief Iterator over the elements of the dense row.
    */
-   template< typename MatrixType >  // Type of the dense matrix
+   template< typename MatrixType      // Type of the dense matrix
+           , typename IteratorType >  // Type of the dense matrix iterator
    class RowIterator
    {
     public:
       //**Type definitions*************************************************************************
-      //! Return type for the access to the value of a dense element.
-      typedef If_< IsConst<MatrixType>, ConstReference_<MatrixType>, Reference_<MatrixType> >  Reference;
+      //! The iterator category.
+      using IteratorCategory = typename std::iterator_traits<IteratorType>::iterator_category;
 
-      typedef std::random_access_iterator_tag  IteratorCategory;  //!< The iterator category.
-      typedef RemoveReference_<Reference>      ValueType;         //!< Type of the underlying elements.
-      typedef ValueType*                       PointerType;       //!< Pointer return type.
-      typedef Reference                        ReferenceType;     //!< Reference return type.
-      typedef ptrdiff_t                        DifferenceType;    //!< Difference between two iterators.
+      //! Type of the underlying elements.
+      using ValueType = typename std::iterator_traits<IteratorType>::value_type;
+
+      //! Pointer return type.
+      using PointerType = typename std::iterator_traits<IteratorType>::pointer;
+
+      //! Reference return type.
+      using ReferenceType = typename std::iterator_traits<IteratorType>::reference;
+
+      //! Difference between two iterators.
+      using DifferenceType = typename std::iterator_traits<IteratorType>::difference_type;
 
       // STL iterator requirements
-      typedef IteratorCategory  iterator_category;  //!< The iterator category.
-      typedef ValueType         value_type;         //!< Type of the underlying elements.
-      typedef PointerType       pointer;            //!< Pointer return type.
-      typedef ReferenceType     reference;          //!< Reference return type.
-      typedef DifferenceType    difference_type;    //!< Difference between two iterators.
+      using iterator_category = IteratorCategory;  //!< The iterator category.
+      using value_type        = ValueType;         //!< Type of the underlying elements.
+      using pointer           = PointerType;       //!< Pointer return type.
+      using reference         = ReferenceType;     //!< Reference return type.
+      using difference_type   = DifferenceType;    //!< Difference between two iterators.
       //*******************************************************************************************
 
       //**Constructor******************************************************************************
       /*!\brief Default constructor of the RowIterator class.
       */
       inline RowIterator() noexcept
-         : matrix_( nullptr )  // The dense matrix containing the row.
-         , row_   ( 0UL )      // The current row index.
-         , column_( 0UL )      // The current column index.
+         : matrix_( nullptr )  // The dense matrix containing the row
+         , row_   ( 0UL )      // The current row index
+         , column_( 0UL )      // The current column index
+         , pos_   (     )      // Iterator to the current dense element
       {}
       //*******************************************************************************************
 
@@ -2199,10 +2342,14 @@ class Row<MT,false,true,false>
       // \param column The column index.
       */
       inline RowIterator( MatrixType& matrix, size_t row, size_t column ) noexcept
-         : matrix_( &matrix )  // The dense matrix containing the row.
-         , row_   ( row     )  // The current row index.
-         , column_( column  )  // The current column index.
-      {}
+         : matrix_( &matrix )  // The dense matrix containing the row
+         , row_   ( row     )  // The current row index
+         , column_( column  )  // The current column index
+         , pos_   (         )  // Iterator to the current dense element
+      {
+         if( column_ != matrix_->columns() )
+            pos_ = matrix_->begin( column_ ) + row_;
+      }
       //*******************************************************************************************
 
       //**Constructor******************************************************************************
@@ -2210,11 +2357,12 @@ class Row<MT,false,true,false>
       //
       // \param it The row iterator to be copied.
       */
-      template< typename MatrixType2 >
-      inline RowIterator( const RowIterator<MatrixType2>& it ) noexcept
-         : matrix_( it.matrix_ )  // The dense matrix containing the row.
-         , row_   ( it.row_    )  // The current row index.
-         , column_( it.column_ )  // The current column index.
+      template< typename MatrixType2, typename IteratorType2 >
+      inline RowIterator( const RowIterator<MatrixType2,IteratorType2>& it ) noexcept
+         : matrix_( it.matrix_ )  // The dense matrix containing the row
+         , row_   ( it.row_    )  // The current row index
+         , column_( it.column_ )  // The current column index
+         , pos_   ( it.pos_    )  // Iterator to the current dense element
       {}
       //*******************************************************************************************
 
@@ -2225,7 +2373,11 @@ class Row<MT,false,true,false>
       // \return The incremented iterator.
       */
       inline RowIterator& operator+=( size_t inc ) noexcept {
+         using blaze::reset;
          column_ += inc;
+         if( column_ != matrix_->columns() )
+            pos_ = matrix_->begin( column_ ) + row_;
+         else reset( pos_ );
          return *this;
       }
       //*******************************************************************************************
@@ -2237,7 +2389,11 @@ class Row<MT,false,true,false>
       // \return The decremented iterator.
       */
       inline RowIterator& operator-=( size_t dec ) noexcept {
+         using blaze::reset;
          column_ -= dec;
+         if( column_ != matrix_->columns() )
+            pos_ = matrix_->begin( column_ ) + row_;
+         else reset( pos_ );
          return *this;
       }
       //*******************************************************************************************
@@ -2248,7 +2404,11 @@ class Row<MT,false,true,false>
       // \return Reference to the incremented iterator.
       */
       inline RowIterator& operator++() noexcept {
+         using blaze::reset;
          ++column_;
+         if( column_ != matrix_->columns() )
+            pos_ = matrix_->begin( column_ ) + row_;
+         else reset( pos_ );
          return *this;
       }
       //*******************************************************************************************
@@ -2271,7 +2431,11 @@ class Row<MT,false,true,false>
       // \return Reference to the decremented iterator.
       */
       inline RowIterator& operator--() noexcept {
+         using blaze::reset;
          --column_;
+         if( column_ != matrix_->columns() )
+            pos_ = matrix_->begin( column_ ) + row_;
+         else reset( pos_ );
          return *this;
       }
       //*******************************************************************************************
@@ -2295,7 +2459,9 @@ class Row<MT,false,true,false>
       // \return Reference to the accessed value.
       */
       inline ReferenceType operator[]( size_t index ) const {
-         return (*matrix_)(row_,column_+index);
+         BLAZE_USER_ASSERT( column_+index < matrix_->columns(), "Invalid access index detected" );
+         const IteratorType pos( matrix_->begin( column_+index ) + row_ );
+         return *pos;
       }
       //*******************************************************************************************
 
@@ -2305,7 +2471,7 @@ class Row<MT,false,true,false>
       // \return Reference to the current value.
       */
       inline ReferenceType operator*() const {
-         return (*matrix_)(row_,column_);
+         return *pos_;
       }
       //*******************************************************************************************
 
@@ -2315,7 +2481,7 @@ class Row<MT,false,true,false>
       // \return Pointer to the dense row element at the current iterator position.
       */
       inline PointerType operator->() const {
-         return &(*matrix_)(row_,column_);
+         return pos_;
       }
       //*******************************************************************************************
 
@@ -2325,9 +2491,9 @@ class Row<MT,false,true,false>
       // \param rhs The right-hand side row iterator.
       // \return \a true if the iterators refer to the same element, \a false if not.
       */
-      template< typename MatrixType2 >
-      inline bool operator==( const RowIterator<MatrixType2>& rhs ) const noexcept {
-         return ( matrix_ == rhs.matrix_ ) && ( row_ == rhs.row_ ) && ( column_ == rhs.column_ );
+      template< typename MatrixType2, typename IteratorType2 >
+      inline bool operator==( const RowIterator<MatrixType2,IteratorType2>& rhs ) const noexcept {
+         return column_ == rhs.column_;
       }
       //*******************************************************************************************
 
@@ -2337,8 +2503,8 @@ class Row<MT,false,true,false>
       // \param rhs The right-hand side row iterator.
       // \return \a true if the iterators don't refer to the same element, \a false if they do.
       */
-      template< typename MatrixType2 >
-      inline bool operator!=( const RowIterator<MatrixType2>& rhs ) const noexcept {
+      template< typename MatrixType2, typename IteratorType2 >
+      inline bool operator!=( const RowIterator<MatrixType2,IteratorType2>& rhs ) const noexcept {
          return !( *this == rhs );
       }
       //*******************************************************************************************
@@ -2349,9 +2515,9 @@ class Row<MT,false,true,false>
       // \param rhs The right-hand side row iterator.
       // \return \a true if the left-hand side iterator is smaller, \a false if not.
       */
-      template< typename MatrixType2 >
-      inline bool operator<( const RowIterator<MatrixType2>& rhs ) const noexcept {
-         return ( matrix_ == rhs.matrix_ ) && ( row_ == rhs.row_ ) && ( column_ < rhs.column_ );
+      template< typename MatrixType2, typename IteratorType2 >
+      inline bool operator<( const RowIterator<MatrixType2,IteratorType2>& rhs ) const noexcept {
+         return column_ < rhs.column_;
       }
       //*******************************************************************************************
 
@@ -2361,9 +2527,9 @@ class Row<MT,false,true,false>
       // \param rhs The right-hand side row iterator.
       // \return \a true if the left-hand side iterator is greater, \a false if not.
       */
-      template< typename MatrixType2 >
-      inline bool operator>( const RowIterator<MatrixType2>& rhs ) const noexcept {
-         return ( matrix_ == rhs.matrix_ ) && ( row_ == rhs.row_ ) && ( column_ > rhs.column_ );
+      template< typename MatrixType2, typename IteratorType2 >
+      inline bool operator>( const RowIterator<MatrixType2,IteratorType2>& rhs ) const noexcept {
+         return column_ > rhs.column_;
       }
       //*******************************************************************************************
 
@@ -2373,9 +2539,9 @@ class Row<MT,false,true,false>
       // \param rhs The right-hand side row iterator.
       // \return \a true if the left-hand side iterator is smaller or equal, \a false if not.
       */
-      template< typename MatrixType2 >
-      inline bool operator<=( const RowIterator<MatrixType2>& rhs ) const noexcept {
-         return ( matrix_ == rhs.matrix_ ) && ( row_ == rhs.row_ ) && ( column_ <= rhs.column_ );
+      template< typename MatrixType2, typename IteratorType2 >
+      inline bool operator<=( const RowIterator<MatrixType2,IteratorType2>& rhs ) const noexcept {
+         return column_ <= rhs.column_;
       }
       //*******************************************************************************************
 
@@ -2385,9 +2551,9 @@ class Row<MT,false,true,false>
       // \param rhs The right-hand side row iterator.
       // \return \a true if the left-hand side iterator is greater or equal, \a false if not.
       */
-      template< typename MatrixType2 >
-      inline bool operator>=( const RowIterator<MatrixType2>& rhs ) const noexcept {
-         return ( matrix_ == rhs.matrix_ ) && ( row_ == rhs.row_ ) && ( column_ >= rhs.column_ );
+      template< typename MatrixType2, typename IteratorType2 >
+      inline bool operator>=( const RowIterator<MatrixType2,IteratorType2>& rhs ) const noexcept {
+         return column_ >= rhs.column_;
       }
       //*******************************************************************************************
 
@@ -2440,43 +2606,52 @@ class Row<MT,false,true,false>
 
     private:
       //**Member variables*************************************************************************
-      MatrixType* matrix_;  //!< The dense matrix containing the row.
-      size_t      row_;     //!< The current row index.
-      size_t      column_;  //!< The current column index.
+      MatrixType*  matrix_;  //!< The dense matrix containing the row.
+      size_t       row_;     //!< The current row index.
+      size_t       column_;  //!< The current column index.
+      IteratorType pos_;     //!< Iterator to the current dense element.
       //*******************************************************************************************
 
       //**Friend declarations**********************************************************************
-      template< typename MatrixType2 > friend class RowIterator;
+      template< typename MatrixType2, typename IteratorType2 > friend class RowIterator;
       //*******************************************************************************************
    };
    //**********************************************************************************************
 
    //**Type definitions****************************************************************************
    //! Iterator over constant elements.
-   typedef RowIterator<const MT>  ConstIterator;
+   using ConstIterator = RowIterator< const MT, ConstIterator_t<MT> >;
 
    //! Iterator over non-constant elements.
-   typedef If_< IsConst<MT>, ConstIterator, RowIterator<MT> >  Iterator;
+   using Iterator = If_t< IsConst_v<MT>, ConstIterator, RowIterator< MT, Iterator_t<MT> > >;
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template evaluation strategy.
-   enum : bool { simdEnabled = false };
+   static constexpr bool simdEnabled = false;
 
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = MT::smpAssignable };
+   static constexpr bool smpAssignable = MT::smpAssignable;
+
+   //! Compilation switch for the expression template evaluation strategy.
+   static constexpr bool compileTimeArgs = DataType::compileTimeArgs;
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
    /*!\name Constructors */
    //@{
-   explicit inline Row( Operand matrix, size_t index );
-   // No explicitly declared copy constructor.
+   template< typename... RRAs >
+   explicit inline Row( MT& matrix, RRAs... args );
+
+   Row( const Row& ) = default;
    //@}
    //**********************************************************************************************
 
    //**Destructor**********************************************************************************
-   // No explicitly declared destructor.
+   /*!\name Destructor */
+   //@{
+   ~Row() = default;
+   //@}
    //**********************************************************************************************
 
    //**Data access functions***********************************************************************
@@ -2507,44 +2682,49 @@ class Row<MT,false,true,false>
    template< typename VT > inline Row& operator= ( const Vector<VT,true>& rhs );
    template< typename VT > inline Row& operator+=( const Vector<VT,true>& rhs );
    template< typename VT > inline Row& operator-=( const Vector<VT,true>& rhs );
-   template< typename VT > inline Row& operator*=( const DenseVector<VT,true>&  rhs );
-   template< typename VT > inline Row& operator*=( const SparseVector<VT,true>& rhs );
+   template< typename VT > inline Row& operator*=( const Vector<VT,true>& rhs );
    template< typename VT > inline Row& operator/=( const DenseVector<VT,true>&  rhs );
-
-   template< typename Other >
-   inline EnableIf_< IsNumeric<Other>, Row >& operator*=( Other rhs );
-
-   template< typename Other >
-   inline EnableIf_< IsNumeric<Other>, Row >& operator/=( Other rhs );
+   template< typename VT > inline Row& operator%=( const Vector<VT,true>& rhs );
    //@}
    //**********************************************************************************************
 
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-                              inline size_t size() const noexcept;
-                              inline size_t capacity() const noexcept;
-                              inline size_t nonZeros() const;
-                              inline void   reset();
-   template< typename Other > inline Row&   scale( const Other& scalar );
+   using DataType::row;
+
+   inline MT&       operand() noexcept;
+   inline const MT& operand() const noexcept;
+
+   inline size_t  size() const noexcept;
+   inline size_t  spacing() const noexcept;
+   inline size_t  capacity() const noexcept;
+   inline size_t  nonZeros() const;
+   inline void    reset();
    //@}
    //**********************************************************************************************
 
- public:
+   //**Numeric functions***************************************************************************
+   /*!\name Numeric functions */
+   //@{
+   template< typename Other > inline Row& scale( const Other& scalar );
+   //@}
+   //**********************************************************************************************
+
    //**Expression template evaluation functions****************************************************
    /*!\name Expression template evaluation functions */
    //@{
    template< typename Other >
    inline bool canAlias( const Other* alias ) const noexcept;
 
-   template< typename MT2, bool SO2, bool SF2 >
-   inline bool canAlias( const Row<MT2,SO2,true,SF2>* alias ) const noexcept;
+   template< typename MT2, bool SO2, bool SF2, size_t... CRAs2 >
+   inline bool canAlias( const Row<MT2,SO2,true,SF2,CRAs2...>* alias ) const noexcept;
 
    template< typename Other >
    inline bool isAliased( const Other* alias ) const noexcept;
 
-   template< typename MT2, bool SO2, bool SF2 >
-   inline bool isAliased( const Row<MT2,SO2,true,SF2>* alias ) const noexcept;
+   template< typename MT2, bool SO2, bool SF2, size_t... CRAs2 >
+   inline bool isAliased( const Row<MT2,SO2,true,SF2,CRAs2...>* alias ) const noexcept;
 
    inline bool isAligned   () const noexcept;
    inline bool canSMPAssign() const noexcept;
@@ -2565,37 +2745,12 @@ class Row<MT,false,true,false>
    //**Member variables****************************************************************************
    /*!\name Member variables */
    //@{
-   Operand      matrix_;  //!< The dense matrix containing the row.
-   const size_t row_;     //!< The index of the row in the matrix.
+   Operand matrix_;  //!< The matrix containing the row.
    //@}
    //**********************************************************************************************
 
    //**Friend declarations*************************************************************************
-   template< typename MT2, bool SO2, bool DF2, bool SF2 > friend class Row;
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2 >
-   friend bool isIntact( const Row<MT2,SO2,DF2,SF2>& row ) noexcept;
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2 >
-   friend bool isSame( const Row<MT2,SO2,DF2,SF2>& a, const Row<MT2,SO2,DF2,SF2>& b ) noexcept;
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2, typename VT >
-   friend bool tryAssign( const Row<MT2,SO2,DF2,SF2>& lhs, const Vector<VT,true>& rhs, size_t index );
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2, typename VT >
-   friend bool tryAddAssign( const Row<MT2,SO2,DF2,SF2>& lhs, const Vector<VT,true>& rhs, size_t index );
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2, typename VT >
-   friend bool trySubAssign( const Row<MT2,SO2,DF2,SF2>& lhs, const Vector<VT,true>& rhs, size_t index );
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2, typename VT >
-   friend bool tryMultAssign( const Row<MT2,SO2,DF2,SF2>& lhs, const Vector<VT,true>& rhs, size_t index );
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2, typename VT >
-   friend bool tryDivAssign( const Row<MT2,SO2,DF2,SF2>& lhs, const Vector<VT,true>& rhs, size_t index );
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2 >
-   friend DerestrictTrait_< Row<MT2,SO2,DF2,SF2> > derestrict( Row<MT2,SO2,DF2,SF2>& row );
+   template< typename MT2, bool SO2, bool DF2, bool SF2, size_t... CRAs2 > friend class Row;
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************
@@ -2604,6 +2759,7 @@ class Row<MT,false,true,false>
    BLAZE_CONSTRAINT_MUST_NOT_BE_SYMMETRIC_MATRIX_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_COMPUTATION_TYPE     ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_TRANSEXPR_TYPE       ( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_SUBMATRIX_TYPE       ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_POINTER_TYPE         ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_REFERENCE_TYPE       ( MT );
    //**********************************************************************************************
@@ -2616,25 +2772,37 @@ class Row<MT,false,true,false>
 
 //=================================================================================================
 //
-//  CONSTRUCTOR
+//  CONSTRUCTORS
 //
 //=================================================================================================
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief The constructor for Row.
+/*!\brief Constructor for rows on column-major dense matrices.
 //
 // \param matrix The matrix containing the row.
-// \param index The index of the row.
+// \param args The runtime row arguments.
 // \exception std::invalid_argument Invalid row access index.
+//
+// By default, the provided row arguments are checked at runtime. In case the row is not properly
+// specified (i.e. if the specified index is greater than the number of rows of the given matrix)
+// a \a std::invalid_argument exception is thrown. The checks can be skipped by providing the
+// optional \a blaze::unchecked argument.
 */
-template< typename MT >  // Type of the dense matrix
-inline Row<MT,false,true,false>::Row( Operand matrix, size_t index )
-   : matrix_( matrix )  // The dense matrix containing the row
-   , row_   ( index  )  // The index of the row in the matrix
+template< typename MT         // Type of the dense matrix
+        , size_t... CRAs >    // Compile time row arguments
+template< typename... RRAs >  // Runtime row arguments
+inline Row<MT,false,true,false,CRAs...>::Row( MT& matrix, RRAs... args )
+   : DataType( args... )  // Base class initialization
+   , matrix_ ( matrix  )  // The matrix containing the row
 {
-   if( matrix_.rows() <= index ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid row access index" );
+   if( !Contains_v< TypeList<RRAs...>, Unchecked > ) {
+      if( matrix_.rows() <= row() ) {
+         BLAZE_THROW_INVALID_ARGUMENT( "Invalid row access index" );
+      }
+   }
+   else {
+      BLAZE_USER_ASSERT( row() < matrix_.rows(), "Invalid row access index" );
    }
 }
 /*! \endcond */
@@ -2659,12 +2827,13 @@ inline Row<MT,false,true,false>::Row( Operand matrix, size_t index )
 // This function only performs an index check in case BLAZE_USER_ASSERT() is active. In contrast,
 // the at() function is guaranteed to perform a check of the given access index.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,false>::Reference
-   Row<MT,false,true,false>::operator[]( size_t index )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,false,CRAs...>::Reference
+   Row<MT,false,true,false,CRAs...>::operator[]( size_t index )
 {
    BLAZE_USER_ASSERT( index < size(), "Invalid row access index" );
-   return matrix_(row_,index);
+   return matrix_(row(),index);
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -2680,12 +2849,13 @@ inline typename Row<MT,false,true,false>::Reference
 // This function only performs an index check in case BLAZE_USER_ASSERT() is active. In contrast,
 // the at() function is guaranteed to perform a check of the given access index.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,false>::ConstReference
-   Row<MT,false,true,false>::operator[]( size_t index ) const
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,false,CRAs...>::ConstReference
+   Row<MT,false,true,false,CRAs...>::operator[]( size_t index ) const
 {
    BLAZE_USER_ASSERT( index < size(), "Invalid row access index" );
-   return const_cast<const MT&>( matrix_ )(row_,index);
+   return const_cast<const MT&>( matrix_ )(row(),index);
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -2702,9 +2872,10 @@ inline typename Row<MT,false,true,false>::ConstReference
 // In contrast to the subscript operator this function always performs a check of the given
 // access index.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,false>::Reference
-   Row<MT,false,true,false>::at( size_t index )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,false,CRAs...>::Reference
+   Row<MT,false,true,false,CRAs...>::at( size_t index )
 {
    if( index >= size() ) {
       BLAZE_THROW_OUT_OF_RANGE( "Invalid row access index" );
@@ -2726,9 +2897,10 @@ inline typename Row<MT,false,true,false>::Reference
 // In contrast to the subscript operator this function always performs a check of the given
 // access index.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,false>::ConstReference
-   Row<MT,false,true,false>::at( size_t index ) const
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,false,CRAs...>::ConstReference
+   Row<MT,false,true,false,CRAs...>::at( size_t index ) const
 {
    if( index >= size() ) {
       BLAZE_THROW_OUT_OF_RANGE( "Invalid row access index" );
@@ -2748,10 +2920,12 @@ inline typename Row<MT,false,true,false>::ConstReference
 // This function returns a pointer to the internal storage of the dense row. Note that in case
 // of a column-major matrix you can NOT assume that the row elements lie adjacent to each other!
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,false>::Pointer Row<MT,false,true,false>::data() noexcept
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,false,CRAs...>::Pointer
+   Row<MT,false,true,false,CRAs...>::data() noexcept
 {
-   return matrix_.data() + row_;
+   return matrix_.data() + row();
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -2766,10 +2940,12 @@ inline typename Row<MT,false,true,false>::Pointer Row<MT,false,true,false>::data
 // This function returns a pointer to the internal storage of the dense row. Note that in case
 // of a column-major matrix you can NOT assume that the row elements lie adjacent to each other!
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,false>::ConstPointer Row<MT,false,true,false>::data() const noexcept
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,false,CRAs...>::ConstPointer
+   Row<MT,false,true,false,CRAs...>::data() const noexcept
 {
-   return matrix_.data() + row_;
+   return matrix_.data() + row();
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -2783,10 +2959,12 @@ inline typename Row<MT,false,true,false>::ConstPointer Row<MT,false,true,false>:
 //
 // This function returns an iterator to the first element of the row.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,false>::Iterator Row<MT,false,true,false>::begin()
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,false,CRAs...>::Iterator
+   Row<MT,false,true,false,CRAs...>::begin()
 {
-   return Iterator( matrix_, row_, 0UL );
+   return Iterator( matrix_, row(), 0UL );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -2800,10 +2978,12 @@ inline typename Row<MT,false,true,false>::Iterator Row<MT,false,true,false>::beg
 //
 // This function returns an iterator to the first element of the row.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,false>::ConstIterator Row<MT,false,true,false>::begin() const
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,false,CRAs...>::ConstIterator
+   Row<MT,false,true,false,CRAs...>::begin() const
 {
-   return ConstIterator( matrix_, row_, 0UL );
+   return ConstIterator( matrix_, row(), 0UL );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -2817,10 +2997,12 @@ inline typename Row<MT,false,true,false>::ConstIterator Row<MT,false,true,false>
 //
 // This function returns an iterator to the first element of the row.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,false>::ConstIterator Row<MT,false,true,false>::cbegin() const
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,false,CRAs...>::ConstIterator
+   Row<MT,false,true,false,CRAs...>::cbegin() const
 {
-   return ConstIterator( matrix_, row_, 0UL );
+   return ConstIterator( matrix_, row(), 0UL );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -2834,10 +3016,12 @@ inline typename Row<MT,false,true,false>::ConstIterator Row<MT,false,true,false>
 //
 // This function returns an iterator just past the last element of the row.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,false>::Iterator Row<MT,false,true,false>::end()
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,false,CRAs...>::Iterator
+   Row<MT,false,true,false,CRAs...>::end()
 {
-   return Iterator( matrix_, row_, size() );
+   return Iterator( matrix_, row(), size() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -2851,10 +3035,12 @@ inline typename Row<MT,false,true,false>::Iterator Row<MT,false,true,false>::end
 //
 // This function returns an iterator just past the last element of the row.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,false>::ConstIterator Row<MT,false,true,false>::end() const
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,false,CRAs...>::ConstIterator
+   Row<MT,false,true,false,CRAs...>::end() const
 {
-   return ConstIterator( matrix_, row_, size() );
+   return ConstIterator( matrix_, row(), size() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -2868,10 +3054,12 @@ inline typename Row<MT,false,true,false>::ConstIterator Row<MT,false,true,false>
 //
 // This function returns an iterator just past the last element of the row.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,false>::ConstIterator Row<MT,false,true,false>::cend() const
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,false,CRAs...>::ConstIterator
+   Row<MT,false,true,false,CRAs...>::cend() const
 {
-   return ConstIterator( matrix_, row_, size() );
+   return ConstIterator( matrix_, row(), size() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -2896,22 +3084,28 @@ inline typename Row<MT,false,true,false>::ConstIterator Row<MT,false,true,false>
 // case the underlying dense matrix is a lower/upper matrix only lower/upper and diagonal elements
 // of the underlying matrix are modified.
 */
-template< typename MT >  // Type of the dense matrix
-inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator=( const ElementType& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline Row<MT,false,true,false,CRAs...>&
+   Row<MT,false,true,false,CRAs...>::operator=( const ElementType& rhs )
 {
-   const size_t jbegin( ( IsUpper<MT>::value )
-                        ?( ( IsUniUpper<MT>::value || IsStrictlyUpper<MT>::value )
-                           ?( row_+1UL )
-                           :( row_ ) )
+   decltype(auto) left( derestrict( matrix_ ) );
+
+   const size_t jbegin( ( IsUpper_v<MT> )
+                        ?( ( IsUniUpper_v<MT> || IsStrictlyUpper_v<MT> )
+                           ?( row()+1UL )
+                           :( row() ) )
                         :( 0UL ) );
-   const size_t jend  ( ( IsLower<MT>::value )
-                        ?( ( IsUniLower<MT>::value || IsStrictlyLower<MT>::value )
-                           ?( row_ )
-                           :( row_+1UL ) )
+   const size_t jend  ( ( IsLower_v<MT> )
+                        ?( ( IsUniLower_v<MT> || IsStrictlyLower_v<MT> )
+                           ?( row() )
+                           :( row()+1UL ) )
                         :( size() ) );
 
-   for( size_t j=jbegin; j<jend; ++j )
-      matrix_(row_,j) = rhs;
+   for( size_t j=jbegin; j<jend; ++j ) {
+      if( !IsRestricted_v<MT> || IsTriangular_v<MT> || trySet( matrix_, row(), j, rhs ) )
+         left(row(),j) = rhs;
+   }
 
    return *this;
 }
@@ -2925,22 +3119,34 @@ inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator=( const Elem
 //
 // \param list The initializer list.
 // \exception std::invalid_argument Invalid assignment to row.
+// \exception std::invalid_argument Invalid assignment to restricted matrix.
 //
 // This assignment operator offers the option to directly assign to all elements of the dense
 // row by means of an initializer list. The row elements are assigned the values from the given
 // initializer list. Missing values are reset to their default state. Note that in case the size
 // of the initializer list exceeds the size of the row, a \a std::invalid_argument exception is
-// thrown.
+// thrown. Also, if the underlying matrix \a MT is restricted and the assignment would violate
+// an invariant of the matrix, a \a std::invalid_argument exception is thrown.
 */
-template< typename MT >  // Type of the dense matrix
-inline Row<MT,false,true,false>&
-   Row<MT,false,true,false>::operator=( initializer_list<ElementType> list )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline Row<MT,false,true,false,CRAs...>&
+   Row<MT,false,true,false,CRAs...>::operator=( initializer_list<ElementType> list )
 {
    if( list.size() > size() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to row" );
    }
 
-   std::fill( std::copy( list.begin(), list.end(), begin() ), end(), ElementType() );
+   if( IsRestricted_v<MT> ) {
+      const InitializerVector<ElementType,true> tmp( list, size() );
+      if( !tryAssign( matrix_, tmp, row(), 0UL ) ) {
+         BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
+      }
+   }
+
+   decltype(auto) left( derestrict( *this ) );
+
+   std::fill( std::copy( list.begin(), list.end(), left.begin() ), left.end(), ElementType() );
 
    BLAZE_INTERNAL_ASSERT( isIntact( matrix_ ), "Invariant violation detected" );
 
@@ -2964,8 +3170,10 @@ inline Row<MT,false,true,false>&
 // assignment would violate its lower or upper property, respectively, a \a std::invalid_argument
 // exception is thrown.
 */
-template< typename MT >  // Type of the dense matrix
-inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator=( const Row& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline Row<MT,false,true,false,CRAs...>&
+   Row<MT,false,true,false,CRAs...>::operator=( const Row& rhs )
 {
    if( &rhs == this ) return *this;
 
@@ -2973,13 +3181,19 @@ inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator=( const Row&
       BLAZE_THROW_INVALID_ARGUMENT( "Row sizes do not match" );
    }
 
-   if( !tryAssign( matrix_, rhs, row_, 0UL ) ) {
+   if( !tryAssign( matrix_, rhs, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   smpAssign( left, rhs );
+   if( IsExpression_v<MT> && rhs.canAlias( this ) ) {
+      const ResultType tmp( rhs );
+      smpAssign( left, tmp );
+   }
+   else {
+      smpAssign( left, rhs );
+   }
 
    BLAZE_INTERNAL_ASSERT( isIntact( matrix_ ), "Invariant violation detected" );
 
@@ -3003,9 +3217,11 @@ inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator=( const Row&
 // assignment would violate its lower or upper property, respectively, a \a std::invalid_argument
 // exception is thrown.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side vector
-inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator=( const Vector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side vector
+inline Row<MT,false,true,false,CRAs...>&
+   Row<MT,false,true,false,CRAs...>::operator=( const Vector<VT,true>& rhs )
 {
    BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE  ( ResultType );
    BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType );
@@ -3015,21 +3231,21 @@ inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator=( const Vect
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   typedef If_< IsRestricted<MT>, CompositeType_<VT>, const VT& >  Right;
+   using Right = If_t< IsRestricted_v<MT>, CompositeType_t<VT>, const VT& >;
    Right right( ~rhs );
 
-   if( !tryAssign( matrix_, right, row_, 0UL ) ) {
+   if( !tryAssign( matrix_, right, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   if( IsReference<Right>::value && right.canAlias( &matrix_ ) ) {
+   if( IsReference_v<Right> && right.canAlias( this ) ) {
       const ResultType tmp( right );
       smpAssign( left, tmp );
    }
    else {
-      if( IsSparseVector<VT>::value )
+      if( IsSparseVector_v<VT> )
          reset();
       smpAssign( left, right );
    }
@@ -3056,28 +3272,30 @@ inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator=( const Vect
 // assignment would violate its lower or upper property, respectively, a \a std::invalid_argument
 // exception is thrown.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side vector
-inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator+=( const Vector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side vector
+inline Row<MT,false,true,false,CRAs...>&
+   Row<MT,false,true,false,CRAs...>::operator+=( const Vector<VT,true>& rhs )
 {
-   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_<VT> );
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_<VT> );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_t<VT> );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_t<VT> );
 
    if( size() != (~rhs).size() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   typedef If_< IsRestricted<MT>, CompositeType_<VT>, const VT& >  Right;
+   using Right = If_t< IsRestricted_v<MT>, CompositeType_t<VT>, const VT& >;
    Right right( ~rhs );
 
-   if( !tryAddAssign( matrix_, right, row_, 0UL ) ) {
+   if( !tryAddAssign( matrix_, right, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   if( IsReference<Right>::value && right.canAlias( &matrix_ ) ) {
-      const ResultType_<VT> tmp( right );
+   if( IsReference_v<Right> && right.canAlias( this ) ) {
+      const ResultType_t<VT> tmp( right );
       smpAddAssign( left, tmp );
    }
    else {
@@ -3106,28 +3324,30 @@ inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator+=( const Vec
 // assignment would violate its lower or upper property, respectively, a \a std::invalid_argument
 // exception is thrown.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side vector
-inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator-=( const Vector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side vector
+inline Row<MT,false,true,false,CRAs...>&
+   Row<MT,false,true,false,CRAs...>::operator-=( const Vector<VT,true>& rhs )
 {
-   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_<VT> );
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_<VT> );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_t<VT> );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_t<VT> );
 
    if( size() != (~rhs).size() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   typedef If_< IsRestricted<MT>, CompositeType_<VT>, const VT& >  Right;
+   using Right = If_t< IsRestricted_v<MT>, CompositeType_t<VT>, const VT& >;
    Right right( ~rhs );
 
-   if( !trySubAssign( matrix_, right, row_, 0UL ) ) {
+   if( !trySubAssign( matrix_, right, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   if( IsReference<Right>::value && right.canAlias( &matrix_ ) ) {
-      const ResultType_<VT> tmp( right );
+   if( IsReference_v<Right> && right.canAlias( this ) ) {
+      const ResultType_t<VT> tmp( right );
       smpSubAssign( left, tmp );
    }
    else {
@@ -3144,10 +3364,10 @@ inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator-=( const Vec
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Multiplication assignment operator for the multiplication of a dense vector
+/*!\brief Multiplication assignment operator for the multiplication of a vector
 //        (\f$ \vec{a}*=\vec{b} \f$).
 //
-// \param rhs The right-hand side dense vector to be multiplied with the dense row.
+// \param rhs The right-hand side vector to be multiplied with the dense row.
 // \return Reference to the assigned row.
 // \exception std::invalid_argument Vector sizes do not match.
 // \exception std::invalid_argument Invalid assignment to restricted matrix.
@@ -3155,76 +3375,35 @@ inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator-=( const Vec
 // In case the current sizes of the two vectors don't match, a \a std::invalid_argument exception
 // is thrown.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator*=( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side vector
+inline Row<MT,false,true,false,CRAs...>&
+   Row<MT,false,true,false,CRAs...>::operator*=( const Vector<VT,true>& rhs )
 {
-   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_<VT> );
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_<VT> );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_t<VT> );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_t<VT> );
 
    if( size() != (~rhs).size() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   typedef If_< IsRestricted<MT>, CompositeType_<VT>, const VT& >  Right;
+   using Right = If_t< IsRestricted_v<MT>, CompositeType_t<VT>, const VT& >;
    Right right( ~rhs );
 
-   if( !tryMultAssign( matrix_, right, row_, 0UL ) ) {
+   if( !tryMultAssign( matrix_, right, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   if( IsReference<Right>::value && right.canAlias( &matrix_ ) ) {
-      const ResultType_<VT> tmp( right );
+   if( IsReference_v<Right> && right.canAlias( this ) ) {
+      const ResultType_t<VT> tmp( right );
       smpMultAssign( left, tmp );
    }
    else {
       smpMultAssign( left, right );
    }
-
-   BLAZE_INTERNAL_ASSERT( isIntact( matrix_ ), "Invariant violation detected" );
-
-   return *this;
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Multiplication assignment operator for the multiplication of a sparse vector
-//        (\f$ \vec{a}*=\vec{b} \f$).
-//
-// \param rhs The right-hand side sparse vector to be multiplied with the dense row.
-// \return Reference to the assigned row.
-// \exception std::invalid_argument Vector sizes do not match.
-// \exception std::invalid_argument Invalid assignment to restricted matrix.
-//
-// In case the current sizes of the two vectors don't match, a \a std::invalid_argument exception
-// is thrown.
-*/
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side sparse vector
-inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator*=( const SparseVector<VT,true>& rhs )
-{
-   BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE  ( ResultType );
-   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType );
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType );
-
-   if( size() != (~rhs).size() ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
-   }
-
-   const ResultType right( *this * (~rhs) );
-
-   if( !tryAssign( matrix_, right, row_, 0UL ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
-   }
-
-   DerestrictTrait_<This> left( derestrict( *this ) );
-
-   smpAssign( left, right );
 
    BLAZE_INTERNAL_ASSERT( isIntact( matrix_ ), "Invariant violation detected" );
 
@@ -3246,28 +3425,30 @@ inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator*=( const Spa
 // In case the current sizes of the two vectors don't match, a \a std::invalid_argument exception
 // is thrown.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator/=( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline Row<MT,false,true,false,CRAs...>&
+   Row<MT,false,true,false,CRAs...>::operator/=( const DenseVector<VT,true>& rhs )
 {
-   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_<VT> );
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_<VT> );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_t<VT> );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_t<VT> );
 
    if( size() != (~rhs).size() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   typedef If_< IsRestricted<MT>, CompositeType_<VT>, const VT& >  Right;
+   using Right = If_t< IsRestricted_v<MT>, CompositeType_t<VT>, const VT& >;
    Right right( ~rhs );
 
-   if( !tryDivAssign( matrix_, right, row_, 0UL ) ) {
+   if( !tryDivAssign( matrix_, right, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   if( IsReference<Right>::value && right.canAlias( &matrix_ ) ) {
-      const ResultType_<VT> tmp( right );
+   if( IsReference_v<Right> && right.canAlias( this ) ) {
+      const ResultType_t<VT> tmp( right );
       smpDivAssign( left, tmp );
    }
    else {
@@ -3284,51 +3465,51 @@ inline Row<MT,false,true,false>& Row<MT,false,true,false>::operator/=( const Den
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Multiplication assignment operator for the multiplication between a dense row and
-//        a scalar value (\f$ \vec{a}*=s \f$).
+/*!\brief Cross product assignment operator for the multiplication of a vector
+//        (\f$ \vec{a}\times=\vec{b} \f$).
 //
-// \param rhs The right-hand side scalar value for the multiplication.
-// \return Reference to the vector.
+// \param rhs The right-hand side vector for the cross product.
+// \return Reference to the assigned row.
+// \exception std::invalid_argument Invalid vector size for cross product.
+// \exception std::invalid_argument Invalid assignment to restricted matrix.
 //
-// This operator cannot be used for rows on lower or upper unitriangular matrices. The attempt
-// to scale such a row results in a compilation error!
+// In case the current size of any of the two vectors is not equal to 3, a \a std::invalid_argument
+// exception is thrown.
 */
-template< typename MT >     // Type of the dense matrix
-template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_< IsNumeric<Other>, Row<MT,false,true,false> >&
-   Row<MT,false,true,false>::operator*=( Other rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side vector
+inline Row<MT,false,true,false,CRAs...>&
+   Row<MT,false,true,false,CRAs...>::operator%=( const Vector<VT,true>& rhs )
 {
-   BLAZE_CONSTRAINT_MUST_NOT_BE_UNITRIANGULAR_MATRIX_TYPE( MT );
+   using blaze::assign;
 
-   return operator=( (*this) * rhs );
-}
-/*! \endcond */
-//*************************************************************************************************
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_t<VT> );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_t<VT> );
 
+   using CrossType = CrossTrait_t< ResultType, ResultType_t<VT> >;
 
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Division assignment operator for the division of a dense row by a scalar value
-//        (\f$ \vec{a}/=s \f$).
-//
-// \param rhs The right-hand side scalar value for the division.
-// \return Reference to the vector.
-//
-// This operator cannot be used for rows on lower or upper unitriangular matrices. The attempt
-// to scale such a row results in a compilation error!
-//
-// \note A division by zero is only checked by an user assert.
-*/
-template< typename MT >     // Type of the dense matrix
-template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_< IsNumeric<Other>, Row<MT,false,true,false> >&
-   Row<MT,false,true,false>::operator/=( Other rhs )
-{
-   BLAZE_CONSTRAINT_MUST_NOT_BE_UNITRIANGULAR_MATRIX_TYPE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE  ( CrossType );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( CrossType );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( CrossType );
 
-   BLAZE_USER_ASSERT( rhs != Other(0), "Division by zero detected" );
+   if( size() != 3UL || (~rhs).size() != 3UL ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid vector size for cross product" );
+   }
 
-   return operator=( (*this) / rhs );
+   const CrossType right( *this % (~rhs) );
+
+   if( !tryAssign( matrix_, right, row(), 0UL ) ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
+   }
+
+   decltype(auto) left( derestrict( *this ) );
+
+   assign( left, right );
+
+   BLAZE_INTERNAL_ASSERT( isIntact( matrix_ ), "Invariant violation detected" );
+
+   return *this;
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -3344,12 +3525,45 @@ inline EnableIf_< IsNumeric<Other>, Row<MT,false,true,false> >&
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
+/*!\brief Returns the matrix containing the row.
+//
+// \return The matrix containing the row.
+*/
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline MT& Row<MT,false,true,false,CRAs...>::operand() noexcept
+{
+   return matrix_;
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Returns the matrix containing the row.
+//
+// \return The matrix containing the row.
+*/
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline const MT& Row<MT,false,true,false,CRAs...>::operand() const noexcept
+{
+   return matrix_;
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
 /*!\brief Returns the current size/dimension of the row.
 //
 // \return The size of the row.
 */
-template< typename MT >  // Type of the dense matrix
-inline size_t Row<MT,false,true,false>::size() const noexcept
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline size_t Row<MT,false,true,false,CRAs...>::size() const noexcept
 {
    return matrix_.columns();
 }
@@ -3359,12 +3573,32 @@ inline size_t Row<MT,false,true,false>::size() const noexcept
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
+/*!\brief Returns the minimum capacity of the row.
+//
+// \return The minimum capacity of the row.
+//
+// This function returns the minimum capacity of the row, which corresponds to the current size
+// plus padding.
+*/
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline size_t Row<MT,false,true,false,CRAs...>::spacing() const noexcept
+{
+   return matrix_.spacing();
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
 /*!\brief Returns the maximum capacity of the dense row.
 //
-// \return The capacity of the dense row.
+// \return The maximum capacity of the dense row.
 */
-template< typename MT >  // Type of the dense matrix
-inline size_t Row<MT,false,true,false>::capacity() const noexcept
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline size_t Row<MT,false,true,false,CRAs...>::capacity() const noexcept
 {
    return matrix_.columns();
 }
@@ -3381,14 +3615,15 @@ inline size_t Row<MT,false,true,false>::capacity() const noexcept
 // Note that the number of non-zero elements is always less than or equal to the current number
 // of columns of the matrix containing the row.
 */
-template< typename MT >  // Type of the dense matrix
-inline size_t Row<MT,false,true,false>::nonZeros() const
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline size_t Row<MT,false,true,false,CRAs...>::nonZeros() const
 {
    const size_t columns( size() );
    size_t nonzeros( 0UL );
 
    for( size_t j=0UL; j<columns; ++j )
-      if( !isDefault( matrix_(row_,j) ) )
+      if( !isDefault( matrix_(row(),j) ) )
          ++nonzeros;
 
    return nonzeros;
@@ -3403,28 +3638,37 @@ inline size_t Row<MT,false,true,false>::nonZeros() const
 //
 // \return void
 */
-template< typename MT >  // Type of the dense matrix
-inline void Row<MT,false,true,false>::reset()
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline void Row<MT,false,true,false,CRAs...>::reset()
 {
    using blaze::clear;
 
-   const size_t jbegin( ( IsUpper<MT>::value )
-                        ?( ( IsUniUpper<MT>::value || IsStrictlyUpper<MT>::value )
-                           ?( row_+1UL )
-                           :( row_ ) )
+   const size_t jbegin( ( IsUpper_v<MT> )
+                        ?( ( IsUniUpper_v<MT> || IsStrictlyUpper_v<MT> )
+                           ?( row()+1UL )
+                           :( row() ) )
                         :( 0UL ) );
-   const size_t jend  ( ( IsLower<MT>::value )
-                        ?( ( IsUniLower<MT>::value || IsStrictlyLower<MT>::value )
-                           ?( row_ )
-                           :( row_+1UL ) )
+   const size_t jend  ( ( IsLower_v<MT> )
+                        ?( ( IsUniLower_v<MT> || IsStrictlyLower_v<MT> )
+                           ?( row() )
+                           :( row()+1UL ) )
                         :( size() ) );
 
    for( size_t j=jbegin; j<jend; ++j )
-      clear( matrix_(row_,j) );
+      clear( matrix_(row(),j) );
 }
 /*! \endcond */
 //*************************************************************************************************
 
+
+
+
+//=================================================================================================
+//
+//  NUMERIC FUNCTIONS
+//
+//=================================================================================================
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
@@ -3433,29 +3677,33 @@ inline void Row<MT,false,true,false>::reset()
 // \param scalar The scalar value for the row scaling.
 // \return Reference to the dense row.
 //
-// This function scales all elements of the row by the given scalar value \a scalar. Note that
-// the function cannot be used to scale a row on a lower or upper unitriangular matrix. The
-// attempt to scale such a row results in a compile time error!
+// This function scales the row by applying the given scalar value \a scalar to each element
+// of the row. For built-in and \c complex data types it has the same effect as using the
+// multiplication assignment operator. Note that the function cannot be used to scale a row
+// on a lower or upper unitriangular matrix. The attempt to scale such a row results in a
+// compile time error!
 */
-template< typename MT >     // Type of the dense matrix
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
 template< typename Other >  // Data type of the scalar value
-inline Row<MT,false,true,false>& Row<MT,false,true,false>::scale( const Other& scalar )
+inline Row<MT,false,true,false,CRAs...>&
+   Row<MT,false,true,false,CRAs...>::scale( const Other& scalar )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_UNITRIANGULAR_MATRIX_TYPE( MT );
 
-   const size_t jbegin( ( IsUpper<MT>::value )
-                        ?( ( IsStrictlyUpper<MT>::value )
-                           ?( row_+1UL )
-                           :( row_ ) )
+   const size_t jbegin( ( IsUpper_v<MT> )
+                        ?( ( IsStrictlyUpper_v<MT> )
+                           ?( row()+1UL )
+                           :( row() ) )
                         :( 0UL ) );
-   const size_t jend  ( ( IsLower<MT>::value )
-                        ?( ( IsStrictlyLower<MT>::value )
-                           ?( row_ )
-                           :( row_+1UL ) )
+   const size_t jend  ( ( IsLower_v<MT> )
+                        ?( ( IsStrictlyLower_v<MT> )
+                           ?( row() )
+                           :( row()+1UL ) )
                         :( size() ) );
 
    for( size_t j=jbegin; j<jend; ++j ) {
-      matrix_(row_,j) *= scalar;
+      matrix_(row(),j) *= scalar;
    }
 
    return *this;
@@ -3483,11 +3731,12 @@ inline Row<MT,false,true,false>& Row<MT,false,true,false>::scale( const Other& s
 // to the isAliased() function this function is allowed to use compile time expressions to
 // optimize the evaluation.
 */
-template< typename MT >     // Type of the dense matrix
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
 template< typename Other >  // Data type of the foreign expression
-inline bool Row<MT,false,true,false>::canAlias( const Other* alias ) const noexcept
+inline bool Row<MT,false,true,false,CRAs...>::canAlias( const Other* alias ) const noexcept
 {
-   return matrix_.isAliased( alias );
+   return matrix_.isAliased( &unview( *alias ) );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -3504,13 +3753,16 @@ inline bool Row<MT,false,true,false>::canAlias( const Other* alias ) const noexc
 // to the isAliased() function this function is allowed to use compile time expressions to
 // optimize the evaluation.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename MT2   // Data type of the foreign dense row
-        , bool SO2       // Storage order of the foreign dense row
-        , bool SF2 >     // Symmetry flag of the foreign dense row
-inline bool Row<MT,false,true,false>::canAlias( const Row<MT2,SO2,true,SF2>* alias ) const noexcept
+template< typename MT        // Type of the dense matrix
+        , size_t... CRAs >   // Compile time row arguments
+template< typename MT2       // Data type of the foreign dense row
+        , bool SO2           // Storage order of the foreign dense row
+        , bool SF2           // Symmetry flag of the foreign dense row
+        , size_t... CRAs2 >  // Compile time row arguments of the foreign dense row
+inline bool
+   Row<MT,false,true,false,CRAs...>::canAlias( const Row<MT2,SO2,true,SF2,CRAs2...>* alias ) const noexcept
 {
-   return matrix_.isAliased( &alias->matrix_ ) && ( row_ == alias->row_ );
+   return matrix_.isAliased( &alias->matrix_ ) && ( row() == alias->row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -3527,11 +3779,12 @@ inline bool Row<MT,false,true,false>::canAlias( const Row<MT2,SO2,true,SF2>* ali
 // to the canAlias() function this function is not allowed to use compile time expressions to
 // optimize the evaluation.
 */
-template< typename MT >     // Type of the dense matrix
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
 template< typename Other >  // Data type of the foreign expression
-inline bool Row<MT,false,true,false>::isAliased( const Other* alias ) const noexcept
+inline bool Row<MT,false,true,false,CRAs...>::isAliased( const Other* alias ) const noexcept
 {
-   return matrix_.isAliased( alias );
+   return matrix_.isAliased( &unview( *alias ) );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -3548,13 +3801,16 @@ inline bool Row<MT,false,true,false>::isAliased( const Other* alias ) const noex
 // to the canAlias() function this function is not allowed to use compile time expressions to
 // optimize the evaluation.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename MT2   // Data type of the foreign dense row
-        , bool SO2       // Storage order of the foreign dense row
-        , bool SF2 >     // Symmetry flag of the foreign dense row
-inline bool Row<MT,false,true,false>::isAliased( const Row<MT2,SO2,true,SF2>* alias ) const noexcept
+template< typename MT        // Type of the dense matrix
+        , size_t... CRAs >   // Compile time row arguments
+template< typename MT2       // Data type of the foreign dense row
+        , bool SO2           // Storage order of the foreign dense row
+        , bool SF2           // Symmetry flag of the foreign dense row
+        , size_t... CRAs2 >  // Compile time row arguments of the foreign dense row
+inline bool
+   Row<MT,false,true,false,CRAs...>::isAliased( const Row<MT2,SO2,true,SF2,CRAs2...>* alias ) const noexcept
 {
-   return matrix_.isAliased( &alias->matrix_ ) && ( row_ == alias->row_ );
+   return matrix_.isAliased( &alias->matrix_ ) && ( row() == alias->row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -3570,8 +3826,9 @@ inline bool Row<MT,false,true,false>::isAliased( const Row<MT2,SO2,true,SF2>* al
 // i.e. whether the beginning and the end of the dense row are guaranteed to conform to the
 // alignment restrictions of the element type \a Type.
 */
-template< typename MT >  // Type of the dense matrix
-inline bool Row<MT,false,true,false>::isAligned() const noexcept
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline bool Row<MT,false,true,false,CRAs...>::isAligned() const noexcept
 {
    return false;
 }
@@ -3590,8 +3847,9 @@ inline bool Row<MT,false,true,false>::isAligned() const noexcept
 // this function additionally provides runtime information (as for instance the current size
 // of the dense row).
 */
-template< typename MT >  // Type of the dense matrix
-inline bool Row<MT,false,true,false>::canSMPAssign() const noexcept
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline bool Row<MT,false,true,false,CRAs...>::canSMPAssign() const noexcept
 {
    return ( size() > SMP_DVECASSIGN_THRESHOLD );
 }
@@ -3611,19 +3869,22 @@ inline bool Row<MT,false,true,false>::canSMPAssign() const noexcept
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline void Row<MT,false,true,false>::assign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline void Row<MT,false,true,false,CRAs...>::assign( const DenseVector<VT,true>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const size_t jpos( (~rhs).size() & size_t(-2) );
+   const size_t jpos( prevMultiple( (~rhs).size(), 2UL ) );
+   BLAZE_INTERNAL_ASSERT( jpos <= (~rhs).size(), "Invalid end calculation" );
+
    for( size_t j=0UL; j<jpos; j+=2UL ) {
-      matrix_(row_,j    ) = (~rhs)[j    ];
-      matrix_(row_,j+1UL) = (~rhs)[j+1UL];
+      matrix_(row(),j    ) = (~rhs)[j    ];
+      matrix_(row(),j+1UL) = (~rhs)[j+1UL];
    }
    if( jpos < (~rhs).size() )
-      matrix_(row_,jpos) = (~rhs)[jpos];
+      matrix_(row(),jpos) = (~rhs)[jpos];
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -3641,14 +3902,15 @@ inline void Row<MT,false,true,false>::assign( const DenseVector<VT,true>& rhs )
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side sparse vector
-inline void Row<MT,false,true,false>::assign( const SparseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side sparse vector
+inline void Row<MT,false,true,false,CRAs...>::assign( const SparseVector<VT,true>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   for( ConstIterator_<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
-      matrix_(row_,element->index()) = element->value();
+   for( ConstIterator_t<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
+      matrix_(row(),element->index()) = element->value();
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -3666,19 +3928,22 @@ inline void Row<MT,false,true,false>::assign( const SparseVector<VT,true>& rhs )
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline void Row<MT,false,true,false>::addAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline void Row<MT,false,true,false,CRAs...>::addAssign( const DenseVector<VT,true>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const size_t jpos( (~rhs).size() & size_t(-2) );
+   const size_t jpos( prevMultiple( (~rhs).size(), 2UL ) );
+   BLAZE_INTERNAL_ASSERT( jpos <= (~rhs).size(), "Invalid end calculation" );
+
    for( size_t j=0UL; j<jpos; j+=2UL ) {
-      matrix_(row_,j    ) += (~rhs)[j    ];
-      matrix_(row_,j+1UL) += (~rhs)[j+1UL];
+      matrix_(row(),j    ) += (~rhs)[j    ];
+      matrix_(row(),j+1UL) += (~rhs)[j+1UL];
    }
    if( jpos < (~rhs).size() )
-      matrix_(row_,jpos) += (~rhs)[jpos];
+      matrix_(row(),jpos) += (~rhs)[jpos];
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -3696,14 +3961,15 @@ inline void Row<MT,false,true,false>::addAssign( const DenseVector<VT,true>& rhs
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side sparse vector
-inline void Row<MT,false,true,false>::addAssign( const SparseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side sparse vector
+inline void Row<MT,false,true,false,CRAs...>::addAssign( const SparseVector<VT,true>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   for( ConstIterator_<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
-      matrix_(row_,element->index()) += element->value();
+   for( ConstIterator_t<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
+      matrix_(row(),element->index()) += element->value();
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -3721,19 +3987,22 @@ inline void Row<MT,false,true,false>::addAssign( const SparseVector<VT,true>& rh
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline void Row<MT,false,true,false>::subAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline void Row<MT,false,true,false,CRAs...>::subAssign( const DenseVector<VT,true>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const size_t jpos( (~rhs).size() & size_t(-2) );
+   const size_t jpos( prevMultiple( (~rhs).size(), 2UL ) );
+   BLAZE_INTERNAL_ASSERT( jpos <= (~rhs).size(), "Invalid end calculation" );
+
    for( size_t j=0UL; j<jpos; j+=2UL ) {
-      matrix_(row_,j    ) -= (~rhs)[j    ];
-      matrix_(row_,j+1UL) -= (~rhs)[j+1UL];
+      matrix_(row(),j    ) -= (~rhs)[j    ];
+      matrix_(row(),j+1UL) -= (~rhs)[j+1UL];
    }
    if( jpos < (~rhs).size() )
-      matrix_(row_,jpos) -= (~rhs)[jpos];
+      matrix_(row(),jpos) -= (~rhs)[jpos];
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -3751,14 +4020,15 @@ inline void Row<MT,false,true,false>::subAssign( const DenseVector<VT,true>& rhs
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side sparse vector
-inline void Row<MT,false,true,false>::subAssign( const SparseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side sparse vector
+inline void Row<MT,false,true,false,CRAs...>::subAssign( const SparseVector<VT,true>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   for( ConstIterator_<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
-      matrix_(row_,element->index()) -= element->value();
+   for( ConstIterator_t<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
+      matrix_(row(),element->index()) -= element->value();
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -3776,19 +4046,22 @@ inline void Row<MT,false,true,false>::subAssign( const SparseVector<VT,true>& rh
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline void Row<MT,false,true,false>::multAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline void Row<MT,false,true,false,CRAs...>::multAssign( const DenseVector<VT,true>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const size_t jpos( (~rhs).size() & size_t(-2) );
+   const size_t jpos( prevMultiple( (~rhs).size(), 2UL ) );
+   BLAZE_INTERNAL_ASSERT( jpos <= (~rhs).size(), "Invalid end calculation" );
+
    for( size_t j=0UL; j<jpos; j+=2UL ) {
-      matrix_(row_,j    ) *= (~rhs)[j    ];
-      matrix_(row_,j+1UL) *= (~rhs)[j+1UL];
+      matrix_(row(),j    ) *= (~rhs)[j    ];
+      matrix_(row(),j+1UL) *= (~rhs)[j+1UL];
    }
    if( jpos < (~rhs).size() )
-      matrix_(row_,jpos) *= (~rhs)[jpos];
+      matrix_(row(),jpos) *= (~rhs)[jpos];
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -3806,18 +4079,28 @@ inline void Row<MT,false,true,false>::multAssign( const DenseVector<VT,true>& rh
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side sparse vector
-inline void Row<MT,false,true,false>::multAssign( const SparseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side sparse vector
+inline void Row<MT,false,true,false,CRAs...>::multAssign( const SparseVector<VT,true>& rhs )
 {
+   using blaze::reset;
+
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const ResultType tmp( serial( *this ) );
+   size_t j( 0UL );
 
-   reset();
+   for( ConstIterator_t<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element ) {
+      const size_t index( element->index() );
+      for( ; j<index; ++j )
+         reset( matrix_(row(),j) );
+      matrix_(row(),j) *= element->value();
+      ++j;
+   }
 
-   for( ConstIterator_<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
-      matrix_(row_,element->index()) = tmp[element->index()] * element->value();
+   for( ; j<size(); ++j ) {
+      reset( matrix_(row(),j) );
+   }
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -3835,19 +4118,22 @@ inline void Row<MT,false,true,false>::multAssign( const SparseVector<VT,true>& r
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline void Row<MT,false,true,false>::divAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline void Row<MT,false,true,false,CRAs...>::divAssign( const DenseVector<VT,true>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const size_t jpos( (~rhs).size() & size_t(-2) );
+   const size_t jpos( prevMultiple( (~rhs).size(), 2UL ) );
+   BLAZE_INTERNAL_ASSERT( jpos <= (~rhs).size(), "Invalid end calculation" );
+
    for( size_t j=0UL; j<jpos; j+=2UL ) {
-      matrix_(row_,j    ) /= (~rhs)[j    ];
-      matrix_(row_,j+1UL) /= (~rhs)[j+1UL];
+      matrix_(row(),j    ) /= (~rhs)[j    ];
+      matrix_(row(),j+1UL) /= (~rhs)[j+1UL];
    }
    if( jpos < (~rhs).size() )
-      matrix_(row_,jpos) /= (~rhs)[jpos];
+      matrix_(row(),jpos) /= (~rhs)[jpos];
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -3868,70 +4154,82 @@ inline void Row<MT,false,true,false>::divAssign( const DenseVector<VT,true>& rhs
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
 /*!\brief Specialization of Row for symmetric column-major dense matrices.
-// \ingroup dense_row
+// \ingroup row
 //
 // This specialization of Row adapts the class template to the requirements of symmetric
 // column-major dense matrices.
 */
-template< typename MT >  // Type of the dense matrix
-class Row<MT,false,true,true>
-   : public DenseVector< Row<MT,false,true,true>, true >
-   , private View
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+class Row<MT,false,true,true,CRAs...>
+   : public View< DenseVector< Row<MT,false,true,true,CRAs...>, true > >
+   , private RowData<CRAs...>
 {
  private:
    //**Type definitions****************************************************************************
-   //! Composite data type of the dense matrix expression.
-   typedef If_< IsExpression<MT>, MT, MT& >  Operand;
+   using DataType = RowData<CRAs...>;                     //!< The type of the RowData base class.
+   using Operand  = If_t< IsExpression_v<MT>, MT, MT& >;  //!< Composite data type of the dense matrix expression.
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
-   typedef Row<MT,false,true,true>     This;           //!< Type of this Row instance.
-   typedef DenseVector<This,true>      BaseType;       //!< Base type of this Row instance.
-   typedef RowTrait_<MT>               ResultType;     //!< Result type for expression template evaluations.
-   typedef TransposeType_<ResultType>  TransposeType;  //!< Transpose type for expression template evaluations.
-   typedef ElementType_<MT>            ElementType;    //!< Type of the row elements.
-   typedef SIMDTrait_<ElementType>     SIMDType;       //!< SIMD type of the row elements.
-   typedef ElementType_<MT>            ReturnType;     //!< Return type for expression template evaluations
-   typedef const Row&                  CompositeType;  //!< Data type for composite expression templates.
+   //! Type of this Row instance.
+   using This = Row<MT,false,true,true,CRAs...>;
+
+   using BaseType      = DenseVector<This,true>;       //!< Base type of this Row instance.
+   using ViewedType    = MT;                           //!< The type viewed by this Row instance.
+   using ResultType    = RowTrait_t<MT,CRAs...>;       //!< Result type for expression template evaluations.
+   using TransposeType = TransposeType_t<ResultType>;  //!< Transpose type for expression template evaluations.
+   using ElementType   = ElementType_t<MT>;            //!< Type of the row elements.
+   using SIMDType      = SIMDTrait_t<ElementType>;     //!< SIMD type of the row elements.
+   using ReturnType    = ElementType_t<MT>;            //!< Return type for expression template evaluations
+   using CompositeType = const Row&;                   //!< Data type for composite expression templates.
 
    //! Reference to a constant row value.
-   typedef ConstReference_<MT>  ConstReference;
+   using ConstReference = ConstReference_t<MT>;
 
    //! Reference to a non-constant row value.
-   typedef If_< IsConst<MT>, ConstReference, Reference_<MT> >  Reference;
+   using Reference = If_t< IsConst_v<MT>, ConstReference, Reference_t<MT> >;
 
    //! Pointer to a constant row value.
-   typedef const ElementType*  ConstPointer;
+   using ConstPointer = ConstPointer_t<MT>;
 
    //! Pointer to a non-constant row value.
-   typedef If_< Or< IsConst<MT>, Not< HasMutableDataAccess<MT> > >, ConstPointer, ElementType* >  Pointer;
+   using Pointer = If_t< IsConst_v<MT> || !HasMutableDataAccess_v<MT>, ConstPointer, Pointer_t<MT> >;
 
    //! Iterator over constant elements.
-   typedef ConstIterator_<MT>  ConstIterator;
+   using ConstIterator = ConstIterator_t<MT>;
 
    //! Iterator over non-constant elements.
-   typedef If_< IsConst<MT>, ConstIterator, Iterator_<MT> >  Iterator;
+   using Iterator = If_t< IsConst_v<MT>, ConstIterator, Iterator_t<MT> >;
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template evaluation strategy.
-   enum : bool { simdEnabled = MT::simdEnabled };
+   static constexpr bool simdEnabled = MT::simdEnabled;
 
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = MT::smpAssignable };
+   static constexpr bool smpAssignable = MT::smpAssignable;
+
+   //! Compilation switch for the expression template evaluation strategy.
+   static constexpr bool compileTimeArgs = DataType::compileTimeArgs;
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
    /*!\name Constructors */
    //@{
-   explicit inline Row( Operand matrix, size_t index );
-   // No explicitly declared copy constructor.
+   template< typename... RRAs >
+   explicit inline Row( MT& matrix, RRAs... args );
+
+   Row( const Row& ) = default;
    //@}
    //**********************************************************************************************
 
    //**Destructor**********************************************************************************
-   // No explicitly declared destructor.
+   /*!\name Destructor */
+   //@{
+   ~Row() = default;
+   //@}
    //**********************************************************************************************
 
    //**Data access functions***********************************************************************
@@ -3962,87 +4260,80 @@ class Row<MT,false,true,true>
    template< typename VT > inline Row& operator= ( const Vector<VT,true>& rhs );
    template< typename VT > inline Row& operator+=( const Vector<VT,true>& rhs );
    template< typename VT > inline Row& operator-=( const Vector<VT,true>& rhs );
-   template< typename VT > inline Row& operator*=( const DenseVector<VT,true>&  rhs );
-   template< typename VT > inline Row& operator*=( const SparseVector<VT,true>& rhs );
+   template< typename VT > inline Row& operator*=( const Vector<VT,true>& rhs );
    template< typename VT > inline Row& operator/=( const DenseVector<VT,true>&  rhs );
-
-   template< typename Other >
-   inline EnableIf_< IsNumeric<Other>, Row >& operator*=( Other rhs );
-
-   template< typename Other >
-   inline EnableIf_< IsNumeric<Other>, Row >& operator/=( Other rhs );
+   template< typename VT > inline Row& operator%=( const Vector<VT,true>& rhs );
    //@}
    //**********************************************************************************************
 
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-                              inline size_t size() const noexcept;
-                              inline size_t capacity() const noexcept;
-                              inline size_t nonZeros() const;
-                              inline void   reset();
-   template< typename Other > inline Row&   scale( const Other& scalar );
+   using DataType::row;
+
+   inline MT&       operand() noexcept;
+   inline const MT& operand() const noexcept;
+
+   inline size_t  size() const noexcept;
+   inline size_t  spacing() const noexcept;
+   inline size_t  capacity() const noexcept;
+   inline size_t  nonZeros() const;
+   inline void    reset();
+   //@}
+   //**********************************************************************************************
+
+   //**Numeric functions***************************************************************************
+   /*!\name Numeric functions */
+   //@{
+   template< typename Other > inline Row& scale( const Other& scalar );
    //@}
    //**********************************************************************************************
 
  private:
    //**********************************************************************************************
-   //! Helper structure for the explicit application of the SFINAE principle.
+   //! Helper variable template for the explicit application of the SFINAE principle.
    template< typename VT >
-   struct VectorizedAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && VT::simdEnabled &&
-                            IsSIMDCombinable< ElementType, ElementType_<VT> >::value };
-   };
+   static constexpr bool VectorizedAssign_v =
+      ( useOptimizedKernels &&
+        simdEnabled && VT::simdEnabled &&
+        IsSIMDCombinable_v< ElementType, ElementType_t<VT> > );
    //**********************************************************************************************
 
    //**********************************************************************************************
-   //! Helper structure for the explicit application of the SFINAE principle.
+   //! Helper variable template for the explicit application of the SFINAE principle.
    template< typename VT >
-   struct VectorizedAddAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && VT::simdEnabled &&
-                            IsSIMDCombinable< ElementType, ElementType_<VT> >::value &&
-                            HasSIMDAdd< ElementType, ElementType_<VT> >::value };
-   };
+   static constexpr bool VectorizedAddAssign_v =
+      ( VectorizedAssign_v<VT> &&
+        HasSIMDAdd_v< ElementType, ElementType_t<VT> > );
    //**********************************************************************************************
 
    //**********************************************************************************************
-   //! Helper structure for the explicit application of the SFINAE principle.
+   //! Helper variable template for the explicit application of the SFINAE principle.
    template< typename VT >
-   struct VectorizedSubAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && VT::simdEnabled &&
-                            IsSIMDCombinable< ElementType, ElementType_<VT> >::value &&
-                            HasSIMDSub< ElementType, ElementType_<VT> >::value };
-   };
+   static constexpr bool VectorizedSubAssign_v =
+      ( VectorizedAssign_v<VT> &&
+        HasSIMDSub_v< ElementType, ElementType_t<VT> > );
    //**********************************************************************************************
 
    //**********************************************************************************************
-   //! Helper structure for the explicit application of the SFINAE principle.
+   //! Helper variable template for the explicit application of the SFINAE principle.
    template< typename VT >
-   struct VectorizedMultAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && VT::simdEnabled &&
-                            IsSIMDCombinable< ElementType, ElementType_<VT> >::value &&
-                            HasSIMDMult< ElementType, ElementType_<VT> >::value };
-   };
+   static constexpr bool VectorizedMultAssign_v =
+      ( VectorizedAssign_v<VT> &&
+        HasSIMDMult_v< ElementType, ElementType_t<VT> > );
    //**********************************************************************************************
 
    //**********************************************************************************************
-   //! Helper structure for the explicit application of the SFINAE principle.
+   //! Helper variable template for the explicit application of the SFINAE principle.
    template< typename VT >
-   struct VectorizedDivAssign {
-      enum : bool { value = useOptimizedKernels &&
-                            simdEnabled && VT::simdEnabled &&
-                            IsSIMDCombinable< ElementType, ElementType_<VT> >::value &&
-                            HasSIMDDiv< ElementType, ElementType_<VT> >::value };
-   };
+   static constexpr bool VectorizedDivAssign_v =
+      ( VectorizedAssign_v<VT> &&
+        HasSIMDDiv_v< ElementType, ElementType_t<VT> > );
    //**********************************************************************************************
 
    //**SIMD properties*****************************************************************************
    //! The number of elements packed within a single SIMD element.
-   enum : size_t { SIMDSIZE = SIMDTrait<ElementType>::size };
+   static constexpr size_t SIMDSIZE = SIMDTrait<ElementType>::size;
    //**********************************************************************************************
 
  public:
@@ -4052,14 +4343,14 @@ class Row<MT,false,true,true>
    template< typename Other >
    inline bool canAlias( const Other* alias ) const noexcept;
 
-   template< typename MT2, bool SO2, bool SF2 >
-   inline bool canAlias( const Row<MT2,SO2,true,SF2>* alias ) const noexcept;
+   template< typename MT2, bool SO2, bool SF2, size_t... CRAs2 >
+   inline bool canAlias( const Row<MT2,SO2,true,SF2,CRAs2...>* alias ) const noexcept;
 
    template< typename Other >
    inline bool isAliased( const Other* alias ) const noexcept;
 
-   template< typename MT2, bool SO2, bool SF2 >
-   inline bool isAliased( const Row<MT2,SO2,true,SF2>* alias ) const noexcept;
+   template< typename MT2, bool SO2, bool SF2, size_t... CRAs2 >
+   inline bool isAliased( const Row<MT2,SO2,true,SF2,CRAs2...>* alias ) const noexcept;
 
    inline bool isAligned   () const noexcept;
    inline bool canSMPAssign() const noexcept;
@@ -4074,42 +4365,42 @@ class Row<MT,false,true,true>
    BLAZE_ALWAYS_INLINE void stream( size_t index, const SIMDType& value ) noexcept;
 
    template< typename VT >
-   inline DisableIf_< VectorizedAssign<VT> > assign( const DenseVector<VT,true>& rhs );
+   inline auto assign( const DenseVector<VT,true>& rhs ) -> DisableIf_t< VectorizedAssign_v<VT> >;
 
    template< typename VT >
-   inline EnableIf_< VectorizedAssign<VT> > assign( const DenseVector<VT,true>& rhs );
+   inline auto assign( const DenseVector<VT,true>& rhs ) -> EnableIf_t< VectorizedAssign_v<VT> >;
 
    template< typename VT > inline void assign( const SparseVector<VT,true>& rhs );
 
    template< typename VT >
-   inline DisableIf_< VectorizedAddAssign<VT> > addAssign( const DenseVector<VT,true>& rhs );
+   inline auto addAssign( const DenseVector<VT,true>& rhs ) -> DisableIf_t< VectorizedAddAssign_v<VT> >;
 
    template< typename VT >
-   inline EnableIf_< VectorizedAddAssign<VT> > addAssign( const DenseVector<VT,true>& rhs );
+   inline auto addAssign( const DenseVector<VT,true>& rhs ) -> EnableIf_t< VectorizedAddAssign_v<VT> >;
 
    template< typename VT > inline void addAssign( const SparseVector<VT,true>& rhs );
 
    template< typename VT >
-   inline DisableIf_< VectorizedSubAssign<VT> > subAssign( const DenseVector<VT,true>& rhs );
+   inline auto subAssign( const DenseVector<VT,true>& rhs ) -> DisableIf_t< VectorizedSubAssign_v<VT> >;
 
    template< typename VT >
-   inline EnableIf_< VectorizedSubAssign<VT> > subAssign( const DenseVector<VT,true>& rhs );
+   inline auto subAssign( const DenseVector<VT,true>& rhs ) -> EnableIf_t< VectorizedSubAssign_v<VT> >;
 
    template< typename VT > inline void subAssign( const SparseVector<VT,true>& rhs );
 
    template< typename VT >
-   inline DisableIf_< VectorizedMultAssign<VT> > multAssign( const DenseVector<VT,true>& rhs );
+   inline auto multAssign( const DenseVector<VT,true>& rhs ) -> DisableIf_t< VectorizedMultAssign_v<VT> >;
 
    template< typename VT >
-   inline EnableIf_< VectorizedMultAssign<VT> > multAssign( const DenseVector<VT,true>& rhs );
+   inline auto multAssign( const DenseVector<VT,true>& rhs ) -> EnableIf_t< VectorizedMultAssign_v<VT> >;
 
    template< typename VT > inline void multAssign( const SparseVector<VT,true>& rhs );
 
    template< typename VT >
-   inline DisableIf_< VectorizedDivAssign<VT> > divAssign( const DenseVector<VT,true>& rhs );
+   inline auto divAssign( const DenseVector<VT,true>& rhs ) -> DisableIf_t< VectorizedDivAssign_v<VT> >;
 
    template< typename VT >
-   inline EnableIf_< VectorizedDivAssign<VT> > divAssign( const DenseVector<VT,true>& rhs );
+   inline auto divAssign( const DenseVector<VT,true>& rhs ) -> EnableIf_t< VectorizedDivAssign_v<VT> >;
    //@}
    //**********************************************************************************************
 
@@ -4117,37 +4408,12 @@ class Row<MT,false,true,true>
    //**Member variables****************************************************************************
    /*!\name Member variables */
    //@{
-   Operand      matrix_;  //!< The dense matrix containing the row.
-   const size_t row_;     //!< The index of the row in the matrix.
+   Operand matrix_;  //!< The matrix containing the row.
    //@}
    //**********************************************************************************************
 
    //**Friend declarations*************************************************************************
-   template< typename MT2, bool SO2, bool DF2, bool SF2 > friend class Row;
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2 >
-   friend bool isIntact( const Row<MT2,SO2,DF2,SF2>& row ) noexcept;
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2 >
-   friend bool isSame( const Row<MT2,SO2,DF2,SF2>& a, const Row<MT2,SO2,DF2,SF2>& b ) noexcept;
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2, typename VT >
-   friend bool tryAssign( const Row<MT2,SO2,DF2,SF2>& lhs, const Vector<VT,true>& rhs, size_t index );
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2, typename VT >
-   friend bool tryAddAssign( const Row<MT2,SO2,DF2,SF2>& lhs, const Vector<VT,true>& rhs, size_t index );
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2, typename VT >
-   friend bool trySubAssign( const Row<MT2,SO2,DF2,SF2>& lhs, const Vector<VT,true>& rhs, size_t index );
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2, typename VT >
-   friend bool tryMultAssign( const Row<MT2,SO2,DF2,SF2>& lhs, const Vector<VT,true>& rhs, size_t index );
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2, typename VT >
-   friend bool tryDivAssign( const Row<MT2,SO2,DF2,SF2>& lhs, const Vector<VT,true>& rhs, size_t index );
-
-   template< typename MT2, bool SO2, bool DF2, bool SF2 >
-   friend DerestrictTrait_< Row<MT2,SO2,DF2,SF2> > derestrict( Row<MT2,SO2,DF2,SF2>& row );
+   template< typename MT2, bool SO2, bool DF2, bool SF2, size_t... CRAs2 > friend class Row;
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************
@@ -4156,6 +4422,7 @@ class Row<MT,false,true,true>
    BLAZE_CONSTRAINT_MUST_BE_SYMMETRIC_MATRIX_TYPE   ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_COMPUTATION_TYPE    ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_TRANSEXPR_TYPE      ( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_SUBMATRIX_TYPE      ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_POINTER_TYPE        ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_REFERENCE_TYPE      ( MT );
    //**********************************************************************************************
@@ -4168,25 +4435,37 @@ class Row<MT,false,true,true>
 
 //=================================================================================================
 //
-//  CONSTRUCTOR
+//  CONSTRUCTORS
 //
 //=================================================================================================
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief The constructor for Row.
+/*!\brief Constructor for rows on column-major symmetric dense matrices.
 //
 // \param matrix The matrix containing the row.
-// \param index The index of the row.
+// \param args The runtime row arguments.
 // \exception std::invalid_argument Invalid row access index.
+//
+// By default, the provided row arguments are checked at runtime. In case the row is not properly
+// specified (i.e. if the specified index is greater than the number of rows of the given matrix)
+// a \a std::invalid_argument exception is thrown. The checks can be skipped by providing the
+// optional \a blaze::unchecked argument.
 */
-template< typename MT >  // Type of the dense matrix
-inline Row<MT,false,true,true>::Row( Operand matrix, size_t index )
-   : matrix_( matrix )  // The dense matrix containing the row
-   , row_   ( index  )  // The index of the row in the matrix
+template< typename MT         // Type of the dense matrix
+        , size_t... CRAs >    // Compile time row arguments
+template< typename... RRAs >  // Runtime row arguments
+inline Row<MT,false,true,true,CRAs...>::Row( MT& matrix, RRAs... args )
+   : DataType( args... )  // Base class initialization
+   , matrix_ ( matrix  )  // The matrix containing the row
 {
-   if( matrix_.rows() <= index ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid row access index" );
+   if( !Contains_v< TypeList<RRAs...>, Unchecked > ) {
+      if( matrix_.rows() <= row() ) {
+         BLAZE_THROW_INVALID_ARGUMENT( "Invalid row access index" );
+      }
+   }
+   else {
+      BLAZE_USER_ASSERT( row() < matrix_.rows(), "Invalid row access index" );
    }
 }
 /*! \endcond */
@@ -4211,12 +4490,13 @@ inline Row<MT,false,true,true>::Row( Operand matrix, size_t index )
 // This function only performs an index check in case BLAZE_USER_ASSERT() is active. In contrast,
 // the at() function is guaranteed to perform a check of the given access index.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,true>::Reference
-   Row<MT,false,true,true>::operator[]( size_t index )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,true,CRAs...>::Reference
+   Row<MT,false,true,true,CRAs...>::operator[]( size_t index )
 {
    BLAZE_USER_ASSERT( index < size(), "Invalid row access index" );
-   return matrix_(index,row_);
+   return matrix_(index,row());
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -4232,12 +4512,13 @@ inline typename Row<MT,false,true,true>::Reference
 // This function only performs an index check in case BLAZE_USER_ASSERT() is active. In contrast,
 // the at() function is guaranteed to perform a check of the given access index.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,true>::ConstReference
-   Row<MT,false,true,true>::operator[]( size_t index ) const
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,true,CRAs...>::ConstReference
+   Row<MT,false,true,true,CRAs...>::operator[]( size_t index ) const
 {
    BLAZE_USER_ASSERT( index < size(), "Invalid row access index" );
-   return const_cast<const MT&>( matrix_ )(row_,index);
+   return const_cast<const MT&>( matrix_ )(index,row());
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -4254,9 +4535,10 @@ inline typename Row<MT,false,true,true>::ConstReference
 // In contrast to the subscript operator this function always performs a check of the given
 // access index.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,true>::Reference
-   Row<MT,false,true,true>::at( size_t index )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,true,CRAs...>::Reference
+   Row<MT,false,true,true,CRAs...>::at( size_t index )
 {
    if( index >= size() ) {
       BLAZE_THROW_OUT_OF_RANGE( "Invalid row access index" );
@@ -4278,9 +4560,10 @@ inline typename Row<MT,false,true,true>::Reference
 // In contrast to the subscript operator this function always performs a check of the given
 // access index.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,true>::ConstReference
-   Row<MT,false,true,true>::at( size_t index ) const
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,true,CRAs...>::ConstReference
+   Row<MT,false,true,true,CRAs...>::at( size_t index ) const
 {
    if( index >= size() ) {
       BLAZE_THROW_OUT_OF_RANGE( "Invalid row access index" );
@@ -4300,10 +4583,12 @@ inline typename Row<MT,false,true,true>::ConstReference
 // This function returns a pointer to the internal storage of the dense row. Note that in case
 // of a column-major matrix you can NOT assume that the row elements lie adjacent to each other!
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,true>::Pointer Row<MT,false,true,true>::data() noexcept
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,true,CRAs...>::Pointer
+   Row<MT,false,true,true,CRAs...>::data() noexcept
 {
-   return matrix_.data( row_ );
+   return matrix_.data( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -4318,10 +4603,12 @@ inline typename Row<MT,false,true,true>::Pointer Row<MT,false,true,true>::data()
 // This function returns a pointer to the internal storage of the dense row. Note that in case
 // of a column-major matrix you can NOT assume that the row elements lie adjacent to each other!
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,true>::ConstPointer Row<MT,false,true,true>::data() const noexcept
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,true,CRAs...>::ConstPointer
+   Row<MT,false,true,true,CRAs...>::data() const noexcept
 {
-   return matrix_.data( row_ );
+   return matrix_.data( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -4335,10 +4622,12 @@ inline typename Row<MT,false,true,true>::ConstPointer Row<MT,false,true,true>::d
 //
 // This function returns an iterator to the first element of the row.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,true>::Iterator Row<MT,false,true,true>::begin()
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,true,CRAs...>::Iterator
+   Row<MT,false,true,true,CRAs...>::begin()
 {
-   return matrix_.begin( row_ );
+   return matrix_.begin( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -4352,10 +4641,12 @@ inline typename Row<MT,false,true,true>::Iterator Row<MT,false,true,true>::begin
 //
 // This function returns an iterator to the first element of the row.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,true>::ConstIterator Row<MT,false,true,true>::begin() const
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,true,CRAs...>::ConstIterator
+   Row<MT,false,true,true,CRAs...>::begin() const
 {
-   return matrix_.cbegin( row_ );
+   return matrix_.cbegin( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -4369,10 +4660,12 @@ inline typename Row<MT,false,true,true>::ConstIterator Row<MT,false,true,true>::
 //
 // This function returns an iterator to the first element of the row.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,true>::ConstIterator Row<MT,false,true,true>::cbegin() const
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,true,CRAs...>::ConstIterator
+   Row<MT,false,true,true,CRAs...>::cbegin() const
 {
-   return matrix_.cbegin( row_ );
+   return matrix_.cbegin( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -4386,10 +4679,12 @@ inline typename Row<MT,false,true,true>::ConstIterator Row<MT,false,true,true>::
 //
 // This function returns an iterator just past the last element of the row.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,true>::Iterator Row<MT,false,true,true>::end()
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,true,CRAs...>::Iterator
+   Row<MT,false,true,true,CRAs...>::end()
 {
-   return matrix_.end( row_ );
+   return matrix_.end( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -4403,10 +4698,12 @@ inline typename Row<MT,false,true,true>::Iterator Row<MT,false,true,true>::end()
 //
 // This function returns an iterator just past the last element of the row.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,true>::ConstIterator Row<MT,false,true,true>::end() const
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,true,CRAs...>::ConstIterator
+   Row<MT,false,true,true,CRAs...>::end() const
 {
-   return matrix_.cend( row_ );
+   return matrix_.cend( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -4420,10 +4717,12 @@ inline typename Row<MT,false,true,true>::ConstIterator Row<MT,false,true,true>::
 //
 // This function returns an iterator just past the last element of the row.
 */
-template< typename MT >  // Type of the dense matrix
-inline typename Row<MT,false,true,true>::ConstIterator Row<MT,false,true,true>::cend() const
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline typename Row<MT,false,true,true,CRAs...>::ConstIterator
+   Row<MT,false,true,true,CRAs...>::cend() const
 {
-   return matrix_.cend( row_ );
+   return matrix_.cend( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -4444,22 +4743,28 @@ inline typename Row<MT,false,true,true>::ConstIterator Row<MT,false,true,true>::
 // \param rhs Scalar value to be assigned to all row elements.
 // \return Reference to the assigned row.
 */
-template< typename MT >  // Type of the dense matrix
-inline Row<MT,false,true,true>& Row<MT,false,true,true>::operator=( const ElementType& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline Row<MT,false,true,true,CRAs...>&
+   Row<MT,false,true,true,CRAs...>::operator=( const ElementType& rhs )
 {
-   const size_t ibegin( ( IsLower<MT>::value )
-                        ?( ( IsUniLower<MT>::value || IsStrictlyLower<MT>::value )
-                           ?( row_+1UL )
-                           :( row_ ) )
+   decltype(auto) left( derestrict( matrix_ ) );
+
+   const size_t ibegin( ( IsLower_v<MT> )
+                        ?( ( IsUniLower_v<MT> || IsStrictlyLower_v<MT> )
+                           ?( row()+1UL )
+                           :( row() ) )
                         :( 0UL ) );
-   const size_t iend  ( ( IsUpper<MT>::value )
-                        ?( ( IsUniUpper<MT>::value || IsStrictlyUpper<MT>::value )
-                           ?( row_ )
-                           :( row_+1UL ) )
+   const size_t iend  ( ( IsUpper_v<MT> )
+                        ?( ( IsUniUpper_v<MT> || IsStrictlyUpper_v<MT> )
+                           ?( row() )
+                           :( row()+1UL ) )
                         :( size() ) );
 
-   for( size_t i=ibegin; i<iend; ++i )
-      matrix_(i,row_) = rhs;
+   for( size_t i=ibegin; i<iend; ++i ) {
+      if( !IsRestricted_v<MT> || IsTriangular_v<MT> || trySet( matrix_, i, row(), rhs ) )
+         left(i,row()) = rhs;
+   }
 
    return *this;
 }
@@ -4473,22 +4778,34 @@ inline Row<MT,false,true,true>& Row<MT,false,true,true>::operator=( const Elemen
 //
 // \param list The initializer list.
 // \exception std::invalid_argument Invalid assignment to row.
+// \exception std::invalid_argument Invalid assignment to restricted matrix.
 //
 // This assignment operator offers the option to directly assign to all elements of the dense
 // row by means of an initializer list. The row elements are assigned the values from the given
 // initializer list. Missing values are reset to their default state. Note that in case the size
 // of the initializer list exceeds the size of the row, a \a std::invalid_argument exception is
-// thrown.
+// thrown. Also, if the underlying matrix \a MT is restricted and the assignment would violate
+// an invariant of the matrix, a \a std::invalid_argument exception is thrown.
 */
-template< typename MT >  // Type of the dense matrix
-inline Row<MT,false,true,true>&
-   Row<MT,false,true,true>::operator=( initializer_list<ElementType> list )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline Row<MT,false,true,true,CRAs...>&
+   Row<MT,false,true,true,CRAs...>::operator=( initializer_list<ElementType> list )
 {
    if( list.size() > size() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to row" );
    }
 
-   std::fill( std::copy( list.begin(), list.end(), begin() ), end(), ElementType() );
+   if( IsRestricted_v<MT> ) {
+      const InitializerVector<ElementType,true> tmp( list, size() );
+      if( !tryAssign( matrix_, tmp, row(), 0UL ) ) {
+         BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
+      }
+   }
+
+   decltype(auto) left( derestrict( *this ) );
+
+   std::fill( std::copy( list.begin(), list.end(), left.begin() ), left.end(), ElementType() );
 
    BLAZE_INTERNAL_ASSERT( isIntact( matrix_ ), "Invariant violation detected" );
 
@@ -4512,8 +4829,10 @@ inline Row<MT,false,true,true>&
 // assignment would violate its lower or upper property, respectively, a \a std::invalid_argument
 // exception is thrown.
 */
-template< typename MT >  // Type of the dense matrix
-inline Row<MT,false,true,true>& Row<MT,false,true,true>::operator=( const Row& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline Row<MT,false,true,true,CRAs...>&
+   Row<MT,false,true,true,CRAs...>::operator=( const Row& rhs )
 {
    if( &rhs == this ) return *this;
 
@@ -4521,13 +4840,19 @@ inline Row<MT,false,true,true>& Row<MT,false,true,true>::operator=( const Row& r
       BLAZE_THROW_INVALID_ARGUMENT( "Row sizes do not match" );
    }
 
-   if( !tryAssign( matrix_, rhs, row_, 0UL ) ) {
+   if( !tryAssign( matrix_, rhs, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   smpAssign( left, rhs );
+   if( IsExpression_v<MT> && rhs.canAlias( this ) ) {
+      const ResultType tmp( rhs );
+      smpAssign( left, tmp );
+   }
+   else {
+      smpAssign( left, rhs );
+   }
 
    BLAZE_INTERNAL_ASSERT( isIntact( matrix_ ), "Invariant violation detected" );
 
@@ -4551,32 +4876,34 @@ inline Row<MT,false,true,true>& Row<MT,false,true,true>::operator=( const Row& r
 // assignment would violate its lower or upper property, respectively, a \a std::invalid_argument
 // exception is thrown.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side vector
-inline Row<MT,false,true,true>& Row<MT,false,true,true>::operator=( const Vector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side vector
+inline Row<MT,false,true,true,CRAs...>&
+   Row<MT,false,true,true,CRAs...>::operator=( const Vector<VT,true>& rhs )
 {
-   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_<VT> );
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_<VT> );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_t<VT> );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_t<VT> );
 
    if( size() != (~rhs).size() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   typedef If_< IsRestricted<MT>, CompositeType_<VT>, const VT& >  Right;
+   using Right = If_t< IsRestricted_v<MT>, CompositeType_t<VT>, const VT& >;
    Right right( ~rhs );
 
-   if( !tryAssign( matrix_, right, row_, 0UL ) ) {
+   if( !tryAssign( matrix_, right, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   if( IsReference<Right>::value && right.canAlias( &matrix_ ) ) {
-      const ResultType_<VT> tmp( right );
+   if( IsReference_v<Right> && right.canAlias( this ) ) {
+      const ResultType_t<VT> tmp( right );
       smpAssign( left, tmp );
    }
    else {
-      if( IsSparseVector<VT>::value )
+      if( IsSparseVector_v<VT> )
          reset();
       smpAssign( left, right );
    }
@@ -4603,28 +4930,30 @@ inline Row<MT,false,true,true>& Row<MT,false,true,true>::operator=( const Vector
 // assignment would violate its lower or upper property, respectively, a \a std::invalid_argument
 // exception is thrown.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side vector
-inline Row<MT,false,true,true>& Row<MT,false,true,true>::operator+=( const Vector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side vector
+inline Row<MT,false,true,true,CRAs...>&
+   Row<MT,false,true,true,CRAs...>::operator+=( const Vector<VT,true>& rhs )
 {
-   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_<VT> );
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_<VT> );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_t<VT> );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_t<VT> );
 
    if( size() != (~rhs).size() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   typedef If_< IsRestricted<MT>, CompositeType_<VT>, const VT& >  Right;
+   using Right = If_t< IsRestricted_v<MT>, CompositeType_t<VT>, const VT& >;
    Right right( ~rhs );
 
-   if( !tryAddAssign( matrix_, right, row_, 0UL ) ) {
+   if( !tryAddAssign( matrix_, right, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   if( IsReference<Right>::value && right.canAlias( &matrix_ ) ) {
-      const ResultType_<VT> tmp( right );
+   if( IsReference_v<Right> && right.canAlias( this ) ) {
+      const ResultType_t<VT> tmp( right );
       smpAddAssign( left, tmp );
    }
    else {
@@ -4653,28 +4982,30 @@ inline Row<MT,false,true,true>& Row<MT,false,true,true>::operator+=( const Vecto
 // assignment would violate its lower or upper property, respectively, a \a std::invalid_argument
 // exception is thrown.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side vector
-inline Row<MT,false,true,true>& Row<MT,false,true,true>::operator-=( const Vector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side vector
+inline Row<MT,false,true,true,CRAs...>&
+   Row<MT,false,true,true,CRAs...>::operator-=( const Vector<VT,true>& rhs )
 {
-   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_<VT> );
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_<VT> );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_t<VT> );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_t<VT> );
 
    if( size() != (~rhs).size() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   typedef If_< IsRestricted<MT>, CompositeType_<VT>, const VT& >  Right;
+   using Right = If_t< IsRestricted_v<MT>, CompositeType_t<VT>, const VT& >;
    Right right( ~rhs );
 
-   if( !trySubAssign( matrix_, right, row_, 0UL ) ) {
+   if( !trySubAssign( matrix_, right, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   if( IsReference<Right>::value && right.canAlias( &matrix_ ) ) {
-      const ResultType_<VT> tmp( right );
+   if( IsReference_v<Right> && right.canAlias( this ) ) {
+      const ResultType_t<VT> tmp( right );
       smpSubAssign( left, tmp );
    }
    else {
@@ -4691,10 +5022,10 @@ inline Row<MT,false,true,true>& Row<MT,false,true,true>::operator-=( const Vecto
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Multiplication assignment operator for the multiplication of a dense vector
+/*!\brief Multiplication assignment operator for the multiplication of a vector
 //        (\f$ \vec{a}*=\vec{b} \f$).
 //
-// \param rhs The right-hand side dense vector to be multiplied with the dense row.
+// \param rhs The right-hand side vector to be multiplied with the dense row.
 // \return Reference to the assigned row.
 // \exception std::invalid_argument Vector sizes do not match.
 // \exception std::invalid_argument Invalid assignment to restricted matrix.
@@ -4702,76 +5033,35 @@ inline Row<MT,false,true,true>& Row<MT,false,true,true>::operator-=( const Vecto
 // In case the current sizes of the two vectors don't match, a \a std::invalid_argument exception
 // is thrown.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline Row<MT,false,true,true>& Row<MT,false,true,true>::operator*=( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side vector
+inline Row<MT,false,true,true,CRAs...>&
+   Row<MT,false,true,true,CRAs...>::operator*=( const Vector<VT,true>& rhs )
 {
-   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_<VT> );
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_<VT> );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_t<VT> );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_t<VT> );
 
    if( size() != (~rhs).size() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   typedef If_< IsRestricted<MT>, CompositeType_<VT>, const VT& >  Right;
+   using Right = If_t< IsRestricted_v<MT>, CompositeType_t<VT>, const VT& >;
    Right right( ~rhs );
 
-   if( !tryMultAssign( matrix_, right, row_, 0UL ) ) {
+   if( !tryMultAssign( matrix_, right, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   if( IsReference<Right>::value && right.canAlias( &matrix_ ) ) {
-      const ResultType_<VT> tmp( right );
+   if( IsReference_v<Right> && right.canAlias( this ) ) {
+      const ResultType_t<VT> tmp( right );
       smpMultAssign( left, tmp );
    }
    else {
       smpMultAssign( left, right );
    }
-
-   BLAZE_INTERNAL_ASSERT( isIntact( matrix_ ), "Invariant violation detected" );
-
-   return *this;
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Multiplication assignment operator for the multiplication of a sparse vector
-//        (\f$ \vec{a}*=\vec{b} \f$).
-//
-// \param rhs The right-hand side sparse vector to be multiplied with the dense row.
-// \return Reference to the assigned row.
-// \exception std::invalid_argument Vector sizes do not match.
-// \exception std::invalid_argument Invalid assignment to restricted matrix.
-//
-// In case the current sizes of the two vectors don't match, a \a std::invalid_argument exception
-// is thrown.
-*/
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side sparse vector
-inline Row<MT,false,true,true>& Row<MT,false,true,true>::operator*=( const SparseVector<VT,true>& rhs )
-{
-   BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE  ( ResultType );
-   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType );
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType );
-
-   if( size() != (~rhs).size() ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
-   }
-
-   const ResultType right( *this * (~rhs) );
-
-   if( !tryAssign( matrix_, right, row_, 0UL ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
-   }
-
-   DerestrictTrait_<This> left( derestrict( *this ) );
-
-   smpAssign( left, right );
 
    BLAZE_INTERNAL_ASSERT( isIntact( matrix_ ), "Invariant violation detected" );
 
@@ -4793,28 +5083,30 @@ inline Row<MT,false,true,true>& Row<MT,false,true,true>::operator*=( const Spars
 // In case the current sizes of the two vectors don't match, a \a std::invalid_argument exception
 // is thrown.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline Row<MT,false,true,true>& Row<MT,false,true,true>::operator/=( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline Row<MT,false,true,true,CRAs...>&
+   Row<MT,false,true,true,CRAs...>::operator/=( const DenseVector<VT,true>& rhs )
 {
-   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_<VT> );
-   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_<VT> );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_t<VT> );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_t<VT> );
 
    if( size() != (~rhs).size() ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Vector sizes do not match" );
    }
 
-   typedef If_< IsRestricted<MT>, CompositeType_<VT>, const VT& >  Right;
+   using Right = If_t< IsRestricted_v<MT>, CompositeType_t<VT>, const VT& >;
    Right right( ~rhs );
 
-   if( !tryDivAssign( matrix_, right, row_, 0UL ) ) {
+   if( !tryDivAssign( matrix_, right, row(), 0UL ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
    }
 
-   DerestrictTrait_<This> left( derestrict( *this ) );
+   decltype(auto) left( derestrict( *this ) );
 
-   if( IsReference<Right>::value && right.canAlias( &matrix_ ) ) {
-      const ResultType_<VT> tmp( right );
+   if( IsReference_v<Right> && right.canAlias( this ) ) {
+      const ResultType_t<VT> tmp( right );
       smpDivAssign( left, tmp );
    }
    else {
@@ -4831,51 +5123,51 @@ inline Row<MT,false,true,true>& Row<MT,false,true,true>::operator/=( const Dense
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Multiplication assignment operator for the multiplication between a dense row and
-//        a scalar value (\f$ \vec{a}*=s \f$).
+/*!\brief Cross product assignment operator for the multiplication of a vector
+//        (\f$ \vec{a}\times=\vec{b} \f$).
 //
-// \param rhs The right-hand side scalar value for the multiplication.
-// \return Reference to the vector.
+// \param rhs The right-hand side vector for the cross product.
+// \return Reference to the assigned row.
+// \exception std::invalid_argument Invalid vector size for cross product.
+// \exception std::invalid_argument Invalid assignment to restricted matrix.
 //
-// This operator cannot be used for rows on lower or upper unitriangular matrices. The attempt
-// to scale such a row results in a compilation error!
+// In case the current size of any of the two vectors is not equal to 3, a \a std::invalid_argument
+// exception is thrown.
 */
-template< typename MT >     // Type of the dense matrix
-template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_< IsNumeric<Other>, Row<MT,false,true,true> >&
-   Row<MT,false,true,true>::operator*=( Other rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side vector
+inline Row<MT,false,true,true,CRAs...>&
+   Row<MT,false,true,true,CRAs...>::operator%=( const Vector<VT,true>& rhs )
 {
-   BLAZE_CONSTRAINT_MUST_NOT_BE_UNITRIANGULAR_MATRIX_TYPE( MT );
+   using blaze::assign;
 
-   return operator=( (*this) * rhs );
-}
-/*! \endcond */
-//*************************************************************************************************
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( ResultType_t<VT> );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( ResultType_t<VT> );
 
+   using CrossType = CrossTrait_t< ResultType, ResultType_t<VT> >;
 
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Division assignment operator for the division of a dense row by a scalar value
-//        (\f$ \vec{a}/=s \f$).
-//
-// \param rhs The right-hand side scalar value for the division.
-// \return Reference to the vector.
-//
-// This operator cannot be used for rows on lower or upper unitriangular matrices. The attempt
-// to scale such a row results in a compilation error!
-//
-// \note A division by zero is only checked by an user assert.
-*/
-template< typename MT >     // Type of the dense matrix
-template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_< IsNumeric<Other>, Row<MT,false,true,true> >&
-   Row<MT,false,true,true>::operator/=( Other rhs )
-{
-   BLAZE_CONSTRAINT_MUST_NOT_BE_UNITRIANGULAR_MATRIX_TYPE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_DENSE_VECTOR_TYPE  ( CrossType );
+   BLAZE_CONSTRAINT_MUST_BE_ROW_VECTOR_TYPE    ( CrossType );
+   BLAZE_CONSTRAINT_MUST_NOT_REQUIRE_EVALUATION( CrossType );
 
-   BLAZE_USER_ASSERT( rhs != Other(0), "Division by zero detected" );
+   if( size() != 3UL || (~rhs).size() != 3UL ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid vector size for cross product" );
+   }
 
-   return operator=( (*this) / rhs );
+   const CrossType right( *this % (~rhs) );
+
+   if( !tryAssign( matrix_, right, row(), 0UL ) ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to restricted matrix" );
+   }
+
+   decltype(auto) left( derestrict( *this ) );
+
+   assign( left, right );
+
+   BLAZE_INTERNAL_ASSERT( isIntact( matrix_ ), "Invariant violation detected" );
+
+   return *this;
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -4891,12 +5183,45 @@ inline EnableIf_< IsNumeric<Other>, Row<MT,false,true,true> >&
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
+/*!\brief Returns the matrix containing the row.
+//
+// \return The matrix containing the row.
+*/
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline MT& Row<MT,false,true,true,CRAs...>::operand() noexcept
+{
+   return matrix_;
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Returns the matrix containing the row.
+//
+// \return The matrix containing the row.
+*/
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline const MT& Row<MT,false,true,true,CRAs...>::operand() const noexcept
+{
+   return matrix_;
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
 /*!\brief Returns the current size/dimension of the row.
 //
 // \return The size of the row.
 */
-template< typename MT >  // Type of the dense matrix
-inline size_t Row<MT,false,true,true>::size() const noexcept
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline size_t Row<MT,false,true,true,CRAs...>::size() const noexcept
 {
    return matrix_.columns();
 }
@@ -4906,14 +5231,34 @@ inline size_t Row<MT,false,true,true>::size() const noexcept
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
+/*!\brief Returns the minimum capacity of the row.
+//
+// \return The minimum capacity of the row.
+//
+// This function returns the minimum capacity of the row, which corresponds to the current size
+// plus padding.
+*/
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline size_t Row<MT,false,true,true,CRAs...>::spacing() const noexcept
+{
+   return matrix_.spacing();
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
 /*!\brief Returns the maximum capacity of the dense row.
 //
-// \return The capacity of the dense row.
+// \return The maximum capacity of the dense row.
 */
-template< typename MT >  // Type of the dense matrix
-inline size_t Row<MT,false,true,true>::capacity() const noexcept
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline size_t Row<MT,false,true,true,CRAs...>::capacity() const noexcept
 {
-   return matrix_.capacity( row_ );
+   return matrix_.capacity( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -4928,10 +5273,11 @@ inline size_t Row<MT,false,true,true>::capacity() const noexcept
 // Note that the number of non-zero elements is always less than or equal to the current number
 // of columns of the matrix containing the row.
 */
-template< typename MT >  // Type of the dense matrix
-inline size_t Row<MT,false,true,true>::nonZeros() const
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline size_t Row<MT,false,true,true,CRAs...>::nonZeros() const
 {
-   return matrix_.nonZeros( row_ );
+   return matrix_.nonZeros( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -4943,14 +5289,23 @@ inline size_t Row<MT,false,true,true>::nonZeros() const
 //
 // \return void
 */
-template< typename MT >  // Type of the dense matrix
-inline void Row<MT,false,true,true>::reset()
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline void Row<MT,false,true,true,CRAs...>::reset()
 {
-   matrix_.reset( row_ );
+   matrix_.reset( row() );
 }
 /*! \endcond */
 //*************************************************************************************************
 
+
+
+
+//=================================================================================================
+//
+//  NUMERIC FUNCTIONS
+//
+//=================================================================================================
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
@@ -4959,29 +5314,33 @@ inline void Row<MT,false,true,true>::reset()
 // \param scalar The scalar value for the row scaling.
 // \return Reference to the dense row.
 //
-// This function scales all elements of the row by the given scalar value \a scalar. Note that
-// the function cannot be used to scale a row on a lower or upper unitriangular matrix. The
-// attempt to scale such a row results in a compile time error!
+// This function scales the row by applying the given scalar value \a scalar to each element
+// of the row. For built-in and \c complex data types it has the same effect as using the
+// multiplication assignment operator. Note that the function cannot be used to scale a row
+// on a lower or upper unitriangular matrix. The attempt to scale such a row results in a
+// compile time error!
 */
-template< typename MT >     // Type of the dense matrix
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
 template< typename Other >  // Data type of the scalar value
-inline Row<MT,false,true,true>& Row<MT,false,true,true>::scale( const Other& scalar )
+inline Row<MT,false,true,true,CRAs...>&
+   Row<MT,false,true,true,CRAs...>::scale( const Other& scalar )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_UNITRIANGULAR_MATRIX_TYPE( MT );
 
-   const size_t ibegin( ( IsLower<MT>::value )
-                        ?( ( IsStrictlyLower<MT>::value )
-                           ?( row_+1UL )
-                           :( row_ ) )
+   const size_t ibegin( ( IsLower_v<MT> )
+                        ?( ( IsStrictlyLower_v<MT> )
+                           ?( row()+1UL )
+                           :( row() ) )
                         :( 0UL ) );
-   const size_t iend  ( ( IsUpper<MT>::value )
-                        ?( ( IsStrictlyUpper<MT>::value )
-                           ?( row_ )
-                           :( row_+1UL ) )
+   const size_t iend  ( ( IsUpper_v<MT> )
+                        ?( ( IsStrictlyUpper_v<MT> )
+                           ?( row() )
+                           :( row()+1UL ) )
                         :( size() ) );
 
    for( size_t i=ibegin; i<iend; ++i ) {
-      matrix_(i,row_) *= scalar;
+      matrix_(i,row()) *= scalar;
    }
 
    return *this;
@@ -5009,11 +5368,12 @@ inline Row<MT,false,true,true>& Row<MT,false,true,true>::scale( const Other& sca
 // to the isAliased() function this function is allowed to use compile time expressions to
 // optimize the evaluation.
 */
-template< typename MT >     // Type of the dense matrix
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
 template< typename Other >  // Data type of the foreign expression
-inline bool Row<MT,false,true,true>::canAlias( const Other* alias ) const noexcept
+inline bool Row<MT,false,true,true,CRAs...>::canAlias( const Other* alias ) const noexcept
 {
-   return matrix_.isAliased( alias );
+   return matrix_.isAliased( &unview( *alias ) );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5030,13 +5390,16 @@ inline bool Row<MT,false,true,true>::canAlias( const Other* alias ) const noexce
 // to the isAliased() function this function is allowed to use compile time expressions to
 // optimize the evaluation.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename MT2   // Data type of the foreign dense row
-        , bool SO2       // Storage order of the foreign dense row
-        , bool SF2 >     // Symmetry flag of the foreign dense row
-inline bool Row<MT,false,true,true>::canAlias( const Row<MT2,SO2,true,SF2>* alias ) const noexcept
+template< typename MT        // Type of the dense matrix
+        , size_t... CRAs >   // Compile time row arguments
+template< typename MT2       // Data type of the foreign dense row
+        , bool SO2           // Storage order of the foreign dense row
+        , bool SF2           // Symmetry flag of the foreign dense row
+        , size_t... CRAs2 >  // Compile time row arguments of the foreign dense row
+inline bool
+   Row<MT,false,true,true,CRAs...>::canAlias( const Row<MT2,SO2,true,SF2,CRAs2...>* alias ) const noexcept
 {
-   return matrix_.isAliased( &alias->matrix_ ) && ( row_ == alias->row_ );
+   return matrix_.isAliased( &alias->matrix_ ) && ( row() == alias->row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5053,11 +5416,12 @@ inline bool Row<MT,false,true,true>::canAlias( const Row<MT2,SO2,true,SF2>* alia
 // to the canAlias() function this function is not allowed to use compile time expressions to
 // optimize the evaluation.
 */
-template< typename MT >     // Type of the dense matrix
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
 template< typename Other >  // Data type of the foreign expression
-inline bool Row<MT,false,true,true>::isAliased( const Other* alias ) const noexcept
+inline bool Row<MT,false,true,true,CRAs...>::isAliased( const Other* alias ) const noexcept
 {
-   return matrix_.isAliased( alias );
+   return matrix_.isAliased( &unview( *alias ) );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5074,13 +5438,16 @@ inline bool Row<MT,false,true,true>::isAliased( const Other* alias ) const noexc
 // to the canAlias() function this function is not allowed to use compile time expressions to
 // optimize the evaluation.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename MT2   // Data type of the foreign dense row
-        , bool SO2       // Storage order of the foreign dense row
-        , bool SF2 >     // Symmetry flag of the foreign dense row
-inline bool Row<MT,false,true,true>::isAliased( const Row<MT2,SO2,true,SF2>* alias ) const noexcept
+template< typename MT        // Type of the dense matrix
+        , size_t... CRAs >   // Compile time row arguments
+template< typename MT2       // Data type of the foreign dense row
+        , bool SO2           // Storage order of the foreign dense row
+        , bool SF2           // Symmetry flag of the foreign dense row
+        , size_t... CRAs2 >  // Compile time row arguments of the foreign dense row
+inline bool
+   Row<MT,false,true,true,CRAs...>::isAliased( const Row<MT2,SO2,true,SF2,CRAs2...>* alias ) const noexcept
 {
-   return matrix_.isAliased( &alias->matrix_ ) && ( row_ == alias->row_ );
+   return matrix_.isAliased( &alias->matrix_ ) && ( row() == alias->row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5096,8 +5463,9 @@ inline bool Row<MT,false,true,true>::isAliased( const Row<MT2,SO2,true,SF2>* ali
 // i.e. whether the beginning and the end of the dense row are guaranteed to conform to the
 // alignment restrictions of the element type \a Type.
 */
-template< typename MT >  // Type of the dense matrix
-inline bool Row<MT,false,true,true>::isAligned() const noexcept
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline bool Row<MT,false,true,true,CRAs...>::isAligned() const noexcept
 {
    return matrix_.isAligned();
 }
@@ -5116,8 +5484,9 @@ inline bool Row<MT,false,true,true>::isAligned() const noexcept
 // this function additionally provides runtime information (as for instance the current size
 // of the dense row).
 */
-template< typename MT >  // Type of the dense matrix
-inline bool Row<MT,false,true,true>::canSMPAssign() const noexcept
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+inline bool Row<MT,false,true,true,CRAs...>::canSMPAssign() const noexcept
 {
    return ( size() > SMP_DVECASSIGN_THRESHOLD );
 }
@@ -5138,11 +5507,12 @@ inline bool Row<MT,false,true,true>::canSMPAssign() const noexcept
 // templates. Calling this function explicitly might result in erroneous results and/or in
 // compilation errors.
 */
-template< typename MT >  // Type of the dense matrix
-BLAZE_ALWAYS_INLINE typename Row<MT,false,true,true>::SIMDType
-   Row<MT,false,true,true>::load( size_t index ) const noexcept
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+BLAZE_ALWAYS_INLINE typename Row<MT,false,true,true,CRAs...>::SIMDType
+   Row<MT,false,true,true,CRAs...>::load( size_t index ) const noexcept
 {
-   return matrix_.load( index, row_ );
+   return matrix_.load( index, row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5161,11 +5531,12 @@ BLAZE_ALWAYS_INLINE typename Row<MT,false,true,true>::SIMDType
 // expression templates. Calling this function explicitly might result in erroneous results
 // and/or in compilation errors.
 */
-template< typename MT >  // Type of the dense matrix
-BLAZE_ALWAYS_INLINE typename Row<MT,false,true,true>::SIMDType
-   Row<MT,false,true,true>::loada( size_t index ) const noexcept
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+BLAZE_ALWAYS_INLINE typename Row<MT,false,true,true,CRAs...>::SIMDType
+   Row<MT,false,true,true,CRAs...>::loada( size_t index ) const noexcept
 {
-   return matrix_.loada( index, row_ );
+   return matrix_.loada( index, row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5184,11 +5555,12 @@ BLAZE_ALWAYS_INLINE typename Row<MT,false,true,true>::SIMDType
 // expression templates. Calling this function explicitly might result in erroneous results
 // and/or in compilation errors.
 */
-template< typename MT >  // Type of the dense matrix
-BLAZE_ALWAYS_INLINE typename Row<MT,false,true,true>::SIMDType
-   Row<MT,false,true,true>::loadu( size_t index ) const noexcept
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+BLAZE_ALWAYS_INLINE typename Row<MT,false,true,true,CRAs...>::SIMDType
+   Row<MT,false,true,true,CRAs...>::loadu( size_t index ) const noexcept
 {
-   return matrix_.loadu( index, row_ );
+   return matrix_.loadu( index, row() );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5208,11 +5580,12 @@ BLAZE_ALWAYS_INLINE typename Row<MT,false,true,true>::SIMDType
 // templates. Calling this function explicitly might result in erroneous results and/or in
 // compilation errors.
 */
-template< typename MT >  // Type of the dense matrix
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
 BLAZE_ALWAYS_INLINE void
-   Row<MT,false,true,true>::store( size_t index, const SIMDType& value ) noexcept
+   Row<MT,false,true,true,CRAs...>::store( size_t index, const SIMDType& value ) noexcept
 {
-   matrix_.store( index, row_, value );
+   matrix_.store( index, row(), value );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5232,11 +5605,12 @@ BLAZE_ALWAYS_INLINE void
 // expression templates. Calling this function explicitly might result in erroneous results
 // and/or in compilation errors.
 */
-template< typename MT >  // Type of the dense matrix
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
 BLAZE_ALWAYS_INLINE void
-   Row<MT,false,true,true>::storea( size_t index, const SIMDType& value ) noexcept
+   Row<MT,false,true,true,CRAs...>::storea( size_t index, const SIMDType& value ) noexcept
 {
-   matrix_.storea( index, row_, value );
+   matrix_.storea( index, row(), value );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5256,11 +5630,12 @@ BLAZE_ALWAYS_INLINE void
 // expression templates. Calling this function explicitly might result in erroneous results
 // and/or in compilation errors.
 */
-template< typename MT >  // Type of the dense matrix
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
 BLAZE_ALWAYS_INLINE void
-   Row<MT,false,true,true>::storeu( size_t index, const SIMDType& value ) noexcept
+   Row<MT,false,true,true,CRAs...>::storeu( size_t index, const SIMDType& value ) noexcept
 {
-   matrix_.storeu( index, row_, value );
+   matrix_.storeu( index, row(), value );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5280,11 +5655,12 @@ BLAZE_ALWAYS_INLINE void
 // expression templates. Calling this function explicitly might result in erroneous results
 // and/or in compilation errors.
 */
-template< typename MT >  // Type of the dense matrix
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
 BLAZE_ALWAYS_INLINE void
-   Row<MT,false,true,true>::stream( size_t index, const SIMDType& value ) noexcept
+   Row<MT,false,true,true,CRAs...>::stream( size_t index, const SIMDType& value ) noexcept
 {
-   matrix_.stream( index, row_, value );
+   matrix_.stream( index, row(), value );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5302,20 +5678,23 @@ BLAZE_ALWAYS_INLINE void
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline DisableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedAssign<VT> >
-   Row<MT,false,true,true>::assign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,false,true,true,CRAs...>::assign( const DenseVector<VT,true>& rhs )
+   -> DisableIf_t< VectorizedAssign_v<VT> >
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const size_t ipos( (~rhs).size() & size_t(-2) );
+   const size_t ipos( prevMultiple( (~rhs).size(), 2UL ) );
+   BLAZE_INTERNAL_ASSERT( ipos <= (~rhs).size(), "Invalid end calculation" );
+
    for( size_t i=0UL; i<ipos; i+=2UL ) {
-      matrix_(i    ,row_) = (~rhs)[i    ];
-      matrix_(i+1UL,row_) = (~rhs)[i+1UL];
+      matrix_(i    ,row()) = (~rhs)[i    ];
+      matrix_(i+1UL,row()) = (~rhs)[i+1UL];
    }
    if( ipos < (~rhs).size() )
-      matrix_(ipos,row_) = (~rhs)[ipos];
+      matrix_(ipos,row()) = (~rhs)[ipos];
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5333,27 +5712,28 @@ inline DisableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedAs
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline EnableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedAssign<VT> >
-   Row<MT,false,true,true>::assign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,false,true,true,CRAs...>::assign( const DenseVector<VT,true>& rhs )
+   -> EnableIf_t< VectorizedAssign_v<VT> >
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( ElementType );
 
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   constexpr bool remainder( !IsPadded<MT>::value || !IsPadded<VT>::value );
+   constexpr bool remainder( !IsPadded_v<MT> || !IsPadded_v<VT> );
 
    const size_t rows( size() );
 
-   const size_t ipos( ( remainder )?( rows & size_t(-SIMDSIZE) ):( rows ) );
-   BLAZE_INTERNAL_ASSERT( !remainder || ( rows - ( rows % (SIMDSIZE) ) ) == ipos, "Invalid end calculation" );
+   const size_t ipos( remainder ? prevMultiple( rows, SIMDSIZE ) : rows );
+   BLAZE_INTERNAL_ASSERT( ipos <= rows, "Invalid end calculation" );
 
    size_t i( 0UL );
    Iterator left( begin() );
-   ConstIterator_<VT> right( (~rhs).begin() );
+   ConstIterator_t<VT> right( (~rhs).begin() );
 
-   if( useStreaming && rows > ( cacheSize/( sizeof(ElementType) * 3UL ) ) && !(~rhs).isAliased( &matrix_ ) )
+   if( useStreaming && rows > ( cacheSize/( sizeof(ElementType) * 3UL ) ) && !(~rhs).isAliased( this ) )
    {
       for( ; i<ipos; i+=SIMDSIZE ) {
          left.stream( right.load() ); left += SIMDSIZE; right += SIMDSIZE;
@@ -5394,14 +5774,15 @@ inline EnableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedAss
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side sparse vector
-inline void Row<MT,false,true,true>::assign( const SparseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side sparse vector
+inline void Row<MT,false,true,true,CRAs...>::assign( const SparseVector<VT,true>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   for( ConstIterator_<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
-      matrix_(element->index(),row_) = element->value();
+   for( ConstIterator_t<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
+      matrix_(element->index(),row()) = element->value();
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5419,20 +5800,23 @@ inline void Row<MT,false,true,true>::assign( const SparseVector<VT,true>& rhs )
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline DisableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedAddAssign<VT> >
-   Row<MT,false,true,true>::addAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,false,true,true,CRAs...>::addAssign( const DenseVector<VT,true>& rhs )
+   -> DisableIf_t< VectorizedAddAssign_v<VT> >
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const size_t ipos( (~rhs).size() & size_t(-2) );
+   const size_t ipos( prevMultiple( (~rhs).size(), 2UL ) );
+   BLAZE_INTERNAL_ASSERT( ipos <= (~rhs).size(), "Invalid end calculation" );
+
    for( size_t i=0UL; i<ipos; i+=2UL ) {
-      matrix_(i    ,row_) += (~rhs)[i    ];
-      matrix_(i+1UL,row_) += (~rhs)[i+1UL];
+      matrix_(i    ,row()) += (~rhs)[i    ];
+      matrix_(i+1UL,row()) += (~rhs)[i+1UL];
    }
    if( ipos < (~rhs).size() )
-      matrix_(ipos,row_) += (~rhs)[ipos];
+      matrix_(ipos,row()) += (~rhs)[ipos];
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5450,25 +5834,26 @@ inline DisableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedAd
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline EnableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedAddAssign<VT> >
-   Row<MT,false,true,true>::addAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,false,true,true,CRAs...>::addAssign( const DenseVector<VT,true>& rhs )
+   -> EnableIf_t< VectorizedAddAssign_v<VT> >
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( ElementType );
 
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   constexpr bool remainder( !IsPadded<MT>::value || !IsPadded<VT>::value );
+   constexpr bool remainder( !IsPadded_v<MT> || !IsPadded_v<VT> );
 
    const size_t rows( size() );
 
-   const size_t ipos( ( remainder )?( rows & size_t(-SIMDSIZE) ):( rows ) );
-   BLAZE_INTERNAL_ASSERT( !remainder || ( rows - ( rows % (SIMDSIZE) ) ) == ipos, "Invalid end calculation" );
+   const size_t ipos( remainder ? prevMultiple( rows, SIMDSIZE ) : rows );
+   BLAZE_INTERNAL_ASSERT( ipos <= rows, "Invalid end calculation" );
 
    size_t i( 0UL );
    Iterator left( begin() );
-   ConstIterator_<VT> right( (~rhs).begin() );
+   ConstIterator_t<VT> right( (~rhs).begin() );
 
    for( ; (i+SIMDSIZE*3UL) < ipos; i+=SIMDSIZE*4UL ) {
       left.store( left.load() + right.load() ); left += SIMDSIZE; right += SIMDSIZE;
@@ -5499,14 +5884,15 @@ inline EnableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedAdd
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side sparse vector
-inline void Row<MT,false,true,true>::addAssign( const SparseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side sparse vector
+inline void Row<MT,false,true,true,CRAs...>::addAssign( const SparseVector<VT,true>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   for( ConstIterator_<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
-      matrix_(element->index(),row_) += element->value();
+   for( ConstIterator_t<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
+      matrix_(element->index(),row()) += element->value();
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5524,20 +5910,23 @@ inline void Row<MT,false,true,true>::addAssign( const SparseVector<VT,true>& rhs
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline DisableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedSubAssign<VT> >
-   Row<MT,false,true,true>::subAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,false,true,true,CRAs...>::subAssign( const DenseVector<VT,true>& rhs )
+   -> DisableIf_t< VectorizedSubAssign_v<VT> >
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const size_t ipos( (~rhs).size() & size_t(-2) );
+   const size_t ipos( prevMultiple( (~rhs).size(), 2UL ) );
+   BLAZE_INTERNAL_ASSERT( ipos <= (~rhs).size(), "Invalid end calculation" );
+
    for( size_t i=0UL; i<ipos; i+=2UL ) {
-      matrix_(i    ,row_) -= (~rhs)[i    ];
-      matrix_(i+1UL,row_) -= (~rhs)[i+1UL];
+      matrix_(i    ,row()) -= (~rhs)[i    ];
+      matrix_(i+1UL,row()) -= (~rhs)[i+1UL];
    }
    if( ipos < (~rhs).size() )
-      matrix_(ipos,row_) -= (~rhs)[ipos];
+      matrix_(ipos,row()) -= (~rhs)[ipos];
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5555,25 +5944,26 @@ inline DisableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedSu
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline EnableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedSubAssign<VT> >
-   Row<MT,false,true,true>::subAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,false,true,true,CRAs...>::subAssign( const DenseVector<VT,true>& rhs )
+   -> EnableIf_t< VectorizedSubAssign_v<VT> >
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( ElementType );
 
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   constexpr bool remainder( !IsPadded<MT>::value || !IsPadded<VT>::value );
+   constexpr bool remainder( !IsPadded_v<MT> || !IsPadded_v<VT> );
 
    const size_t rows( size() );
 
-   const size_t ipos( ( remainder )?( rows & size_t(-SIMDSIZE) ):( rows ) );
-   BLAZE_INTERNAL_ASSERT( !remainder || ( rows - ( rows % (SIMDSIZE) ) ) == ipos, "Invalid end calculation" );
+   const size_t ipos( remainder ? prevMultiple( rows, SIMDSIZE ) : rows );
+   BLAZE_INTERNAL_ASSERT( ipos <= rows, "Invalid end calculation" );
 
    size_t i( 0UL );
    Iterator left( begin() );
-   ConstIterator_<VT> right( (~rhs).begin() );
+   ConstIterator_t<VT> right( (~rhs).begin() );
 
    for( ; (i+SIMDSIZE*3UL) < ipos; i+=SIMDSIZE*4UL ) {
       left.store( left.load() - right.load() ); left += SIMDSIZE; right += SIMDSIZE;
@@ -5604,14 +5994,15 @@ inline EnableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedSub
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side sparse vector
-inline void Row<MT,false,true,true>::subAssign( const SparseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side sparse vector
+inline void Row<MT,false,true,true,CRAs...>::subAssign( const SparseVector<VT,true>& rhs )
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   for( ConstIterator_<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
-      matrix_(element->index(),row_) -= element->value();
+   for( ConstIterator_t<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
+      matrix_(element->index(),row()) -= element->value();
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5629,20 +6020,23 @@ inline void Row<MT,false,true,true>::subAssign( const SparseVector<VT,true>& rhs
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline DisableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedMultAssign<VT> >
-   Row<MT,false,true,true>::multAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,false,true,true,CRAs...>::multAssign( const DenseVector<VT,true>& rhs )
+   -> DisableIf_t< VectorizedMultAssign_v<VT> >
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const size_t ipos( (~rhs).size() & size_t(-2) );
+   const size_t ipos( prevMultiple( (~rhs).size(), 2UL ) );
+   BLAZE_INTERNAL_ASSERT( ipos <= (~rhs).size(), "Invalid end calculation" );
+
    for( size_t i=0UL; i<ipos; i+=2UL ) {
-      matrix_(i    ,row_) *= (~rhs)[i    ];
-      matrix_(i+1UL,row_) *= (~rhs)[i+1UL];
+      matrix_(i    ,row()) *= (~rhs)[i    ];
+      matrix_(i+1UL,row()) *= (~rhs)[i+1UL];
    }
    if( ipos < (~rhs).size() )
-      matrix_(ipos,row_) *= (~rhs)[ipos];
+      matrix_(ipos,row()) *= (~rhs)[ipos];
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5660,25 +6054,26 @@ inline DisableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedMu
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline EnableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedMultAssign<VT> >
-   Row<MT,false,true,true>::multAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,false,true,true,CRAs...>::multAssign( const DenseVector<VT,true>& rhs )
+   -> EnableIf_t< VectorizedMultAssign_v<VT> >
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( ElementType );
 
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   constexpr bool remainder( !IsPadded<MT>::value || !IsPadded<VT>::value );
+   constexpr bool remainder( !IsPadded_v<MT> || !IsPadded_v<VT> );
 
    const size_t rows( size() );
 
-   const size_t ipos( ( remainder )?( rows & size_t(-SIMDSIZE) ):( rows ) );
-   BLAZE_INTERNAL_ASSERT( !remainder || ( rows - ( rows % (SIMDSIZE) ) ) == ipos, "Invalid end calculation" );
+   const size_t ipos( remainder ? prevMultiple( rows, SIMDSIZE ) : rows );
+   BLAZE_INTERNAL_ASSERT( ipos <= rows, "Invalid end calculation" );
 
    size_t i( 0UL );
    Iterator left( begin() );
-   ConstIterator_<VT> right( (~rhs).begin() );
+   ConstIterator_t<VT> right( (~rhs).begin() );
 
    for( ; (i+SIMDSIZE*3UL) < ipos; i+=SIMDSIZE*4UL ) {
       left.store( left.load() * right.load() ); left += SIMDSIZE; right += SIMDSIZE;
@@ -5709,18 +6104,28 @@ inline EnableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedMul
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side sparse vector
-inline void Row<MT,false,true,true>::multAssign( const SparseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side sparse vector
+inline void Row<MT,false,true,true,CRAs...>::multAssign( const SparseVector<VT,true>& rhs )
 {
+   using blaze::reset;
+
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const ResultType tmp( serial( *this ) );
+   size_t i( 0UL );
 
-   reset();
+   for( ConstIterator_t<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element ) {
+      const size_t index( element->index() );
+      for( ; i<index; ++i )
+         reset( matrix_(i,row()) );
+      matrix_(i,row()) *= element->value();
+      ++i;
+   }
 
-   for( ConstIterator_<VT> element=(~rhs).begin(); element!=(~rhs).end(); ++element )
-      matrix_(element->index(),row_) = tmp[element->index()] * element->value();
+   for( ; i<size(); ++i ) {
+      reset( matrix_(i,row()) );
+   }
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5738,20 +6143,23 @@ inline void Row<MT,false,true,true>::multAssign( const SparseVector<VT,true>& rh
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline DisableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedDivAssign<VT> >
-   Row<MT,false,true,true>::divAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,false,true,true,CRAs...>::divAssign( const DenseVector<VT,true>& rhs )
+   -> DisableIf_t< VectorizedDivAssign_v<VT> >
 {
    BLAZE_INTERNAL_ASSERT( size() == (~rhs).size(), "Invalid vector sizes" );
 
-   const size_t ipos( (~rhs).size() & size_t(-2) );
+   const size_t ipos( prevMultiple( (~rhs).size(), 2UL ) );
+   BLAZE_INTERNAL_ASSERT( ipos <= (~rhs).size(), "Invalid end calculation" );
+
    for( size_t i=0UL; i<ipos; i+=2UL ) {
-      matrix_(i    ,row_) /= (~rhs)[i    ];
-      matrix_(i+1UL,row_) /= (~rhs)[i+1UL];
+      matrix_(i    ,row()) /= (~rhs)[i    ];
+      matrix_(i+1UL,row()) /= (~rhs)[i+1UL];
    }
    if( ipos < (~rhs).size() )
-      matrix_(ipos,row_) /= (~rhs)[ipos];
+      matrix_(ipos,row()) /= (~rhs)[ipos];
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -5769,10 +6177,11 @@ inline DisableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedDi
 // in erroneous results and/or in compilation errors. Instead of using this function use the
 // assignment operator.
 */
-template< typename MT >  // Type of the dense matrix
-template< typename VT >  // Type of the right-hand side dense vector
-inline EnableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedDivAssign<VT> >
-   Row<MT,false,true,true>::divAssign( const DenseVector<VT,true>& rhs )
+template< typename MT       // Type of the dense matrix
+        , size_t... CRAs >  // Compile time row arguments
+template< typename VT >     // Type of the right-hand side dense vector
+inline auto Row<MT,false,true,true,CRAs...>::divAssign( const DenseVector<VT,true>& rhs )
+   -> EnableIf_t< VectorizedDivAssign_v<VT> >
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTORIZABLE_TYPE( ElementType );
 
@@ -5780,12 +6189,12 @@ inline EnableIf_< typename Row<MT,false,true,true>::BLAZE_TEMPLATE VectorizedDiv
 
    const size_t rows( size() );
 
-   const size_t ipos( rows & size_t(-SIMDSIZE) );
-   BLAZE_INTERNAL_ASSERT( ( rows - ( rows % (SIMDSIZE) ) ) == ipos, "Invalid end calculation" );
+   const size_t ipos( prevMultiple( rows, SIMDSIZE ) );
+   BLAZE_INTERNAL_ASSERT( ipos <= rows, "Invalid end calculation" );
 
    size_t i( 0UL );
    Iterator left( begin() );
-   ConstIterator_<VT> right( (~rhs).begin() );
+   ConstIterator_t<VT> right( (~rhs).begin() );
 
    for( ; (i+SIMDSIZE*3UL) < ipos; i+=SIMDSIZE*4UL ) {
       left.store( left.load() / right.load() ); left += SIMDSIZE; right += SIMDSIZE;

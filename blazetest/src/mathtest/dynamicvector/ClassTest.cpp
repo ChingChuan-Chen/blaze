@@ -3,7 +3,7 @@
 //  \file src/mathtest/dynamicvector/ClassTest.cpp
 //  \brief Source file for the DynamicVector class test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -37,12 +37,12 @@
 // Includes
 //*************************************************************************************************
 
+#include <array>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <blaze/math/CompressedVector.h>
 #include <blaze/math/CustomVector.h>
-#include <blaze/math/StaticVector.h>
 #include <blaze/math/shims/Equal.h>
 #include <blaze/util/Complex.h>
 #include <blaze/util/policies/Deallocate.h>
@@ -50,6 +50,10 @@
 #include <blazetest/mathtest/dynamicvector/ClassTest.h>
 #include <blazetest/mathtest/RandomMaximum.h>
 #include <blazetest/mathtest/RandomMinimum.h>
+
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
 
 
 namespace blazetest {
@@ -101,6 +105,7 @@ ClassTest::ClassTest()
    testSubAssign();
    testMultAssign();
    testDivAssign();
+   testCrossAssign();
    testScaling();
    testSubscript();
    testAt();
@@ -111,6 +116,7 @@ ClassTest::ClassTest()
    testResize();
    testExtend();
    testReserve();
+   testShrinkToFit();
    testSwap();
    testIsDefault();
 }
@@ -282,6 +288,27 @@ void ClassTest::testConstructors()
       }
    }
 
+   {
+      test_ = "DynamicVector std::array initialization constructor (size 4)";
+
+      const std::array<int,4UL> array{ 1, 2, 3, 4 };
+      blaze::DynamicVector<int,blaze::rowVector> vec( array );
+
+      checkSize    ( vec, 4UL );
+      checkCapacity( vec, 4UL );
+      checkNonZeros( vec, 4UL );
+
+      if( vec[0] != 1 || vec[1] != 2 || vec[2] != 3 || vec[3] != 4 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Construction failed\n"
+             << " Details:\n"
+             << "   Result:\n" << vec << "\n"
+             << "   Expected result:\n( 1 2 3 4 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
 
    //=====================================================================================
    // Copy constructor
@@ -366,8 +393,9 @@ void ClassTest::testConstructors()
       using blaze::padded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec1( memory.get(), 5UL, 16UL );
       vec1[0] = 1;
       vec1[1] = 2;
       vec1[2] = 3;
@@ -397,9 +425,9 @@ void ClassTest::testConstructors()
       using blaze::unpadded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[6] );
-      UnalignedUnpadded vec1( array.get()+1UL, 5UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[6] );
+      UnalignedUnpadded vec1( memory.get()+1UL, 5UL );
       vec1[0] = 1;
       vec1[1] = 2;
       vec1[2] = 3;
@@ -522,9 +550,31 @@ void ClassTest::testAssignment()
    //=====================================================================================
 
    {
-      test_ = "DynamicVector array assignment";
+      test_ = "DynamicVector static array assignment";
 
       const int array[4] = { 1, 2, 3, 4 };
+      blaze::DynamicVector<int,blaze::rowVector> vec;
+      vec = array;
+
+      checkSize    ( vec, 4UL );
+      checkCapacity( vec, 4UL );
+      checkNonZeros( vec, 4UL );
+
+      if( vec[0] != 1 || vec[1] != 2 || vec[2] != 3 || vec[3] != 4 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << vec << "\n"
+             << "   Expected result:\n( 1 2 3 4 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   {
+      test_ = "DynamicVector std::array assignment";
+
+      const std::array<int,4UL> array{ 1, 2, 3, 4 };
       blaze::DynamicVector<int,blaze::rowVector> vec;
       vec = array;
 
@@ -573,7 +623,7 @@ void ClassTest::testAssignment()
    {
       test_ = "DynamicVector copy assignment stress test";
 
-      typedef blaze::DynamicVector<int,blaze::rowVector>  RandomVectorType;
+      using RandomVectorType = blaze::DynamicVector<int,blaze::rowVector>;
 
       blaze::DynamicVector<int,blaze::rowVector> vec1;
       const int min( randmin );
@@ -660,8 +710,9 @@ void ClassTest::testAssignment()
       using blaze::padded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec1( memory.get(), 5UL, 16UL );
       vec1[0] = 1;
       vec1[1] = 2;
       vec1[2] = 3;
@@ -692,9 +743,9 @@ void ClassTest::testAssignment()
       using blaze::unpadded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[6] );
-      UnalignedUnpadded vec1( array.get()+1UL, 5UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[6] );
+      UnalignedUnpadded vec1( memory.get()+1UL, 5UL );
       vec1[0] = 1;
       vec1[1] = 2;
       vec1[2] = 3;
@@ -721,11 +772,11 @@ void ClassTest::testAssignment()
    {
       test_ = "DynamicVector dense vector assignment stress test";
 
-      typedef blaze::DynamicVector<unsigned int,blaze::rowVector>  RandomVectorType;
+      using RandomVectorType = blaze::DynamicVector<short,blaze::rowVector>;
 
       blaze::DynamicVector<int,blaze::rowVector> vec1;
-      const unsigned int min( randmin );
-      const unsigned int max( randmax );
+      const short min( randmin );
+      const short max( randmax );
 
       for( size_t i=0UL; i<100UL; ++i )
       {
@@ -779,7 +830,7 @@ void ClassTest::testAssignment()
    {
       test_ = "DynamicVector sparse vector assignment stress test";
 
-      typedef blaze::CompressedVector<int,blaze::rowVector>  RandomVectorType;
+      using RandomVectorType = blaze::CompressedVector<int,blaze::rowVector>;
 
       blaze::DynamicVector<int,blaze::rowVector> vec1;
       const int min( randmin );
@@ -852,8 +903,9 @@ void ClassTest::testAddAssign()
       using blaze::padded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec1( memory.get(), 5UL, 16UL );
       vec1[0] =  1;
       vec1[1] =  0;
       vec1[2] = -2;
@@ -885,9 +937,9 @@ void ClassTest::testAddAssign()
       using blaze::unpadded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[6] );
-      UnalignedUnpadded vec1( array.get()+1UL, 5UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[6] );
+      UnalignedUnpadded vec1( memory.get()+1UL, 5UL );
       vec1[0] =  1;
       vec1[1] =  0;
       vec1[2] = -2;
@@ -991,8 +1043,9 @@ void ClassTest::testSubAssign()
       using blaze::padded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec1( memory.get(), 5UL, 16UL );
       vec1[0] = -1;
       vec1[1] =  0;
       vec1[2] =  2;
@@ -1024,9 +1077,9 @@ void ClassTest::testSubAssign()
       using blaze::unpadded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[6] );
-      UnalignedUnpadded vec1( array.get()+1UL, 5UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[6] );
+      UnalignedUnpadded vec1( memory.get()+1UL, 5UL );
       vec1[0] = -1;
       vec1[1] =  0;
       vec1[2] =  2;
@@ -1130,8 +1183,9 @@ void ClassTest::testMultAssign()
       using blaze::padded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec1( memory.get(), 5UL, 16UL );
       vec1[0] =  1;
       vec1[1] =  0;
       vec1[2] = -2;
@@ -1163,9 +1217,9 @@ void ClassTest::testMultAssign()
       using blaze::unpadded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[6] );
-      UnalignedUnpadded vec1( array.get()+1UL, 5UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[6] );
+      UnalignedUnpadded vec1( memory.get()+1UL, 5UL );
       vec1[0] =  1;
       vec1[1] =  0;
       vec1[2] = -2;
@@ -1269,8 +1323,9 @@ void ClassTest::testDivAssign()
       using blaze::padded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<int>( 16UL ), 5UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec1( memory.get(), 5UL, 16UL );
       vec1[0] =  1;
       vec1[1] =  2;
       vec1[2] = -3;
@@ -1302,9 +1357,9 @@ void ClassTest::testDivAssign()
       using blaze::unpadded;
       using blaze::rowVector;
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[6] );
-      UnalignedUnpadded vec1( array.get()+1UL, 5UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[6] );
+      UnalignedUnpadded vec1( memory.get()+1UL, 5UL );
       vec1[0] =  1;
       vec1[1] =  2;
       vec1[2] = -3;
@@ -1325,6 +1380,141 @@ void ClassTest::testDivAssign()
              << " Details:\n"
              << "   Result:\n" << vec2 << "\n"
              << "   Expected result:\n( 2 0 1 2 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the DynamicVector cross product assignment operators.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the cross product assignment operators of the DynamicVector
+// class template. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void ClassTest::testCrossAssign()
+{
+   //=====================================================================================
+   // Dense vector cross product assignment
+   //=====================================================================================
+
+   {
+      test_ = "DynamicVector dense vector cross product assignment (mixed type)";
+
+      blaze::DynamicVector<short,blaze::rowVector> vec1{ 1, 0, -2 };
+      blaze::DynamicVector<int,blaze::rowVector> vec2{ 2, 0, -1 };
+
+      vec2 %= vec1;
+
+      checkSize    ( vec2, 3UL );
+      checkCapacity( vec2, 3UL );
+      checkNonZeros( vec2, 1UL );
+
+      if( vec2[0] != 0 || vec2[1] != 3 || vec2[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << vec2 << "\n"
+             << "   Expected result:\n( 0 3 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   {
+      test_ = "DynamicVector dense vector cross product assignment (aligned/padded)";
+
+      using blaze::aligned;
+      using blaze::padded;
+      using blaze::rowVector;
+
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec1( memory.get(), 3UL, 16UL );
+      vec1[0] =  1;
+      vec1[1] =  0;
+      vec1[2] = -2;
+      blaze::DynamicVector<int,blaze::rowVector> vec2{ 2, 0, -1 };
+
+      vec2 %= vec1;
+
+      checkSize    ( vec2, 3UL );
+      checkCapacity( vec2, 3UL );
+      checkNonZeros( vec2, 1UL );
+
+      if( vec2[0] != 0 || vec2[1] != 3 || vec2[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << vec2 << "\n"
+             << "   Expected result:\n( 0 3 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   {
+      test_ = "DynamicVector dense vector cross product assignment (unaligned/unpadded)";
+
+      using blaze::unaligned;
+      using blaze::unpadded;
+      using blaze::rowVector;
+
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[4] );
+      UnalignedUnpadded vec1( memory.get()+1UL, 3UL );
+      vec1[0] =  1;
+      vec1[1] =  0;
+      vec1[2] = -2;
+      blaze::DynamicVector<int,blaze::rowVector> vec2{ 2, 0, -1 };
+
+      vec2 %= vec1;
+
+      checkSize    ( vec2, 3UL );
+      checkCapacity( vec2, 3UL );
+      checkNonZeros( vec2, 1UL );
+
+      if( vec2[0] != 0 || vec2[1] != 3 || vec2[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << vec2 << "\n"
+             << "   Expected result:\n( 0 3 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Sparse vector cross product assignment
+   //=====================================================================================
+
+   {
+      test_ = "DynamicVector sparse vector cross product assignment";
+
+      blaze::CompressedVector<int,blaze::rowVector> vec1( 3UL, 2UL );
+      vec1[0] =  1;
+      vec1[2] = -2;
+      blaze::DynamicVector<int,blaze::rowVector> vec2{ 2, 0, -1 };
+
+      vec2 %= vec1;
+
+      checkSize    ( vec2, 3UL );
+      checkCapacity( vec2, 3UL );
+      checkNonZeros( vec2, 1UL );
+
+      if( vec2[0] != 0 || vec2[1] != 3 || vec2[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << vec2 << "\n"
+             << "   Expected result:\n( 0 3 0 )\n";
          throw std::runtime_error( oss.str() );
       }
    }
@@ -1896,9 +2086,9 @@ void ClassTest::testAt()
 */
 void ClassTest::testIterator()
 {
-   typedef blaze::DynamicVector<int>  VectorType;
-   typedef VectorType::Iterator       Iterator;
-   typedef VectorType::ConstIterator  ConstIterator;
+   using VectorType    = blaze::DynamicVector<int>;
+   using Iterator      = VectorType::Iterator;
+   using ConstIterator = VectorType::ConstIterator;
 
    VectorType vec{ 1, 0, -2, -3 };
 
@@ -1906,7 +2096,7 @@ void ClassTest::testIterator()
    {
       test_ = "Iterator default constructor";
 
-      Iterator it = Iterator();
+      Iterator it{};
 
       if( it != Iterator() ) {
          std::ostringstream oss;
@@ -1920,7 +2110,7 @@ void ClassTest::testIterator()
    {
       test_ = "ConstIterator default constructor";
 
-      ConstIterator it = ConstIterator();
+      ConstIterator it{};
 
       if( it != ConstIterator() ) {
          std::ostringstream oss;
@@ -1944,13 +2134,13 @@ void ClassTest::testIterator()
       }
    }
 
-   // Counting the number of elements via Iterator
+   // Counting the number of elements via Iterator (end-begin)
    {
-      test_ = "Iterator subtraction";
+      test_ = "Iterator subtraction (end-begin)";
 
-      const size_t number( end( vec ) - begin( vec ) );
+      const ptrdiff_t number( end( vec ) - begin( vec ) );
 
-      if( number != 4UL ) {
+      if( number != 4L ) {
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
              << " Error: Invalid number of elements detected\n"
@@ -1961,19 +2151,53 @@ void ClassTest::testIterator()
       }
    }
 
-   // Counting the number of elements via ConstIterator
+   // Counting the number of elements via Iterator (begin-end)
    {
-      test_ = "ConstIterator subtraction";
+      test_ = "Iterator subtraction (begin-end)";
 
-      const size_t number( cend( vec ) - cbegin( vec ) );
+      const ptrdiff_t number( begin( vec ) - end( vec ) );
 
-      if( number != 4UL ) {
+      if( number != -4L ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Invalid number of elements detected\n"
+             << " Details:\n"
+             << "   Number of elements         : " << number << "\n"
+             << "   Expected number of elements: -4\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   // Counting the number of elements via ConstIterator (end-begin)
+   {
+      test_ = "ConstIterator subtraction (end-begin)";
+
+      const ptrdiff_t number( cend( vec ) - cbegin( vec ) );
+
+      if( number != 4L ) {
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
              << " Error: Invalid number of elements detected\n"
              << " Details:\n"
              << "   Number of elements         : " << number << "\n"
              << "   Expected number of elements: 4\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   // Counting the number of elements via ConstIterator (begin-end)
+   {
+      test_ = "ConstIterator subtraction (begin-end)";
+
+      const ptrdiff_t number( cbegin( vec ) - cend( vec ) );
+
+      if( number != -4L ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Invalid number of elements detected\n"
+             << " Details:\n"
+             << "   Number of elements         : " << number << "\n"
+             << "   Expected number of elements: -4\n";
          throw std::runtime_error( oss.str() );
       }
    }
@@ -2556,6 +2780,85 @@ void ClassTest::testReserve()
    checkSize    ( vec,  0UL );
    checkCapacity( vec, 20UL );
    checkNonZeros( vec,  0UL );
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the \c shrinkToFit() member function of the DynamicVector class template.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c shrinkToFit() member function of the DynamicVector
+// class template. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void ClassTest::testShrinkToFit()
+{
+   test_ = "DynamicVector::shrinkToFit()";
+
+   // Shrinking a vector without excessive capacity
+   {
+      blaze::DynamicVector<int,blaze::rowVector> vec{ 1, 2, 3, 4, 5 };
+
+      vec.shrinkToFit();
+
+      checkSize    ( vec, 5UL );
+      checkCapacity( vec, 5UL );
+      checkNonZeros( vec, 5UL );
+
+      if( vec.capacity() != vec.spacing() ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Shrinking the vector failed\n"
+             << " Details:\n"
+             << "   Capacity         : " << vec.capacity() << "\n"
+             << "   Expected capacity: " << vec.spacing() << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( vec[0] != 1 || vec[1] != 2 || vec[2] != 3 || vec[3] != 4 || vec[4] != 5 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Shrinking the vector failed\n"
+             << " Details:\n"
+             << "   Result:\n" << vec << "\n"
+             << "   Expected result:\n( 1 2 3 4 5 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   // Shrinking a vector with excessive capacity
+   {
+      blaze::DynamicVector<int,blaze::rowVector> vec{ 1, 2, 3, 4, 5 };
+      vec.reserve( 100UL );
+
+      vec.shrinkToFit();
+
+      checkSize    ( vec, 5UL );
+      checkCapacity( vec, 5UL );
+      checkNonZeros( vec, 5UL );
+
+      if( vec.capacity() != vec.spacing() ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Shrinking the vector failed\n"
+             << " Details:\n"
+             << "   Capacity         : " << vec.capacity() << "\n"
+             << "   Expected capacity: " << vec.spacing() << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( vec[0] != 1 || vec[1] != 2 || vec[2] != 3 || vec[3] != 4 || vec[4] != 5 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Shrinking the vector failed\n"
+             << " Details:\n"
+             << "   Result:\n" << vec << "\n"
+             << "   Expected result:\n( 1 2 3 4 5 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
 }
 //*************************************************************************************************
 

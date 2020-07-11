@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsvecmult/M6x6aVCa.cpp
 //  \brief Source file for the M6x6aVCa dense matrix/sparse vector multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dmatsvecmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -62,12 +66,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StaticMatrix<TypeA,6UL,6UL>  M6x6a;
-      typedef blaze::CompressedVector<TypeA>      VCa;
+      using M6x6a = blaze::StaticMatrix<TypeA,6UL,6UL>;
+      using VCa = blaze::CompressedVector<TypeA>;
 
       // Creator type definitions
-      typedef blazetest::Creator<M6x6a>  CM6x6a;
-      typedef blazetest::Creator<VCa>    CVCa;
+      using CM6x6a = blazetest::Creator<M6x6a>;
+      using CVCa = blazetest::Creator<VCa>;
 
       // Running the tests
       for( size_t i=0UL; i<=6UL; ++i ) {

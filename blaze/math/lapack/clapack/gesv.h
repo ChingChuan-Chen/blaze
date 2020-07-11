@@ -3,7 +3,7 @@
 //  \file blaze/math/lapack/clapack/gesv.h
 //  \brief Header file for the CLAPACK gesv wrapper functions
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,6 +40,7 @@
 // Includes
 //*************************************************************************************************
 
+#include <blaze/math/blas/Types.h>
 #include <blaze/util/Complex.h>
 #include <blaze/util/StaticAssert.h>
 
@@ -52,14 +53,20 @@
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
+#if !defined(INTEL_MKL_VERSION) && !defined(BLAS_H)
 extern "C" {
 
-void sgesv_( int* n, int* nrhs, float*  A, int* lda, int* ipiv, float*  b, int* ldb, int* info );
-void dgesv_( int* n, int* nrhs, double* A, int* lda, int* ipiv, double* b, int* ldb, int* info );
-void cgesv_( int* n, int* nrhs, float*  A, int* lda, int* ipiv, float*  b, int* ldb, int* info );
-void zgesv_( int* n, int* nrhs, double* A, int* lda, int* ipiv, double* b, int* ldb, int* info );
+void sgesv_( blaze::blas_int_t* n, blaze::blas_int_t* nrhs, float* A, blaze::blas_int_t* lda,
+             blaze::blas_int_t* ipiv, float* b, blaze::blas_int_t* ldb, blaze::blas_int_t* info );
+void dgesv_( blaze::blas_int_t* n, blaze::blas_int_t* nrhs, double* A, blaze::blas_int_t* lda,
+             blaze::blas_int_t* ipiv, double* b, blaze::blas_int_t* ldb, blaze::blas_int_t* info );
+void cgesv_( blaze::blas_int_t* n, blaze::blas_int_t* nrhs, float* A, blaze::blas_int_t* lda,
+             blaze::blas_int_t* ipiv, float* b, blaze::blas_int_t* ldb, blaze::blas_int_t* info );
+void zgesv_( blaze::blas_int_t* n, blaze::blas_int_t* nrhs, double* A, blaze::blas_int_t* lda,
+             blaze::blas_int_t* ipiv, double* b, blaze::blas_int_t* ldb, blaze::blas_int_t* info );
 
 }
+#endif
 /*! \endcond */
 //*************************************************************************************************
 
@@ -77,13 +84,17 @@ namespace blaze {
 //*************************************************************************************************
 /*!\name LAPACK general linear system functions (gesv) */
 //@{
-inline void gesv( int n, int nrhs, float* A, int lda, int* ipiv, float* B, int ldb, int* info );
+void gesv( blas_int_t n, blas_int_t nrhs, float* A, blas_int_t lda,
+           blas_int_t* ipiv, float* B, blas_int_t ldb, blas_int_t* info );
 
-inline void gesv( int n, int nrhs, double* A, int lda, int* ipiv, double* B, int ldb, int* info );
+void gesv( blas_int_t n, blas_int_t nrhs, double* A, blas_int_t lda,
+           blas_int_t* ipiv, double* B, blas_int_t ldb, blas_int_t* info );
 
-inline void gesv( int n, int nrhs, complex<float>* A, int lda, int* ipiv, complex<float>* B, int ldb, int* info );
+void gesv( blas_int_t n, blas_int_t nrhs, complex<float>* A, blas_int_t lda,
+           blas_int_t* ipiv, complex<float>* B, blas_int_t ldb, blas_int_t* info );
 
-inline void gesv( int n, int nrhs, complex<double>* A, int lda, int* ipiv, complex<double>* B, int ldb, int* info );
+void gesv( blas_int_t n, blas_int_t nrhs, complex<double>* A, blas_int_t lda,
+           blas_int_t* ipiv, complex<double>* B, blas_int_t ldb, blas_int_t* info );
 //@}
 //*************************************************************************************************
 
@@ -103,9 +114,9 @@ inline void gesv( int n, int nrhs, complex<double>* A, int lda, int* ipiv, compl
 // \param info Return code of the function call.
 // \return void
 //
-// This function uses the LAPACK sgesv() function to compute the solution to the general system of
-// linear equations \f$ A*X=B \f$, where \a A is a n-by-n matrix and \a X and \a B are n-by-nrhs
-// matrices.
+// This function uses the LAPACK sgesv() function to compute the solution to the general system
+// of linear equations \f$ A*X=B \f$, where \a A is a \a n-by-\a n matrix and \a X and \a B are
+// \a n-by-\a nrhs matrices.
 //
 // The LU decomposition with partial pivoting and row interchanges is used to factor \a A as
 
@@ -127,11 +138,17 @@ inline void gesv( int n, int nrhs, complex<double>* A, int lda, int* ipiv, compl
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 */
-inline void gesv( int n, int nrhs, float* A, int lda, int* ipiv, float* B, int ldb, int* info )
+inline void gesv( blas_int_t n, blas_int_t nrhs, float* A, blas_int_t lda,
+                  blas_int_t* ipiv, float* B, blas_int_t ldb, blas_int_t* info )
 {
+#if defined(INTEL_MKL_VERSION)
+   BLAZE_STATIC_ASSERT( sizeof( MKL_INT ) == sizeof( blas_int_t ) );
+#endif
+
    sgesv_( &n, &nrhs, A, &lda, ipiv, B, &ldb, info );
 }
 //*************************************************************************************************
@@ -152,9 +169,9 @@ inline void gesv( int n, int nrhs, float* A, int lda, int* ipiv, float* B, int l
 // \param info Return code of the function call.
 // \return void
 //
-// This function uses the LAPACK dgesv() function to compute the solution to the general system of
-// linear equations \f$ A*X=B \f$, where \a A is a n-by-n matrix and \a X and \a B are n-by-nrhs
-// matrices.
+// This function uses the LAPACK dgesv() function to compute the solution to the general system
+// of linear equations \f$ A*X=B \f$, where \a A is a \a n-by-\a n matrix and \a X and \a B are
+// \a n-by-\a nrhs matrices.
 //
 // The LU decomposition with partial pivoting and row interchanges is used to factor \a A as
 
@@ -176,11 +193,17 @@ inline void gesv( int n, int nrhs, float* A, int lda, int* ipiv, float* B, int l
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 */
-inline void gesv( int n, int nrhs, double* A, int lda, int* ipiv, double* B, int ldb, int* info )
+inline void gesv( blas_int_t n, blas_int_t nrhs, double* A, blas_int_t lda,
+                  blas_int_t* ipiv, double* B, blas_int_t ldb, blas_int_t* info )
 {
+#if defined(INTEL_MKL_VERSION)
+   BLAZE_STATIC_ASSERT( sizeof( MKL_INT ) == sizeof( blas_int_t ) );
+#endif
+
    dgesv_( &n, &nrhs, A, &lda, ipiv, B, &ldb, info );
 }
 //*************************************************************************************************
@@ -201,9 +224,9 @@ inline void gesv( int n, int nrhs, double* A, int lda, int* ipiv, double* B, int
 // \param info Return code of the function call.
 // \return void
 //
-// This function uses the LAPACK cgesv() function to compute the solution to the general system of
-// linear equations \f$ A*X=B \f$, where \a A is a n-by-n matrix and \a X and \a B are n-by-nrhs
-// matrices.
+// This function uses the LAPACK cgesv() function to compute the solution to the general system
+// of linear equations \f$ A*X=B \f$, where \a A is a \a n-by-\a n matrix and \a X and \a B are
+// \a n-by-\a nrhs matrices.
 //
 // The LU decomposition with partial pivoting and row interchanges is used to factor \a A as
 
@@ -225,15 +248,25 @@ inline void gesv( int n, int nrhs, double* A, int lda, int* ipiv, double* B, int
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 */
-inline void gesv( int n, int nrhs, complex<float>* A, int lda, int* ipiv, complex<float>* B, int ldb, int* info )
+inline void gesv( blas_int_t n, blas_int_t nrhs, complex<float>* A, blas_int_t lda,
+                  blas_int_t* ipiv, complex<float>* B, blas_int_t ldb, blas_int_t* info )
 {
    BLAZE_STATIC_ASSERT( sizeof( complex<float> ) == 2UL*sizeof( float ) );
 
-   cgesv_( &n, &nrhs, reinterpret_cast<float*>( A ), &lda, ipiv,
-           reinterpret_cast<float*>( B ), &ldb, info );
+#if defined(INTEL_MKL_VERSION)
+   BLAZE_STATIC_ASSERT( sizeof( MKL_INT ) == sizeof( blas_int_t ) );
+   BLAZE_STATIC_ASSERT( sizeof( MKL_Complex8 ) == sizeof( complex<float> ) );
+   using ET = MKL_Complex8;
+#else
+   using ET = float;
+#endif
+
+   cgesv_( &n, &nrhs, reinterpret_cast<ET*>( A ), &lda, ipiv,
+           reinterpret_cast<ET*>( B ), &ldb, info );
 }
 //*************************************************************************************************
 
@@ -253,9 +286,9 @@ inline void gesv( int n, int nrhs, complex<float>* A, int lda, int* ipiv, comple
 // \param info Return code of the function call.
 // \return void
 //
-// This function uses the LAPACK zgesv() function to compute the solution to the general system of
-// linear equations \f$ A*X=B \f$, where \a A is a n-by-n matrix and \a X and \a B are n-by-nrhs
-// matrices.
+// This function uses the LAPACK zgesv() function to compute the solution to the general system
+// of linear equations \f$ A*X=B \f$, where \a A is a \a n-by-\a n matrix and \a X and \a B are
+// \a n-by-\a nrhs matrices.
 //
 // The LU decomposition with partial pivoting and row interchanges is used to factor \a A as
 
@@ -277,15 +310,25 @@ inline void gesv( int n, int nrhs, complex<float>* A, int lda, int* ipiv, comple
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 */
-inline void gesv( int n, int nrhs, complex<double>* A, int lda, int* ipiv, complex<double>* B, int ldb, int* info )
+inline void gesv( blas_int_t n, blas_int_t nrhs, complex<double>* A, blas_int_t lda,
+                  blas_int_t* ipiv, complex<double>* B, blas_int_t ldb, blas_int_t* info )
 {
    BLAZE_STATIC_ASSERT( sizeof( complex<double> ) == 2UL*sizeof( double ) );
 
-   zgesv_( &n, &nrhs, reinterpret_cast<double*>( A ), &lda, ipiv,
-           reinterpret_cast<double*>( B ), &ldb, info );
+#if defined(INTEL_MKL_VERSION)
+   BLAZE_STATIC_ASSERT( sizeof( MKL_INT ) == sizeof( blas_int_t ) );
+   BLAZE_STATIC_ASSERT( sizeof( MKL_Complex16 ) == sizeof( complex<double> ) );
+   using ET = MKL_Complex16;
+#else
+   using ET = double;
+#endif
+
+   zgesv_( &n, &nrhs, reinterpret_cast<ET*>( A ), &lda, ipiv,
+           reinterpret_cast<ET*>( B ), &ldb, info );
 }
 //*************************************************************************************************
 

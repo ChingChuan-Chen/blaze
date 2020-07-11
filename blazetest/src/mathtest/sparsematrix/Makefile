@@ -2,7 +2,7 @@
 #
 #  Makefile for the sparsematrix module of the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -33,8 +33,10 @@
 
 
 # Including the compiler and library settings
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include ../../Makeconfig
+endif
 endif
 
 
@@ -60,6 +62,8 @@ GeneralTest: GeneralTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 HermitianTest: HermitianTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+IdentityTest: IdentityTest.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 LowerTest: LowerTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 StrictlyLowerTest: StrictlyLowerTest.o
@@ -74,16 +78,22 @@ UniUpperTest: UniUpperTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 UpperTest: UpperTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+ZeroTest: ZeroTest.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 
 
 # Cleanup
+reset:
+	@$(RM) $(OBJ) $(BIN)
 clean:
-	@$(RM) $(DEP) $(OBJ) $(BIN)
+	@$(RM) $(OBJ) $(BIN) $(DEP)
 
 
 # Makefile includes
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP)
+endif
 endif
 
 
@@ -93,4 +103,4 @@ endif
 
 
 # Setting the independent commands
-.PHONY: default all essential single noop clean
+.PHONY: default all essential single noop reset clean

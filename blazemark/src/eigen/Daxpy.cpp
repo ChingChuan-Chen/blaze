@@ -3,7 +3,7 @@
 //  \file src/eigen/Daxpy.cpp
 //  \brief Source file for the Eigen daxpy product kernel
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -38,8 +38,8 @@
 //*************************************************************************************************
 
 #include <iostream>
-#include <boost/cast.hpp>
 #include <Eigen/Dense>
+#include <blaze/util/NumericCast.h>
 #include <blaze/util/Timing.h>
 #include <blazemark/eigen/Daxpy.h>
 #include <blazemark/eigen/init/Matrix.h>
@@ -68,7 +68,7 @@ namespace eigen {
 double daxpy( size_t N, size_t steps )
 {
    using ::blazemark::element_t;
-   using ::boost::numeric_cast;
+   using ::blaze::numeric_cast;
    using ::Eigen::Dynamic;
 
    ::blaze::setSeed( seed );

@@ -3,7 +3,7 @@
 //  \file src/mathtest/smatsvecmult/LCbVCa.cpp
 //  \brief Source file for the LCbVCa sparse matrix/sparse vector multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/smatsvecmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -64,12 +68,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::LowerMatrix< blaze::CompressedMatrix<TypeB> >  LCb;
-      typedef blaze::CompressedVector<TypeA>                        VCa;
+      using LCb = blaze::LowerMatrix< blaze::CompressedMatrix<TypeB> >;
+      using VCa = blaze::CompressedVector<TypeA>;
 
       // Creator type definitions
-      typedef blazetest::Creator<LCb>  CLCb;
-      typedef blazetest::Creator<VCa>  CVCa;
+      using CLCb = blazetest::Creator<LCb>;
+      using CVCa = blazetest::Creator<VCa>;
 
       // Running tests with small matrices and vectors
       for( size_t i=0UL; i<=6UL; ++i ) {

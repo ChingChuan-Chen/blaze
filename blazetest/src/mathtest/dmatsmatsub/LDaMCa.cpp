@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsmatsub/LDaMCa.cpp
 //  \brief Source file for the LDaMCa dense matrix/sparse matrix subtraction math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/dmatsmatsub/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::LowerMatrix< blaze::DynamicMatrix<TypeA> >  LDa;
-      typedef blaze::CompressedMatrix<TypeA>                     MCa;
+      using LDa = blaze::LowerMatrix< blaze::DynamicMatrix<TypeA> >;
+      using MCa = blaze::CompressedMatrix<TypeA>;
 
       // Creator type definitions
-      typedef blazetest::Creator<LDa>  CLDa;
-      typedef blazetest::Creator<MCa>  CMCa;
+      using CLDa = blazetest::Creator<LDa>;
+      using CMCa = blazetest::Creator<MCa>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {

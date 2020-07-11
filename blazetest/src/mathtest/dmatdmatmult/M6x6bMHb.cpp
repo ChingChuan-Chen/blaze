@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatdmatmult/M6x6bMHb.cpp
 //  \brief Source file for the M6x6bMHb dense matrix/dense matrix multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dmatdmatmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -62,12 +66,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StaticMatrix<TypeB,6UL,6UL>  M6x6b;
-      typedef blaze::HybridMatrix<TypeB,6UL,9UL>  MHb;
+      using M6x6b = blaze::StaticMatrix<TypeB,6UL,6UL>;
+      using MHb = blaze::HybridMatrix<TypeB,6UL,9UL>;
 
       // Creator type definitions
-      typedef blazetest::Creator<M6x6b>  CM6x6b;
-      typedef blazetest::Creator<MHb>    CMHb;
+      using CM6x6b = blazetest::Creator<M6x6b>;
+      using CMHb = blazetest::Creator<MHb>;
 
       // Running the tests
       for( size_t i=0UL; i<=9UL; ++i ) {

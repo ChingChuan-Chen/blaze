@@ -3,7 +3,7 @@
 //  \file src/mathtest/smatdmatmult/LCbL3x3a.cpp
 //  \brief Source file for the LCbL3x3a sparse matrix/dense matrix multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/smatdmatmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -64,12 +68,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::LowerMatrix< blaze::CompressedMatrix<TypeB> >      LCb;
-      typedef blaze::LowerMatrix< blaze::StaticMatrix<TypeA,3UL,3UL> >  L3x3a;
+      using LCb = blaze::LowerMatrix< blaze::CompressedMatrix<TypeB> >;
+      using L3x3a = blaze::LowerMatrix< blaze::StaticMatrix<TypeA,3UL,3UL> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<LCb>    CLCb;
-      typedef blazetest::Creator<L3x3a>  CL3x3a;
+      using CLCb = blazetest::Creator<LCb>;
+      using CL3x3a = blazetest::Creator<L3x3a>;
 
       // Running the tests
       for( size_t i=0UL; i<=6UL; ++i ) {

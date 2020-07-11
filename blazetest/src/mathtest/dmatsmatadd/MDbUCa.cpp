@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsmatadd/MDbUCa.cpp
 //  \brief Source file for the MDbUCa dense matrix/sparse matrix addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/dmatsmatadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -64,12 +68,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::DynamicMatrix<TypeB>                           MDb;
-      typedef blaze::UpperMatrix< blaze::CompressedMatrix<TypeA> >  UCa;
+      using MDb = blaze::DynamicMatrix<TypeB>;
+      using UCa = blaze::UpperMatrix< blaze::CompressedMatrix<TypeA> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<MDb>  CMDb;
-      typedef blazetest::Creator<UCa>  CUCa;
+      using CMDb = blazetest::Creator<MDb>;
+      using CUCa = blazetest::Creator<UCa>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {

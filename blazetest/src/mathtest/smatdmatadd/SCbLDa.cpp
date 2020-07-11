@@ -3,7 +3,7 @@
 //  \file src/mathtest/smatdmatadd/SCbLDa.cpp
 //  \brief Source file for the SCbLDa sparse matrix/dense matrix addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -47,6 +47,10 @@
 #include <blazetest/mathtest/smatdmatadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -65,12 +69,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::SymmetricMatrix< blaze::CompressedMatrix<TypeB> >  SCb;
-      typedef blaze::LowerMatrix< blaze::DynamicMatrix<TypeA> >         LDa;
+      using SCb = blaze::SymmetricMatrix< blaze::CompressedMatrix<TypeB> >;
+      using LDa = blaze::LowerMatrix< blaze::DynamicMatrix<TypeA> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<SCb>  CSCb;
-      typedef blazetest::Creator<LDa>  CLDa;
+      using CSCb = blazetest::Creator<SCb>;
+      using CLDa = blazetest::Creator<LDa>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {

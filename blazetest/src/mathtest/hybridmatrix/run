@@ -3,7 +3,7 @@
 #
 #  Run script for the hybridmatrix module of the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -37,4 +37,5 @@ PATH_HYBRIDMATRIX=$( dirname "${BASH_SOURCE[0]}" )
 
 echo " Running HybridMatrix tests..."
 
-EXE=$PATH_HYBRIDMATRIX/ClassTest; if [ -x $EXE ]; then $EXE; if [ $? != 0 ]; then exit 1; fi fi
+EXE=$PATH_HYBRIDMATRIX/ClassTest1; if [ -x $EXE ]; then $EXE; if [ $? != 0 ]; then exit 1; fi fi
+EXE=$PATH_HYBRIDMATRIX/ClassTest2; if [ -x $EXE ]; then $EXE; if [ $? != 0 ]; then exit 1; fi fi

@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/diagonalmatrix/DenseTest.h
 //  \brief Header file for the DiagonalMatrix dense test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -96,6 +96,7 @@ class DenseTest
    void testAssignment  ();
    void testAddAssign   ();
    void testSubAssign   ();
+   void testSchurAssign ();
    void testMultAssign  ();
    void testScaling     ();
    void testFunctionCall();
@@ -106,6 +107,7 @@ class DenseTest
    void testResize      ();
    void testExtend      ();
    void testReserve     ();
+   void testShrinkToFit ();
    void testSwap        ();
    void testIsDefault   ();
    void testSubmatrix   ();
@@ -138,13 +140,13 @@ class DenseTest
 
    //**Type definitions****************************************************************************
    //! Type of the row-major diagonal matrix.
-   typedef blaze::DiagonalMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> >  DT;
+   using DT = blaze::DiagonalMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> >;
 
    //! Type of the column-major diagonal matrix.
-   typedef blaze::DiagonalMatrix< blaze::DynamicMatrix<int,blaze::columnMajor> >  ODT;
+   using ODT = blaze::DiagonalMatrix< blaze::DynamicMatrix<int,blaze::columnMajor> >;
 
-   typedef DT::Rebind<double>::Other   RDT;   //!< Rebound row-major diagonal matrix type.
-   typedef ODT::Rebind<double>::Other  ORDT;  //!< Rebound column-major diagonal matrix type.
+   using RDT  = DT::Rebind<double>::Other;   //!< Rebound row-major diagonal matrix type.
+   using ORDT = ODT::Rebind<double>::Other;  //!< Rebound column-major diagonal matrix type.
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************

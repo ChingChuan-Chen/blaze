@@ -3,7 +3,7 @@
 //  \file src/mathtest/dvecdvecmult/VDbV4b.cpp
 //  \brief Source file for the VDbV4b dense vector/dense vector multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dvecdvecmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -62,12 +66,12 @@ int main()
    try
    {
       // Vector type definitions
-      typedef blaze::DynamicVector<TypeB>     VDb;
-      typedef blaze::StaticVector<TypeB,4UL>  V4b;
+      using VDb = blaze::DynamicVector<TypeB>;
+      using V4b = blaze::StaticVector<TypeB,4UL>;
 
       // Creator type definitions
-      typedef blazetest::Creator<VDb>  CVDb;
-      typedef blazetest::Creator<V4b>  CV4b;
+      using CVDb = blazetest::Creator<VDb>;
+      using CV4b = blazetest::Creator<V4b>;
 
       // Running the tests
       RUN_DVECDVECMULT_OPERATION_TEST( CVDb( 4UL ), CV4b() );

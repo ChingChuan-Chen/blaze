@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatdmatsub/LDbSDa.cpp
 //  \brief Source file for the LDbSDa dense matrix/dense matrix subtraction math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/dmatdmatsub/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -64,12 +68,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::LowerMatrix< blaze::DynamicMatrix<TypeB> >      LDb;
-      typedef blaze::SymmetricMatrix< blaze::DynamicMatrix<TypeA> >  SDa;
+      using LDb = blaze::LowerMatrix< blaze::DynamicMatrix<TypeB> >;
+      using SDa = blaze::SymmetricMatrix< blaze::DynamicMatrix<TypeA> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<LDb>  CLDb;
-      typedef blazetest::Creator<SDa>  CSDa;
+      using CLDb = blazetest::Creator<LDb>;
+      using CSDa = blazetest::Creator<SDa>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=9UL; ++i ) {

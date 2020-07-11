@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/dynamicmatrix/ClassTest.h
 //  \brief Header file for the DynamicMatrix class test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,11 +40,11 @@
 // Includes
 //*************************************************************************************************
 
+#include <array>
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <boost/container/static_vector.hpp>
-#include <boost/container/vector.hpp>
+#include <vector>
 #include <blaze/math/constraints/ColumnMajorMatrix.h>
 #include <blaze/math/constraints/DenseMatrix.h>
 #include <blaze/math/constraints/RequiresEvaluation.h>
@@ -101,6 +101,7 @@ class ClassTest
    void testAssignment  ();
    void testAddAssign   ();
    void testSubAssign   ();
+   void testSchurAssign ();
    void testMultAssign  ();
    void testScaling     ();
    void testFunctionCall();
@@ -112,9 +113,10 @@ class ClassTest
    void testResize      ();
    void testExtend      ();
    void testReserve     ();
+   void testShrinkToFit ();
+   void testSwap        ();
    void testTranspose   ();
    void testCTranspose  ();
-   void testSwap        ();
    void testIsDefault   ();
 
    template< typename Type >
@@ -142,11 +144,11 @@ class ClassTest
    //**********************************************************************************************
 
    //**Type definitions****************************************************************************
-   typedef blaze::DynamicMatrix<int,blaze::rowMajor>     MT;   //!< Type of the row-major dynamic matrix.
-   typedef blaze::DynamicMatrix<int,blaze::columnMajor>  OMT;  //!< Type of the column-major dynamic matrix.
+   using MT  = blaze::DynamicMatrix<int,blaze::rowMajor>;     //!< Type of the row-major dynamic matrix.
+   using OMT = blaze::DynamicMatrix<int,blaze::columnMajor>;  //!< Type of the column-major dynamic matrix.
 
-   typedef MT::Rebind<double>::Other   RMT;   //!< Rebound row-major dynamic matrix type.
-   typedef OMT::Rebind<double>::Other  ORMT;  //!< Rebound column-major dynamic matrix type.
+   using RMT  = MT::Rebind<double>::Other;   //!< Rebound row-major dynamic matrix type.
+   using ORMT = OMT::Rebind<double>::Other;  //!< Rebound column-major dynamic matrix type.
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************
@@ -238,8 +240,8 @@ class ClassTest
 template< typename Type >
 void ClassTest::testAlignment( const std::string& type )
 {
-   typedef blaze::DynamicMatrix<Type,blaze::rowMajor>     RowMajorMatrixType;
-   typedef blaze::DynamicMatrix<Type,blaze::columnMajor>  ColumnMajorMatrixType;
+   using RowMajorMatrixType    = blaze::DynamicMatrix<Type,blaze::rowMajor>;
+   using ColumnMajorMatrixType = blaze::DynamicMatrix<Type,blaze::columnMajor>;
 
    const size_t alignment( blaze::AlignmentOf<Type>::value );
 
@@ -251,7 +253,7 @@ void ClassTest::testAlignment( const std::string& type )
    {
       const RowMajorMatrixType mat( 7UL, 5UL );
 
-      const size_t rows( blaze::usePadding ? mat.rows() : 1UL );
+      const size_t rows( mat.rows() );
 
       for( size_t i=0UL; i<rows; ++i )
       {
@@ -273,7 +275,7 @@ void ClassTest::testAlignment( const std::string& type )
    {
       const ColumnMajorMatrixType mat( 7UL, 5UL );
 
-      const size_t columns( blaze::usePadding ? mat.columns() : 1UL );
+      const size_t columns( mat.columns() );
 
       for( size_t j=0UL; j<columns; ++j )
       {
@@ -299,11 +301,11 @@ void ClassTest::testAlignment( const std::string& type )
 
    {
       const RowMajorMatrixType init( 7UL, 5UL );
-      const boost::container::static_vector<RowMajorMatrixType,7UL> mats( 7UL, init );
+      const std::array<RowMajorMatrixType,7UL> mats{ init, init, init, init, init, init, init };
 
       for( size_t i=0UL; i<mats.size(); ++i )
       {
-         const size_t rows( blaze::usePadding ? mats[i].rows() : 1UL );
+         const size_t rows( mats[i].rows() );
 
          for( size_t j=0UL; j<rows; ++j )
          {
@@ -325,11 +327,11 @@ void ClassTest::testAlignment( const std::string& type )
 
    {
       const ColumnMajorMatrixType init( 7UL, 5UL );
-      const boost::container::static_vector<ColumnMajorMatrixType,7UL> mats( 7UL, init );
+      const std::array<ColumnMajorMatrixType,7UL> mats{ init, init, init, init, init, init, init };
 
       for( size_t i=0UL; i<mats.size(); ++i )
       {
-         const size_t columns( blaze::usePadding ? mats[i].columns() : 1UL );
+         const size_t columns( mats[i].columns() );
 
          for( size_t j=0UL; j<columns; ++j )
          {
@@ -356,11 +358,11 @@ void ClassTest::testAlignment( const std::string& type )
 
    {
       const RowMajorMatrixType init( 7UL, 5UL );
-      const boost::container::vector<RowMajorMatrixType> mats( 7UL, init );
+      const std::vector<RowMajorMatrixType> mats( 7UL, init );
 
       for( size_t i=0UL; i<mats.size(); ++i )
       {
-         const size_t rows( blaze::usePadding ? mats[i].rows() : 1UL );
+         const size_t rows( mats[i].rows() );
 
          for( size_t j=0UL; j<rows; ++j )
          {
@@ -382,11 +384,11 @@ void ClassTest::testAlignment( const std::string& type )
 
    {
       const ColumnMajorMatrixType init( 7UL, 5UL );
-      const boost::container::vector<ColumnMajorMatrixType> mats( 7UL, init );
+      const std::vector<ColumnMajorMatrixType> mats( 7UL, init );
 
       for( size_t i=0UL; i<mats.size(); ++i )
       {
-         const size_t columns( blaze::usePadding ? mats[i].columns() : 1UL );
+         const size_t columns( mats[i].columns() );
 
          for( size_t j=0UL; j<columns; ++j )
          {

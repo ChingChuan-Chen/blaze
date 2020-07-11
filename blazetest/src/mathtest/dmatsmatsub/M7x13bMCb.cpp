@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsmatsub/M7x13bMCb.cpp
 //  \brief Source file for the M7x13bMCb dense matrix/sparse matrix subtraction math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dmatsmatsub/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -62,12 +66,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StaticMatrix<TypeB,7UL,13UL>  M7x13b;
-      typedef blaze::CompressedMatrix<TypeB>       MCb;
+      using M7x13b = blaze::StaticMatrix<TypeB,7UL,13UL>;
+      using MCb = blaze::CompressedMatrix<TypeB>;
 
       // Creator type definitions
-      typedef blazetest::Creator<M7x13b>  CM7x13b;
-      typedef blazetest::Creator<MCb>     CMCb;
+      using CM7x13b = blazetest::Creator<M7x13b>;
+      using CMCb = blazetest::Creator<MCb>;
 
       // Running the tests
       RUN_DMATSMATSUB_OPERATION_TEST( CM7x13b(), CMCb( 7UL, 13UL,  0UL ) );

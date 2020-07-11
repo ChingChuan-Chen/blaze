@@ -3,7 +3,7 @@
 //  \file src/mathtest/vectorserializer/ClassTest.cpp
 //  \brief Source file for the VectorSerializer class test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -39,11 +39,16 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/serialization/MatrixSerializer.h>
 #include <blaze/math/serialization/VectorSerializer.h>
 #include <blaze/util/Complex.h>
 #include <blaze/util/Random.h>
 #include <blazetest/mathtest/vectorserializer/ClassTest.h>
+
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
 
 
 namespace blazetest {

@@ -3,7 +3,7 @@
 //  \file src/mathtest/dvecsvecsub/V5bVCb.cpp
 //  \brief Source file for the V5bVCb dense vector/sparse vector subtraction math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dvecsvecsub/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -62,12 +66,12 @@ int main()
    try
    {
       // Vector type definitions
-      typedef blaze::StaticVector<TypeB,5UL>  V5b;
-      typedef blaze::CompressedVector<TypeB>  VCb;
+      using V5b = blaze::StaticVector<TypeB,5UL>;
+      using VCb = blaze::CompressedVector<TypeB>;
 
       // Creator type definitions
-      typedef blazetest::Creator<V5b>  CV5b;
-      typedef blazetest::Creator<VCb>  CVCb;
+      using CV5b = blazetest::Creator<V5b>;
+      using CVCb = blazetest::Creator<VCb>;
 
       // Running the tests
       for( size_t i=0UL; i<=5UL; ++i ) {

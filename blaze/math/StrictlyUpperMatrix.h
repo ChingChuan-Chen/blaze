@@ -3,7 +3,7 @@
 //  \file blaze/math/StrictlyUpperMatrix.h
 //  \brief Header file for the complete StrictlyUpperMatrix implementation
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -44,18 +44,20 @@
 #include <vector>
 #include <blaze/math/Aliases.h>
 #include <blaze/math/adaptors/StrictlyUpperMatrix.h>
+#include <blaze/math/adaptors/UniUpperMatrix.h>
+#include <blaze/math/adaptors/UpperMatrix.h>
 #include <blaze/math/constraints/DenseMatrix.h>
 #include <blaze/math/constraints/Resizable.h>
 #include <blaze/math/constraints/SparseMatrix.h>
 #include <blaze/math/DenseMatrix.h>
 #include <blaze/math/Exception.h>
 #include <blaze/math/SparseMatrix.h>
-#include <blaze/math/typetraits/IsDenseMatrix.h>
 #include <blaze/math/StrictlyLowerMatrix.h>
-#include <blaze/util/FalseType.h>
+#include <blaze/math/typetraits/IsDenseMatrix.h>
+#include <blaze/math/ZeroMatrix.h>
 #include <blaze/util/Indices.h>
+#include <blaze/util/IntegralConstant.h>
 #include <blaze/util/Random.h>
-#include <blaze/util/TrueType.h>
 #include <blaze/util/Types.h>
 
 
@@ -149,7 +151,7 @@ template< typename MT  // Type of the adapted matrix
         , bool DF >    // Numeric flag
 inline const StrictlyUpperMatrix<MT,SO,DF> Rand< StrictlyUpperMatrix<MT,SO,DF> >::generate() const
 {
-   BLAZE_CONSTRAINT_MUST_NOT_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_RESIZABLE_TYPE( MT );
 
    StrictlyUpperMatrix<MT,SO,DF> matrix;
    randomize( matrix );
@@ -172,7 +174,7 @@ template< typename MT  // Type of the adapted matrix
 inline const StrictlyUpperMatrix<MT,SO,DF>
    Rand< StrictlyUpperMatrix<MT,SO,DF> >::generate( size_t n ) const
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE( MT );
 
    StrictlyUpperMatrix<MT,SO,DF> matrix( n );
    randomize( matrix );
@@ -197,7 +199,7 @@ template< typename MT  // Type of the adapted matrix
 inline const StrictlyUpperMatrix<MT,SO,DF>
    Rand< StrictlyUpperMatrix<MT,SO,DF> >::generate( size_t n, size_t nonzeros ) const
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE         ( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE    ( MT );
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
    if( nonzeros > StrictlyUpperMatrix<MT,SO,DF>::maxNonZeros( n ) ) {
@@ -228,7 +230,7 @@ template< typename Arg >  // Min/max argument type
 inline const StrictlyUpperMatrix<MT,SO,DF>
    Rand< StrictlyUpperMatrix<MT,SO,DF> >::generate( const Arg& min, const Arg& max ) const
 {
-   BLAZE_CONSTRAINT_MUST_NOT_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_RESIZABLE_TYPE( MT );
 
    StrictlyUpperMatrix<MT,SO,DF> matrix;
    randomize( matrix, min, max );
@@ -254,7 +256,7 @@ template< typename Arg >  // Min/max argument type
 inline const StrictlyUpperMatrix<MT,SO,DF>
    Rand< StrictlyUpperMatrix<MT,SO,DF> >::generate( size_t n, const Arg& min, const Arg& max ) const
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE( MT );
 
    StrictlyUpperMatrix<MT,SO,DF> matrix( n );
    randomize( matrix, min, max );
@@ -283,7 +285,7 @@ inline const StrictlyUpperMatrix<MT,SO,DF>
    Rand< StrictlyUpperMatrix<MT,SO,DF> >::generate( size_t n, size_t nonzeros,
                                                     const Arg& min, const Arg& max ) const
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE         ( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE    ( MT );
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
    if( nonzeros > StrictlyUpperMatrix<MT,SO,DF>::maxNonZeros( n ) ) {
@@ -331,7 +333,7 @@ inline void Rand< StrictlyUpperMatrix<MT,SO,DF> >::randomize( StrictlyUpperMatri
 {
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -387,7 +389,7 @@ inline void Rand< StrictlyUpperMatrix<MT,SO,DF> >::randomize( StrictlyUpperMatri
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -439,7 +441,7 @@ inline void Rand< StrictlyUpperMatrix<MT,SO,DF> >::randomize( StrictlyUpperMatri
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -514,7 +516,7 @@ inline void Rand< StrictlyUpperMatrix<MT,SO,DF> >::randomize( StrictlyUpperMatri
 {
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -578,7 +580,7 @@ inline void Rand< StrictlyUpperMatrix<MT,SO,DF> >::randomize( StrictlyUpperMatri
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 
@@ -634,7 +636,7 @@ inline void Rand< StrictlyUpperMatrix<MT,SO,DF> >::randomize( StrictlyUpperMatri
 {
    BLAZE_CONSTRAINT_MUST_BE_SPARSE_MATRIX_TYPE( MT );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const size_t n( matrix.rows() );
 

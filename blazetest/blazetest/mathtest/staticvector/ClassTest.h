@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/staticvector/ClassTest.h
 //  \brief Header file for the StaticVector class test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,18 +40,22 @@
 // Includes
 //*************************************************************************************************
 
+#include <array>
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <boost/container/static_vector.hpp>
-#include <boost/container/vector.hpp>
+#include <vector>
 #include <blaze/math/constraints/ColumnVector.h>
 #include <blaze/math/constraints/DenseVector.h>
 #include <blaze/math/constraints/RequiresEvaluation.h>
 #include <blaze/math/constraints/RowVector.h>
+#include <blaze/math/simd/SIMDTrait.h>
 #include <blaze/math/StaticVector.h>
+#include <blaze/math/typetraits/IsAligned.h>
+#include <blaze/math/typetraits/IsPadded.h>
 #include <blaze/util/AlignedAllocator.h>
 #include <blaze/util/constraints/SameType.h>
+#include <blaze/util/StaticAssert.h>
 #include <blaze/util/typetraits/AlignmentOf.h>
 #include <blazetest/system/Types.h>
 
@@ -96,12 +100,14 @@ class ClassTest
    template< typename Type >
    void testAlignment( const std::string& type );
 
+   void testObjectSize  ();
    void testConstructors();
    void testAssignment  ();
    void testAddAssign   ();
    void testSubAssign   ();
    void testMultAssign  ();
    void testDivAssign   ();
+   void testCrossAssign ();
    void testScaling     ();
    void testSubscript   ();
    void testAt          ();
@@ -131,11 +137,11 @@ class ClassTest
    //**********************************************************************************************
 
    //**Type definitions****************************************************************************
-   typedef blaze::StaticVector<int,4UL,blaze::rowVector>     VT;    //!< Type of the static vector.
-   typedef blaze::StaticVector<int,4UL,blaze::columnVector>  TVT;   //!< Transpose static vector type.
+   using VT  = blaze::StaticVector<int,4UL,blaze::rowVector>;     //!< Type of the static vector.
+   using TVT = blaze::StaticVector<int,4UL,blaze::columnVector>;  //!< Transpose static vector type.
 
-   typedef VT::Rebind<double>::Other   RVT;   //!< Rebound static vector type.
-   typedef TVT::Rebind<double>::Other  TRVT;  //!< Transpose rebound static vector type.
+   using RVT  = VT::Rebind<double>::Other;   //!< Rebound static vector type.
+   using TRVT = TVT::Rebind<double>::Other;  //!< Transpose rebound static vector type.
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************
@@ -210,18 +216,23 @@ class ClassTest
 template< typename Type >
 void ClassTest::testAlignment( const std::string& type )
 {
-   typedef blaze::StaticVector<Type,7UL,blaze::rowVector>  VectorType;
-   typedef blaze::AlignedAllocator<VectorType>             AllocatorType;
-
-   const size_t alignment( blaze::AlignmentOf<Type>::value );
+   constexpr size_t SIMDSIZE ( blaze::SIMDTrait<Type>::size );
+   constexpr size_t alignment( blaze::AlignmentOf_v<Type>   );
 
 
    //=====================================================================================
-   // Single vector alignment test
+   // Single vector alignment test (aligned/padded)
    //=====================================================================================
 
    {
-      const VectorType vec;
+      using AlignedPadded =
+         blaze::StaticVector<Type,7UL,blaze::rowVector,blaze::aligned,blaze::padded>;
+
+      BLAZE_STATIC_ASSERT( blaze::IsAligned_v<AlignedPadded> );
+      BLAZE_STATIC_ASSERT( blaze::IsPadded_v<AlignedPadded> );
+      BLAZE_STATIC_ASSERT( sizeof(AlignedPadded) == sizeof(Type)*blaze::nextMultiple( 7UL, SIMDSIZE ) );
+
+      const AlignedPadded vec;
 
       const size_t deviation( reinterpret_cast<size_t>( &vec[0] ) % alignment );
 
@@ -239,11 +250,72 @@ void ClassTest::testAlignment( const std::string& type )
 
 
    //=====================================================================================
-   // Static array alignment test
+   // Single vector alignment test (aligned/unpadded)
    //=====================================================================================
 
    {
-      const boost::container::static_vector<VectorType,7UL> vecs( 7UL );
+      using AlignedUnpadded =
+         blaze::StaticVector<Type,7UL,blaze::rowVector,blaze::aligned,blaze::unpadded>;
+
+      BLAZE_STATIC_ASSERT( blaze::IsAligned_v<AlignedUnpadded> );
+      BLAZE_STATIC_ASSERT( !blaze::IsPadded_v<AlignedUnpadded> );
+      BLAZE_STATIC_ASSERT( sizeof(AlignedUnpadded) == sizeof(Type)*blaze::nextMultiple( 7UL, SIMDSIZE ) );
+
+      const AlignedUnpadded vec;
+
+      const size_t deviation( reinterpret_cast<size_t>( &vec[0] ) % alignment );
+
+      if( deviation != 0UL ) {
+         std::ostringstream oss;
+         oss << " Test: Vector alignment test\n"
+             << " Error: Invalid alignment detected\n"
+             << " Details:\n"
+             << "   Element type      : " << type << "\n"
+             << "   Expected alignment: " << alignment << "\n"
+             << "   Deviation         : " << deviation << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Single vector alignment test (unaligned/padded)
+   //=====================================================================================
+
+   {
+      using UnalignedPadded =
+         blaze::StaticVector<Type,7UL,blaze::rowVector,blaze::unaligned,blaze::padded>;
+
+      BLAZE_STATIC_ASSERT( !blaze::IsAligned_v<UnalignedPadded> );
+      BLAZE_STATIC_ASSERT( blaze::IsPadded_v<UnalignedPadded> );
+      BLAZE_STATIC_ASSERT( sizeof(UnalignedPadded) == sizeof(Type)*blaze::nextMultiple( 7UL, SIMDSIZE ) );
+   }
+
+
+   //=====================================================================================
+   // Single vector alignment test (unaligned/unpadded)
+   //=====================================================================================
+
+   {
+      using UnalignedUnpadded =
+         blaze::StaticVector<Type,7UL,blaze::rowVector,blaze::unaligned,blaze::unpadded>;
+
+      BLAZE_STATIC_ASSERT( !blaze::IsAligned_v<UnalignedUnpadded> );
+      BLAZE_STATIC_ASSERT( !blaze::IsPadded_v<UnalignedUnpadded> );
+      BLAZE_STATIC_ASSERT( sizeof(UnalignedUnpadded) == sizeof(Type)*7UL );
+   }
+
+
+   //=====================================================================================
+   // Static array alignment test (aligned/padded)
+   //=====================================================================================
+
+   {
+      using AlignedPadded =
+         blaze::StaticVector<Type,7UL,blaze::rowVector,blaze::aligned,blaze::padded>;
+
+      const AlignedPadded init;
+      const std::array<AlignedPadded,7UL> vecs{ init, init, init, init, init, init, init };
 
       for( size_t i=0; i<vecs.size(); ++i )
       {
@@ -264,11 +336,75 @@ void ClassTest::testAlignment( const std::string& type )
 
 
    //=====================================================================================
-   // Dynamic array alignment test
+   // Static array alignment test (aligned/unpadded)
    //=====================================================================================
 
    {
-      const boost::container::vector<VectorType,AllocatorType> vecs( 7UL );
+      using AlignedUnpadded =
+         blaze::StaticVector<Type,7UL,blaze::rowVector,blaze::aligned,blaze::unpadded>;
+
+      const AlignedUnpadded init;
+      const std::array<AlignedUnpadded,7UL> vecs{ init, init, init, init, init, init, init };
+
+      for( size_t i=0; i<vecs.size(); ++i )
+      {
+         const size_t deviation( reinterpret_cast<size_t>( &vecs[i][0] ) % alignment );
+
+         if( deviation != 0UL ) {
+            std::ostringstream oss;
+            oss << " Test: Static array alignment test\n"
+                << " Error: Invalid alignment at index " << i << " detected\n"
+                << " Details:\n"
+                << "   Element type      : " << type << "\n"
+                << "   Expected alignment: " << alignment << "\n"
+                << "   Deviation         : " << deviation << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+
+   //=====================================================================================
+   // Dynamic array alignment test (aligned/padded)
+   //=====================================================================================
+
+   {
+      using AlignedPadded =
+         blaze::StaticVector<Type,7UL,blaze::rowVector,blaze::aligned,blaze::padded>;
+      using AllocatorType = blaze::AlignedAllocator<AlignedPadded>;
+
+      const AlignedPadded init;
+      const std::vector<AlignedPadded,AllocatorType> vecs( 7UL, init );
+
+      for( size_t i=0; i<vecs.size(); ++i )
+      {
+         const size_t deviation( reinterpret_cast<size_t>( &vecs[i][0] ) % alignment );
+
+         if( deviation != 0UL ) {
+            std::ostringstream oss;
+            oss << " Test: Dynamic array alignment test\n"
+                << " Error: Invalid alignment at index " << i << " detected\n"
+                << " Details:\n"
+                << "   Element type      : " << type << "\n"
+                << "   Expected alignment: " << alignment << "\n"
+                << "   Deviation         : " << deviation << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+
+   //=====================================================================================
+   // Dynamic array alignment test (aligned/unpadded)
+   //=====================================================================================
+
+   {
+      using AlignedUnpadded =
+         blaze::StaticVector<Type,7UL,blaze::rowVector,blaze::aligned,blaze::unpadded>;
+      using AllocatorType = blaze::AlignedAllocator<AlignedUnpadded>;
+
+      const AlignedUnpadded init;
+      const std::vector<AlignedUnpadded,AllocatorType> vecs( 7UL, init );
 
       for( size_t i=0; i<vecs.size(); ++i )
       {

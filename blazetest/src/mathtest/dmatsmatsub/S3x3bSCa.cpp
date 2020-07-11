@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsmatsub/S3x3bSCa.cpp
 //  \brief Source file for the S3x3bSCa dense matrix/sparse matrix subtraction math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/dmatsmatsub/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -64,12 +68,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::SymmetricMatrix< blaze::StaticMatrix<TypeB,3UL,3UL> >  S3x3b;
-      typedef blaze::SymmetricMatrix< blaze::CompressedMatrix<TypeA> >      SCa;
+      using S3x3b = blaze::SymmetricMatrix< blaze::StaticMatrix<TypeB,3UL,3UL> >;
+      using SCa = blaze::SymmetricMatrix< blaze::CompressedMatrix<TypeA> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<S3x3b>  CS3x3b;
-      typedef blazetest::Creator<SCa>    CSCa;
+      using CS3x3b = blazetest::Creator<S3x3b>;
+      using CSCa = blazetest::Creator<SCa>;
 
       // Running the tests
       for( size_t i=0UL; i<=9UL; ++i ) {

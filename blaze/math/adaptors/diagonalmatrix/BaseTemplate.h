@@ -3,7 +3,7 @@
 //  \file blaze/math/adaptors/diagonalmatrix/BaseTemplate.h
 //  \brief Header file for the implementation of the base template of the DiagonalMatrix
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,8 +40,8 @@
 // Includes
 //*************************************************************************************************
 
-#include <blaze/math/typetraits/IsColumnMajorMatrix.h>
 #include <blaze/math/typetraits/IsDenseMatrix.h>
+#include <blaze/math/typetraits/StorageOrder.h>
 
 
 namespace blaze {
@@ -177,7 +177,7 @@ namespace blaze {
    using blaze::DiagonalMatrix;
    using blaze::rowMajor;
 
-   typedef DiagonalMatrix< CompressedMatrix<double,rowMajor> >  CompressedDiagonal;
+   using CompressedDiagonal = DiagonalMatrix< CompressedMatrix<double,rowMajor> >;
 
    // Default constructed, row-major 3x3 diagonal compressed matrix
    CompressedDiagonal A( 3 );
@@ -229,7 +229,7 @@ namespace blaze {
    using blaze::unpadded;
    using blaze::rowMajor;
 
-   typedef DiagonalMatrix< CustomMatrix<double,unaligned,unpadded,rowMajor> >  CustomDiagonal;
+   using CustomDiagonal = DiagonalMatrix< CustomMatrix<double,unaligned,unpadded,rowMajor> >;
 
    // Creating a 3x3 diagonal custom matrix from a properly initialized array
    double array[9] = { 1.0, 0.0, 0.0,
@@ -381,10 +381,10 @@ namespace blaze {
 
    \code
    // Recommendation 1: use dense matrices for small diagonal matrices
-   typedef blaze::DiagonalMatrix< blaze::StaticMatrix<float,3UL,3UL> >  SmallDiagonalMatrix;
+   using SmallDiagonalMatrix = blaze::DiagonalMatrix< blaze::StaticMatrix<float,3UL,3UL> >;
 
    // Recommendation 2: use sparse matrices for large diagonal matrices
-   typedef blaze::DiagonalMatrix< blaze::CompressedMatrix<float> >  LargeDiagonalMatrix;
+   using LargeDiagonalMatrix = blaze::DiagonalMatrix< blaze::CompressedMatrix<float> >;
    \endcode
 
 // \n \section diagonalmatrix_arithmetic_operations Arithmetic Operations
@@ -554,9 +554,9 @@ namespace blaze {
    C = A * B;  // Results in a diagonal matrix; no runtime overhead
    \endcode
 */
-template< typename MT                               // Type of the adapted matrix
-        , bool SO = IsColumnMajorMatrix<MT>::value  // Storage order of the adapted matrix
-        , bool DF = IsDenseMatrix<MT>::value >      // Density flag
+template< typename MT                      // Type of the adapted matrix
+        , bool SO = StorageOrder_v<MT>     // Storage order of the adapted matrix
+        , bool DF = IsDenseMatrix_v<MT> >  // Density flag
 class DiagonalMatrix
 {};
 //*************************************************************************************************

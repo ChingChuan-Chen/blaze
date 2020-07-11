@@ -3,7 +3,7 @@
 //  \file blaze/math/expressions/DVecEvalExpr.h
 //  \brief Header file for the dense vector evaluation expression
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -48,21 +48,11 @@
 #include <blaze/math/expressions/DenseVector.h>
 #include <blaze/math/expressions/Forward.h>
 #include <blaze/math/expressions/VecEvalExpr.h>
-#include <blaze/math/traits/DVecEvalExprTrait.h>
-#include <blaze/math/traits/EvalExprTrait.h>
-#include <blaze/math/traits/SubvectorExprTrait.h>
-#include <blaze/math/traits/TDVecEvalExprTrait.h>
 #include <blaze/math/typetraits/IsAligned.h>
-#include <blaze/math/typetraits/IsColumnVector.h>
-#include <blaze/math/typetraits/IsDenseVector.h>
 #include <blaze/math/typetraits/IsExpression.h>
-#include <blaze/math/typetraits/IsRowVector.h>
-#include <blaze/math/typetraits/Size.h>
+#include <blaze/system/MacroDisable.h>
 #include <blaze/util/Assert.h>
-#include <blaze/util/IntegralConstant.h>
-#include <blaze/util/InvalidType.h>
-#include <blaze/util/logging/FunctionTrace.h>
-#include <blaze/util/mpl/And.h>
+#include <blaze/util/FunctionTrace.h>
 #include <blaze/util/mpl/If.h>
 #include <blaze/util/Types.h>
 
@@ -84,31 +74,32 @@ namespace blaze {
 */
 template< typename VT  // Type of the dense vector
         , bool TF >    // Transpose flag
-class DVecEvalExpr : public DenseVector< DVecEvalExpr<VT,TF>, TF >
-                   , private VecEvalExpr
-                   , private Computation
+class DVecEvalExpr
+   : public VecEvalExpr< DenseVector< DVecEvalExpr<VT,TF>, TF > >
+   , private Computation
 {
  public:
    //**Type definitions****************************************************************************
-   typedef DVecEvalExpr<VT,TF>  This;           //!< Type of this DVecEvalExpr instance.
-   typedef ResultType_<VT>      ResultType;     //!< Result type for expression template evaluations.
-   typedef TransposeType_<VT>   TransposeType;  //!< Transpose type for expression template evaluations.
-   typedef ElementType_<VT>     ElementType;    //!< Resulting element type.
-   typedef ReturnType_<VT>      ReturnType;     //!< Return type for expression template evaluations.
+   using This          = DVecEvalExpr<VT,TF>;   //!< Type of this DVecEvalExpr instance.
+   using BaseType      = DenseVector<This,TF>;  //!< Base type of this DVecEvalExpr instance.
+   using ResultType    = ResultType_t<VT>;      //!< Result type for expression template evaluations.
+   using TransposeType = TransposeType_t<VT>;   //!< Transpose type for expression template evaluations.
+   using ElementType   = ElementType_t<VT>;     //!< Resulting element type.
+   using ReturnType    = ReturnType_t<VT>;      //!< Return type for expression template evaluations.
 
    //! Data type for composite expression templates.
-   typedef const ResultType  CompositeType;
+   using CompositeType = const ResultType;
 
    //! Composite data type of the dense vector expression.
-   typedef If_< IsExpression<VT>, const VT, const VT& >  Operand;
+   using Operand = If_t< IsExpression_v<VT>, const VT, const VT& >;
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template evaluation strategy.
-   enum : bool { simdEnabled = false };
+   static constexpr bool simdEnabled = false;
 
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = VT::smpAssignable };
+   static constexpr bool smpAssignable = VT::smpAssignable;
    //**********************************************************************************************
 
    //**Constructor*********************************************************************************
@@ -295,7 +286,7 @@ class DVecEvalExpr : public DenseVector< DVecEvalExpr<VT,TF>, TF >
    // \ingroup dense_vector
    //
    // \param lhs The target left-hand side sparse vector.
-   // \param rhs The right-hand side evaulation expression to be added.
+   // \param rhs The right-hand side evaluation expression to be added.
    // \return void
    //
    // This function implements the performance optimized addition assignment of a dense vector
@@ -734,58 +725,13 @@ class DVecEvalExpr : public DenseVector< DVecEvalExpr<VT,TF>, TF >
 */
 template< typename VT  // Type of the dense vector
         , bool TF >    // Transpose flag
-inline const DVecEvalExpr<VT,TF> eval( const DenseVector<VT,TF>& dv )
+inline decltype(auto) eval( const DenseVector<VT,TF>& dv )
 {
    BLAZE_FUNCTION_TRACE;
 
-   return DVecEvalExpr<VT,TF>( ~dv );
+   using ReturnType = const DVecEvalExpr<VT,TF>;
+   return ReturnType( ~dv );
 }
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  GLOBAL RESTRUCTURING FUNCTIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Evaluation of the given dense vector evaluation expression \a dv.
-// \ingroup dense_vector
-//
-// \param dv The input evaluation expression.
-// \return The evaluated dense vector.
-//
-// This function implements a performance optimized treatment of the evaluation of a dense vector
-// evaluation expression.
-*/
-template< typename VT  // Type of the dense vector
-        , bool TF >    // Transpose flag
-inline const DVecEvalExpr<VT,TF> eval( const DVecEvalExpr<VT,TF>& dv )
-{
-   return dv;
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  SIZE SPECIALIZATIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename VT, bool TF >
-struct Size< DVecEvalExpr<VT,TF> > : public Size<VT>
-{};
-/*! \endcond */
 //*************************************************************************************************
 
 
@@ -801,62 +747,8 @@ struct Size< DVecEvalExpr<VT,TF> > : public Size<VT>
 /*! \cond BLAZE_INTERNAL */
 template< typename VT, bool TF >
 struct IsAligned< DVecEvalExpr<VT,TF> >
-   : public BoolConstant< IsAligned<VT>::value >
+   : public IsAligned<VT>
 {};
-/*! \endcond */
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  EXPRESSION TRAIT SPECIALIZATIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename VT >
-struct DVecEvalExprTrait< DVecEvalExpr<VT,false> >
-{
- public:
-   //**********************************************************************************************
-   using Type = If_< And< IsDenseVector<VT>, IsColumnVector<VT> >
-                   , DVecEvalExpr<VT,false>
-                   , INVALID_TYPE >;
-   //**********************************************************************************************
-};
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename VT >
-struct TDVecEvalExprTrait< DVecEvalExpr<VT,true> >
-{
- public:
-   //**********************************************************************************************
-   using Type = If_< And< IsDenseVector<VT>, IsRowVector<VT> >
-                   , DVecEvalExpr<VT,true>
-                   , INVALID_TYPE >;
-   //**********************************************************************************************
-};
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-template< typename VT, bool TF, bool AF >
-struct SubvectorExprTrait< DVecEvalExpr<VT,TF>, AF >
-{
- public:
-   //**********************************************************************************************
-   using Type = EvalExprTrait_< SubvectorExprTrait_<const VT,AF> >;
-   //**********************************************************************************************
-};
 /*! \endcond */
 //*************************************************************************************************
 

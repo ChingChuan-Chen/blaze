@@ -3,7 +3,7 @@
 //  \file src/mathtest/row/DenseDenseSymmetricTest.cpp
 //  \brief Source file for the Row dense symmetric test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -47,6 +47,10 @@
 #include <blaze/util/policies/Deallocate.h>
 #include <blazetest/mathtest/row/DenseSymmetricTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 namespace blazetest {
 
@@ -75,6 +79,7 @@ DenseSymmetricTest::DenseSymmetricTest()
    testSubAssign();
    testMultAssign();
    testDivAssign();
+   testCrossAssign();
    testScaling();
    testSubscript();
    testIterator();
@@ -84,6 +89,7 @@ DenseSymmetricTest::DenseSymmetricTest()
    testIsDefault();
    testIsSame();
    testSubvector();
+   testElements();
 }
 //*************************************************************************************************
 
@@ -112,7 +118,19 @@ void DenseSymmetricTest::testConstructors()
    //=====================================================================================
 
    {
-      test_ = "Row-major Row constructor";
+      test_ = "Row-major Row constructor (0x0)";
+
+      MT mat;
+
+      // 0th matrix row
+      try {
+         blaze::row( mat, 0UL );
+      }
+      catch( std::invalid_argument& ) {}
+   }
+
+   {
+      test_ = "Row-major Row constructor (4x4)";
 
       initialize();
 
@@ -191,6 +209,12 @@ void DenseSymmetricTest::testConstructors()
             throw std::runtime_error( oss.str() );
          }
       }
+
+      // 4th matrix row
+      try {
+         blaze::row( mat_, 4UL );
+      }
+      catch( std::invalid_argument& ) {}
    }
 
 
@@ -199,7 +223,19 @@ void DenseSymmetricTest::testConstructors()
    //=====================================================================================
 
    {
-      test_ = "Column-major Row constructor";
+      test_ = "Column-major Row constructor (0x0)";
+
+      OMT tmat;
+
+      // 0th matrix row
+      try {
+         blaze::row( tmat, 0UL );
+      }
+      catch( std::invalid_argument& ) {}
+   }
+
+   {
+      test_ = "Column-major Row constructor (4x4)";
 
       initialize();
 
@@ -278,6 +314,12 @@ void DenseSymmetricTest::testConstructors()
             throw std::runtime_error( oss.str() );
          }
       }
+
+      // 4th matrix row
+      try {
+         blaze::row( tmat_, 4UL );
+      }
+      catch( std::invalid_argument& ) {}
    }
 }
 //*************************************************************************************************
@@ -348,10 +390,6 @@ void DenseSymmetricTest::testAssignment()
    {
       test_ = "Row-major initializer list assignment (complete list)";
 
-      using blaze::aligned;
-      using blaze::padded;
-      using blaze::rowVector;
-
       initialize();
 
       RT row3 = blaze::row( mat_, 3UL );
@@ -393,10 +431,6 @@ void DenseSymmetricTest::testAssignment()
 
    {
       test_ = "Row-major initializer list assignment (incomplete list)";
-
-      using blaze::aligned;
-      using blaze::padded;
-      using blaze::rowVector;
 
       initialize();
 
@@ -545,8 +579,9 @@ void DenseSymmetricTest::testAssignment()
 
       RT row1 = blaze::row( mat_, 1UL );
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<int>( 16UL ), 4UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec1( memory.get(), 4UL, 16UL );
       vec1[0] = 0;
       vec1[1] = 8;
       vec1[2] = 0;
@@ -599,9 +634,9 @@ void DenseSymmetricTest::testAssignment()
 
       RT row1 = blaze::row( mat_, 1UL );
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5] );
-      UnalignedUnpadded vec1( array.get()+1UL, 4UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[5] );
+      UnalignedUnpadded vec1( memory.get()+1UL, 4UL );
       vec1[0] = 0;
       vec1[1] = 8;
       vec1[2] = 0;
@@ -749,10 +784,6 @@ void DenseSymmetricTest::testAssignment()
    {
       test_ = "Column-major initializer list assignment (complete list)";
 
-      using blaze::aligned;
-      using blaze::padded;
-      using blaze::rowVector;
-
       initialize();
 
       ORT row3 = blaze::row( tmat_, 3UL );
@@ -794,10 +825,6 @@ void DenseSymmetricTest::testAssignment()
 
    {
       test_ = "Row-major initializer list assignment (incomplete list)";
-
-      using blaze::aligned;
-      using blaze::padded;
-      using blaze::rowVector;
 
       initialize();
 
@@ -946,8 +973,9 @@ void DenseSymmetricTest::testAssignment()
 
       ORT row1 = blaze::row( tmat_, 1UL );
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec1( blaze::allocate<int>( 16UL ), 4UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec1( memory.get(), 4UL, 16UL );
       vec1[0] = 0;
       vec1[1] = 8;
       vec1[2] = 0;
@@ -1000,9 +1028,9 @@ void DenseSymmetricTest::testAssignment()
 
       ORT row1 = blaze::row( tmat_, 1UL );
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5] );
-      UnalignedUnpadded vec1( array.get()+1UL, 4UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[5] );
+      UnalignedUnpadded vec1( memory.get()+1UL, 4UL );
       vec1[0] = 0;
       vec1[1] = 8;
       vec1[2] = 0;
@@ -1216,8 +1244,9 @@ void DenseSymmetricTest::testAddAssign()
 
       RT row2 = blaze::row( mat_, 2UL );
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec( blaze::allocate<int>( 16UL ), 4UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec( memory.get(), 4UL, 16UL );
       vec[0] =  2;
       vec[1] = -4;
       vec[2] =  0;
@@ -1270,9 +1299,9 @@ void DenseSymmetricTest::testAddAssign()
 
       RT row2 = blaze::row( mat_, 2UL );
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5] );
-      UnalignedUnpadded vec( array.get()+1UL, 4UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[5] );
+      UnalignedUnpadded vec( memory.get()+1UL, 4UL );
       vec[0] =  2;
       vec[1] = -4;
       vec[2] =  0;
@@ -1474,8 +1503,9 @@ void DenseSymmetricTest::testAddAssign()
 
       ORT row2 = blaze::row( tmat_, 2UL );
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec( blaze::allocate<int>( 16UL ), 4UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec( memory.get(), 4UL, 16UL );
       vec[0] =  2;
       vec[1] = -4;
       vec[2] =  0;
@@ -1528,9 +1558,9 @@ void DenseSymmetricTest::testAddAssign()
 
       ORT row2 = blaze::row( tmat_, 2UL );
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5] );
-      UnalignedUnpadded vec( array.get()+1UL, 4UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[5] );
+      UnalignedUnpadded vec( memory.get()+1UL, 4UL );
       vec[0] =  2;
       vec[1] = -4;
       vec[2] =  0;
@@ -1745,8 +1775,9 @@ void DenseSymmetricTest::testSubAssign()
 
       RT row2 = blaze::row( mat_, 2UL );
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec( blaze::allocate<int>( 16UL ), 4UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec( memory.get(), 4UL, 16UL );
       vec[0] =  2;
       vec[1] = -4;
       vec[2] =  0;
@@ -1799,9 +1830,9 @@ void DenseSymmetricTest::testSubAssign()
 
       RT row2 = blaze::row( mat_, 2UL );
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5] );
-      UnalignedUnpadded vec( array.get()+1UL, 4UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[5] );
+      UnalignedUnpadded vec( memory.get()+1UL, 4UL );
       vec[0] =  2;
       vec[1] = -4;
       vec[2] =  0;
@@ -2003,8 +2034,9 @@ void DenseSymmetricTest::testSubAssign()
 
       ORT row2 = blaze::row( tmat_, 2UL );
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec( blaze::allocate<int>( 16UL ), 4UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec( memory.get(), 4UL, 16UL );
       vec[0] =  2;
       vec[1] = -4;
       vec[2] =  0;
@@ -2057,9 +2089,9 @@ void DenseSymmetricTest::testSubAssign()
 
       ORT row2 = blaze::row( tmat_, 2UL );
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5] );
-      UnalignedUnpadded vec( array.get()+1UL, 4UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[5] );
+      UnalignedUnpadded vec( memory.get()+1UL, 4UL );
       vec[0] =  2;
       vec[1] = -4;
       vec[2] =  0;
@@ -2274,8 +2306,9 @@ void DenseSymmetricTest::testMultAssign()
 
       RT row2 = blaze::row( mat_, 2UL );
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec( blaze::allocate<int>( 16UL ), 4UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec( memory.get(), 4UL, 16UL );
       vec[0] =  2;
       vec[1] =  0;
       vec[2] = -4;
@@ -2328,9 +2361,9 @@ void DenseSymmetricTest::testMultAssign()
 
       RT row2 = blaze::row( mat_, 2UL );
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5] );
-      UnalignedUnpadded vec( array.get()+1UL, 4UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[5] );
+      UnalignedUnpadded vec( memory.get()+1UL, 4UL );
       vec[0] =  2;
       vec[1] =  0;
       vec[2] = -4;
@@ -2532,8 +2565,9 @@ void DenseSymmetricTest::testMultAssign()
 
       ORT row2 = blaze::row( tmat_, 2UL );
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec( blaze::allocate<int>( 16UL ), 4UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec( memory.get(), 4UL, 16UL );
       vec[0] =  2;
       vec[1] =  0;
       vec[2] = -4;
@@ -2586,9 +2620,9 @@ void DenseSymmetricTest::testMultAssign()
 
       ORT row2 = blaze::row( tmat_, 2UL );
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5] );
-      UnalignedUnpadded vec( array.get()+1UL, 4UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[5] );
+      UnalignedUnpadded vec( memory.get()+1UL, 4UL );
       vec[0] =  2;
       vec[1] =  0;
       vec[2] = -4;
@@ -2756,8 +2790,9 @@ void DenseSymmetricTest::testDivAssign()
 
       RT row2 = blaze::row( mat_, 2UL );
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec( blaze::allocate<int>( 16UL ), 4UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec( memory.get(), 4UL, 16UL );
       vec[0] =  1;
       vec[1] =  2;
       vec[2] =  3;
@@ -2810,9 +2845,9 @@ void DenseSymmetricTest::testDivAssign()
 
       RT row2 = blaze::row( mat_, 2UL );
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5] );
-      UnalignedUnpadded vec( array.get()+1UL, 4UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[5] );
+      UnalignedUnpadded vec( memory.get()+1UL, 4UL );
       vec[0] =  1;
       vec[1] =  2;
       vec[2] =  3;
@@ -2915,8 +2950,9 @@ void DenseSymmetricTest::testDivAssign()
 
       ORT row2 = blaze::row( tmat_, 2UL );
 
-      typedef blaze::CustomVector<int,aligned,padded,rowVector>  AlignedPadded;
-      AlignedPadded vec( blaze::allocate<int>( 16UL ), 4UL, 16UL, blaze::Deallocate() );
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec( memory.get(), 4UL, 16UL );
       vec[0] =  1;
       vec[1] =  2;
       vec[2] =  3;
@@ -2969,9 +3005,9 @@ void DenseSymmetricTest::testDivAssign()
 
       ORT row2 = blaze::row( tmat_, 2UL );
 
-      typedef blaze::CustomVector<int,unaligned,unpadded,rowVector>  UnalignedUnpadded;
-      std::unique_ptr<int[]> array( new int[5] );
-      UnalignedUnpadded vec( array.get()+1UL, 4UL );
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[5] );
+      UnalignedUnpadded vec( memory.get()+1UL, 4UL );
       vec[0] =  1;
       vec[1] =  2;
       vec[2] =  3;
@@ -3009,6 +3045,513 @@ void DenseSymmetricTest::testDivAssign()
                                      "(  0  1  0 -2 )\n"
                                      "(  0  0  1 -2 )\n"
                                      "(  0 -2 -2  5 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the Row cross product assignment operators.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the cross product assignment operators of the Row
+// specialization. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void DenseSymmetricTest::testCrossAssign()
+{
+   //=====================================================================================
+   // Row-major Row cross product assignment
+   //=====================================================================================
+
+   {
+      test_ = "Row-major Row cross product assignment";
+
+      MT mat{ { 2, 0, -1 }, { 0, 4, 0 }, { -1, 0, -2 } };
+
+      RT row0 = blaze::row( mat, 0UL );
+      row0 %= blaze::row( mat, 2UL );
+
+      checkSize    ( row0, 3UL );
+      checkCapacity( row0, 3UL );
+      checkNonZeros( row0, 1UL );
+      checkRows    ( mat , 3UL );
+      checkColumns ( mat , 3UL );
+      checkNonZeros( mat , 4UL );
+
+      if( row0[0] != 0 || row0[1] != 5 || row0[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << row0 << "\n"
+             << "   Expected result:\n( 0 5 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( mat(0,0) != 0 || mat(0,1) !=  5 || mat(0,2) !=  0 ||
+          mat(1,0) != 5 || mat(1,1) !=  4 || mat(1,2) !=  0 ||
+          mat(2,0) != 0 || mat(2,1) !=  0 || mat(2,2) != -2 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n(  0  5  0 )\n"
+                                     "(  5  4  0 )\n"
+                                     "(  0  0 -2 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Row-major dense vector cross product assignment
+   //=====================================================================================
+
+   {
+      test_ = "Row-major dense vector cross product assignment (mixed type)";
+
+      MT mat{ { 2, 0, -1 }, { 0, 4, 0 }, { -1, 0, -2 } };
+
+      RT row0 = blaze::row( mat, 0UL );
+
+      const blaze::DynamicVector<short,blaze::rowVector> vec{ -1, 0, -2 };
+
+      row0 %= vec;
+
+      checkSize    ( row0, 3UL );
+      checkCapacity( row0, 3UL );
+      checkNonZeros( row0, 1UL );
+      checkRows    ( mat , 3UL );
+      checkColumns ( mat , 3UL );
+      checkNonZeros( mat , 4UL );
+
+      if( row0[0] != 0 || row0[1] != 5 || row0[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << row0 << "\n"
+             << "   Expected result:\n( 0 5 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( mat(0,0) != 0 || mat(0,1) !=  5 || mat(0,2) !=  0 ||
+          mat(1,0) != 5 || mat(1,1) !=  4 || mat(1,2) !=  0 ||
+          mat(2,0) != 0 || mat(2,1) !=  0 || mat(2,2) != -2 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n(  0  5  0 )\n"
+                                     "(  5  4  0 )\n"
+                                     "(  0  0 -2 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   {
+      test_ = "Row-major dense vector cross product assignment (aligned/padded)";
+
+      using blaze::aligned;
+      using blaze::padded;
+      using blaze::rowVector;
+
+      MT mat{ { 2, 0, -1 }, { 0, 4, 0 }, { -1, 0, -2 } };
+
+      RT row0 = blaze::row( mat, 0UL );
+
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec( memory.get(), 3UL, 16UL );
+      vec[0] = -1;
+      vec[1] =  0;
+      vec[2] = -2;
+
+      row0 %= vec;
+
+      checkSize    ( row0, 3UL );
+      checkCapacity( row0, 3UL );
+      checkNonZeros( row0, 1UL );
+      checkRows    ( mat , 3UL );
+      checkColumns ( mat , 3UL );
+      checkNonZeros( mat , 4UL );
+
+      if( row0[0] != 0 || row0[1] != 5 || row0[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << row0 << "\n"
+             << "   Expected result:\n( 0 5 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( mat(0,0) != 0 || mat(0,1) !=  5 || mat(0,2) !=  0 ||
+          mat(1,0) != 5 || mat(1,1) !=  4 || mat(1,2) !=  0 ||
+          mat(2,0) != 0 || mat(2,1) !=  0 || mat(2,2) != -2 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n(  0  5  0 )\n"
+                                     "(  5  4  0 )\n"
+                                     "(  0  0 -2 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   {
+      test_ = "Row-major dense vector cross product assignment (unaligned/unpadded)";
+
+      using blaze::unaligned;
+      using blaze::unpadded;
+      using blaze::rowVector;
+
+      MT mat{ { 2, 0, -1 }, { 0, 4, 0 }, { -1, 0, -2 } };
+
+      RT row0 = blaze::row( mat, 0UL );
+
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[4] );
+      UnalignedUnpadded vec( memory.get()+1UL, 3UL );
+      vec[0] = -1;
+      vec[1] =  0;
+      vec[2] = -2;
+
+      row0 %= vec;
+
+      checkSize    ( row0, 3UL );
+      checkCapacity( row0, 3UL );
+      checkNonZeros( row0, 1UL );
+      checkRows    ( mat , 3UL );
+      checkColumns ( mat , 3UL );
+      checkNonZeros( mat , 4UL );
+
+      if( row0[0] != 0 || row0[1] != 5 || row0[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << row0 << "\n"
+             << "   Expected result:\n( 0 5 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( mat(0,0) != 0 || mat(0,1) !=  5 || mat(0,2) !=  0 ||
+          mat(1,0) != 5 || mat(1,1) !=  4 || mat(1,2) !=  0 ||
+          mat(2,0) != 0 || mat(2,1) !=  0 || mat(2,2) != -2 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n(  0  5  0 )\n"
+                                     "(  5  4  0 )\n"
+                                     "(  0  0 -2 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Row-major sparse vector cross product assignment
+   //=====================================================================================
+
+   {
+      test_ = "Row-major sparse vector cross product assignment";
+
+      MT mat{ { 2, 0, -1 }, { 0, 4, 0 }, { -1, 0, -2 } };
+
+      RT row0 = blaze::row( mat, 0UL );
+
+      blaze::CompressedVector<int,blaze::rowVector> vec( 3UL );
+      vec[0] = -1;
+      vec[2] = -2;
+
+      row0 %= vec;
+
+      checkSize    ( row0, 3UL );
+      checkCapacity( row0, 3UL );
+      checkNonZeros( row0, 1UL );
+      checkRows    ( mat , 3UL );
+      checkColumns ( mat , 3UL );
+      checkNonZeros( mat , 4UL );
+
+      if( row0[0] != 0 || row0[1] != 5 || row0[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << row0 << "\n"
+             << "   Expected result:\n( 0 5 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( mat(0,0) != 0 || mat(0,1) !=  5 || mat(0,2) !=  0 ||
+          mat(1,0) != 5 || mat(1,1) !=  4 || mat(1,2) !=  0 ||
+          mat(2,0) != 0 || mat(2,1) !=  0 || mat(2,2) != -2 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n(  0  5  0 )\n"
+                                     "(  5  4  0 )\n"
+                                     "(  0  0 -2 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major Row cross product assignment
+   //=====================================================================================
+
+   {
+      test_ = "Column-major Row cross product assignment";
+
+      OMT mat{ { 2, 0, -1 }, { 0, 4, 0 }, { -1, 0, -2 } };
+
+      ORT row0 = blaze::row( mat, 0UL );
+      row0 %= blaze::row( mat, 2UL );
+
+      checkSize    ( row0, 3UL );
+      checkCapacity( row0, 3UL );
+      checkNonZeros( row0, 1UL );
+      checkRows    ( mat , 3UL );
+      checkColumns ( mat , 3UL );
+      checkNonZeros( mat , 4UL );
+
+      if( row0[0] != 0 || row0[1] != 5 || row0[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << row0 << "\n"
+             << "   Expected result:\n( 0 5 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( mat(0,0) != 0 || mat(0,1) !=  5 || mat(0,2) !=  0 ||
+          mat(1,0) != 5 || mat(1,1) !=  4 || mat(1,2) !=  0 ||
+          mat(2,0) != 0 || mat(2,1) !=  0 || mat(2,2) != -2 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n( 0  5  0 )\n"
+                                     "( 5  4  0 )\n"
+                                     "( 0  0 -2 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major dense vector cross product assignment
+   //=====================================================================================
+
+   {
+      test_ = "Column-major dense vector cross product assignment (mixed type)";
+
+      OMT mat{ { 2, 0, -1 }, { 0, 4, 0 }, { -1, 0, -2 } };
+
+      ORT row0 = blaze::row( mat, 0UL );
+
+      const blaze::DynamicVector<short,blaze::rowVector> vec{ -1, 0, -2 };
+
+      row0 %= vec;
+
+      checkSize    ( row0, 3UL );
+      checkCapacity( row0, 3UL );
+      checkNonZeros( row0, 1UL );
+      checkRows    ( mat , 3UL );
+      checkColumns ( mat , 3UL );
+      checkNonZeros( mat , 4UL );
+
+      if( row0[0] != 0 || row0[1] != 5 || row0[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << row0 << "\n"
+             << "   Expected result:\n( 0 5 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( mat(0,0) != 0 || mat(0,1) !=  5 || mat(0,2) !=  0 ||
+          mat(1,0) != 5 || mat(1,1) !=  4 || mat(1,2) !=  0 ||
+          mat(2,0) != 0 || mat(2,1) !=  0 || mat(2,2) != -2 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n( 0  5  0 )\n"
+                                     "( 5  4  0 )\n"
+                                     "( 0  0 -2 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   {
+      test_ = "Column-major dense vector cross product assignment (aligned/padded)";
+
+      using blaze::aligned;
+      using blaze::padded;
+      using blaze::rowVector;
+
+      OMT mat{ { 2, 0, -1 }, { 0, 4, 0 }, { -1, 0, -2 } };
+
+      ORT row0 = blaze::row( mat, 0UL );
+
+      using AlignedPadded = blaze::CustomVector<int,aligned,padded,rowVector>;
+      std::unique_ptr<int[],blaze::Deallocate> memory( blaze::allocate<int>( 16UL ) );
+      AlignedPadded vec( memory.get(), 3UL, 16UL );
+      vec[0] = -1;
+      vec[1] =  0;
+      vec[2] = -2;
+
+      row0 %= vec;
+
+      checkSize    ( row0, 3UL );
+      checkCapacity( row0, 3UL );
+      checkNonZeros( row0, 1UL );
+      checkRows    ( mat , 3UL );
+      checkColumns ( mat , 3UL );
+      checkNonZeros( mat , 4UL );
+
+      if( row0[0] != 0 || row0[1] != 5 || row0[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << row0 << "\n"
+             << "   Expected result:\n( 0 5 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( mat(0,0) != 0 || mat(0,1) !=  5 || mat(0,2) !=  0 ||
+          mat(1,0) != 5 || mat(1,1) !=  4 || mat(1,2) !=  0 ||
+          mat(2,0) != 0 || mat(2,1) !=  0 || mat(2,2) != -2 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n( 0  5  0 )\n"
+                                     "( 5  4  0 )\n"
+                                     "( 0  0 -2 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+   {
+      test_ = "Column-major dense vector cross product assignment (unaligned/unpadded)";
+
+      using blaze::unaligned;
+      using blaze::unpadded;
+      using blaze::rowVector;
+
+      OMT mat{ { 2, 0, -1 }, { 0, 4, 0 }, { -1, 0, -2 } };
+
+      ORT row0 = blaze::row( mat, 0UL );
+
+      using UnalignedUnpadded = blaze::CustomVector<int,unaligned,unpadded,rowVector>;
+      std::unique_ptr<int[]> memory( new int[4] );
+      UnalignedUnpadded vec( memory.get()+1UL, 3UL );
+      vec[0] = -1;
+      vec[1] =  0;
+      vec[2] = -2;
+
+      row0 %= vec;
+
+      checkSize    ( row0, 3UL );
+      checkCapacity( row0, 3UL );
+      checkNonZeros( row0, 1UL );
+      checkRows    ( mat , 3UL );
+      checkColumns ( mat , 3UL );
+      checkNonZeros( mat , 4UL );
+
+      if( row0[0] != 0 || row0[1] != 5 || row0[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << row0 << "\n"
+             << "   Expected result:\n( 0 5 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( mat(0,0) != 0 || mat(0,1) !=  5 || mat(0,2) !=  0 ||
+          mat(1,0) != 5 || mat(1,1) !=  4 || mat(1,2) !=  0 ||
+          mat(2,0) != 0 || mat(2,1) !=  0 || mat(2,2) != -2 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n( 0  5  0 )\n"
+                                     "( 5  4  0 )\n"
+                                     "( 0  0 -2 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major sparse vector cross product assignment
+   //=====================================================================================
+
+   {
+      test_ = "Column-major sparse vector cross product assignment";
+
+      OMT mat{ { 2, 0, -1 }, { 0, 4, 0 }, { -1, 0, -2 } };
+
+      ORT row0 = blaze::row( mat, 0UL );
+
+      blaze::CompressedVector<int,blaze::rowVector> vec( 3UL );
+      vec[0] = -1;
+      vec[2] = -2;
+
+      row0 %= vec;
+
+      checkSize    ( row0, 3UL );
+      checkCapacity( row0, 3UL );
+      checkNonZeros( row0, 1UL );
+      checkRows    ( mat , 3UL );
+      checkColumns ( mat , 3UL );
+      checkNonZeros( mat , 4UL );
+
+      if( row0[0] != 0 || row0[1] != 5 || row0[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << row0 << "\n"
+             << "   Expected result:\n( 0 5 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+
+      if( mat(0,0) != 0 || mat(0,1) !=  5 || mat(0,2) !=  0 ||
+          mat(1,0) != 5 || mat(1,1) !=  4 || mat(1,2) !=  0 ||
+          mat(2,0) != 0 || mat(2,1) !=  0 || mat(2,2) != -2 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Cross product assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat << "\n"
+             << "   Expected result:\n( 0  5  0 )\n"
+                                     "( 5  4  0 )\n"
+                                     "( 0  0 -2 )\n";
          throw std::runtime_error( oss.str() );
       }
    }
@@ -4211,7 +4754,7 @@ void DenseSymmetricTest::testIterator()
       {
          test_ = "Row-major Iterator default constructor";
 
-         RT::Iterator it = RT::Iterator();
+         RT::Iterator it{};
 
          if( it != RT::Iterator() ) {
             std::ostringstream oss;
@@ -4225,7 +4768,7 @@ void DenseSymmetricTest::testIterator()
       {
          test_ = "Row-major ConstIterator default constructor";
 
-         RT::ConstIterator it = RT::ConstIterator();
+         RT::ConstIterator it{};
 
          if( it != RT::ConstIterator() ) {
             std::ostringstream oss;
@@ -4250,14 +4793,14 @@ void DenseSymmetricTest::testIterator()
          }
       }
 
-      // Counting the number of elements in 1st row via Iterator
+      // Counting the number of elements in 1st row via Iterator (end-begin)
       {
-         test_ = "Row-major Iterator subtraction";
+         test_ = "Row-major Iterator subtraction (end-begin)";
 
          RT row1 = blaze::row( mat_, 1UL );
-         const size_t number( end( row1 ) - begin( row1 ) );
+         const ptrdiff_t number( end( row1 ) - begin( row1 ) );
 
-         if( number != 4UL ) {
+         if( number != 4L ) {
             std::ostringstream oss;
             oss << " Test: " << test_ << "\n"
                 << " Error: Invalid number of elements detected\n"
@@ -4268,20 +4811,56 @@ void DenseSymmetricTest::testIterator()
          }
       }
 
-      // Counting the number of elements in 2nd row via ConstIterator
+      // Counting the number of elements in 1st row via Iterator (begin-end)
       {
-         test_ = "Row-major ConstIterator subtraction";
+         test_ = "Row-major Iterator subtraction (begin-end)";
+
+         RT row1 = blaze::row( mat_, 1UL );
+         const ptrdiff_t number( begin( row1 ) - end( row1 ) );
+
+         if( number != -4L ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid number of elements detected\n"
+                << " Details:\n"
+                << "   Number of elements         : " << number << "\n"
+                << "   Expected number of elements: -4\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Counting the number of elements in 2nd row via ConstIterator (end-begin)
+      {
+         test_ = "Row-major ConstIterator subtraction (end-begin)";
 
          RT row2 = blaze::row( mat_, 2UL );
-         const size_t number( cend( row2 ) - cbegin( row2 ) );
+         const ptrdiff_t number( cend( row2 ) - cbegin( row2 ) );
 
-         if( number != 4UL ) {
+         if( number != 4L ) {
             std::ostringstream oss;
             oss << " Test: " << test_ << "\n"
                 << " Error: Invalid number of elements detected\n"
                 << " Details:\n"
                 << "   Number of elements         : " << number << "\n"
                 << "   Expected number of elements: 4\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Counting the number of elements in 2nd row via ConstIterator (begin-end)
+      {
+         test_ = "Row-major ConstIterator subtraction (begin-end)";
+
+         RT row2 = blaze::row( mat_, 2UL );
+         const ptrdiff_t number( cbegin( row2 ) - cend( row2 ) );
+
+         if( number != -4L ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid number of elements detected\n"
+                << " Details:\n"
+                << "   Number of elements         : " << number << "\n"
+                << "   Expected number of elements: -4\n";
             throw std::runtime_error( oss.str() );
          }
       }
@@ -4585,7 +5164,7 @@ void DenseSymmetricTest::testIterator()
       {
          test_ = "Column-major Iterator default constructor";
 
-         ORT::Iterator it = ORT::Iterator();
+         ORT::Iterator it{};
 
          if( it != ORT::Iterator() ) {
             std::ostringstream oss;
@@ -4599,7 +5178,7 @@ void DenseSymmetricTest::testIterator()
       {
          test_ = "Column-major ConstIterator default constructor";
 
-         ORT::ConstIterator it = ORT::ConstIterator();
+         ORT::ConstIterator it{};
 
          if( it != ORT::ConstIterator() ) {
             std::ostringstream oss;
@@ -4624,14 +5203,14 @@ void DenseSymmetricTest::testIterator()
          }
       }
 
-      // Counting the number of elements in 1st row via Iterator
+      // Counting the number of elements in 1st row via Iterator (end-begin)
       {
-         test_ = "Column-major Iterator subtraction";
+         test_ = "Column-major Iterator subtraction (end-begin)";
 
          ORT row1 = blaze::row( tmat_, 1UL );
-         const size_t number( end( row1 ) - begin( row1 ) );
+         const ptrdiff_t number( end( row1 ) - begin( row1 ) );
 
-         if( number != 4UL ) {
+         if( number != 4L ) {
             std::ostringstream oss;
             oss << " Test: " << test_ << "\n"
                 << " Error: Invalid number of elements detected\n"
@@ -4642,20 +5221,56 @@ void DenseSymmetricTest::testIterator()
          }
       }
 
-      // Counting the number of elements in 2nd row via ConstIterator
+      // Counting the number of elements in 1st row via Iterator (begin-end)
       {
-         test_ = "Column-major ConstIterator subtraction";
+         test_ = "Column-major Iterator subtraction (begin-end)";
+
+         ORT row1 = blaze::row( tmat_, 1UL );
+         const ptrdiff_t number( begin( row1 ) - end( row1 ) );
+
+         if( number != -4L ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid number of elements detected\n"
+                << " Details:\n"
+                << "   Number of elements         : " << number << "\n"
+                << "   Expected number of elements: -4\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Counting the number of elements in 2nd row via ConstIterator (end-begin)
+      {
+         test_ = "Column-major ConstIterator subtraction (end-begin)";
 
          ORT row2 = blaze::row( tmat_, 2UL );
-         const size_t number( cend( row2 ) - cbegin( row2 ) );
+         const ptrdiff_t number( cend( row2 ) - cbegin( row2 ) );
 
-         if( number != 4UL ) {
+         if( number != 4L ) {
             std::ostringstream oss;
             oss << " Test: " << test_ << "\n"
                 << " Error: Invalid number of elements detected\n"
                 << " Details:\n"
                 << "   Number of elements         : " << number << "\n"
                 << "   Expected number of elements: 4\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // Counting the number of elements in 2nd row via ConstIterator (begin-end)
+      {
+         test_ = "Column-major ConstIterator subtraction (begin-end)";
+
+         ORT row2 = blaze::row( tmat_, 2UL );
+         const ptrdiff_t number( cbegin( row2 ) - cend( row2 ) );
+
+         if( number != -4L ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid number of elements detected\n"
+                << " Details:\n"
+                << "   Number of elements         : " << number << "\n"
+                << "   Expected number of elements: -4\n";
             throw std::runtime_error( oss.str() );
          }
       }
@@ -5633,10 +6248,8 @@ void DenseSymmetricTest::testIsSame()
 
       // isSame with row and matching subvector
       {
-         typedef blaze::Subvector<RT>  SubvectorType;
-
-         RT row1 = blaze::row( mat_, 1UL );
-         SubvectorType sv = subvector( row1, 0UL, 4UL );
+         RT   row1 = blaze::row( mat_, 1UL );
+         auto sv   = blaze::subvector( row1, 0UL, 4UL );
 
          if( blaze::isSame( row1, sv ) == false ) {
             std::ostringstream oss;
@@ -5661,10 +6274,8 @@ void DenseSymmetricTest::testIsSame()
 
       // isSame with row and non-matching subvector (different size)
       {
-         typedef blaze::Subvector<RT>  SubvectorType;
-
-         RT row1 = blaze::row( mat_, 1UL );
-         SubvectorType sv = subvector( row1, 0UL, 3UL );
+         RT   row1 = blaze::row( mat_, 1UL );
+         auto sv   = blaze::subvector( row1, 0UL, 3UL );
 
          if( blaze::isSame( row1, sv ) == true ) {
             std::ostringstream oss;
@@ -5689,10 +6300,8 @@ void DenseSymmetricTest::testIsSame()
 
       // isSame with row and non-matching subvector (different offset)
       {
-         typedef blaze::Subvector<RT>  SubvectorType;
-
-         RT row1 = blaze::row( mat_, 1UL );
-         SubvectorType sv = subvector( row1, 1UL, 3UL );
+         RT   row1 = blaze::row( mat_, 1UL );
+         auto sv   = blaze::subvector( row1, 1UL, 3UL );
 
          if( blaze::isSame( row1, sv ) == true ) {
             std::ostringstream oss;
@@ -5715,14 +6324,11 @@ void DenseSymmetricTest::testIsSame()
          }
       }
 
-      // isSame with matching rows on submatrices
+      // isSame with matching rows on a common submatrix
       {
-         typedef blaze::Submatrix<MT>       SubmatrixType;
-         typedef blaze::Row<SubmatrixType>  RowType;
-
-         SubmatrixType sm = submatrix( mat_, 1UL, 1UL, 2UL, 3UL );
-         RowType row1 = blaze::row( sm, 1UL );
-         RowType row2 = blaze::row( sm, 1UL );
+         auto sm   = blaze::submatrix( mat_, 1UL, 1UL, 2UL, 3UL );
+         auto row1 = blaze::row( sm, 1UL );
+         auto row2 = blaze::row( sm, 1UL );
 
          if( blaze::isSame( row1, row2 ) == false ) {
             std::ostringstream oss;
@@ -5735,14 +6341,11 @@ void DenseSymmetricTest::testIsSame()
          }
       }
 
-      // isSame with non-matching rows on submatrices
+      // isSame with non-matching rows on a common submatrix
       {
-         typedef blaze::Submatrix<MT>       SubmatrixType;
-         typedef blaze::Row<SubmatrixType>  RowType;
-
-         SubmatrixType sm = submatrix( mat_, 1UL, 1UL, 2UL, 3UL );
-         RowType row1 = blaze::row( sm, 0UL );
-         RowType row2 = blaze::row( sm, 1UL );
+         auto sm   = blaze::submatrix( mat_, 1UL, 1UL, 2UL, 3UL );
+         auto row1 = blaze::row( sm, 0UL );
+         auto row2 = blaze::row( sm, 1UL );
 
          if( blaze::isSame( row1, row2 ) == true ) {
             std::ostringstream oss;
@@ -5755,16 +6358,205 @@ void DenseSymmetricTest::testIsSame()
          }
       }
 
+      // isSame with matching rows on matrix and submatrix
+      {
+         auto sm   = blaze::submatrix( mat_, 1UL, 0UL, 3UL, 4UL );
+         auto row1 = blaze::row( mat_, 2UL );
+         auto row2 = blaze::row( sm  , 1UL );
+
+         if( blaze::isSame( row1, row2 ) == false ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( blaze::isSame( row2, row1 ) == false ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with non-matching rows on matrix and submatrix (different row)
+      {
+         auto sm   = blaze::submatrix( mat_, 1UL, 0UL, 3UL, 4UL );
+         auto row1 = blaze::row( mat_, 1UL );
+         auto row2 = blaze::row( sm  , 1UL );
+
+         if( blaze::isSame( row1, row2 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( blaze::isSame( row2, row1 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with non-matching rows on matrix and submatrix (different size)
+      {
+         auto sm   = blaze::submatrix( mat_, 1UL, 0UL, 3UL, 3UL );
+         auto row1 = blaze::row( mat_, 2UL );
+         auto row2 = blaze::row( sm  , 1UL );
+
+         if( blaze::isSame( row1, row2 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( blaze::isSame( row2, row1 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with matching rows on two submatrices
+      {
+         auto sm1  = blaze::submatrix( mat_, 1UL, 0UL, 3UL, 4UL );
+         auto sm2  = blaze::submatrix( mat_, 2UL, 0UL, 2UL, 4UL );
+         auto row1 = blaze::row( sm1, 1UL );
+         auto row2 = blaze::row( sm2, 0UL );
+
+         if( blaze::isSame( row1, row2 ) == false ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( blaze::isSame( row2, row1 ) == false ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with non-matching rows on two submatrices (different row)
+      {
+         auto sm1  = blaze::submatrix( mat_, 1UL, 0UL, 3UL, 4UL );
+         auto sm2  = blaze::submatrix( mat_, 2UL, 0UL, 2UL, 4UL );
+         auto row1 = blaze::row( sm1, 1UL );
+         auto row2 = blaze::row( sm2, 1UL );
+
+         if( blaze::isSame( row1, row2 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( blaze::isSame( row2, row1 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with non-matching rows on two submatrices (different size)
+      {
+         auto sm1  = blaze::submatrix( mat_, 1UL, 0UL, 3UL, 4UL );
+         auto sm2  = blaze::submatrix( mat_, 2UL, 0UL, 2UL, 3UL );
+         auto row1 = blaze::row( sm1, 1UL );
+         auto row2 = blaze::row( sm2, 0UL );
+
+         if( blaze::isSame( row1, row2 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( blaze::isSame( row2, row1 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with non-matching rows on two submatrices (different offset)
+      {
+         auto sm1  = blaze::submatrix( mat_, 1UL, 0UL, 3UL, 3UL );
+         auto sm2  = blaze::submatrix( mat_, 2UL, 1UL, 2UL, 3UL );
+         auto row1 = blaze::row( sm1, 1UL );
+         auto row2 = blaze::row( sm2, 0UL );
+
+         if( blaze::isSame( row1, row2 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( blaze::isSame( row2, row1 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
       // isSame with matching row subvectors on submatrices
       {
-         typedef blaze::Submatrix<MT>       SubmatrixType;
-         typedef blaze::Row<SubmatrixType>  RowType;
-         typedef blaze::Subvector<RowType>  SubvectorType;
-
-         SubmatrixType sm = submatrix( mat_, 1UL, 1UL, 2UL, 3UL );
-         RowType row1 = blaze::row( sm, 1UL );
-         SubvectorType sv1 = subvector( row1, 0UL, 2UL );
-         SubvectorType sv2 = subvector( row1, 0UL, 2UL );
+         auto sm   = blaze::submatrix( mat_, 1UL, 1UL, 2UL, 3UL );
+         auto row1 = blaze::row( sm, 1UL );
+         auto sv1  = blaze::subvector( row1, 0UL, 2UL );
+         auto sv2  = blaze::subvector( row1, 0UL, 2UL );
 
          if( blaze::isSame( sv1, sv2 ) == false ) {
             std::ostringstream oss;
@@ -5779,14 +6571,10 @@ void DenseSymmetricTest::testIsSame()
 
       // isSame with non-matching row subvectors on submatrices (different size)
       {
-         typedef blaze::Submatrix<MT>       SubmatrixType;
-         typedef blaze::Row<SubmatrixType>  RowType;
-         typedef blaze::Subvector<RowType>  SubvectorType;
-
-         SubmatrixType sm = submatrix( mat_, 1UL, 1UL, 2UL, 3UL );
-         RowType row1 = blaze::row( sm, 1UL );
-         SubvectorType sv1 = subvector( row1, 0UL, 2UL );
-         SubvectorType sv2 = subvector( row1, 0UL, 3UL );
+         auto sm   = blaze::submatrix( mat_, 1UL, 1UL, 2UL, 3UL );
+         auto row1 = blaze::row( sm, 1UL );
+         auto sv1  = blaze::subvector( row1, 0UL, 2UL );
+         auto sv2  = blaze::subvector( row1, 0UL, 3UL );
 
          if( blaze::isSame( sv1, sv2 ) == true ) {
             std::ostringstream oss;
@@ -5801,14 +6589,70 @@ void DenseSymmetricTest::testIsSame()
 
       // isSame with non-matching row subvectors on submatrices (different offset)
       {
-         typedef blaze::Submatrix<MT>       SubmatrixType;
-         typedef blaze::Row<SubmatrixType>  RowType;
-         typedef blaze::Subvector<RowType>  SubvectorType;
+         auto sm   = blaze::submatrix( mat_, 1UL, 1UL, 2UL, 3UL );
+         auto row1 = blaze::row( sm, 1UL );
+         auto sv1  = blaze::subvector( row1, 0UL, 2UL );
+         auto sv2  = blaze::subvector( row1, 1UL, 2UL );
 
-         SubmatrixType sm = submatrix( mat_, 1UL, 1UL, 2UL, 3UL );
-         RowType row1 = blaze::row( sm, 1UL );
-         SubvectorType sv1 = subvector( row1, 0UL, 2UL );
-         SubvectorType sv2 = subvector( row1, 1UL, 2UL );
+         if( blaze::isSame( sv1, sv2 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First subvector:\n" << sv1 << "\n"
+                << "   Second subvector:\n" << sv2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with matching row subvectors on two submatrices
+      {
+         auto sm1  = blaze::submatrix( mat_, 1UL, 0UL, 3UL, 4UL );
+         auto sm2  = blaze::submatrix( mat_, 2UL, 0UL, 2UL, 4UL );
+         auto row1 = blaze::row( sm1, 1UL );
+         auto row2 = blaze::row( sm2, 0UL );
+         auto sv1  = blaze::subvector( row1, 0UL, 2UL );
+         auto sv2  = blaze::subvector( row2, 0UL, 2UL );
+
+         if( blaze::isSame( sv1, sv2 ) == false ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First subvector:\n" << sv1 << "\n"
+                << "   Second subvector:\n" << sv2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with non-matching row subvectors on two submatrices (different size)
+      {
+         auto sm1  = blaze::submatrix( mat_, 1UL, 0UL, 3UL, 4UL );
+         auto sm2  = blaze::submatrix( mat_, 2UL, 0UL, 2UL, 4UL );
+         auto row1 = blaze::row( sm1, 1UL );
+         auto row2 = blaze::row( sm2, 0UL );
+         auto sv1  = blaze::subvector( row1, 0UL, 2UL );
+         auto sv2  = blaze::subvector( row2, 0UL, 3UL );
+
+         if( blaze::isSame( sv1, sv2 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First subvector:\n" << sv1 << "\n"
+                << "   Second subvector:\n" << sv2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with non-matching row subvectors on two submatrices (different offset)
+      {
+         auto sm1  = blaze::submatrix( mat_, 1UL, 0UL, 3UL, 4UL );
+         auto sm2  = blaze::submatrix( mat_, 2UL, 0UL, 2UL, 4UL );
+         auto row1 = blaze::row( sm1, 1UL );
+         auto row2 = blaze::row( sm2, 0UL );
+         auto sv1  = blaze::subvector( row1, 0UL, 2UL );
+         auto sv2  = blaze::subvector( row2, 1UL, 2UL );
 
          if( blaze::isSame( sv1, sv2 ) == true ) {
             std::ostringstream oss;
@@ -5864,10 +6708,8 @@ void DenseSymmetricTest::testIsSame()
 
       // isSame with row and matching subvector
       {
-         typedef blaze::Subvector<ORT>  SubvectorType;
-
-         ORT row1 = blaze::row( tmat_, 1UL );
-         SubvectorType sv = subvector( row1, 0UL, 4UL );
+         ORT  row1 = blaze::row( tmat_, 1UL );
+         auto sv   = blaze::subvector( row1, 0UL, 4UL );
 
          if( blaze::isSame( row1, sv ) == false ) {
             std::ostringstream oss;
@@ -5892,10 +6734,8 @@ void DenseSymmetricTest::testIsSame()
 
       // isSame with row and non-matching subvector (different size)
       {
-         typedef blaze::Subvector<ORT>  SubvectorType;
-
-         ORT row1 = blaze::row( tmat_, 1UL );
-         SubvectorType sv = subvector( row1, 0UL, 3UL );
+         ORT  row1 = blaze::row( tmat_, 1UL );
+         auto sv   = blaze::subvector( row1, 0UL, 3UL );
 
          if( blaze::isSame( row1, sv ) == true ) {
             std::ostringstream oss;
@@ -5920,10 +6760,8 @@ void DenseSymmetricTest::testIsSame()
 
       // isSame with row and non-matching subvector (different offset)
       {
-         typedef blaze::Subvector<ORT>  SubvectorType;
-
-         ORT row1 = blaze::row( tmat_, 1UL );
-         SubvectorType sv = subvector( row1, 1UL, 3UL );
+         ORT  row1 = blaze::row( tmat_, 1UL );
+         auto sv   = blaze::subvector( row1, 1UL, 3UL );
 
          if( blaze::isSame( row1, sv ) == true ) {
             std::ostringstream oss;
@@ -5946,14 +6784,11 @@ void DenseSymmetricTest::testIsSame()
          }
       }
 
-      // isSame with matching rows on submatrices
+      // isSame with matching rows on a common submatrix
       {
-         typedef blaze::Submatrix<OMT>      SubmatrixType;
-         typedef blaze::Row<SubmatrixType>  RowType;
-
-         SubmatrixType sm = submatrix( tmat_, 1UL, 1UL, 2UL, 3UL );
-         RowType row1 = blaze::row( sm, 1UL );
-         RowType row2 = blaze::row( sm, 1UL );
+         auto sm   = blaze::submatrix( tmat_, 1UL, 1UL, 2UL, 3UL );
+         auto row1 = blaze::row( sm, 1UL );
+         auto row2 = blaze::row( sm, 1UL );
 
          if( blaze::isSame( row1, row2 ) == false ) {
             std::ostringstream oss;
@@ -5966,14 +6801,11 @@ void DenseSymmetricTest::testIsSame()
          }
       }
 
-      // isSame with non-matching rows on submatrices
+      // isSame with non-matching rows on a common submatrix
       {
-         typedef blaze::Submatrix<OMT>      SubmatrixType;
-         typedef blaze::Row<SubmatrixType>  RowType;
-
-         SubmatrixType sm = submatrix( tmat_, 1UL, 1UL, 2UL, 3UL );
-         RowType row1 = blaze::row( sm, 0UL );
-         RowType row2 = blaze::row( sm, 1UL );
+         auto sm   = blaze::submatrix( tmat_, 1UL, 1UL, 2UL, 3UL );
+         auto row1 = blaze::row( sm, 0UL );
+         auto row2 = blaze::row( sm, 1UL );
 
          if( blaze::isSame( row1, row2 ) == true ) {
             std::ostringstream oss;
@@ -5986,16 +6818,205 @@ void DenseSymmetricTest::testIsSame()
          }
       }
 
+      // isSame with matching rows on matrix and submatrix
+      {
+         auto sm   = blaze::submatrix( tmat_, 1UL, 0UL, 3UL, 4UL );
+         auto row1 = blaze::row( tmat_, 2UL );
+         auto row2 = blaze::row( sm   , 1UL );
+
+         if( blaze::isSame( row1, row2 ) == false ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( blaze::isSame( row2, row1 ) == false ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with non-matching rows on matrix and submatrix (different row)
+      {
+         auto sm   = blaze::submatrix( tmat_, 1UL, 0UL, 3UL, 4UL );
+         auto row1 = blaze::row( tmat_, 1UL );
+         auto row2 = blaze::row( sm   , 1UL );
+
+         if( blaze::isSame( row1, row2 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( blaze::isSame( row2, row1 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with non-matching rows on matrix and submatrix (different size)
+      {
+         auto sm   = blaze::submatrix( tmat_, 1UL, 0UL, 3UL, 3UL );
+         auto row1 = blaze::row( tmat_, 2UL );
+         auto row2 = blaze::row( sm   , 1UL );
+
+         if( blaze::isSame( row1, row2 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( blaze::isSame( row2, row1 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with matching rows on two submatrices
+      {
+         auto sm1  = blaze::submatrix( tmat_, 1UL, 0UL, 3UL, 4UL );
+         auto sm2  = blaze::submatrix( tmat_, 2UL, 0UL, 2UL, 4UL );
+         auto row1 = blaze::row( sm1, 1UL );
+         auto row2 = blaze::row( sm2, 0UL );
+
+         if( blaze::isSame( row1, row2 ) == false ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( blaze::isSame( row2, row1 ) == false ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with non-matching rows on two submatrices (different row)
+      {
+         auto sm1  = blaze::submatrix( tmat_, 1UL, 0UL, 3UL, 4UL );
+         auto sm2  = blaze::submatrix( tmat_, 2UL, 0UL, 2UL, 4UL );
+         auto row1 = blaze::row( sm1, 1UL );
+         auto row2 = blaze::row( sm2, 1UL );
+
+         if( blaze::isSame( row1, row2 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( blaze::isSame( row2, row1 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with non-matching rows on two submatrices (different size)
+      {
+         auto sm1  = blaze::submatrix( tmat_, 1UL, 0UL, 3UL, 4UL );
+         auto sm2  = blaze::submatrix( tmat_, 2UL, 0UL, 2UL, 3UL );
+         auto row1 = blaze::row( sm1, 1UL );
+         auto row2 = blaze::row( sm2, 0UL );
+
+         if( blaze::isSame( row1, row2 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( blaze::isSame( row2, row1 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with non-matching rows on two submatrices (different offset)
+      {
+         auto sm1  = blaze::submatrix( tmat_, 1UL, 0UL, 3UL, 3UL );
+         auto sm2  = blaze::submatrix( tmat_, 2UL, 1UL, 2UL, 3UL );
+         auto row1 = blaze::row( sm1, 1UL );
+         auto row2 = blaze::row( sm2, 0UL );
+
+         if( blaze::isSame( row1, row2 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( blaze::isSame( row2, row1 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First row:\n" << row1 << "\n"
+                << "   Second row:\n" << row2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
       // isSame with matching row subvectors on submatrices
       {
-         typedef blaze::Submatrix<OMT>      SubmatrixType;
-         typedef blaze::Row<SubmatrixType>  RowType;
-         typedef blaze::Subvector<RowType>  SubvectorType;
-
-         SubmatrixType sm = submatrix( tmat_, 1UL, 1UL, 2UL, 3UL );
-         RowType row1 = blaze::row( sm, 1UL );
-         SubvectorType sv1 = subvector( row1, 0UL, 2UL );
-         SubvectorType sv2 = subvector( row1, 0UL, 2UL );
+         auto sm   = blaze::submatrix( tmat_, 1UL, 1UL, 2UL, 3UL );
+         auto row1 = blaze::row( sm, 1UL );
+         auto sv1  = blaze::subvector( row1, 0UL, 2UL );
+         auto sv2  = blaze::subvector( row1, 0UL, 2UL );
 
          if( blaze::isSame( sv1, sv2 ) == false ) {
             std::ostringstream oss;
@@ -6010,14 +7031,10 @@ void DenseSymmetricTest::testIsSame()
 
       // isSame with non-matching row subvectors on submatrices (different size)
       {
-         typedef blaze::Submatrix<OMT>      SubmatrixType;
-         typedef blaze::Row<SubmatrixType>  RowType;
-         typedef blaze::Subvector<RowType>  SubvectorType;
-
-         SubmatrixType sm = submatrix( tmat_, 1UL, 1UL, 2UL, 3UL );
-         RowType row1 = blaze::row( sm, 1UL );
-         SubvectorType sv1 = subvector( row1, 0UL, 2UL );
-         SubvectorType sv2 = subvector( row1, 0UL, 3UL );
+         auto sm   = blaze::submatrix( tmat_, 1UL, 1UL, 2UL, 3UL );
+         auto row1 = blaze::row( sm, 1UL );
+         auto sv1  = blaze::subvector( row1, 0UL, 2UL );
+         auto sv2  = blaze::subvector( row1, 0UL, 3UL );
 
          if( blaze::isSame( sv1, sv2 ) == true ) {
             std::ostringstream oss;
@@ -6032,14 +7049,70 @@ void DenseSymmetricTest::testIsSame()
 
       // isSame with non-matching row subvectors on submatrices (different offset)
       {
-         typedef blaze::Submatrix<OMT>      SubmatrixType;
-         typedef blaze::Row<SubmatrixType>  RowType;
-         typedef blaze::Subvector<RowType>  SubvectorType;
+         auto sm   = blaze::submatrix( tmat_, 1UL, 1UL, 2UL, 3UL );
+         auto row1 = blaze::row( sm, 1UL );
+         auto sv1  = blaze::subvector( row1, 0UL, 2UL );
+         auto sv2  = blaze::subvector( row1, 1UL, 2UL );
 
-         SubmatrixType sm = submatrix( tmat_, 1UL, 1UL, 2UL, 3UL );
-         RowType row1 = blaze::row( sm, 1UL );
-         SubvectorType sv1 = subvector( row1, 0UL, 2UL );
-         SubvectorType sv2 = subvector( row1, 1UL, 2UL );
+         if( blaze::isSame( sv1, sv2 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First subvector:\n" << sv1 << "\n"
+                << "   Second subvector:\n" << sv2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with matching row subvectors on two submatrices
+      {
+         auto sm1  = blaze::submatrix( tmat_, 1UL, 0UL, 3UL, 4UL );
+         auto sm2  = blaze::submatrix( tmat_, 2UL, 0UL, 2UL, 4UL );
+         auto row1 = blaze::row( sm1, 1UL );
+         auto row2 = blaze::row( sm2, 0UL );
+         auto sv1  = blaze::subvector( row1, 0UL, 2UL );
+         auto sv2  = blaze::subvector( row2, 0UL, 2UL );
+
+         if( blaze::isSame( sv1, sv2 ) == false ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First subvector:\n" << sv1 << "\n"
+                << "   Second subvector:\n" << sv2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with non-matching row subvectors on two submatrices (different size)
+      {
+         auto sm1  = blaze::submatrix( tmat_, 1UL, 0UL, 3UL, 4UL );
+         auto sm2  = blaze::submatrix( tmat_, 2UL, 0UL, 2UL, 4UL );
+         auto row1 = blaze::row( sm1, 1UL );
+         auto row2 = blaze::row( sm2, 0UL );
+         auto sv1  = blaze::subvector( row1, 0UL, 2UL );
+         auto sv2  = blaze::subvector( row2, 0UL, 3UL );
+
+         if( blaze::isSame( sv1, sv2 ) == true ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Invalid isSame evaluation\n"
+                << " Details:\n"
+                << "   First subvector:\n" << sv1 << "\n"
+                << "   Second subvector:\n" << sv2 << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      // isSame with non-matching row subvectors on two submatrices (different offset)
+      {
+         auto sm1  = blaze::submatrix( tmat_, 1UL, 0UL, 3UL, 4UL );
+         auto sm2  = blaze::submatrix( tmat_, 2UL, 0UL, 2UL, 4UL );
+         auto row1 = blaze::row( sm1, 1UL );
+         auto row2 = blaze::row( sm2, 0UL );
+         auto sv1  = blaze::subvector( row1, 0UL, 2UL );
+         auto sv2  = blaze::subvector( row2, 1UL, 2UL );
 
          if( blaze::isSame( sv1, sv2 ) == true ) {
             std::ostringstream oss;
@@ -6076,30 +7149,56 @@ void DenseSymmetricTest::testSubvector()
 
       initialize();
 
-      typedef blaze::Subvector<RT>  SubvectorType;
+      {
+         RT   row1 = blaze::row( mat_, 1UL );
+         auto sv   = blaze::subvector( row1, 0UL, 4UL );
 
-      RT row1 = blaze::row( mat_, 1UL );
-      SubvectorType sv = subvector( row1, 0UL, 4UL );
+         if( sv[1] != 1 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Subscript operator access failed\n"
+                << " Details:\n"
+                << "   Result: " << sv[1] << "\n"
+                << "   Expected result: 1\n";
+            throw std::runtime_error( oss.str() );
+         }
 
-      if( sv[1] != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Subscript operator access failed\n"
-             << " Details:\n"
-             << "   Result: " << sv[1] << "\n"
-             << "   Expected result: 1\n";
-         throw std::runtime_error( oss.str() );
+         if( *sv.begin() != 0 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Iterator access failed\n"
+                << " Details:\n"
+                << "   Result: " << *sv.begin() << "\n"
+                << "   Expected result: 0\n";
+            throw std::runtime_error( oss.str() );
+         }
       }
 
-      if( *sv.begin() != 0 ) {
+      try {
+         RT   row1 = blaze::row( mat_, 1UL );
+         auto sv   = blaze::subvector( row1, 4UL, 4UL );
+
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Iterator access failed\n"
+             << " Error: Setup of out-of-bounds subvector succeeded\n"
              << " Details:\n"
-             << "   Result: " << *sv.begin() << "\n"
-             << "   Expected result: 0\n";
+             << "   Result:\n" << sv << "\n";
          throw std::runtime_error( oss.str() );
       }
+      catch( std::invalid_argument& ) {}
+
+      try {
+         RT   row1 = blaze::row( mat_, 1UL );
+         auto sv   = blaze::subvector( row1, 0UL, 5UL );
+
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Setup of out-of-bounds subvector succeeded\n"
+             << " Details:\n"
+             << "   Result:\n" << sv << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+      catch( std::invalid_argument& ) {}
    }
 
 
@@ -6112,30 +7211,371 @@ void DenseSymmetricTest::testSubvector()
 
       initialize();
 
-      typedef blaze::Subvector<ORT>  SubvectorType;
+      {
+         ORT  row1 = blaze::row( tmat_, 1UL );
+         auto sv   = blaze::subvector( row1, 0UL, 4UL );
 
-      ORT row1 = blaze::row( tmat_, 1UL );
-      SubvectorType sv = subvector( row1, 0UL, 4UL );
+         if( sv[1] != 1 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Subscript operator access failed\n"
+                << " Details:\n"
+                << "   Result: " << sv[1] << "\n"
+                << "   Expected result: 1\n";
+            throw std::runtime_error( oss.str() );
+         }
 
-      if( sv[1] != 1 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Subscript operator access failed\n"
-             << " Details:\n"
-             << "   Result: " << sv[1] << "\n"
-             << "   Expected result: 1\n";
-         throw std::runtime_error( oss.str() );
+         if( *sv.begin() != 0 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Iterator access failed\n"
+                << " Details:\n"
+                << "   Result: " << *sv.begin() << "\n"
+                << "   Expected result: 0\n";
+            throw std::runtime_error( oss.str() );
+         }
       }
 
-      if( *sv.begin() != 0 ) {
+      try {
+         ORT  row1 = blaze::row( tmat_, 1UL );
+         auto sv   = blaze::subvector( row1, 4UL, 4UL );
+
          std::ostringstream oss;
          oss << " Test: " << test_ << "\n"
-             << " Error: Iterator access failed\n"
+             << " Error: Setup of out-of-bounds subvector succeeded\n"
              << " Details:\n"
-             << "   Result: " << *sv.begin() << "\n"
-             << "   Expected result: 0\n";
+             << "   Result:\n" << sv << "\n";
          throw std::runtime_error( oss.str() );
       }
+      catch( std::invalid_argument& ) {}
+
+      try {
+         ORT  row1 = blaze::row( tmat_, 1UL );
+         auto sv   = blaze::subvector( row1, 0UL, 5UL );
+
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Setup of out-of-bounds subvector succeeded\n"
+             << " Details:\n"
+             << "   Result:\n" << sv << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+      catch( std::invalid_argument& ) {}
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the \c elements() function with the Row specialization.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c elements() function used with the Row specialization.
+// In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void DenseSymmetricTest::testElements()
+{
+   //=====================================================================================
+   // Row-major matrix tests (initializer_list)
+   //=====================================================================================
+
+   {
+      test_ = "Row-major elements() function (initializer_list)";
+
+      initialize();
+
+      {
+         RT   row2 = blaze::row( mat_, 2UL );
+         auto e    = blaze::elements( row2, { 3UL, 2UL } );
+
+         if( e[1] != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Subscript operator access failed\n"
+                << " Details:\n"
+                << "   Result: " << e[1] << "\n"
+                << "   Expected result: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( *e.begin() != 4 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Iterator access failed\n"
+                << " Details:\n"
+                << "   Result: " << *e.begin() << "\n"
+                << "   Expected result: 4\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      try {
+         RT   row2 = blaze::row( mat_, 2UL );
+         auto e    = blaze::elements( row2, { 4UL } );
+
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Setup of out-of-bounds element selection succeeded\n"
+             << " Details:\n"
+             << "   Result:\n" << e << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+      catch( std::invalid_argument& ) {}
+   }
+
+
+   //=====================================================================================
+   // Row-major matrix tests (std::array)
+   //=====================================================================================
+
+   {
+      test_ = "Row-major elements() function (std::array)";
+
+      initialize();
+
+      {
+         std::array<int,2UL> indices{ 3UL, 2UL };
+
+         RT   row2 = blaze::row( mat_, 2UL );
+         auto e    = blaze::elements( row2, indices );
+
+         if( e[1] != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Subscript operator access failed\n"
+                << " Details:\n"
+                << "   Result: " << e[1] << "\n"
+                << "   Expected result: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( *e.begin() != 4 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Iterator access failed\n"
+                << " Details:\n"
+                << "   Result: " << *e.begin() << "\n"
+                << "   Expected result: 4\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      try {
+         std::array<int,1UL> indices{ 4UL };
+
+         RT   row2 = blaze::row( mat_, 2UL );
+         auto e    = blaze::elements( row2, indices );
+
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Setup of out-of-bounds element selection succeeded\n"
+             << " Details:\n"
+             << "   Result:\n" << e << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+      catch( std::invalid_argument& ) {}
+   }
+
+
+   //=====================================================================================
+   // Row-major matrix tests (lambda expression)
+   //=====================================================================================
+
+   {
+      test_ = "Row-major elements() function (lambda expression)";
+
+      initialize();
+
+      {
+         RT   row2 = blaze::row( mat_, 2UL );
+         auto e    = blaze::elements( row2, []( size_t i ){ return 3UL-i; }, 2UL );
+
+         if( e[1] != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Subscript operator access failed\n"
+                << " Details:\n"
+                << "   Result: " << e[1] << "\n"
+                << "   Expected result: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( *e.begin() != 4 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Iterator access failed\n"
+                << " Details:\n"
+                << "   Result: " << *e.begin() << "\n"
+                << "   Expected result: 4\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      try {
+         RT   row2 = blaze::row( mat_, 2UL );
+         auto e    = blaze::elements( row2, []( size_t ){ return 4UL; }, 1UL );
+
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Setup of out-of-bounds element selection succeeded\n"
+             << " Details:\n"
+             << "   Result:\n" << e << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+      catch( std::invalid_argument& ) {}
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests (initializer_list)
+   //=====================================================================================
+
+   {
+      test_ = "Column-major elements() function (initializer_list)";
+
+      initialize();
+
+      {
+         ORT  row2 = blaze::row( tmat_, 2UL );
+         auto e    = blaze::elements( row2, { 3UL, 2UL } );
+
+         if( e[1] != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Subscript operator access failed\n"
+                << " Details:\n"
+                << "   Result: " << e[1] << "\n"
+                << "   Expected result: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( *e.begin() != 4 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Iterator access failed\n"
+                << " Details:\n"
+                << "   Result: " << *e.begin() << "\n"
+                << "   Expected result: 4\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      try {
+         ORT  row2 = blaze::row( tmat_, 2UL );
+         auto e    = blaze::elements( row2, { 4UL } );
+
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Setup of out-of-bounds element selection succeeded\n"
+             << " Details:\n"
+             << "   Result:\n" << e << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+      catch( std::invalid_argument& ) {}
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests (std::array)
+   //=====================================================================================
+
+   {
+      test_ = "Column-major elements() function (std::array)";
+
+      initialize();
+
+      {
+         std::array<int,2UL> indices{ 3UL, 2UL };
+
+         ORT  row2 = blaze::row( tmat_, 2UL );
+         auto e    = blaze::elements( row2, indices );
+
+         if( e[1] != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Subscript operator access failed\n"
+                << " Details:\n"
+                << "   Result: " << e[1] << "\n"
+                << "   Expected result: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( *e.begin() != 4 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Iterator access failed\n"
+                << " Details:\n"
+                << "   Result: " << *e.begin() << "\n"
+                << "   Expected result: 4\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      try {
+         std::array<int,1UL> indices{ 4UL };
+
+         ORT  row2 = blaze::row( tmat_, 2UL );
+         auto e    = blaze::elements( row2, indices );
+
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Setup of out-of-bounds element selection succeeded\n"
+             << " Details:\n"
+             << "   Result:\n" << e << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+      catch( std::invalid_argument& ) {}
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests (lambda expression)
+   //=====================================================================================
+
+   {
+      test_ = "Column-major elements() function (lambda expression)";
+
+      initialize();
+
+      {
+         ORT  row2 = blaze::row( tmat_, 2UL );
+         auto e    = blaze::elements( row2, []( size_t i ){ return 3UL-i; }, 2UL );
+
+         if( e[1] != 3 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Subscript operator access failed\n"
+                << " Details:\n"
+                << "   Result: " << e[1] << "\n"
+                << "   Expected result: 3\n";
+            throw std::runtime_error( oss.str() );
+         }
+
+         if( *e.begin() != 4 ) {
+            std::ostringstream oss;
+            oss << " Test: " << test_ << "\n"
+                << " Error: Iterator access failed\n"
+                << " Details:\n"
+                << "   Result: " << *e.begin() << "\n"
+                << "   Expected result: 4\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+
+      try {
+         ORT  row2 = blaze::row( tmat_, 2UL );
+         auto e    = blaze::elements( row2, []( size_t ){ return 4UL; }, 1UL );
+
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Setup of out-of-bounds element selection succeeded\n"
+             << " Details:\n"
+             << "   Result:\n" << e << "\n";
+         throw std::runtime_error( oss.str() );
+      }
+      catch( std::invalid_argument& ) {}
    }
 }
 //*************************************************************************************************

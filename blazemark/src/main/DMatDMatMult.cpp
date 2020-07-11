@@ -3,7 +3,7 @@
 //  \file src/main/DMatDMatMult.cpp
 //  \brief Source file for the dense matrix/dense matrix multiplication benchmark
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -44,8 +44,8 @@
 #include <string>
 #include <vector>
 #include <blaze/math/DynamicMatrix.h>
-#include <blaze/math/Functions.h>
 #include <blaze/math/Infinity.h>
+#include <blaze/util/algorithms/Max.h>
 #include <blaze/util/Random.h>
 #include <blaze/util/Timing.h>
 #include <blazemark/blas/DMatDMatMult.h>
@@ -59,6 +59,7 @@
 #include <blazemark/mtl/DMatDMatMult.h>
 #include <blazemark/system/BLAS.h>
 #include <blazemark/system/Blitz.h>
+#include <blazemark/system/Boost.h>
 #include <blazemark/system/Config.h>
 #include <blazemark/system/Eigen.h>
 #include <blazemark/system/FLENS.h>
@@ -67,6 +68,10 @@
 #include <blazemark/util/Benchmarks.h>
 #include <blazemark/util/DynamicDenseRun.h>
 #include <blazemark/util/Parser.h>
+
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
 
 
 //*************************************************************************************************
@@ -92,7 +97,7 @@ using blazemark::Parser;
 // This type definition specifies the type of a single benchmark run for the dense
 // matrix/dense matrix multiplication benchmark.
 */
-typedef DynamicDenseRun  Run;
+using Run = DynamicDenseRun;
 //*************************************************************************************************
 
 
@@ -144,7 +149,8 @@ void estimateSteps( Run& run )
    if( C.rows() != N )
       std::cerr << " Line " << __LINE__ << ": ERROR detected!!!\n";
 
-   run.setSteps( blaze::max( 1UL, ( blazemark::runtime * steps ) / timer.last() ) );
+   const size_t estimatedSteps( ( blazemark::runtime * steps ) / timer.last() );
+   run.setSteps( blaze::max( 1UL, estimatedSteps ) );
 }
 //*************************************************************************************************
 
@@ -238,6 +244,7 @@ void dmatdmatmult( std::vector<Run>& runs, Benchmarks benchmarks )
       }
    }
 
+#if BLAZEMARK_BOOST_MODE
    if( benchmarks.runBoost ) {
       std::cout << "   Boost uBLAS [MFlop/s]:\n";
       for( std::vector<Run>::iterator run=runs.begin(); run!=runs.end(); ++run ) {
@@ -248,6 +255,7 @@ void dmatdmatmult( std::vector<Run>& runs, Benchmarks benchmarks )
          std::cout << "     " << std::setw(12) << N << mflops << std::endl;
       }
    }
+#endif
 
 #if BLAZEMARK_BLITZ_MODE
    if( benchmarks.runBlitz ) {
@@ -357,5 +365,7 @@ int main( int argc, char** argv )
       std::cerr << "   Error during benchmark execution: " << ex.what() << "\n";
       return EXIT_FAILURE;
    }
+
+   return EXIT_SUCCESS;
 }
 //*************************************************************************************************

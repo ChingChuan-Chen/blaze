@@ -3,7 +3,7 @@
 //  \file blaze/math/lapack/clapack/sysv.h
 //  \brief Header file for the CLAPACK sysv wrapper functions
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,8 +40,10 @@
 // Includes
 //*************************************************************************************************
 
+#include <blaze/math/blas/Types.h>
 #include <blaze/util/Complex.h>
 #include <blaze/util/StaticAssert.h>
+#include <blaze/util/Types.h>
 
 
 //=================================================================================================
@@ -52,14 +54,28 @@
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
+#if !defined(INTEL_MKL_VERSION)
 extern "C" {
 
-void ssysv_( char* uplo, int* n, int* nrhs, float*  A, int* lda, int* ipiv, float*  b, int* ldb, float*  work, int* lwork, int* info );
-void dsysv_( char* uplo, int* n, int* nrhs, double* A, int* lda, int* ipiv, double* b, int* ldb, double* work, int* lwork, int* info );
-void csysv_( char* uplo, int* n, int* nrhs, float*  A, int* lda, int* ipiv, float*  b, int* ldb, float*  work, int* lwork, int* info );
-void zsysv_( char* uplo, int* n, int* nrhs, double* A, int* lda, int* ipiv, double* b, int* ldb, double* work, int* lwork, int* info );
+void ssysv_( char* uplo, blaze::blas_int_t* n, blaze::blas_int_t* nrhs, float* A,
+             blaze::blas_int_t* lda, blaze::blas_int_t* ipiv, float* b, blaze::blas_int_t* ldb,
+             float* work, blaze::blas_int_t* lwork, blaze::blas_int_t* info,
+             blaze::fortran_charlen_t nuplo );
+void dsysv_( char* uplo, blaze::blas_int_t* n, blaze::blas_int_t* nrhs, double* A,
+             blaze::blas_int_t* lda, blaze::blas_int_t* ipiv, double* b, blaze::blas_int_t* ldb,
+             double* work, blaze::blas_int_t* lwork, blaze::blas_int_t* info,
+             blaze::fortran_charlen_t nuplo );
+void csysv_( char* uplo, blaze::blas_int_t* n, blaze::blas_int_t* nrhs, float* A,
+             blaze::blas_int_t* lda, blaze::blas_int_t* ipiv, float* b, blaze::blas_int_t* ldb,
+             float* work, blaze::blas_int_t* lwork, blaze::blas_int_t* info,
+             blaze::fortran_charlen_t nuplo );
+void zsysv_( char* uplo, blaze::blas_int_t* n, blaze::blas_int_t* nrhs, double* A,
+             blaze::blas_int_t* lda, blaze::blas_int_t* ipiv, double* b, blaze::blas_int_t* ldb,
+             double* work, blaze::blas_int_t* lwork, blaze::blas_int_t* info,
+             blaze::fortran_charlen_t nuplo );
 
 }
+#endif
 /*! \endcond */
 //*************************************************************************************************
 
@@ -77,17 +93,21 @@ namespace blaze {
 //*************************************************************************************************
 /*!\name LAPACK symmetric indefinite linear system functions (sysv) */
 //@{
-inline void sysv( char uplo, int n, int nrhs, float* A, int lda, int* ipiv,
-                  float* B, int ldb, float* work, int lwork, int* info );
+void sysv( char uplo, blas_int_t n, blas_int_t nrhs, float* A, blas_int_t lda,
+           blas_int_t* ipiv, float* B, blas_int_t ldb, float* work, blas_int_t lwork,
+           blas_int_t* info );
 
-inline void sysv( char uplo, int n, int nrhs, double* A, int lda, int* ipiv,
-                  double* B, int ldb, double* work, int lwork, int* info );
+void sysv( char uplo, blas_int_t n, blas_int_t nrhs, double* A, blas_int_t lda,
+           blas_int_t* ipiv, double* B, blas_int_t ldb, double* work, blas_int_t lwork,
+           blas_int_t* info );
 
-inline void sysv( char uplo, int n, int nrhs, complex<float>* A, int lda, int* ipiv,
-                  complex<float>* B, int ldb, complex<float>* work, int lwork, int* info );
+void sysv( char uplo, blas_int_t n, blas_int_t nrhs, complex<float>* A, blas_int_t lda,
+           blas_int_t* ipiv, complex<float>* B, blas_int_t ldb, complex<float>* work,
+           blas_int_t lwork, blas_int_t* info );
 
-inline void sysv( char uplo, int n, int nrhs, complex<double>* A, int lda, int* ipiv,
-                  complex<double>* B, int ldb, complex<double>* work, int lwork, int* info );
+void sysv( char uplo, blas_int_t n, blas_int_t nrhs, complex<double>* A, blas_int_t lda,
+           blas_int_t* ipiv, complex<double>* B, blas_int_t ldb, complex<double>* work,
+           blas_int_t lwork, blas_int_t* info );
 //@}
 //*************************************************************************************************
 
@@ -111,8 +131,8 @@ inline void sysv( char uplo, int n, int nrhs, complex<double>* A, int lda, int* 
 // \return void
 //
 // This function uses the LAPACK ssysv() function to compute the solution to the symmetric
-// indefinite system of linear equations \f$ A*X=B \f$, where \a A is a n-by-n matrix and \a X and
-// \a B are n-by-nrhs matrices.
+// indefinite system of linear equations \f$ A*X=B \f$, where \a A is a \a n-by-\a n matrix and
+// \a X and \a B are \a n-by-\a nrhs matrices.
 //
 // The Bunch-Kaufman decomposition is used to factor \a A as
 
@@ -137,13 +157,23 @@ inline void sysv( char uplo, int n, int nrhs, complex<double>* A, int lda, int* 
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 */
-inline void sysv( char uplo, int n, int nrhs, float* A, int lda, int* ipiv,
-                  float* B, int ldb, float* work, int lwork, int* info )
+inline void sysv( char uplo, blas_int_t n, blas_int_t nrhs, float* A, blas_int_t lda,
+                  blas_int_t* ipiv, float* B, blas_int_t ldb, float* work, blas_int_t lwork,
+                  blas_int_t* info )
 {
-   ssysv_( &uplo, &n, &nrhs, A, &lda, ipiv, B, &ldb, work, &lwork, info );
+#if defined(INTEL_MKL_VERSION)
+   BLAZE_STATIC_ASSERT( sizeof( MKL_INT ) == sizeof( blas_int_t ) );
+#endif
+
+   ssysv_( &uplo, &n, &nrhs, A, &lda, ipiv, B, &ldb, work, &lwork, info
+#if !defined(INTEL_MKL_VERSION)
+         , blaze::fortran_charlen_t(1)
+#endif
+         );
 }
 //*************************************************************************************************
 
@@ -167,8 +197,8 @@ inline void sysv( char uplo, int n, int nrhs, float* A, int lda, int* ipiv,
 // \return void
 //
 // This function uses the LAPACK dsysv() function to compute the solution to the symmetric
-// indefinite system of linear equations \f$ A*X=B \f$, where \a A is a n-by-n matrix and \a X and
-// \a B are n-by-nrhs matrices.
+// indefinite system of linear equations \f$ A*X=B \f$, where \a A is a \a n-by-\a n matrix and
+// \a X and \a B are \a n-by-\a nrhs matrices.
 //
 // The Bunch-Kaufman decomposition is used to factor \a A as
 
@@ -193,13 +223,23 @@ inline void sysv( char uplo, int n, int nrhs, float* A, int lda, int* ipiv,
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 */
-inline void sysv( char uplo, int n, int nrhs, double* A, int lda, int* ipiv,
-                  double* B, int ldb, double* work, int lwork, int* info )
+inline void sysv( char uplo, blas_int_t n, blas_int_t nrhs, double* A, blas_int_t lda,
+                  blas_int_t* ipiv, double* B, blas_int_t ldb, double* work, blas_int_t lwork,
+                  blas_int_t* info )
 {
-   dsysv_( &uplo, &n, &nrhs, A, &lda, ipiv, B, &ldb, work, &lwork, info );
+#if defined(INTEL_MKL_VERSION)
+   BLAZE_STATIC_ASSERT( sizeof( MKL_INT ) == sizeof( blas_int_t ) );
+#endif
+
+   dsysv_( &uplo, &n, &nrhs, A, &lda, ipiv, B, &ldb, work, &lwork, info
+#if !defined(INTEL_MKL_VERSION)
+         , blaze::fortran_charlen_t(1)
+#endif
+         );
 }
 //*************************************************************************************************
 
@@ -223,8 +263,8 @@ inline void sysv( char uplo, int n, int nrhs, double* A, int lda, int* ipiv,
 // \return void
 //
 // This function uses the LAPACK csysv() function to compute the solution to the symmetric
-// indefinite system of linear equations \f$ A*X=B \f$, where \a A is a n-by-n matrix and \a X and
-// \a B are n-by-nrhs matrices.
+// indefinite system of linear equations \f$ A*X=B \f$, where \a A is a \a n-by-\a n matrix and
+// \a X and \a B are \a n-by-\a nrhs matrices.
 //
 // The Bunch-Kaufman decomposition is used to factor \a A as
 
@@ -249,16 +289,30 @@ inline void sysv( char uplo, int n, int nrhs, double* A, int lda, int* ipiv,
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 */
-inline void sysv( char uplo, int n, int nrhs, complex<float>* A, int lda, int* ipiv,
-                  complex<float>* B, int ldb, complex<float>* work, int lwork, int* info )
+inline void sysv( char uplo, blas_int_t n, blas_int_t nrhs, complex<float>* A, blas_int_t lda,
+                  blas_int_t* ipiv, complex<float>* B, blas_int_t ldb, complex<float>* work,
+                  blas_int_t lwork, blas_int_t* info )
 {
    BLAZE_STATIC_ASSERT( sizeof( complex<float> ) == 2UL*sizeof( float ) );
 
-   csysv_( &uplo, &n, &nrhs, reinterpret_cast<float*>( A ), &lda, ipiv,
-           reinterpret_cast<float*>( B ), &ldb, reinterpret_cast<float*>( work ), &lwork, info );
+#if defined(INTEL_MKL_VERSION)
+   BLAZE_STATIC_ASSERT( sizeof( MKL_INT ) == sizeof( blas_int_t ) );
+   BLAZE_STATIC_ASSERT( sizeof( MKL_Complex8 ) == sizeof( complex<float> ) );
+   using ET = MKL_Complex8;
+#else
+   using ET = float;
+#endif
+
+   csysv_( &uplo, &n, &nrhs, reinterpret_cast<ET*>( A ), &lda, ipiv,
+           reinterpret_cast<ET*>( B ), &ldb, reinterpret_cast<ET*>( work ), &lwork, info
+#if !defined(INTEL_MKL_VERSION)
+         , blaze::fortran_charlen_t(1)
+#endif
+         );
 }
 //*************************************************************************************************
 
@@ -282,8 +336,8 @@ inline void sysv( char uplo, int n, int nrhs, complex<float>* A, int lda, int* i
 // \return void
 //
 // This function uses the LAPACK zsysv() function to compute the solution to the symmetric
-// indefinite system of linear equations \f$ A*X=B \f$, where \a A is a n-by-n matrix and \a X and
-// \a B are n-by-nrhs matrices.
+// indefinite system of linear equations \f$ A*X=B \f$, where \a A is a \a n-by-\a n matrix and
+// \a X and \a B are \a n-by-\a nrhs matrices.
 //
 // The Bunch-Kaufman decomposition is used to factor \a A as
 
@@ -308,16 +362,30 @@ inline void sysv( char uplo, int n, int nrhs, complex<float>* A, int lda, int* i
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 */
-inline void sysv( char uplo, int n, int nrhs, complex<double>* A, int lda, int* ipiv,
-                  complex<double>* B, int ldb, complex<double>* work, int lwork, int* info )
+inline void sysv( char uplo, blas_int_t n, blas_int_t nrhs, complex<double>* A, blas_int_t lda,
+                  blas_int_t* ipiv, complex<double>* B, blas_int_t ldb, complex<double>* work,
+                  blas_int_t lwork, blas_int_t* info )
 {
    BLAZE_STATIC_ASSERT( sizeof( complex<double> ) == 2UL*sizeof( double ) );
 
-   zsysv_( &uplo, &n, &nrhs, reinterpret_cast<double*>( A ), &lda, ipiv,
-           reinterpret_cast<double*>( B ), &ldb, reinterpret_cast<double*>( work ), &lwork, info );
+#if defined(INTEL_MKL_VERSION)
+   BLAZE_STATIC_ASSERT( sizeof( MKL_INT ) == sizeof( blas_int_t ) );
+   BLAZE_STATIC_ASSERT( sizeof( MKL_Complex16 ) == sizeof( complex<double> ) );
+   using ET = MKL_Complex16;
+#else
+   using ET = double;
+#endif
+
+   zsysv_( &uplo, &n, &nrhs, reinterpret_cast<ET*>( A ), &lda, ipiv,
+           reinterpret_cast<ET*>( B ), &ldb, reinterpret_cast<ET*>( work ), &lwork, info
+#if !defined(INTEL_MKL_VERSION)
+         , blaze::fortran_charlen_t(1)
+#endif
+         );
 }
 //*************************************************************************************************
 

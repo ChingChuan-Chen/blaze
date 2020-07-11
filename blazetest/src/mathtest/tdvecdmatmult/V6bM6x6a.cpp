@@ -3,7 +3,7 @@
 //  \file src/mathtest/tdvecdmatmult/V6bM6x6a.cpp
 //  \brief Source file for the V6bM6x6a dense vector/dense matrix multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/tdvecdmatmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StaticVector<TypeB,6UL>      V6b;
-      typedef blaze::StaticMatrix<TypeA,6UL,6UL>  M6x6a;
+      using V6b = blaze::StaticVector<TypeB,6UL>;
+      using M6x6a = blaze::StaticMatrix<TypeA,6UL,6UL>;
 
       // Creator type definitions
-      typedef blazetest::Creator<V6b>    CV6b;
-      typedef blazetest::Creator<M6x6a>  CM6x6a;
+      using CV6b = blazetest::Creator<V6b>;
+      using CM6x6a = blazetest::Creator<M6x6a>;
 
       // Running the tests
       RUN_TDVECDMATMULT_OPERATION_TEST( CV6b(), CM6x6a() );

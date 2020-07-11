@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/compressedvector/ClassTest.h
 //  \brief Header file for the CompressedVector class test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -92,6 +92,7 @@ class ClassTest
    void testSubAssign   ();
    void testMultAssign  ();
    void testDivAssign   ();
+   void testCrossAssign ();
    void testScaling     ();
    void testSubscript   ();
    void testAt          ();
@@ -99,12 +100,13 @@ class ClassTest
    void testNonZeros    ();
    void testReset       ();
    void testClear       ();
+   void testResize      ();
+   void testReserve     ();
+   void testShrinkToFit ();
+   void testSwap        ();
    void testSet         ();
    void testInsert      ();
    void testAppend      ();
-   void testResize      ();
-   void testReserve     ();
-   void testSwap        ();
    void testErase       ();
    void testFind        ();
    void testLowerBound  ();
@@ -130,11 +132,11 @@ class ClassTest
    //**********************************************************************************************
 
    //**Type definitions****************************************************************************
-   typedef blaze::CompressedVector<int,blaze::rowVector>     VT;   //!< Type of the compressed vector.
-   typedef blaze::CompressedVector<int,blaze::columnVector>  TVT;  //!< Transpose compressed vector type.
+   using VT  = blaze::CompressedVector<int,blaze::rowVector>;     //!< Type of the compressed vector.
+   using TVT = blaze::CompressedVector<int,blaze::columnVector>;  //!< Transpose compressed vector type.
 
-   typedef VT::Rebind<double>::Other   RVT;   //!< Rebound compressed vector type.
-   typedef TVT::Rebind<double>::Other  TRVT;  //!< Transpose rebound compressed vector type.
+   using RVT  = VT::Rebind<double>::Other;   //!< Rebound compressed vector type.
+   using TRVT = TVT::Rebind<double>::Other;  //!< Transpose rebound compressed vector type.
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************

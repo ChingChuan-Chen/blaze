@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsmatmult/SLDaUCa.cpp
 //  \brief Source file for the SLDaUCa dense matrix/sparse matrix multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -41,11 +41,15 @@
 #include <iostream>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/DynamicMatrix.h>
-#include <blaze/math/LowerMatrix.h>
+#include <blaze/math/StrictlyLowerMatrix.h>
 #include <blaze/math/UpperMatrix.h>
 #include <blazetest/mathtest/Creator.h>
 #include <blazetest/mathtest/dmatsmatmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
+
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
 
 
 //=================================================================================================
@@ -64,12 +68,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StrictlyLowerMatrix< blaze::DynamicMatrix<TypeA> >  SLDa;
-      typedef blaze::UpperMatrix< blaze::CompressedMatrix<TypeA> >       UCa;
+      using SLDa = blaze::StrictlyLowerMatrix< blaze::DynamicMatrix<TypeA> >;
+      using UCa = blaze::UpperMatrix< blaze::CompressedMatrix<TypeA> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<SLDa>  CSLDa;
-      typedef blazetest::Creator<UCa>  CUCa;
+      using CSLDa = blazetest::Creator<SLDa>;
+      using CUCa = blazetest::Creator<UCa>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {

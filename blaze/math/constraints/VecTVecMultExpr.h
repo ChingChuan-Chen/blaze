@@ -3,7 +3,7 @@
 //  \file blaze/math/constraints/VecTVecMultExpr.h
 //  \brief Constraint on the data type
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -43,8 +43,6 @@
 #include <blaze/math/typetraits/IsColumnVector.h>
 #include <blaze/math/typetraits/IsRowVector.h>
 #include <blaze/math/typetraits/IsVecTVecMultExpr.h>
-#include <blaze/util/mpl/And.h>
-#include <blaze/util/mpl/Not.h>
 
 
 namespace blaze {
@@ -63,7 +61,7 @@ namespace blaze {
 // the VecTVecMultExpr base class), a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_BE_VECTVECMULTEXPR_TYPE(T) \
-   static_assert( ::blaze::IsVecTVecMultExpr<T>::value, "Non-outer product expression type detected" )
+   static_assert( ::blaze::IsVecTVecMultExpr_v<T>, "Non-outer product expression type detected" )
 //*************************************************************************************************
 
 
@@ -83,7 +81,7 @@ namespace blaze {
 // VecTVecMultExpr base class), a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_NOT_BE_VECTVECMULTEXPR_TYPE(T) \
-   static_assert( !::blaze::IsVecTVecMultExpr<T>::value, "Outer product expression type detected" )
+   static_assert( !::blaze::IsVecTVecMultExpr_v<T>, "Outer product expression type detected" )
 //*************************************************************************************************
 
 
@@ -103,31 +101,9 @@ namespace blaze {
 // a compilation error is created.
 */
 #define BLAZE_CONSTRAINT_MUST_FORM_VALID_VECTVECMULTEXPR(T1,T2) \
-   static_assert( ::blaze::And< ::blaze::IsColumnVector<T1> \
-                              , ::blaze::IsRowVector<T2> \
-                              >::value, "Invalid vector/vector multiplication expression detected" )
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  MUST_NOT_FORM_VALID_VECTVECMULTEXPR CONSTRAINT
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*!\brief Constraint on the data type.
-// \ingroup math_constraints
-//
-// In case the given data types \a T1 and \a T2 do form a valid vector/vector multiplication,
-// a compilation error is created.
-*/
-#define BLAZE_CONSTRAINT_MUST_NOT_FORM_VALID_VECTVECMULTEXPR(T1,T2) \
-   static_assert( ::blaze::Not< ::blaze::And< ::blaze::IsColumnVector<T1> \
-                                            , ::blaze::IsRowVector<T2> > \
-                              >::value, "Valid vector/vector multiplication expression detected" )
+   static_assert( ::blaze::IsColumnVector_v<T1> && \
+                  ::blaze::IsRowVector_v<T2> \
+                , "Invalid vector/vector multiplication expression detected" )
 //*************************************************************************************************
 
 } // namespace blaze

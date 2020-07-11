@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/smatsmatsub/OperationTest.h
 //  \brief Header file for the sparse matrix/sparse matrix subtraction operation test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,20 +40,22 @@
 // Includes
 //*************************************************************************************************
 
+#include <algorithm>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
+#include <utility>
+#include <vector>
 #include <blaze/math/Aliases.h>
-#include <blaze/math/constraints/Computation.h>
+#include <blaze/math/constraints/ColumnMajorMatrix.h>
 #include <blaze/math/constraints/DenseMatrix.h>
-#include <blaze/math/constraints/MatMatSubExpr.h>
+#include <blaze/math/constraints/RowMajorMatrix.h>
 #include <blaze/math/constraints/SparseMatrix.h>
 #include <blaze/math/constraints/StorageOrder.h>
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/Functors.h>
 #include <blaze/math/shims/Equal.h>
-#include <blaze/math/traits/SubExprTrait.h>
 #include <blaze/math/traits/SubTrait.h>
 #include <blaze/math/typetraits/IsDiagonal.h>
 #include <blaze/math/typetraits/IsHermitian.h>
@@ -65,13 +67,16 @@
 #include <blaze/math/typetraits/UnderlyingBuiltin.h>
 #include <blaze/math/typetraits/UnderlyingNumeric.h>
 #include <blaze/math/Views.h>
+#include <blaze/util/algorithms/Min.h>
 #include <blaze/util/constraints/Numeric.h>
 #include <blaze/util/constraints/SameType.h>
-#include <blaze/util/FalseType.h>
+#include <blaze/util/IntegralConstant.h>
 #include <blaze/util/mpl/If.h>
+#include <blaze/util/mpl/Nor.h>
 #include <blaze/util/mpl/Or.h>
-#include <blaze/util/TrueType.h>
+#include <blaze/util/Random.h>
 #include <blaze/util/typetraits/IsComplex.h>
+#include <blaze/util/typetraits/RemoveCVRef.h>
 #include <blazetest/system/MathTest.h>
 #include <blazetest/mathtest/Creator.h>
 #include <blazetest/mathtest/IsEqual.h>
@@ -106,49 +111,53 @@ class OperationTest
 {
  private:
    //**Type definitions****************************************************************************
-   typedef blaze::ElementType_<MT1>  ET1;  //!< Element type 1
-   typedef blaze::ElementType_<MT2>  ET2;  //!< Element type 2
+   using ET1 = blaze::ElementType_t<MT1>;  //!< Element type 1
+   using ET2 = blaze::ElementType_t<MT2>;  //!< Element type 2
 
-   typedef blaze::OppositeType_<MT1>    OMT1;   //!< Matrix type 1 with opposite storage order
-   typedef blaze::OppositeType_<MT2>    OMT2;   //!< Matrix type 2 with opposite storage order
-   typedef blaze::TransposeType_<MT1>   TMT1;   //!< Transpose matrix type 1
-   typedef blaze::TransposeType_<MT2>   TMT2;   //!< Transpose matrix type 2
-   typedef blaze::TransposeType_<OMT1>  TOMT1;  //!< Transpose matrix type 1 with opposite storage order
-   typedef blaze::TransposeType_<OMT2>  TOMT2;  //!< Transpose matrix type 2 with opposite storage order
+   using OMT1  = blaze::OppositeType_t<MT1>;    //!< Matrix type 1 with opposite storage order
+   using OMT2  = blaze::OppositeType_t<MT2>;    //!< Matrix type 2 with opposite storage order
+   using TMT1  = blaze::TransposeType_t<MT1>;   //!< Transpose matrix type 1
+   using TMT2  = blaze::TransposeType_t<MT2>;   //!< Transpose matrix type 2
+   using TOMT1 = blaze::TransposeType_t<OMT1>;  //!< Transpose matrix type 1 with opposite storage order
+   using TOMT2 = blaze::TransposeType_t<OMT2>;  //!< Transpose matrix type 2 with opposite storage order
 
    //! Sparse result type
-   typedef blaze::SubTrait_<MT1,MT2>  SRE;
+   using SRE = blaze::SubTrait_t<MT1,MT2>;
 
-   typedef blaze::ElementType_<SRE>     SET;    //!< Element type of the sparse result
-   typedef blaze::OppositeType_<SRE>    OSRE;   //!< Sparse result type with opposite storage order
-   typedef blaze::TransposeType_<SRE>   TSRE;   //!< Transpose sparse result type
-   typedef blaze::TransposeType_<OSRE>  TOSRE;  //!< Transpose sparse result type with opposite storage order
+   using SET   = blaze::ElementType_t<SRE>;     //!< Element type of the sparse result
+   using OSRE  = blaze::OppositeType_t<SRE>;    //!< Sparse result type with opposite storage order
+   using TSRE  = blaze::TransposeType_t<SRE>;   //!< Transpose sparse result type
+   using TOSRE = blaze::TransposeType_t<OSRE>;  //!< Transpose sparse result type with opposite storage order
 
    //! Dense result type
-   typedef MatchAdaptor_< SRE, blaze::DynamicMatrix<SET,false> >  DRE;
+   using DRE = MatchAdaptor_t< SRE, blaze::DynamicMatrix<SET,false> >;
 
-   typedef blaze::ElementType_<DRE>     DET;    //!< Element type of the dense result
-   typedef blaze::OppositeType_<DRE>    ODRE;   //!< Dense result type with opposite storage order
-   typedef blaze::TransposeType_<DRE>   TDRE;   //!< Transpose dense result type
-   typedef blaze::TransposeType_<ODRE>  TODRE;  //!< Transpose dense result type with opposite storage order
+   using DET   = blaze::ElementType_t<DRE>;     //!< Element type of the dense result
+   using ODRE  = blaze::OppositeType_t<DRE>;    //!< Dense result type with opposite storage order
+   using TDRE  = blaze::TransposeType_t<DRE>;   //!< Transpose dense result type
+   using TODRE = blaze::TransposeType_t<ODRE>;  //!< Transpose dense result type with opposite storage order
 
-   typedef blaze::DynamicMatrix<ET1,false>  RT1;  //!< Reference type 1
-   typedef blaze::DynamicMatrix<ET2,false>  RT2;  //!< Reference type 2
+   using RT1 = blaze::DynamicMatrix<ET1,false>;  //!< Reference type 1
+   using RT2 = blaze::DynamicMatrix<ET2,false>;  //!< Reference type 2
 
    //! Reference result type
-   typedef MatchSymmetry_< DRE, blaze::SubTrait_<RT1,RT2> >  RRE;
+   using RRE = MatchSymmetry_t< DRE, blaze::SubTrait_t<RT1,RT2> >;
 
    //! Type of the matrix/matrix subtraction expression
-   typedef blaze::SubExprTrait_<MT1,MT2>  MatMatSubExprType;
+   using MatMatSubExprType =
+      blaze::RemoveCVRef_t< decltype( std::declval<MT1>() - std::declval<MT2>() ) >;
 
    //! Type of the matrix/transpose matrix subtraction expression
-   typedef blaze::SubExprTrait_<MT1,OMT2>  MatTMatSubExprType;
+   using MatTMatSubExprType =
+      blaze::RemoveCVRef_t< decltype( std::declval<MT1>() - std::declval<OMT2>() ) >;
 
    //! Type of the transpose matrix/matrix subtraction expression
-   typedef blaze::SubExprTrait_<OMT1,MT2>  TMatMatSubExprType;
+   using TMatMatSubExprType =
+      blaze::RemoveCVRef_t< decltype( std::declval<OMT1>() - std::declval<MT2>() ) >;
 
    //! Type of the transpose matrix/transpose matrix subtraction expression
-   typedef blaze::SubExprTrait_<OMT1,OMT2>  TMatTMatSubExprType;
+   using TMatTMatSubExprType =
+      blaze::RemoveCVRef_t< decltype( std::declval<OMT1>() - std::declval<OMT2>() ) >;
    //**********************************************************************************************
 
  public:
@@ -183,6 +192,8 @@ class OperationTest
                           void testImagOperation     ();
                           void testEvalOperation     ();
                           void testSerialOperation   ();
+                          void testNoAliasOperation  ();
+                          void testNoSIMDOperation   ();
                           void testDeclSymOperation  ( blaze::TrueType  );
                           void testDeclSymOperation  ( blaze::FalseType );
                           void testDeclHermOperation ( blaze::TrueType  );
@@ -195,7 +206,12 @@ class OperationTest
                           void testDeclDiagOperation ( blaze::FalseType );
                           void testSubmatrixOperation();
                           void testRowOperation      ();
+                          void testRowsOperation     ( blaze::TrueType  );
+                          void testRowsOperation     ( blaze::FalseType );
                           void testColumnOperation   ();
+                          void testColumnsOperation  ( blaze::TrueType  );
+                          void testColumnsOperation  ( blaze::FalseType );
+                          void testBandOperation     ();
 
    template< typename OP > void testCustomOperation( OP op, const std::string& name );
    //@}
@@ -283,40 +299,46 @@ class OperationTest
    BLAZE_CONSTRAINT_MUST_BE_ROW_MAJOR_MATRIX_TYPE   ( TODRE );
    BLAZE_CONSTRAINT_MUST_BE_ROW_MAJOR_MATRIX_TYPE   ( TOSRE );
 
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET1, blaze::ElementType_<OMT1>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET2, blaze::ElementType_<OMT2>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET1, blaze::ElementType_<TMT1>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET2, blaze::ElementType_<TMT2>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET1, blaze::ElementType_<TOMT1>  );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET2, blaze::ElementType_<TOMT2>  );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_<DRE>    );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_<ODRE>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_<TDRE>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_<TODRE>  );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_<SRE>    );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_<SRE>    );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_<OSRE>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_<TSRE>   );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_<TOSRE>  );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_<DRE>    );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( MT1, blaze::OppositeType_<OMT1>  );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( MT2, blaze::OppositeType_<OMT2>  );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( MT1, blaze::TransposeType_<TMT1> );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( MT2, blaze::TransposeType_<TMT2> );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DRE, blaze::OppositeType_<ODRE>  );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DRE, blaze::TransposeType_<TDRE> );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SRE, blaze::OppositeType_<OSRE>  );
-   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SRE, blaze::TransposeType_<TSRE> );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET1, blaze::ElementType_t<OMT1>   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET2, blaze::ElementType_t<OMT2>   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET1, blaze::ElementType_t<TMT1>   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET2, blaze::ElementType_t<TMT2>   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET1, blaze::ElementType_t<TOMT1>  );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( ET2, blaze::ElementType_t<TOMT2>  );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_t<DRE>    );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_t<ODRE>   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_t<TDRE>   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_t<TODRE>  );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DET, blaze::ElementType_t<SRE>    );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_t<SRE>    );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_t<OSRE>   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_t<TSRE>   );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_t<TOSRE>  );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SET, blaze::ElementType_t<DRE>    );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( MT1, blaze::OppositeType_t<OMT1>  );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( MT2, blaze::OppositeType_t<OMT2>  );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( MT1, blaze::TransposeType_t<TMT1> );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( MT2, blaze::TransposeType_t<TMT2> );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DRE, blaze::OppositeType_t<ODRE>  );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( DRE, blaze::TransposeType_t<TDRE> );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SRE, blaze::OppositeType_t<OSRE>  );
+   BLAZE_CONSTRAINT_MUST_BE_SAME_TYPE( SRE, blaze::TransposeType_t<TSRE> );
 
-   BLAZE_CONSTRAINT_MUST_BE_MATMATSUBEXPR_TYPE( MatMatSubExprType   );
-   BLAZE_CONSTRAINT_MUST_BE_MATMATSUBEXPR_TYPE( MatTMatSubExprType  );
-   BLAZE_CONSTRAINT_MUST_BE_MATMATSUBEXPR_TYPE( TMatMatSubExprType  );
-   BLAZE_CONSTRAINT_MUST_BE_MATMATSUBEXPR_TYPE( TMatTMatSubExprType );
+   BLAZE_CONSTRAINT_MATRICES_MUST_HAVE_SAME_STORAGE_ORDER     ( MatMatSubExprType, blaze::ResultType_t<MatMatSubExprType>    );
+   BLAZE_CONSTRAINT_MATRICES_MUST_HAVE_DIFFERENT_STORAGE_ORDER( MatMatSubExprType, blaze::OppositeType_t<MatMatSubExprType>  );
+   BLAZE_CONSTRAINT_MATRICES_MUST_HAVE_DIFFERENT_STORAGE_ORDER( MatMatSubExprType, blaze::TransposeType_t<MatMatSubExprType> );
 
-   BLAZE_CONSTRAINT_MUST_BE_COMPUTATION_TYPE( MatMatSubExprType   );
-   BLAZE_CONSTRAINT_MUST_BE_COMPUTATION_TYPE( MatTMatSubExprType  );
-   BLAZE_CONSTRAINT_MUST_BE_COMPUTATION_TYPE( TMatMatSubExprType  );
-   BLAZE_CONSTRAINT_MUST_BE_COMPUTATION_TYPE( TMatTMatSubExprType );
+   BLAZE_CONSTRAINT_MATRICES_MUST_HAVE_SAME_STORAGE_ORDER     ( MatTMatSubExprType, blaze::ResultType_t<MatTMatSubExprType>    );
+   BLAZE_CONSTRAINT_MATRICES_MUST_HAVE_DIFFERENT_STORAGE_ORDER( MatTMatSubExprType, blaze::OppositeType_t<MatTMatSubExprType>  );
+   BLAZE_CONSTRAINT_MATRICES_MUST_HAVE_DIFFERENT_STORAGE_ORDER( MatTMatSubExprType, blaze::TransposeType_t<MatTMatSubExprType> );
+
+   BLAZE_CONSTRAINT_MATRICES_MUST_HAVE_SAME_STORAGE_ORDER     ( TMatMatSubExprType, blaze::ResultType_t<TMatMatSubExprType>    );
+   BLAZE_CONSTRAINT_MATRICES_MUST_HAVE_DIFFERENT_STORAGE_ORDER( TMatMatSubExprType, blaze::OppositeType_t<TMatMatSubExprType>  );
+   BLAZE_CONSTRAINT_MATRICES_MUST_HAVE_DIFFERENT_STORAGE_ORDER( TMatMatSubExprType, blaze::TransposeType_t<TMatMatSubExprType> );
+
+   BLAZE_CONSTRAINT_MATRICES_MUST_HAVE_SAME_STORAGE_ORDER     ( TMatTMatSubExprType, blaze::ResultType_t<TMatTMatSubExprType>    );
+   BLAZE_CONSTRAINT_MATRICES_MUST_HAVE_DIFFERENT_STORAGE_ORDER( TMatTMatSubExprType, blaze::OppositeType_t<TMatTMatSubExprType>  );
+   BLAZE_CONSTRAINT_MATRICES_MUST_HAVE_DIFFERENT_STORAGE_ORDER( TMatTMatSubExprType, blaze::TransposeType_t<TMatTMatSubExprType> );
    /*! \endcond */
    //**********************************************************************************************
 };
@@ -359,7 +381,9 @@ OperationTest<MT1,MT2>::OperationTest( const Creator<MT1>& creator1, const Creat
    , test_()             // Label of the currently performed test
    , error_()            // Description of the current error type
 {
-   typedef blaze::UnderlyingNumeric_<SET>  Scalar;
+   using namespace blaze;
+
+   using Scalar = UnderlyingNumeric_t<SET>;
 
    testInitialStatus();
    testAssignment();
@@ -380,14 +404,19 @@ OperationTest<MT1,MT2>::OperationTest( const Creator<MT1>& creator1, const Creat
    testImagOperation();
    testEvalOperation();
    testSerialOperation();
-   testDeclSymOperation( blaze::Or< blaze::IsSquare<SRE>, blaze::IsResizable<SRE> >() );
-   testDeclHermOperation( blaze::Or< blaze::IsSquare<SRE>, blaze::IsResizable<SRE> >() );
-   testDeclLowOperation( blaze::Or< blaze::IsSquare<SRE>, blaze::IsResizable<SRE> >() );
-   testDeclUppOperation( blaze::Or< blaze::IsSquare<SRE>, blaze::IsResizable<SRE> >() );
-   testDeclDiagOperation( blaze::Or< blaze::IsSquare<SRE>, blaze::IsResizable<SRE> >() );
+   testNoAliasOperation();
+   testNoSIMDOperation();
+   testDeclSymOperation( Or_t< IsSquare<SRE>, IsResizable<SRE> >() );
+   testDeclHermOperation( Or_t< IsSquare<SRE>, IsResizable<SRE> >() );
+   testDeclLowOperation( Or_t< IsSquare<SRE>, IsResizable<SRE> >() );
+   testDeclUppOperation( Or_t< IsSquare<SRE>, IsResizable<SRE> >() );
+   testDeclDiagOperation( Or_t< IsSquare<SRE>, IsResizable<SRE> >() );
    testSubmatrixOperation();
    testRowOperation();
+   testRowsOperation( Nor_t< IsSymmetric<DRE>, IsHermitian<DRE> >() );
    testColumnOperation();
+   testColumnsOperation( Nor_t< IsSymmetric<DRE>, IsHermitian<DRE> >() );
+   testBandOperation();
 }
 //*************************************************************************************************
 
@@ -423,6 +452,7 @@ void OperationTest<MT1,MT2>::testInitialStatus()
       oss << " Test: Initial size comparison of left-hand side row-major sparse operand\n"
           << " Error: Invalid number of rows\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Row-major sparse matrix type:\n"
           << "     " << typeid( MT1 ).name() << "\n"
           << "   Detected number of rows = " << lhs_.rows() << "\n"
@@ -436,6 +466,7 @@ void OperationTest<MT1,MT2>::testInitialStatus()
       oss << " Test: Initial size comparison of left-hand side row-major sparse operand\n"
           << " Error: Invalid number of columns\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Row-major sparse matrix type:\n"
           << "     " << typeid( MT1 ).name() << "\n"
           << "   Detected number of columns = " << lhs_.columns() << "\n"
@@ -449,6 +480,7 @@ void OperationTest<MT1,MT2>::testInitialStatus()
       oss << " Test: Initial size comparison of right-hand side row-major sparse operand\n"
           << " Error: Invalid number of rows\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Row-major sparse matrix type:\n"
           << "     " << typeid( MT2 ).name() << "\n"
           << "   Detected number of rows = " << rhs_.rows() << "\n"
@@ -462,6 +494,7 @@ void OperationTest<MT1,MT2>::testInitialStatus()
       oss << " Test: Initial size comparison of right-hand side row-major sparse operand\n"
           << " Error: Invalid number of columns\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Row-major sparse matrix type:\n"
           << "     " << typeid( MT2 ).name() << "\n"
           << "   Detected number of columns = " << rhs_.columns() << "\n"
@@ -475,6 +508,7 @@ void OperationTest<MT1,MT2>::testInitialStatus()
       oss << " Test: Initial test of initialization of left-hand side row-major sparse operand\n"
           << " Error: Invalid matrix initialization\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Row-major sparse matrix type:\n"
           << "     " << typeid( MT1 ).name() << "\n"
           << "   Current initialization:\n" << lhs_ << "\n"
@@ -488,6 +522,7 @@ void OperationTest<MT1,MT2>::testInitialStatus()
       oss << " Test: Initial test of initialization of right-hand side row-major sparse operand\n"
           << " Error: Invalid matrix initialization\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Row-major sparse matrix type:\n"
           << "     " << typeid( MT2 ).name() << "\n"
           << "   Current initialization:\n" << rhs_ << "\n"
@@ -506,6 +541,7 @@ void OperationTest<MT1,MT2>::testInitialStatus()
       oss << " Test: Initial size comparison of left-hand side column-major sparse operand\n"
           << " Error: Invalid number of rows\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Column-major sparse matrix type:\n"
           << "     " << typeid( OMT1 ).name() << "\n"
           << "   Detected number of rows = " << olhs_.rows() << "\n"
@@ -519,6 +555,7 @@ void OperationTest<MT1,MT2>::testInitialStatus()
       oss << " Test: Initial size comparison of left-hand side column-major sparse operand\n"
           << " Error: Invalid number of columns\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Column-major sparse matrix type:\n"
           << "     " << typeid( OMT1 ).name() << "\n"
           << "   Detected number of columns = " << olhs_.columns() << "\n"
@@ -532,6 +569,7 @@ void OperationTest<MT1,MT2>::testInitialStatus()
       oss << " Test: Initial size comparison of right-hand side column-major sparse operand\n"
           << " Error: Invalid number of rows\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Column-major sparse matrix type:\n"
           << "     " << typeid( OMT2 ).name() << "\n"
           << "   Detected number of rows = " << orhs_.rows() << "\n"
@@ -545,6 +583,7 @@ void OperationTest<MT1,MT2>::testInitialStatus()
       oss << " Test: Initial size comparison of right-hand side column-major sparse operand\n"
           << " Error: Invalid number of columns\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Column-major sparse matrix type:\n"
           << "     " << typeid( OMT2 ).name() << "\n"
           << "   Detected number of columns = " << orhs_.columns() << "\n"
@@ -558,6 +597,7 @@ void OperationTest<MT1,MT2>::testInitialStatus()
       oss << " Test: Initial test of initialization of left-hand side column-major sparse operand\n"
           << " Error: Invalid matrix initialization\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Column-major sparse matrix type:\n"
           << "     " << typeid( OMT1 ).name() << "\n"
           << "   Current initialization:\n" << olhs_ << "\n"
@@ -571,6 +611,7 @@ void OperationTest<MT1,MT2>::testInitialStatus()
       oss << " Test: Initial test of initialization of right-hand side column-major sparse operand\n"
           << " Error: Invalid matrix initialization\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Column-major sparse matrix type:\n"
           << "     " << typeid( OMT2 ).name() << "\n"
           << "   Current initialization:\n" << orhs_ << "\n"
@@ -607,6 +648,7 @@ void OperationTest<MT1,MT2>::testAssignment()
       oss << " Test: Assignment with the row-major types\n"
           << " Error: Failed assignment\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side row-major sparse matrix type:\n"
           << "     " << typeid( MT1 ).name() << "\n"
           << "   Right-hand side row-major sparse matrix type:\n"
@@ -620,6 +662,7 @@ void OperationTest<MT1,MT2>::testAssignment()
       oss << " Test: Checking the assignment result of left-hand side row-major sparse operand\n"
           << " Error: Invalid matrix initialization\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Row-major sparse matrix type:\n"
           << "     " << typeid( MT1 ).name() << "\n"
           << "   Current initialization:\n" << lhs_ << "\n"
@@ -632,6 +675,7 @@ void OperationTest<MT1,MT2>::testAssignment()
       oss << " Test: Checking the assignment result of right-hand side row-major sparse operand\n"
           << " Error: Invalid matrix initialization\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Row-major sparse matrix type:\n"
           << "     " << typeid( MT2 ).name() << "\n"
           << "   Current initialization:\n" << rhs_ << "\n"
@@ -653,6 +697,7 @@ void OperationTest<MT1,MT2>::testAssignment()
       oss << " Test: Assignment with the column-major types\n"
           << " Error: Failed assignment\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side column-major sparse matrix type:\n"
           << "     " << typeid( OMT1 ).name() << "\n"
           << "   Right-hand side column-major sparse matrix type:\n"
@@ -666,6 +711,7 @@ void OperationTest<MT1,MT2>::testAssignment()
       oss << " Test: Checking the assignment result of left-hand side column-major sparse operand\n"
           << " Error: Invalid matrix initialization\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Column-major sparse matrix type:\n"
           << "     " << typeid( OMT1 ).name() << "\n"
           << "   Current initialization:\n" << olhs_ << "\n"
@@ -678,6 +724,7 @@ void OperationTest<MT1,MT2>::testAssignment()
       oss << " Test: Checking the assignment result of right-hand side column-major sparse operand\n"
           << " Error: Invalid matrix initialization\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Column-major sparse matrix type:\n"
           << "     " << typeid( OMT2 ).name() << "\n"
           << "   Current initialization:\n" << orhs_ << "\n"
@@ -717,6 +764,7 @@ void OperationTest<MT1,MT2>::testEvaluation()
          oss << " Test: Evaluation with the given matrices\n"
              << " Error: Failed evaluation\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side " << ( IsRowMajorMatrix<MT1>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
              << "     " << typeid( lhs_ ).name() << "\n"
              << "   Right-hand side " << ( IsRowMajorMatrix<MT2>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
@@ -740,6 +788,7 @@ void OperationTest<MT1,MT2>::testEvaluation()
          oss << " Test: Evaluation with evaluated matrices\n"
              << " Error: Failed evaluation\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side " << ( IsRowMajorMatrix<MT1>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
              << "     " << typeid( lhs_ ).name() << "\n"
              << "   Right-hand side " << ( IsRowMajorMatrix<MT2>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
@@ -768,6 +817,7 @@ void OperationTest<MT1,MT2>::testEvaluation()
          oss << " Test: Evaluation with the given matrices\n"
              << " Error: Failed evaluation\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side " << ( IsRowMajorMatrix<MT1>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
              << "     " << typeid( lhs_ ).name() << "\n"
              << "   Right-hand side " << ( IsRowMajorMatrix<OMT2>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
@@ -791,6 +841,7 @@ void OperationTest<MT1,MT2>::testEvaluation()
          oss << " Test: Evaluation with the given matrices\n"
              << " Error: Failed evaluation\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side " << ( IsRowMajorMatrix<MT1>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
              << "     " << typeid( lhs_ ).name() << "\n"
              << "   Right-hand side " << ( IsRowMajorMatrix<OMT2>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
@@ -819,6 +870,7 @@ void OperationTest<MT1,MT2>::testEvaluation()
          oss << " Test: Evaluation with the given matrices\n"
              << " Error: Failed evaluation\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side " << ( IsRowMajorMatrix<OMT1>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
              << "     " << typeid( olhs_ ).name() << "\n"
              << "   Right-hand side " << ( IsRowMajorMatrix<MT2>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
@@ -842,6 +894,7 @@ void OperationTest<MT1,MT2>::testEvaluation()
          oss << " Test: Evaluation with the given matrices\n"
              << " Error: Failed evaluation\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side " << ( IsRowMajorMatrix<OMT1>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
              << "     " << typeid( olhs_ ).name() << "\n"
              << "   Right-hand side " << ( IsRowMajorMatrix<MT2>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
@@ -870,6 +923,7 @@ void OperationTest<MT1,MT2>::testEvaluation()
          oss << " Test: Evaluation with the given matrices\n"
              << " Error: Failed evaluation\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side " << ( IsRowMajorMatrix<OMT1>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
              << "     " << typeid( olhs_ ).name() << "\n"
              << "   Right-hand side " << ( IsRowMajorMatrix<OMT2>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
@@ -893,6 +947,7 @@ void OperationTest<MT1,MT2>::testEvaluation()
          oss << " Test: Evaluation with the given matrices\n"
              << " Error: Failed evaluation\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side " << ( IsRowMajorMatrix<OMT1>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
              << "     " << typeid( olhs_ ).name() << "\n"
              << "   Right-hand side " << ( IsRowMajorMatrix<OMT2>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
@@ -935,12 +990,13 @@ void OperationTest<MT1,MT2>::testElementAccess()
       const size_t m( lhs_.rows()    - 1UL );
       const size_t n( lhs_.columns() - 1UL );
 
-      if( !equal( ( lhs_ + rhs_ )(m,n), ( reflhs_ + refrhs_ )(m,n) ) ||
-          !equal( ( lhs_ + rhs_ ).at(m,n), ( reflhs_ + refrhs_ ).at(m,n) ) ) {
+      if( !equal( ( lhs_ - rhs_ )(m,n), ( reflhs_ - refrhs_ )(m,n) ) ||
+          !equal( ( lhs_ - rhs_ ).at(m,n), ( reflhs_ - refrhs_ ).at(m,n) ) ) {
          std::ostringstream oss;
          oss << " Test : Element access of subtraction expression\n"
              << " Error: Unequal resulting elements at element (" << m << "," << n << ") detected\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side row-major sparse matrix type:\n"
              << "     " << typeid( MT1 ).name() << "\n"
              << "   Right-hand side row-major sparse matrix type:\n"
@@ -948,12 +1004,13 @@ void OperationTest<MT1,MT2>::testElementAccess()
          throw std::runtime_error( oss.str() );
       }
 
-      if( !equal( ( lhs_ + eval( rhs_ ) )(m,n), ( reflhs_ + eval( refrhs_ ) )(m,n) ) ||
-          !equal( ( lhs_ + eval( rhs_ ) ).at(m,n), ( reflhs_ + eval( refrhs_ ) ).at(m,n) ) ) {
+      if( !equal( ( lhs_ - eval( rhs_ ) )(m,n), ( reflhs_ - eval( refrhs_ ) )(m,n) ) ||
+          !equal( ( lhs_ - eval( rhs_ ) ).at(m,n), ( reflhs_ - eval( refrhs_ ) ).at(m,n) ) ) {
          std::ostringstream oss;
          oss << " Test : Element access of right evaluated subtraction expression\n"
              << " Error: Unequal resulting elements at element (" << m << "," << n << ") detected\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side row-major sparse matrix type:\n"
              << "     " << typeid( MT1 ).name() << "\n"
              << "   Right-hand side row-major sparse matrix type:\n"
@@ -961,12 +1018,13 @@ void OperationTest<MT1,MT2>::testElementAccess()
          throw std::runtime_error( oss.str() );
       }
 
-      if( !equal( ( eval( lhs_ ) + rhs_ )(m,n), ( eval( reflhs_ ) + refrhs_ )(m,n) ) ||
-          !equal( ( eval( lhs_ ) + rhs_ ).at(m,n), ( eval( reflhs_ ) + refrhs_ ).at(m,n) ) ) {
+      if( !equal( ( eval( lhs_ ) - rhs_ )(m,n), ( eval( reflhs_ ) - refrhs_ )(m,n) ) ||
+          !equal( ( eval( lhs_ ) - rhs_ ).at(m,n), ( eval( reflhs_ ) - refrhs_ ).at(m,n) ) ) {
          std::ostringstream oss;
          oss << " Test : Element access of left evaluated subtraction expression\n"
              << " Error: Unequal resulting elements at element (" << m << "," << n << ") detected\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side row-major sparse matrix type:\n"
              << "     " << typeid( MT1 ).name() << "\n"
              << "   Right-hand side row-major sparse matrix type:\n"
@@ -974,12 +1032,13 @@ void OperationTest<MT1,MT2>::testElementAccess()
          throw std::runtime_error( oss.str() );
       }
 
-      if( !equal( ( eval( lhs_ ) + eval( rhs_ ) )(m,n), ( eval( reflhs_ ) + eval( refrhs_ ) )(m,n) ) ||
-          !equal( ( eval( lhs_ ) + eval( rhs_ ) ).at(m,n), ( eval( reflhs_ ) + eval( refrhs_ ) ).at(m,n) ) ) {
+      if( !equal( ( eval( lhs_ ) - eval( rhs_ ) )(m,n), ( eval( reflhs_ ) - eval( refrhs_ ) )(m,n) ) ||
+          !equal( ( eval( lhs_ ) - eval( rhs_ ) ).at(m,n), ( eval( reflhs_ ) - eval( refrhs_ ) ).at(m,n) ) ) {
          std::ostringstream oss;
          oss << " Test : Element access of fully evaluated subtraction expression\n"
              << " Error: Unequal resulting elements at element (" << m << "," << n << ") detected\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side row-major sparse matrix type:\n"
              << "     " << typeid( MT1 ).name() << "\n"
              << "   Right-hand side row-major sparse matrix type:\n"
@@ -995,6 +1054,7 @@ void OperationTest<MT1,MT2>::testElementAccess()
       oss << " Test : Checked element access of subtraction expression\n"
           << " Error: Out-of-bound access succeeded\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side row-major sparse matrix type:\n"
           << "     " << typeid( MT1 ).name() << "\n"
           << "   Right-hand side row-major sparse matrix type:\n"
@@ -1010,6 +1070,7 @@ void OperationTest<MT1,MT2>::testElementAccess()
       oss << " Test : Checked element access of subtraction expression\n"
           << " Error: Out-of-bound access succeeded\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side row-major sparse matrix type:\n"
           << "     " << typeid( MT1 ).name() << "\n"
           << "   Right-hand side row-major sparse matrix type:\n"
@@ -1028,12 +1089,13 @@ void OperationTest<MT1,MT2>::testElementAccess()
       const size_t m( lhs_.rows()    - 1UL );
       const size_t n( lhs_.columns() - 1UL );
 
-      if( !equal( ( lhs_ + orhs_ )(m,n), ( reflhs_ + refrhs_ )(m,n) ) ||
-          !equal( ( lhs_ + orhs_ ).at(m,n), ( reflhs_ + refrhs_ ).at(m,n) ) ) {
+      if( !equal( ( lhs_ - orhs_ )(m,n), ( reflhs_ - refrhs_ )(m,n) ) ||
+          !equal( ( lhs_ - orhs_ ).at(m,n), ( reflhs_ - refrhs_ ).at(m,n) ) ) {
          std::ostringstream oss;
          oss << " Test : Element access of subtraction expression\n"
              << " Error: Unequal resulting elements at element (" << m << "," << n << ") detected\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side row-major sparse matrix type:\n"
              << "     " << typeid( MT1 ).name() << "\n"
              << "   Right-hand side column-major sparse matrix type:\n"
@@ -1041,12 +1103,13 @@ void OperationTest<MT1,MT2>::testElementAccess()
          throw std::runtime_error( oss.str() );
       }
 
-      if( !equal( ( lhs_ + eval( orhs_ ) )(m,n), ( reflhs_ + eval( refrhs_ ) )(m,n) ) ||
-          !equal( ( lhs_ + eval( orhs_ ) ).at(m,n), ( reflhs_ + eval( refrhs_ ) ).at(m,n) ) ) {
+      if( !equal( ( lhs_ - eval( orhs_ ) )(m,n), ( reflhs_ - eval( refrhs_ ) )(m,n) ) ||
+          !equal( ( lhs_ - eval( orhs_ ) ).at(m,n), ( reflhs_ - eval( refrhs_ ) ).at(m,n) ) ) {
          std::ostringstream oss;
          oss << " Test : Element access of right evaluated subtraction expression\n"
              << " Error: Unequal resulting elements at element (" << m << "," << n << ") detected\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side row-major sparse matrix type:\n"
              << "     " << typeid( MT1 ).name() << "\n"
              << "   Right-hand side column-major sparse matrix type:\n"
@@ -1054,12 +1117,13 @@ void OperationTest<MT1,MT2>::testElementAccess()
          throw std::runtime_error( oss.str() );
       }
 
-      if( !equal( ( eval( lhs_ ) + orhs_ )(m,n), ( eval( reflhs_ ) + refrhs_ )(m,n) ) ||
-          !equal( ( eval( lhs_ ) + orhs_ ).at(m,n), ( eval( reflhs_ ) + refrhs_ ).at(m,n) ) ) {
+      if( !equal( ( eval( lhs_ ) - orhs_ )(m,n), ( eval( reflhs_ ) - refrhs_ )(m,n) ) ||
+          !equal( ( eval( lhs_ ) - orhs_ ).at(m,n), ( eval( reflhs_ ) - refrhs_ ).at(m,n) ) ) {
          std::ostringstream oss;
          oss << " Test : Element access of left evaluated subtraction expression\n"
              << " Error: Unequal resulting elements at element (" << m << "," << n << ") detected\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side row-major sparse matrix type:\n"
              << "     " << typeid( MT1 ).name() << "\n"
              << "   Right-hand side column-major sparse matrix type:\n"
@@ -1067,12 +1131,13 @@ void OperationTest<MT1,MT2>::testElementAccess()
          throw std::runtime_error( oss.str() );
       }
 
-      if( !equal( ( eval( lhs_ ) + eval( orhs_ ) )(m,n), ( eval( reflhs_ ) + eval( refrhs_ ) )(m,n) ) ||
-          !equal( ( eval( lhs_ ) + eval( orhs_ ) ).at(m,n), ( eval( reflhs_ ) + eval( refrhs_ ) ).at(m,n) ) ) {
+      if( !equal( ( eval( lhs_ ) - eval( orhs_ ) )(m,n), ( eval( reflhs_ ) - eval( refrhs_ ) )(m,n) ) ||
+          !equal( ( eval( lhs_ ) - eval( orhs_ ) ).at(m,n), ( eval( reflhs_ ) - eval( refrhs_ ) ).at(m,n) ) ) {
          std::ostringstream oss;
          oss << " Test : Element access of fully evaluated subtraction expression\n"
              << " Error: Unequal resulting elements at element (" << m << "," << n << ") detected\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side row-major sparse matrix type:\n"
              << "     " << typeid( MT1 ).name() << "\n"
              << "   Right-hand side column-major sparse matrix type:\n"
@@ -1088,6 +1153,7 @@ void OperationTest<MT1,MT2>::testElementAccess()
       oss << " Test : Checked element access of subtraction expression\n"
           << " Error: Out-of-bound access succeeded\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side row-major sparse matrix type:\n"
           << "     " << typeid( MT1 ).name() << "\n"
           << "   Right-hand side column-major sparse matrix type:\n"
@@ -1103,6 +1169,7 @@ void OperationTest<MT1,MT2>::testElementAccess()
       oss << " Test : Checked element access of subtraction expression\n"
           << " Error: Out-of-bound access succeeded\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side row-major sparse matrix type:\n"
           << "     " << typeid( MT1 ).name() << "\n"
           << "   Right-hand side column-major sparse matrix type:\n"
@@ -1121,12 +1188,13 @@ void OperationTest<MT1,MT2>::testElementAccess()
       const size_t m( olhs_.rows()    - 1UL );
       const size_t n( olhs_.columns() - 1UL );
 
-      if( !equal( ( olhs_ + rhs_ )(m,n), ( reflhs_ + refrhs_ )(m,n) ) ||
-          !equal( ( olhs_ + rhs_ ).at(m,n), ( reflhs_ + refrhs_ ).at(m,n) ) ) {
+      if( !equal( ( olhs_ - rhs_ )(m,n), ( reflhs_ - refrhs_ )(m,n) ) ||
+          !equal( ( olhs_ - rhs_ ).at(m,n), ( reflhs_ - refrhs_ ).at(m,n) ) ) {
          std::ostringstream oss;
          oss << " Test : Element access of subtraction expression\n"
              << " Error: Unequal resulting elements at element (" << m << "," << n << ") detected\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side column-major sparse matrix type:\n"
              << "     " << typeid( OMT1 ).name() << "\n"
              << "   Right-hand side row-major sparse matrix type:\n"
@@ -1134,12 +1202,13 @@ void OperationTest<MT1,MT2>::testElementAccess()
          throw std::runtime_error( oss.str() );
       }
 
-      if( !equal( ( olhs_ + eval( rhs_ ) )(m,n), ( reflhs_ + eval( refrhs_ ) )(m,n) ) ||
-          !equal( ( olhs_ + eval( rhs_ ) ).at(m,n), ( reflhs_ + eval( refrhs_ ) ).at(m,n) ) ) {
+      if( !equal( ( olhs_ - eval( rhs_ ) )(m,n), ( reflhs_ - eval( refrhs_ ) )(m,n) ) ||
+          !equal( ( olhs_ - eval( rhs_ ) ).at(m,n), ( reflhs_ - eval( refrhs_ ) ).at(m,n) ) ) {
          std::ostringstream oss;
          oss << " Test : Element access of right evaluated subtraction expression\n"
              << " Error: Unequal resulting elements at element (" << m << "," << n << ") detected\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side column-major sparse matrix type:\n"
              << "     " << typeid( OMT1 ).name() << "\n"
              << "   Right-hand side row-major sparse matrix type:\n"
@@ -1147,12 +1216,13 @@ void OperationTest<MT1,MT2>::testElementAccess()
          throw std::runtime_error( oss.str() );
       }
 
-      if( !equal( ( eval( olhs_ ) + rhs_ )(m,n), ( eval( reflhs_ ) + refrhs_ )(m,n) ) ||
-          !equal( ( eval( olhs_ ) + rhs_ ).at(m,n), ( eval( reflhs_ ) + refrhs_ ).at(m,n) ) ) {
+      if( !equal( ( eval( olhs_ ) - rhs_ )(m,n), ( eval( reflhs_ ) - refrhs_ )(m,n) ) ||
+          !equal( ( eval( olhs_ ) - rhs_ ).at(m,n), ( eval( reflhs_ ) - refrhs_ ).at(m,n) ) ) {
          std::ostringstream oss;
          oss << " Test : Element access of left evaluated subtraction expression\n"
              << " Error: Unequal resulting elements at element (" << m << "," << n << ") detected\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side column-major sparse matrix type:\n"
              << "     " << typeid( OMT1 ).name() << "\n"
              << "   Right-hand side row-major sparse matrix type:\n"
@@ -1160,12 +1230,13 @@ void OperationTest<MT1,MT2>::testElementAccess()
          throw std::runtime_error( oss.str() );
       }
 
-      if( !equal( ( eval( olhs_ ) + eval( rhs_ ) )(m,n), ( eval( reflhs_ ) + eval( refrhs_ ) )(m,n) ) ||
-          !equal( ( eval( olhs_ ) + eval( rhs_ ) ).at(m,n), ( eval( reflhs_ ) + eval( refrhs_ ) ).at(m,n) ) ) {
+      if( !equal( ( eval( olhs_ ) - eval( rhs_ ) )(m,n), ( eval( reflhs_ ) - eval( refrhs_ ) )(m,n) ) ||
+          !equal( ( eval( olhs_ ) - eval( rhs_ ) ).at(m,n), ( eval( reflhs_ ) - eval( refrhs_ ) ).at(m,n) ) ) {
          std::ostringstream oss;
          oss << " Test : Element access of fully evaluated subtraction expression\n"
              << " Error: Unequal resulting elements at element (" << m << "," << n << ") detected\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side column-major sparse matrix type:\n"
              << "     " << typeid( OMT1 ).name() << "\n"
              << "   Right-hand side row-major sparse matrix type:\n"
@@ -1181,6 +1252,7 @@ void OperationTest<MT1,MT2>::testElementAccess()
       oss << " Test : Checked element access of subtraction expression\n"
           << " Error: Out-of-bound access succeeded\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side column-major sparse matrix type:\n"
           << "     " << typeid( OMT1 ).name() << "\n"
           << "   Right-hand side row-major sparse matrix type:\n"
@@ -1196,6 +1268,7 @@ void OperationTest<MT1,MT2>::testElementAccess()
       oss << " Test : Checked element access of subtraction expression\n"
           << " Error: Out-of-bound access succeeded\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side column-major sparse matrix type:\n"
           << "     " << typeid( OMT1 ).name() << "\n"
           << "   Right-hand side row-major sparse matrix type:\n"
@@ -1214,12 +1287,13 @@ void OperationTest<MT1,MT2>::testElementAccess()
       const size_t m( olhs_.rows()    - 1UL );
       const size_t n( olhs_.columns() - 1UL );
 
-      if( !equal( ( olhs_ + orhs_ )(m,n), ( reflhs_ + refrhs_ )(m,n) ) ||
-          !equal( ( olhs_ + orhs_ ).at(m,n), ( reflhs_ + refrhs_ ).at(m,n) ) ) {
+      if( !equal( ( olhs_ - orhs_ )(m,n), ( reflhs_ - refrhs_ )(m,n) ) ||
+          !equal( ( olhs_ - orhs_ ).at(m,n), ( reflhs_ - refrhs_ ).at(m,n) ) ) {
          std::ostringstream oss;
          oss << " Test : Element access of subtraction expression\n"
              << " Error: Unequal resulting elements at element (" << m << "," << n << ") detected\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side column-major sparse matrix type:\n"
              << "     " << typeid( OMT1 ).name() << "\n"
              << "   Right-hand side column-major sparse matrix type:\n"
@@ -1227,12 +1301,13 @@ void OperationTest<MT1,MT2>::testElementAccess()
          throw std::runtime_error( oss.str() );
       }
 
-      if( !equal( ( olhs_ + eval( orhs_ ) )(m,n), ( reflhs_ + eval( refrhs_ ) )(m,n) ) ||
-          !equal( ( olhs_ + eval( orhs_ ) ).at(m,n), ( reflhs_ + eval( refrhs_ ) ).at(m,n) ) ) {
+      if( !equal( ( olhs_ - eval( orhs_ ) )(m,n), ( reflhs_ - eval( refrhs_ ) )(m,n) ) ||
+          !equal( ( olhs_ - eval( orhs_ ) ).at(m,n), ( reflhs_ - eval( refrhs_ ) ).at(m,n) ) ) {
          std::ostringstream oss;
          oss << " Test : Element access of right evaluated subtraction expression\n"
              << " Error: Unequal resulting elements at element (" << m << "," << n << ") detected\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side column-major sparse matrix type:\n"
              << "     " << typeid( OMT1 ).name() << "\n"
              << "   Right-hand side column-major sparse matrix type:\n"
@@ -1240,12 +1315,13 @@ void OperationTest<MT1,MT2>::testElementAccess()
          throw std::runtime_error( oss.str() );
       }
 
-      if( !equal( ( eval( olhs_ ) + orhs_ )(m,n), ( eval( reflhs_ ) + refrhs_ )(m,n) ) ||
-          !equal( ( eval( olhs_ ) + orhs_ ).at(m,n), ( eval( reflhs_ ) + refrhs_ ).at(m,n) ) ) {
+      if( !equal( ( eval( olhs_ ) - orhs_ )(m,n), ( eval( reflhs_ ) - refrhs_ )(m,n) ) ||
+          !equal( ( eval( olhs_ ) - orhs_ ).at(m,n), ( eval( reflhs_ ) - refrhs_ ).at(m,n) ) ) {
          std::ostringstream oss;
          oss << " Test : Element access of left evaluated subtraction expression\n"
              << " Error: Unequal resulting elements at element (" << m << "," << n << ") detected\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side column-major sparse matrix type:\n"
              << "     " << typeid( OMT1 ).name() << "\n"
              << "   Right-hand side column-major sparse matrix type:\n"
@@ -1253,12 +1329,13 @@ void OperationTest<MT1,MT2>::testElementAccess()
          throw std::runtime_error( oss.str() );
       }
 
-      if( !equal( ( eval( olhs_ ) + eval( orhs_ ) )(m,n), ( eval( reflhs_ ) + eval( refrhs_ ) )(m,n) ) ||
-          !equal( ( eval( olhs_ ) + eval( orhs_ ) ).at(m,n), ( eval( reflhs_ ) + eval( refrhs_ ) ).at(m,n) ) ) {
+      if( !equal( ( eval( olhs_ ) - eval( orhs_ ) )(m,n), ( eval( reflhs_ ) - eval( refrhs_ ) )(m,n) ) ||
+          !equal( ( eval( olhs_ ) - eval( orhs_ ) ).at(m,n), ( eval( reflhs_ ) - eval( refrhs_ ) ).at(m,n) ) ) {
          std::ostringstream oss;
          oss << " Test : Element access of fully evaluated subtraction expression\n"
              << " Error: Unequal resulting elements at element (" << m << "," << n << ") detected\n"
              << " Details:\n"
+             << "   Random seed = " << blaze::getSeed() << "\n"
              << "   Left-hand side column-major sparse matrix type:\n"
              << "     " << typeid( OMT1 ).name() << "\n"
              << "   Right-hand side column-major sparse matrix type:\n"
@@ -1274,6 +1351,7 @@ void OperationTest<MT1,MT2>::testElementAccess()
       oss << " Test : Checked element access of subtraction expression\n"
           << " Error: Out-of-bound access succeeded\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side column-major sparse matrix type:\n"
           << "     " << typeid( OMT1 ).name() << "\n"
           << "   Right-hand side column-major sparse matrix type:\n"
@@ -1289,6 +1367,7 @@ void OperationTest<MT1,MT2>::testElementAccess()
       oss << " Test : Checked element access of subtraction expression\n"
           << " Error: Out-of-bound access succeeded\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side column-major sparse matrix type:\n"
           << "     " << typeid( OMT1 ).name() << "\n"
           << "   Right-hand side column-major sparse matrix type:\n"
@@ -1307,8 +1386,9 @@ void OperationTest<MT1,MT2>::testElementAccess()
 // \exception std::runtime_error Subtraction error detected.
 //
 // This function tests the plain matrix subtraction with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the subtraction or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
+// subtraction assignment, and Schur product assignment. In case any error resulting from the
+// subtraction or the subsequent assignment is detected, a \a std::runtime_error exception is
+// thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -1328,11 +1408,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   = lhs_ + rhs_;
-            odres_  = lhs_ + rhs_;
-            sres_   = lhs_ + rhs_;
-            osres_  = lhs_ + rhs_;
-            refres_ = reflhs_ + refrhs_;
+            dres_   = lhs_ - rhs_;
+            odres_  = lhs_ - rhs_;
+            sres_   = lhs_ - rhs_;
+            osres_  = lhs_ - rhs_;
+            refres_ = reflhs_ - refrhs_;
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -1342,11 +1422,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   = lhs_ + orhs_;
-            odres_  = lhs_ + orhs_;
-            sres_   = lhs_ + orhs_;
-            osres_  = lhs_ + orhs_;
-            refres_ = reflhs_ + refrhs_;
+            dres_   = lhs_ - orhs_;
+            odres_  = lhs_ - orhs_;
+            sres_   = lhs_ - orhs_;
+            osres_  = lhs_ - orhs_;
+            refres_ = reflhs_ - refrhs_;
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -1356,11 +1436,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   = olhs_ + rhs_;
-            odres_  = olhs_ + rhs_;
-            sres_   = olhs_ + rhs_;
-            osres_  = olhs_ + rhs_;
-            refres_ = reflhs_ + refrhs_;
+            dres_   = olhs_ - rhs_;
+            odres_  = olhs_ - rhs_;
+            sres_   = olhs_ - rhs_;
+            osres_  = olhs_ - rhs_;
+            refres_ = reflhs_ - refrhs_;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -1370,11 +1450,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   = olhs_ + orhs_;
-            odres_  = olhs_ + orhs_;
-            sres_   = olhs_ + orhs_;
-            osres_  = olhs_ + orhs_;
-            refres_ = reflhs_ + refrhs_;
+            dres_   = olhs_ - orhs_;
+            odres_  = olhs_ - orhs_;
+            sres_   = olhs_ - orhs_;
+            osres_  = olhs_ - orhs_;
+            refres_ = reflhs_ - refrhs_;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -1390,11 +1470,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   = eval( lhs_ ) + eval( rhs_ );
-            odres_  = eval( lhs_ ) + eval( rhs_ );
-            sres_   = eval( lhs_ ) + eval( rhs_ );
-            osres_  = eval( lhs_ ) + eval( rhs_ );
-            refres_ = eval( reflhs_ ) + eval( refrhs_ );
+            dres_   = eval( lhs_ ) - eval( rhs_ );
+            odres_  = eval( lhs_ ) - eval( rhs_ );
+            sres_   = eval( lhs_ ) - eval( rhs_ );
+            osres_  = eval( lhs_ ) - eval( rhs_ );
+            refres_ = eval( reflhs_ ) - eval( refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -1404,11 +1484,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   = eval( lhs_ ) + eval( orhs_ );
-            odres_  = eval( lhs_ ) + eval( orhs_ );
-            sres_   = eval( lhs_ ) + eval( orhs_ );
-            osres_  = eval( lhs_ ) + eval( orhs_ );
-            refres_ = eval( reflhs_ ) + eval( refrhs_ );
+            dres_   = eval( lhs_ ) - eval( orhs_ );
+            odres_  = eval( lhs_ ) - eval( orhs_ );
+            sres_   = eval( lhs_ ) - eval( orhs_ );
+            osres_  = eval( lhs_ ) - eval( orhs_ );
+            refres_ = eval( reflhs_ ) - eval( refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -1418,11 +1498,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   = eval( olhs_ ) + eval( rhs_ );
-            odres_  = eval( olhs_ ) + eval( rhs_ );
-            sres_   = eval( olhs_ ) + eval( rhs_ );
-            osres_  = eval( olhs_ ) + eval( rhs_ );
-            refres_ = eval( reflhs_ ) + eval( refrhs_ );
+            dres_   = eval( olhs_ ) - eval( rhs_ );
+            odres_  = eval( olhs_ ) - eval( rhs_ );
+            sres_   = eval( olhs_ ) - eval( rhs_ );
+            osres_  = eval( olhs_ ) - eval( rhs_ );
+            refres_ = eval( reflhs_ ) - eval( refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -1432,11 +1512,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   = eval( olhs_ ) + eval( orhs_ );
-            odres_  = eval( olhs_ ) + eval( orhs_ );
-            sres_   = eval( olhs_ ) + eval( orhs_ );
-            osres_  = eval( olhs_ ) + eval( orhs_ );
-            refres_ = eval( reflhs_ ) + eval( refrhs_ );
+            dres_   = eval( olhs_ ) - eval( orhs_ );
+            odres_  = eval( olhs_ ) - eval( orhs_ );
+            sres_   = eval( olhs_ ) - eval( orhs_ );
+            osres_  = eval( olhs_ ) - eval( orhs_ );
+            refres_ = eval( reflhs_ ) - eval( refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -1457,11 +1537,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   += lhs_ + rhs_;
-            odres_  += lhs_ + rhs_;
-            sres_   += lhs_ + rhs_;
-            osres_  += lhs_ + rhs_;
-            refres_ += reflhs_ + refrhs_;
+            dres_   += lhs_ - rhs_;
+            odres_  += lhs_ - rhs_;
+            sres_   += lhs_ - rhs_;
+            osres_  += lhs_ - rhs_;
+            refres_ += reflhs_ - refrhs_;
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -1471,11 +1551,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   += lhs_ + orhs_;
-            odres_  += lhs_ + orhs_;
-            sres_   += lhs_ + orhs_;
-            osres_  += lhs_ + orhs_;
-            refres_ += reflhs_ + refrhs_;
+            dres_   += lhs_ - orhs_;
+            odres_  += lhs_ - orhs_;
+            sres_   += lhs_ - orhs_;
+            osres_  += lhs_ - orhs_;
+            refres_ += reflhs_ - refrhs_;
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -1485,11 +1565,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   += olhs_ + rhs_;
-            odres_  += olhs_ + rhs_;
-            sres_   += olhs_ + rhs_;
-            osres_  += olhs_ + rhs_;
-            refres_ += reflhs_ + refrhs_;
+            dres_   += olhs_ - rhs_;
+            odres_  += olhs_ - rhs_;
+            sres_   += olhs_ - rhs_;
+            osres_  += olhs_ - rhs_;
+            refres_ += reflhs_ - refrhs_;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -1499,11 +1579,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   += olhs_ + orhs_;
-            odres_  += olhs_ + orhs_;
-            sres_   += olhs_ + orhs_;
-            osres_  += olhs_ + orhs_;
-            refres_ += reflhs_ + refrhs_;
+            dres_   += olhs_ - orhs_;
+            odres_  += olhs_ - orhs_;
+            sres_   += olhs_ - orhs_;
+            osres_  += olhs_ - orhs_;
+            refres_ += reflhs_ - refrhs_;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -1519,11 +1599,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   += eval( lhs_ ) + eval( rhs_ );
-            odres_  += eval( lhs_ ) + eval( rhs_ );
-            sres_   += eval( lhs_ ) + eval( rhs_ );
-            osres_  += eval( lhs_ ) + eval( rhs_ );
-            refres_ += eval( reflhs_ ) + eval( refrhs_ );
+            dres_   += eval( lhs_ ) - eval( rhs_ );
+            odres_  += eval( lhs_ ) - eval( rhs_ );
+            sres_   += eval( lhs_ ) - eval( rhs_ );
+            osres_  += eval( lhs_ ) - eval( rhs_ );
+            refres_ += eval( reflhs_ ) - eval( refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -1533,11 +1613,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   += eval( lhs_ ) + eval( orhs_ );
-            odres_  += eval( lhs_ ) + eval( orhs_ );
-            sres_   += eval( lhs_ ) + eval( orhs_ );
-            osres_  += eval( lhs_ ) + eval( orhs_ );
-            refres_ += eval( reflhs_ ) + eval( refrhs_ );
+            dres_   += eval( lhs_ ) - eval( orhs_ );
+            odres_  += eval( lhs_ ) - eval( orhs_ );
+            sres_   += eval( lhs_ ) - eval( orhs_ );
+            osres_  += eval( lhs_ ) - eval( orhs_ );
+            refres_ += eval( reflhs_ ) - eval( refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -1547,11 +1627,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   += eval( olhs_ ) + eval( rhs_ );
-            odres_  += eval( olhs_ ) + eval( rhs_ );
-            sres_   += eval( olhs_ ) + eval( rhs_ );
-            osres_  += eval( olhs_ ) + eval( rhs_ );
-            refres_ += eval( reflhs_ ) + eval( refrhs_ );
+            dres_   += eval( olhs_ ) - eval( rhs_ );
+            odres_  += eval( olhs_ ) - eval( rhs_ );
+            sres_   += eval( olhs_ ) - eval( rhs_ );
+            osres_  += eval( olhs_ ) - eval( rhs_ );
+            refres_ += eval( reflhs_ ) - eval( refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -1561,11 +1641,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   += eval( olhs_ ) + eval( orhs_ );
-            odres_  += eval( olhs_ ) + eval( orhs_ );
-            sres_   += eval( olhs_ ) + eval( orhs_ );
-            osres_  += eval( olhs_ ) + eval( orhs_ );
-            refres_ += eval( reflhs_ ) + eval( refrhs_ );
+            dres_   += eval( olhs_ ) - eval( orhs_ );
+            odres_  += eval( olhs_ ) - eval( orhs_ );
+            sres_   += eval( olhs_ ) - eval( orhs_ );
+            osres_  += eval( olhs_ ) - eval( orhs_ );
+            refres_ += eval( reflhs_ ) - eval( refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -1586,11 +1666,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   -= lhs_ + rhs_;
-            odres_  -= lhs_ + rhs_;
-            sres_   -= lhs_ + rhs_;
-            osres_  -= lhs_ + rhs_;
-            refres_ -= reflhs_ + refrhs_;
+            dres_   -= lhs_ - rhs_;
+            odres_  -= lhs_ - rhs_;
+            sres_   -= lhs_ - rhs_;
+            osres_  -= lhs_ - rhs_;
+            refres_ -= reflhs_ - refrhs_;
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -1600,11 +1680,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   -= lhs_ + orhs_;
-            odres_  -= lhs_ + orhs_;
-            sres_   -= lhs_ + orhs_;
-            osres_  -= lhs_ + orhs_;
-            refres_ -= reflhs_ + refrhs_;
+            dres_   -= lhs_ - orhs_;
+            odres_  -= lhs_ - orhs_;
+            sres_   -= lhs_ - orhs_;
+            osres_  -= lhs_ - orhs_;
+            refres_ -= reflhs_ - refrhs_;
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -1614,11 +1694,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   -= olhs_ + rhs_;
-            odres_  -= olhs_ + rhs_;
-            sres_   -= olhs_ + rhs_;
-            osres_  -= olhs_ + rhs_;
-            refres_ -= reflhs_ + refrhs_;
+            dres_   -= olhs_ - rhs_;
+            odres_  -= olhs_ - rhs_;
+            sres_   -= olhs_ - rhs_;
+            osres_  -= olhs_ - rhs_;
+            refres_ -= reflhs_ - refrhs_;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -1628,11 +1708,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   -= olhs_ + orhs_;
-            odres_  -= olhs_ + orhs_;
-            sres_   -= olhs_ + orhs_;
-            osres_  -= olhs_ + orhs_;
-            refres_ -= reflhs_ + refrhs_;
+            dres_   -= olhs_ - orhs_;
+            odres_  -= olhs_ - orhs_;
+            sres_   -= olhs_ - orhs_;
+            osres_  -= olhs_ - orhs_;
+            refres_ -= reflhs_ - refrhs_;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -1648,11 +1728,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   -= eval( lhs_ ) + eval( rhs_ );
-            odres_  -= eval( lhs_ ) + eval( rhs_ );
-            sres_   -= eval( lhs_ ) + eval( rhs_ );
-            osres_  -= eval( lhs_ ) + eval( rhs_ );
-            refres_ -= eval( reflhs_ ) + eval( refrhs_ );
+            dres_   -= eval( lhs_ ) - eval( rhs_ );
+            odres_  -= eval( lhs_ ) - eval( rhs_ );
+            sres_   -= eval( lhs_ ) - eval( rhs_ );
+            osres_  -= eval( lhs_ ) - eval( rhs_ );
+            refres_ -= eval( reflhs_ ) - eval( refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -1662,11 +1742,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   -= eval( lhs_ ) + eval( orhs_ );
-            odres_  -= eval( lhs_ ) + eval( orhs_ );
-            sres_   -= eval( lhs_ ) + eval( orhs_ );
-            osres_  -= eval( lhs_ ) + eval( orhs_ );
-            refres_ -= eval( reflhs_ ) + eval( refrhs_ );
+            dres_   -= eval( lhs_ ) - eval( orhs_ );
+            odres_  -= eval( lhs_ ) - eval( orhs_ );
+            sres_   -= eval( lhs_ ) - eval( orhs_ );
+            osres_  -= eval( lhs_ ) - eval( orhs_ );
+            refres_ -= eval( reflhs_ ) - eval( refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -1676,11 +1756,11 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   -= eval( olhs_ ) + eval( rhs_ );
-            odres_  -= eval( olhs_ ) + eval( rhs_ );
-            sres_   -= eval( olhs_ ) + eval( rhs_ );
-            osres_  -= eval( olhs_ ) + eval( rhs_ );
-            refres_ -= eval( reflhs_ ) + eval( refrhs_ );
+            dres_   -= eval( olhs_ ) - eval( rhs_ );
+            odres_  -= eval( olhs_ ) - eval( rhs_ );
+            sres_   -= eval( olhs_ ) - eval( rhs_ );
+            osres_  -= eval( olhs_ ) - eval( rhs_ );
+            refres_ -= eval( reflhs_ ) - eval( refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -1690,11 +1770,140 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 
          try {
             initResults();
-            dres_   -= eval( olhs_ ) + eval( orhs_ );
-            odres_  -= eval( olhs_ ) + eval( orhs_ );
-            sres_   -= eval( olhs_ ) + eval( orhs_ );
-            osres_  -= eval( olhs_ ) + eval( orhs_ );
-            refres_ -= eval( reflhs_ ) + eval( refrhs_ );
+            dres_   -= eval( olhs_ ) - eval( orhs_ );
+            odres_  -= eval( olhs_ ) - eval( orhs_ );
+            sres_   -= eval( olhs_ ) - eval( orhs_ );
+            osres_  -= eval( olhs_ ) - eval( orhs_ );
+            refres_ -= eval( reflhs_ ) - eval( refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Subtraction with Schur product assignment
+      //=====================================================================================
+
+      // Subtraction with Schur product assignment with the given matrices
+      {
+         test_  = "Subtraction with Schur product assignment with the given matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= lhs_ - rhs_;
+            odres_  %= lhs_ - rhs_;
+            sres_   %= lhs_ - rhs_;
+            osres_  %= lhs_ - rhs_;
+            refres_ %= reflhs_ - refrhs_;
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= lhs_ - orhs_;
+            odres_  %= lhs_ - orhs_;
+            sres_   %= lhs_ - orhs_;
+            osres_  %= lhs_ - orhs_;
+            refres_ %= reflhs_ - refrhs_;
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= olhs_ - rhs_;
+            odres_  %= olhs_ - rhs_;
+            sres_   %= olhs_ - rhs_;
+            osres_  %= olhs_ - rhs_;
+            refres_ %= reflhs_ - refrhs_;
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= olhs_ - orhs_;
+            odres_  %= olhs_ - orhs_;
+            sres_   %= olhs_ - orhs_;
+            osres_  %= olhs_ - orhs_;
+            refres_ %= reflhs_ - refrhs_;
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Subtraction with Schur product assignment with evaluated matrices
+      {
+         test_  = "Subtraction with Schur product assignment with evaluated matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= eval( lhs_ ) - eval( rhs_ );
+            odres_  %= eval( lhs_ ) - eval( rhs_ );
+            sres_   %= eval( lhs_ ) - eval( rhs_ );
+            osres_  %= eval( lhs_ ) - eval( rhs_ );
+            refres_ %= eval( reflhs_ ) - eval( refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= eval( lhs_ ) - eval( orhs_ );
+            odres_  %= eval( lhs_ ) - eval( orhs_ );
+            sres_   %= eval( lhs_ ) - eval( orhs_ );
+            osres_  %= eval( lhs_ ) - eval( orhs_ );
+            refres_ %= eval( reflhs_ ) - eval( refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= eval( olhs_ ) - eval( rhs_ );
+            odres_  %= eval( olhs_ ) - eval( rhs_ );
+            sres_   %= eval( olhs_ ) - eval( rhs_ );
+            osres_  %= eval( olhs_ ) - eval( rhs_ );
+            refres_ %= eval( reflhs_ ) - eval( refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= eval( olhs_ ) - eval( orhs_ );
+            odres_  %= eval( olhs_ ) - eval( orhs_ );
+            sres_   %= eval( olhs_ ) - eval( orhs_ );
+            osres_  %= eval( olhs_ ) - eval( orhs_ );
+            refres_ %= eval( reflhs_ ) - eval( refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -1715,8 +1924,9 @@ void OperationTest<MT1,MT2>::testBasicOperation()
 // \exception std::runtime_error Subtraction error detected.
 //
 // This function tests the negated matrix subtraction with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the subtraction or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
+// subtraction assignment, and Schur product assignment. In case any error resulting from the
+// subtraction or the subsequent assignment is detected, a \a std::runtime_error exception is
+// thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -1736,11 +1946,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   = -( lhs_ + rhs_ );
-            odres_  = -( lhs_ + rhs_ );
-            sres_   = -( lhs_ + rhs_ );
-            osres_  = -( lhs_ + rhs_ );
-            refres_ = -( reflhs_ + refrhs_ );
+            dres_   = -( lhs_ - rhs_ );
+            odres_  = -( lhs_ - rhs_ );
+            sres_   = -( lhs_ - rhs_ );
+            osres_  = -( lhs_ - rhs_ );
+            refres_ = -( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -1750,11 +1960,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   = -( lhs_ + orhs_ );
-            odres_  = -( lhs_ + orhs_ );
-            sres_   = -( lhs_ + orhs_ );
-            osres_  = -( lhs_ + orhs_ );
-            refres_ = -( reflhs_ + refrhs_ );
+            dres_   = -( lhs_ - orhs_ );
+            odres_  = -( lhs_ - orhs_ );
+            sres_   = -( lhs_ - orhs_ );
+            osres_  = -( lhs_ - orhs_ );
+            refres_ = -( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -1764,11 +1974,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   = -( olhs_ + rhs_ );
-            odres_  = -( olhs_ + rhs_ );
-            sres_   = -( olhs_ + rhs_ );
-            osres_  = -( olhs_ + rhs_ );
-            refres_ = -( reflhs_ + refrhs_ );
+            dres_   = -( olhs_ - rhs_ );
+            odres_  = -( olhs_ - rhs_ );
+            sres_   = -( olhs_ - rhs_ );
+            osres_  = -( olhs_ - rhs_ );
+            refres_ = -( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -1778,11 +1988,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   = -( olhs_ + orhs_ );
-            odres_  = -( olhs_ + orhs_ );
-            sres_   = -( olhs_ + orhs_ );
-            osres_  = -( olhs_ + orhs_ );
-            refres_ = -( reflhs_ + refrhs_ );
+            dres_   = -( olhs_ - orhs_ );
+            odres_  = -( olhs_ - orhs_ );
+            sres_   = -( olhs_ - orhs_ );
+            osres_  = -( olhs_ - orhs_ );
+            refres_ = -( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -1798,11 +2008,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   = -( eval( lhs_ ) + eval( rhs_ ) );
-            odres_  = -( eval( lhs_ ) + eval( rhs_ ) );
-            sres_   = -( eval( lhs_ ) + eval( rhs_ ) );
-            osres_  = -( eval( lhs_ ) + eval( rhs_ ) );
-            refres_ = -( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   = -( eval( lhs_ ) - eval( rhs_ ) );
+            odres_  = -( eval( lhs_ ) - eval( rhs_ ) );
+            sres_   = -( eval( lhs_ ) - eval( rhs_ ) );
+            osres_  = -( eval( lhs_ ) - eval( rhs_ ) );
+            refres_ = -( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -1812,11 +2022,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   = -( eval( lhs_ ) + eval( orhs_ ) );
-            odres_  = -( eval( lhs_ ) + eval( orhs_ ) );
-            sres_   = -( eval( lhs_ ) + eval( orhs_ ) );
-            osres_  = -( eval( lhs_ ) + eval( orhs_ ) );
-            refres_ = -( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   = -( eval( lhs_ ) - eval( orhs_ ) );
+            odres_  = -( eval( lhs_ ) - eval( orhs_ ) );
+            sres_   = -( eval( lhs_ ) - eval( orhs_ ) );
+            osres_  = -( eval( lhs_ ) - eval( orhs_ ) );
+            refres_ = -( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -1826,11 +2036,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   = -( eval( olhs_ ) + eval( rhs_ ) );
-            odres_  = -( eval( olhs_ ) + eval( rhs_ ) );
-            sres_   = -( eval( olhs_ ) + eval( rhs_ ) );
-            osres_  = -( eval( olhs_ ) + eval( rhs_ ) );
-            refres_ = -( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   = -( eval( olhs_ ) - eval( rhs_ ) );
+            odres_  = -( eval( olhs_ ) - eval( rhs_ ) );
+            sres_   = -( eval( olhs_ ) - eval( rhs_ ) );
+            osres_  = -( eval( olhs_ ) - eval( rhs_ ) );
+            refres_ = -( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -1840,11 +2050,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   = -( eval( olhs_ ) + eval( orhs_ ) );
-            odres_  = -( eval( olhs_ ) + eval( orhs_ ) );
-            sres_   = -( eval( olhs_ ) + eval( orhs_ ) );
-            osres_  = -( eval( olhs_ ) + eval( orhs_ ) );
-            refres_ = -( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   = -( eval( olhs_ ) - eval( orhs_ ) );
+            odres_  = -( eval( olhs_ ) - eval( orhs_ ) );
+            sres_   = -( eval( olhs_ ) - eval( orhs_ ) );
+            osres_  = -( eval( olhs_ ) - eval( orhs_ ) );
+            refres_ = -( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -1865,11 +2075,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   += -( lhs_ + rhs_ );
-            odres_  += -( lhs_ + rhs_ );
-            sres_   += -( lhs_ + rhs_ );
-            osres_  += -( lhs_ + rhs_ );
-            refres_ += -( reflhs_ + refrhs_ );
+            dres_   += -( lhs_ - rhs_ );
+            odres_  += -( lhs_ - rhs_ );
+            sres_   += -( lhs_ - rhs_ );
+            osres_  += -( lhs_ - rhs_ );
+            refres_ += -( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -1879,11 +2089,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   += -( lhs_ + orhs_ );
-            odres_  += -( lhs_ + orhs_ );
-            sres_   += -( lhs_ + orhs_ );
-            osres_  += -( lhs_ + orhs_ );
-            refres_ += -( reflhs_ + refrhs_ );
+            dres_   += -( lhs_ - orhs_ );
+            odres_  += -( lhs_ - orhs_ );
+            sres_   += -( lhs_ - orhs_ );
+            osres_  += -( lhs_ - orhs_ );
+            refres_ += -( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -1893,11 +2103,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   += -( olhs_ + rhs_ );
-            odres_  += -( olhs_ + rhs_ );
-            sres_   += -( olhs_ + rhs_ );
-            osres_  += -( olhs_ + rhs_ );
-            refres_ += -( reflhs_ + refrhs_ );
+            dres_   += -( olhs_ - rhs_ );
+            odres_  += -( olhs_ - rhs_ );
+            sres_   += -( olhs_ - rhs_ );
+            osres_  += -( olhs_ - rhs_ );
+            refres_ += -( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -1907,11 +2117,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   += -( olhs_ + orhs_ );
-            odres_  += -( olhs_ + orhs_ );
-            sres_   += -( olhs_ + orhs_ );
-            osres_  += -( olhs_ + orhs_ );
-            refres_ += -( reflhs_ + refrhs_ );
+            dres_   += -( olhs_ - orhs_ );
+            odres_  += -( olhs_ - orhs_ );
+            sres_   += -( olhs_ - orhs_ );
+            osres_  += -( olhs_ - orhs_ );
+            refres_ += -( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -1927,11 +2137,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   += -( eval( lhs_ ) + eval( rhs_ ) );
-            odres_  += -( eval( lhs_ ) + eval( rhs_ ) );
-            sres_   += -( eval( lhs_ ) + eval( rhs_ ) );
-            osres_  += -( eval( lhs_ ) + eval( rhs_ ) );
-            refres_ += -( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   += -( eval( lhs_ ) - eval( rhs_ ) );
+            odres_  += -( eval( lhs_ ) - eval( rhs_ ) );
+            sres_   += -( eval( lhs_ ) - eval( rhs_ ) );
+            osres_  += -( eval( lhs_ ) - eval( rhs_ ) );
+            refres_ += -( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -1941,11 +2151,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   += -( eval( lhs_ ) + eval( orhs_ ) );
-            odres_  += -( eval( lhs_ ) + eval( orhs_ ) );
-            sres_   += -( eval( lhs_ ) + eval( orhs_ ) );
-            osres_  += -( eval( lhs_ ) + eval( orhs_ ) );
-            refres_ += -( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   += -( eval( lhs_ ) - eval( orhs_ ) );
+            odres_  += -( eval( lhs_ ) - eval( orhs_ ) );
+            sres_   += -( eval( lhs_ ) - eval( orhs_ ) );
+            osres_  += -( eval( lhs_ ) - eval( orhs_ ) );
+            refres_ += -( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -1955,11 +2165,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   += -( eval( olhs_ ) + eval( rhs_ ) );
-            odres_  += -( eval( olhs_ ) + eval( rhs_ ) );
-            sres_   += -( eval( olhs_ ) + eval( rhs_ ) );
-            osres_  += -( eval( olhs_ ) + eval( rhs_ ) );
-            refres_ += -( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   += -( eval( olhs_ ) - eval( rhs_ ) );
+            odres_  += -( eval( olhs_ ) - eval( rhs_ ) );
+            sres_   += -( eval( olhs_ ) - eval( rhs_ ) );
+            osres_  += -( eval( olhs_ ) - eval( rhs_ ) );
+            refres_ += -( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -1969,11 +2179,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   += -( eval( olhs_ ) + eval( orhs_ ) );
-            odres_  += -( eval( olhs_ ) + eval( orhs_ ) );
-            sres_   += -( eval( olhs_ ) + eval( orhs_ ) );
-            osres_  += -( eval( olhs_ ) + eval( orhs_ ) );
-            refres_ += -( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   += -( eval( olhs_ ) - eval( orhs_ ) );
+            odres_  += -( eval( olhs_ ) - eval( orhs_ ) );
+            sres_   += -( eval( olhs_ ) - eval( orhs_ ) );
+            osres_  += -( eval( olhs_ ) - eval( orhs_ ) );
+            refres_ += -( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -1994,11 +2204,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   -= -( lhs_ + rhs_ );
-            odres_  -= -( lhs_ + rhs_ );
-            sres_   -= -( lhs_ + rhs_ );
-            osres_  -= -( lhs_ + rhs_ );
-            refres_ -= -( reflhs_ + refrhs_ );
+            dres_   -= -( lhs_ - rhs_ );
+            odres_  -= -( lhs_ - rhs_ );
+            sres_   -= -( lhs_ - rhs_ );
+            osres_  -= -( lhs_ - rhs_ );
+            refres_ -= -( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -2008,11 +2218,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   -= -( lhs_ + orhs_ );
-            odres_  -= -( lhs_ + orhs_ );
-            sres_   -= -( lhs_ + orhs_ );
-            osres_  -= -( lhs_ + orhs_ );
-            refres_ -= -( reflhs_ + refrhs_ );
+            dres_   -= -( lhs_ - orhs_ );
+            odres_  -= -( lhs_ - orhs_ );
+            sres_   -= -( lhs_ - orhs_ );
+            osres_  -= -( lhs_ - orhs_ );
+            refres_ -= -( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -2022,11 +2232,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   -= -( olhs_ + rhs_ );
-            odres_  -= -( olhs_ + rhs_ );
-            sres_   -= -( olhs_ + rhs_ );
-            osres_  -= -( olhs_ + rhs_ );
-            refres_ -= -( reflhs_ + refrhs_ );
+            dres_   -= -( olhs_ - rhs_ );
+            odres_  -= -( olhs_ - rhs_ );
+            sres_   -= -( olhs_ - rhs_ );
+            osres_  -= -( olhs_ - rhs_ );
+            refres_ -= -( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -2036,11 +2246,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   -= -( olhs_ + orhs_ );
-            odres_  -= -( olhs_ + orhs_ );
-            sres_   -= -( olhs_ + orhs_ );
-            osres_  -= -( olhs_ + orhs_ );
-            refres_ -= -( reflhs_ + refrhs_ );
+            dres_   -= -( olhs_ - orhs_ );
+            odres_  -= -( olhs_ - orhs_ );
+            sres_   -= -( olhs_ - orhs_ );
+            osres_  -= -( olhs_ - orhs_ );
+            refres_ -= -( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -2056,11 +2266,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   -= -( eval( lhs_ ) + eval( rhs_ ) );
-            odres_  -= -( eval( lhs_ ) + eval( rhs_ ) );
-            sres_   -= -( eval( lhs_ ) + eval( rhs_ ) );
-            osres_  -= -( eval( lhs_ ) + eval( rhs_ ) );
-            refres_ -= -( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   -= -( eval( lhs_ ) - eval( rhs_ ) );
+            odres_  -= -( eval( lhs_ ) - eval( rhs_ ) );
+            sres_   -= -( eval( lhs_ ) - eval( rhs_ ) );
+            osres_  -= -( eval( lhs_ ) - eval( rhs_ ) );
+            refres_ -= -( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -2070,11 +2280,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   -= -( eval( lhs_ ) + eval( orhs_ ) );
-            odres_  -= -( eval( lhs_ ) + eval( orhs_ ) );
-            sres_   -= -( eval( lhs_ ) + eval( orhs_ ) );
-            osres_  -= -( eval( lhs_ ) + eval( orhs_ ) );
-            refres_ -= -( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   -= -( eval( lhs_ ) - eval( orhs_ ) );
+            odres_  -= -( eval( lhs_ ) - eval( orhs_ ) );
+            sres_   -= -( eval( lhs_ ) - eval( orhs_ ) );
+            osres_  -= -( eval( lhs_ ) - eval( orhs_ ) );
+            refres_ -= -( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -2084,11 +2294,11 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   -= -( eval( olhs_ ) + eval( rhs_ ) );
-            odres_  -= -( eval( olhs_ ) + eval( rhs_ ) );
-            sres_   -= -( eval( olhs_ ) + eval( rhs_ ) );
-            osres_  -= -( eval( olhs_ ) + eval( rhs_ ) );
-            refres_ -= -( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   -= -( eval( olhs_ ) - eval( rhs_ ) );
+            odres_  -= -( eval( olhs_ ) - eval( rhs_ ) );
+            sres_   -= -( eval( olhs_ ) - eval( rhs_ ) );
+            osres_  -= -( eval( olhs_ ) - eval( rhs_ ) );
+            refres_ -= -( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -2098,11 +2308,140 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 
          try {
             initResults();
-            dres_   -= -( eval( olhs_ ) + eval( orhs_ ) );
-            odres_  -= -( eval( olhs_ ) + eval( orhs_ ) );
-            sres_   -= -( eval( olhs_ ) + eval( orhs_ ) );
-            osres_  -= -( eval( olhs_ ) + eval( orhs_ ) );
-            refres_ -= -( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   -= -( eval( olhs_ ) - eval( orhs_ ) );
+            odres_  -= -( eval( olhs_ ) - eval( orhs_ ) );
+            sres_   -= -( eval( olhs_ ) - eval( orhs_ ) );
+            osres_  -= -( eval( olhs_ ) - eval( orhs_ ) );
+            refres_ -= -( eval( reflhs_ ) - eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Negated subtraction with Schur product assignment
+      //=====================================================================================
+
+      // Negated subtraction with Schur product assignment with the given matrices
+      {
+         test_  = "Negated subtraction with Schur product assignment with the given matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= -( lhs_ - rhs_ );
+            odres_  %= -( lhs_ - rhs_ );
+            sres_   %= -( lhs_ - rhs_ );
+            osres_  %= -( lhs_ - rhs_ );
+            refres_ %= -( reflhs_ - refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= -( lhs_ - orhs_ );
+            odres_  %= -( lhs_ - orhs_ );
+            sres_   %= -( lhs_ - orhs_ );
+            osres_  %= -( lhs_ - orhs_ );
+            refres_ %= -( reflhs_ - refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= -( olhs_ - rhs_ );
+            odres_  %= -( olhs_ - rhs_ );
+            sres_   %= -( olhs_ - rhs_ );
+            osres_  %= -( olhs_ - rhs_ );
+            refres_ %= -( reflhs_ - refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= -( olhs_ - orhs_ );
+            odres_  %= -( olhs_ - orhs_ );
+            sres_   %= -( olhs_ - orhs_ );
+            osres_  %= -( olhs_ - orhs_ );
+            refres_ %= -( reflhs_ - refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Negated subtraction with Schur product assignment with the given matrices
+      {
+         test_  = "Negated subtraction with Schur product assignment with evaluated matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= -( eval( lhs_ ) - eval( rhs_ ) );
+            odres_  %= -( eval( lhs_ ) - eval( rhs_ ) );
+            sres_   %= -( eval( lhs_ ) - eval( rhs_ ) );
+            osres_  %= -( eval( lhs_ ) - eval( rhs_ ) );
+            refres_ %= -( eval( reflhs_ ) - eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= -( eval( lhs_ ) - eval( orhs_ ) );
+            odres_  %= -( eval( lhs_ ) - eval( orhs_ ) );
+            sres_   %= -( eval( lhs_ ) - eval( orhs_ ) );
+            osres_  %= -( eval( lhs_ ) - eval( orhs_ ) );
+            refres_ %= -( eval( reflhs_ ) - eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= -( eval( olhs_ ) - eval( rhs_ ) );
+            odres_  %= -( eval( olhs_ ) - eval( rhs_ ) );
+            sres_   %= -( eval( olhs_ ) - eval( rhs_ ) );
+            osres_  %= -( eval( olhs_ ) - eval( rhs_ ) );
+            refres_ %= -( eval( reflhs_ ) - eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= -( eval( olhs_ ) - eval( orhs_ ) );
+            odres_  %= -( eval( olhs_ ) - eval( orhs_ ) );
+            sres_   %= -( eval( olhs_ ) - eval( orhs_ ) );
+            osres_  %= -( eval( olhs_ ) - eval( orhs_ ) );
+            refres_ %= -( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -2124,8 +2463,9 @@ void OperationTest<MT1,MT2>::testNegatedOperation()
 // \exception std::runtime_error Subtraction error detected.
 //
 // This function tests the scaled matrix subtraction with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the subtraction or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
+// subtraction assignment, and Schur product assignment. In case any error resulting from the
+// subtraction or the subsequent assignment is detected, a \a std::runtime_error exception is
+// thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -2150,7 +2490,7 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
          test_ = "Self-scaling (M*=s)";
 
          try {
-            dres_   = lhs_ + rhs_;
+            dres_   = lhs_ - rhs_;
             odres_  = dres_;
             sres_   = dres_;
             osres_  = dres_;
@@ -2167,6 +2507,7 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
             oss << " Test : " << test_ << "\n"
                 << " Error: Failed self-scaling operation\n"
                 << " Details:\n"
+                << "   Random seed = " << blaze::getSeed() << "\n"
                 << "   Scalar = " << scalar << "\n"
                 << "   Error message: " << ex.what() << "\n";
             throw std::runtime_error( oss.str() );
@@ -2185,7 +2526,7 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
          test_ = "Self-scaling (M=M*s)";
 
          try {
-            dres_   = lhs_ + rhs_;
+            dres_   = lhs_ - rhs_;
             odres_  = dres_;
             sres_   = dres_;
             osres_  = dres_;
@@ -2202,6 +2543,7 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
             oss << " Test : " << test_ << "\n"
                 << " Error: Failed self-scaling operation\n"
                 << " Details:\n"
+                << "   Random seed = " << blaze::getSeed() << "\n"
                 << "   Scalar = " << scalar << "\n"
                 << "   Error message: " << ex.what() << "\n";
             throw std::runtime_error( oss.str() );
@@ -2220,7 +2562,7 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
          test_ = "Self-scaling (M=s*M)";
 
          try {
-            dres_   = lhs_ + rhs_;
+            dres_   = lhs_ - rhs_;
             odres_  = dres_;
             sres_   = dres_;
             osres_  = dres_;
@@ -2237,6 +2579,7 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
             oss << " Test : " << test_ << "\n"
                 << " Error: Failed self-scaling operation\n"
                 << " Details:\n"
+                << "   Random seed = " << blaze::getSeed() << "\n"
                 << "   Scalar = " << scalar << "\n"
                 << "   Error message: " << ex.what() << "\n";
             throw std::runtime_error( oss.str() );
@@ -2255,7 +2598,7 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
          test_ = "Self-scaling (M/=s)";
 
          try {
-            dres_   = lhs_ + rhs_;
+            dres_   = lhs_ - rhs_;
             odres_  = dres_;
             sres_   = dres_;
             osres_  = dres_;
@@ -2272,6 +2615,7 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
             oss << " Test : " << test_ << "\n"
                 << " Error: Failed self-scaling operation\n"
                 << " Details:\n"
+                << "   Random seed = " << blaze::getSeed() << "\n"
                 << "   Scalar = " << scalar << "\n"
                 << "   Error message: " << ex.what() << "\n";
             throw std::runtime_error( oss.str() );
@@ -2290,7 +2634,7 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
          test_ = "Self-scaling (M=M/s)";
 
          try {
-            dres_   = lhs_ + rhs_;
+            dres_   = lhs_ - rhs_;
             odres_  = dres_;
             sres_   = dres_;
             osres_  = dres_;
@@ -2307,6 +2651,7 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
             oss << " Test : " << test_ << "\n"
                 << " Error: Failed self-scaling operation\n"
                 << " Details:\n"
+                << "   Random seed = " << blaze::getSeed() << "\n"
                 << "   Scalar = " << scalar << "\n"
                 << "   Error message: " << ex.what() << "\n";
             throw std::runtime_error( oss.str() );
@@ -2327,11 +2672,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = scalar * ( lhs_ + rhs_ );
-            odres_  = scalar * ( lhs_ + rhs_ );
-            sres_   = scalar * ( lhs_ + rhs_ );
-            osres_  = scalar * ( lhs_ + rhs_ );
-            refres_ = scalar * ( reflhs_ + refrhs_ );
+            dres_   = scalar * ( lhs_ - rhs_ );
+            odres_  = scalar * ( lhs_ - rhs_ );
+            sres_   = scalar * ( lhs_ - rhs_ );
+            osres_  = scalar * ( lhs_ - rhs_ );
+            refres_ = scalar * ( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -2341,11 +2686,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = scalar * ( lhs_ + orhs_ );
-            odres_  = scalar * ( lhs_ + orhs_ );
-            sres_   = scalar * ( lhs_ + orhs_ );
-            osres_  = scalar * ( lhs_ + orhs_ );
-            refres_ = scalar * ( reflhs_ + refrhs_ );
+            dres_   = scalar * ( lhs_ - orhs_ );
+            odres_  = scalar * ( lhs_ - orhs_ );
+            sres_   = scalar * ( lhs_ - orhs_ );
+            osres_  = scalar * ( lhs_ - orhs_ );
+            refres_ = scalar * ( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -2355,11 +2700,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = scalar * ( olhs_ + rhs_ );
-            odres_  = scalar * ( olhs_ + rhs_ );
-            sres_   = scalar * ( olhs_ + rhs_ );
-            osres_  = scalar * ( olhs_ + rhs_ );
-            refres_ = scalar * ( reflhs_ + refrhs_ );
+            dres_   = scalar * ( olhs_ - rhs_ );
+            odres_  = scalar * ( olhs_ - rhs_ );
+            sres_   = scalar * ( olhs_ - rhs_ );
+            osres_  = scalar * ( olhs_ - rhs_ );
+            refres_ = scalar * ( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -2369,11 +2714,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = scalar * ( olhs_ + orhs_ );
-            odres_  = scalar * ( olhs_ + orhs_ );
-            sres_   = scalar * ( olhs_ + orhs_ );
-            osres_  = scalar * ( olhs_ + orhs_ );
-            refres_ = scalar * ( reflhs_ + refrhs_ );
+            dres_   = scalar * ( olhs_ - orhs_ );
+            odres_  = scalar * ( olhs_ - orhs_ );
+            sres_   = scalar * ( olhs_ - orhs_ );
+            osres_  = scalar * ( olhs_ - orhs_ );
+            refres_ = scalar * ( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -2389,11 +2734,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = scalar * ( eval( lhs_ ) + eval( rhs_ ) );
-            odres_  = scalar * ( eval( lhs_ ) + eval( rhs_ ) );
-            sres_   = scalar * ( eval( lhs_ ) + eval( rhs_ ) );
-            osres_  = scalar * ( eval( lhs_ ) + eval( rhs_ ) );
-            refres_ = scalar * ( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   = scalar * ( eval( lhs_ ) - eval( rhs_ ) );
+            odres_  = scalar * ( eval( lhs_ ) - eval( rhs_ ) );
+            sres_   = scalar * ( eval( lhs_ ) - eval( rhs_ ) );
+            osres_  = scalar * ( eval( lhs_ ) - eval( rhs_ ) );
+            refres_ = scalar * ( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -2403,11 +2748,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = scalar * ( eval( lhs_ ) + eval( orhs_ ) );
-            odres_  = scalar * ( eval( lhs_ ) + eval( orhs_ ) );
-            sres_   = scalar * ( eval( lhs_ ) + eval( orhs_ ) );
-            osres_  = scalar * ( eval( lhs_ ) + eval( orhs_ ) );
-            refres_ = scalar * ( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   = scalar * ( eval( lhs_ ) - eval( orhs_ ) );
+            odres_  = scalar * ( eval( lhs_ ) - eval( orhs_ ) );
+            sres_   = scalar * ( eval( lhs_ ) - eval( orhs_ ) );
+            osres_  = scalar * ( eval( lhs_ ) - eval( orhs_ ) );
+            refres_ = scalar * ( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -2417,11 +2762,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = scalar * ( eval( olhs_ ) + eval( rhs_ ) );
-            odres_  = scalar * ( eval( olhs_ ) + eval( rhs_ ) );
-            sres_   = scalar * ( eval( olhs_ ) + eval( rhs_ ) );
-            osres_  = scalar * ( eval( olhs_ ) + eval( rhs_ ) );
-            refres_ = scalar * ( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   = scalar * ( eval( olhs_ ) - eval( rhs_ ) );
+            odres_  = scalar * ( eval( olhs_ ) - eval( rhs_ ) );
+            sres_   = scalar * ( eval( olhs_ ) - eval( rhs_ ) );
+            osres_  = scalar * ( eval( olhs_ ) - eval( rhs_ ) );
+            refres_ = scalar * ( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -2431,11 +2776,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = scalar * ( eval( olhs_ ) + eval( orhs_ ) );
-            odres_  = scalar * ( eval( olhs_ ) + eval( orhs_ ) );
-            sres_   = scalar * ( eval( olhs_ ) + eval( orhs_ ) );
-            osres_  = scalar * ( eval( olhs_ ) + eval( orhs_ ) );
-            refres_ = scalar * ( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   = scalar * ( eval( olhs_ ) - eval( orhs_ ) );
+            odres_  = scalar * ( eval( olhs_ ) - eval( orhs_ ) );
+            sres_   = scalar * ( eval( olhs_ ) - eval( orhs_ ) );
+            osres_  = scalar * ( eval( olhs_ ) - eval( orhs_ ) );
+            refres_ = scalar * ( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -2456,11 +2801,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = ( lhs_ + rhs_ ) * scalar;
-            odres_  = ( lhs_ + rhs_ ) * scalar;
-            sres_   = ( lhs_ + rhs_ ) * scalar;
-            osres_  = ( lhs_ + rhs_ ) * scalar;
-            refres_ = ( reflhs_ + refrhs_ ) * scalar;
+            dres_   = ( lhs_ - rhs_ ) * scalar;
+            odres_  = ( lhs_ - rhs_ ) * scalar;
+            sres_   = ( lhs_ - rhs_ ) * scalar;
+            osres_  = ( lhs_ - rhs_ ) * scalar;
+            refres_ = ( reflhs_ - refrhs_ ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -2470,11 +2815,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = ( lhs_ + orhs_ ) * scalar;
-            odres_  = ( lhs_ + orhs_ ) * scalar;
-            sres_   = ( lhs_ + orhs_ ) * scalar;
-            osres_  = ( lhs_ + orhs_ ) * scalar;
-            refres_ = ( reflhs_ + refrhs_ ) * scalar;
+            dres_   = ( lhs_ - orhs_ ) * scalar;
+            odres_  = ( lhs_ - orhs_ ) * scalar;
+            sres_   = ( lhs_ - orhs_ ) * scalar;
+            osres_  = ( lhs_ - orhs_ ) * scalar;
+            refres_ = ( reflhs_ - refrhs_ ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -2484,11 +2829,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = ( olhs_ + rhs_ ) * scalar;
-            odres_  = ( olhs_ + rhs_ ) * scalar;
-            sres_   = ( olhs_ + rhs_ ) * scalar;
-            osres_  = ( olhs_ + rhs_ ) * scalar;
-            refres_ = ( reflhs_ + refrhs_ ) * scalar;
+            dres_   = ( olhs_ - rhs_ ) * scalar;
+            odres_  = ( olhs_ - rhs_ ) * scalar;
+            sres_   = ( olhs_ - rhs_ ) * scalar;
+            osres_  = ( olhs_ - rhs_ ) * scalar;
+            refres_ = ( reflhs_ - refrhs_ ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -2498,11 +2843,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = ( olhs_ + orhs_ ) * scalar;
-            odres_  = ( olhs_ + orhs_ ) * scalar;
-            sres_   = ( olhs_ + orhs_ ) * scalar;
-            osres_  = ( olhs_ + orhs_ ) * scalar;
-            refres_ = ( reflhs_ + refrhs_ ) * scalar;
+            dres_   = ( olhs_ - orhs_ ) * scalar;
+            odres_  = ( olhs_ - orhs_ ) * scalar;
+            sres_   = ( olhs_ - orhs_ ) * scalar;
+            osres_  = ( olhs_ - orhs_ ) * scalar;
+            refres_ = ( reflhs_ - refrhs_ ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -2518,11 +2863,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = ( eval( lhs_ ) + eval( rhs_ ) ) * scalar;
-            odres_  = ( eval( lhs_ ) + eval( rhs_ ) ) * scalar;
-            sres_   = ( eval( lhs_ ) + eval( rhs_ ) ) * scalar;
-            osres_  = ( eval( lhs_ ) + eval( rhs_ ) ) * scalar;
-            refres_ = ( eval( reflhs_ ) + eval( refrhs_ ) ) * scalar;
+            dres_   = ( eval( lhs_ ) - eval( rhs_ ) ) * scalar;
+            odres_  = ( eval( lhs_ ) - eval( rhs_ ) ) * scalar;
+            sres_   = ( eval( lhs_ ) - eval( rhs_ ) ) * scalar;
+            osres_  = ( eval( lhs_ ) - eval( rhs_ ) ) * scalar;
+            refres_ = ( eval( reflhs_ ) - eval( refrhs_ ) ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -2532,11 +2877,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = ( eval( lhs_ ) + eval( orhs_ ) ) * scalar;
-            odres_  = ( eval( lhs_ ) + eval( orhs_ ) ) * scalar;
-            sres_   = ( eval( lhs_ ) + eval( orhs_ ) ) * scalar;
-            osres_  = ( eval( lhs_ ) + eval( orhs_ ) ) * scalar;
-            refres_ = ( eval( reflhs_ ) + eval( refrhs_ ) ) * scalar;
+            dres_   = ( eval( lhs_ ) - eval( orhs_ ) ) * scalar;
+            odres_  = ( eval( lhs_ ) - eval( orhs_ ) ) * scalar;
+            sres_   = ( eval( lhs_ ) - eval( orhs_ ) ) * scalar;
+            osres_  = ( eval( lhs_ ) - eval( orhs_ ) ) * scalar;
+            refres_ = ( eval( reflhs_ ) - eval( refrhs_ ) ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -2546,11 +2891,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = ( eval( olhs_ ) + eval( rhs_ ) ) * scalar;
-            odres_  = ( eval( olhs_ ) + eval( rhs_ ) ) * scalar;
-            sres_   = ( eval( olhs_ ) + eval( rhs_ ) ) * scalar;
-            osres_  = ( eval( olhs_ ) + eval( rhs_ ) ) * scalar;
-            refres_ = ( eval( reflhs_ ) + eval( refrhs_ ) ) * scalar;
+            dres_   = ( eval( olhs_ ) - eval( rhs_ ) ) * scalar;
+            odres_  = ( eval( olhs_ ) - eval( rhs_ ) ) * scalar;
+            sres_   = ( eval( olhs_ ) - eval( rhs_ ) ) * scalar;
+            osres_  = ( eval( olhs_ ) - eval( rhs_ ) ) * scalar;
+            refres_ = ( eval( reflhs_ ) - eval( refrhs_ ) ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -2560,11 +2905,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = ( eval( olhs_ ) + eval( orhs_ ) ) * scalar;
-            odres_  = ( eval( olhs_ ) + eval( orhs_ ) ) * scalar;
-            sres_   = ( eval( olhs_ ) + eval( orhs_ ) ) * scalar;
-            osres_  = ( eval( olhs_ ) + eval( orhs_ ) ) * scalar;
-            refres_ = ( eval( reflhs_ ) + eval( refrhs_ ) ) * scalar;
+            dres_   = ( eval( olhs_ ) - eval( orhs_ ) ) * scalar;
+            odres_  = ( eval( olhs_ ) - eval( orhs_ ) ) * scalar;
+            sres_   = ( eval( olhs_ ) - eval( orhs_ ) ) * scalar;
+            osres_  = ( eval( olhs_ ) - eval( orhs_ ) ) * scalar;
+            refres_ = ( eval( reflhs_ ) - eval( refrhs_ ) ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -2585,11 +2930,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = ( lhs_ + rhs_ ) / scalar;
-            odres_  = ( lhs_ + rhs_ ) / scalar;
-            sres_   = ( lhs_ + rhs_ ) / scalar;
-            osres_  = ( lhs_ + rhs_ ) / scalar;
-            refres_ = ( reflhs_ + refrhs_ ) / scalar;
+            dres_   = ( lhs_ - rhs_ ) / scalar;
+            odres_  = ( lhs_ - rhs_ ) / scalar;
+            sres_   = ( lhs_ - rhs_ ) / scalar;
+            osres_  = ( lhs_ - rhs_ ) / scalar;
+            refres_ = ( reflhs_ - refrhs_ ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -2599,11 +2944,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = ( lhs_ + orhs_ ) / scalar;
-            odres_  = ( lhs_ + orhs_ ) / scalar;
-            sres_   = ( lhs_ + orhs_ ) / scalar;
-            osres_  = ( lhs_ + orhs_ ) / scalar;
-            refres_ = ( reflhs_ + refrhs_ ) / scalar;
+            dres_   = ( lhs_ - orhs_ ) / scalar;
+            odres_  = ( lhs_ - orhs_ ) / scalar;
+            sres_   = ( lhs_ - orhs_ ) / scalar;
+            osres_  = ( lhs_ - orhs_ ) / scalar;
+            refres_ = ( reflhs_ - refrhs_ ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -2613,11 +2958,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = ( olhs_ + rhs_ ) / scalar;
-            odres_  = ( olhs_ + rhs_ ) / scalar;
-            sres_   = ( olhs_ + rhs_ ) / scalar;
-            osres_  = ( olhs_ + rhs_ ) / scalar;
-            refres_ = ( reflhs_ + refrhs_ ) / scalar;
+            dres_   = ( olhs_ - rhs_ ) / scalar;
+            odres_  = ( olhs_ - rhs_ ) / scalar;
+            sres_   = ( olhs_ - rhs_ ) / scalar;
+            osres_  = ( olhs_ - rhs_ ) / scalar;
+            refres_ = ( reflhs_ - refrhs_ ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -2627,11 +2972,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = ( olhs_ + orhs_ ) / scalar;
-            odres_  = ( olhs_ + orhs_ ) / scalar;
-            sres_   = ( olhs_ + orhs_ ) / scalar;
-            osres_  = ( olhs_ + orhs_ ) / scalar;
-            refres_ = ( reflhs_ + refrhs_ ) / scalar;
+            dres_   = ( olhs_ - orhs_ ) / scalar;
+            odres_  = ( olhs_ - orhs_ ) / scalar;
+            sres_   = ( olhs_ - orhs_ ) / scalar;
+            osres_  = ( olhs_ - orhs_ ) / scalar;
+            refres_ = ( reflhs_ - refrhs_ ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -2647,11 +2992,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = ( eval( lhs_ ) + eval( rhs_ ) ) / scalar;
-            odres_  = ( eval( lhs_ ) + eval( rhs_ ) ) / scalar;
-            sres_   = ( eval( lhs_ ) + eval( rhs_ ) ) / scalar;
-            osres_  = ( eval( lhs_ ) + eval( rhs_ ) ) / scalar;
-            refres_ = ( eval( reflhs_ ) + eval( refrhs_ ) ) / scalar;
+            dres_   = ( eval( lhs_ ) - eval( rhs_ ) ) / scalar;
+            odres_  = ( eval( lhs_ ) - eval( rhs_ ) ) / scalar;
+            sres_   = ( eval( lhs_ ) - eval( rhs_ ) ) / scalar;
+            osres_  = ( eval( lhs_ ) - eval( rhs_ ) ) / scalar;
+            refres_ = ( eval( reflhs_ ) - eval( refrhs_ ) ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -2661,11 +3006,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = ( eval( lhs_ ) + eval( orhs_ ) ) / scalar;
-            odres_  = ( eval( lhs_ ) + eval( orhs_ ) ) / scalar;
-            sres_   = ( eval( lhs_ ) + eval( orhs_ ) ) / scalar;
-            osres_  = ( eval( lhs_ ) + eval( orhs_ ) ) / scalar;
-            refres_ = ( eval( reflhs_ ) + eval( refrhs_ ) ) / scalar;
+            dres_   = ( eval( lhs_ ) - eval( orhs_ ) ) / scalar;
+            odres_  = ( eval( lhs_ ) - eval( orhs_ ) ) / scalar;
+            sres_   = ( eval( lhs_ ) - eval( orhs_ ) ) / scalar;
+            osres_  = ( eval( lhs_ ) - eval( orhs_ ) ) / scalar;
+            refres_ = ( eval( reflhs_ ) - eval( refrhs_ ) ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -2675,11 +3020,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = ( eval( olhs_ ) + eval( rhs_ ) ) / scalar;
-            odres_  = ( eval( olhs_ ) + eval( rhs_ ) ) / scalar;
-            sres_   = ( eval( olhs_ ) + eval( rhs_ ) ) / scalar;
-            osres_  = ( eval( olhs_ ) + eval( rhs_ ) ) / scalar;
-            refres_ = ( eval( reflhs_ ) + eval( refrhs_ ) ) / scalar;
+            dres_   = ( eval( olhs_ ) - eval( rhs_ ) ) / scalar;
+            odres_  = ( eval( olhs_ ) - eval( rhs_ ) ) / scalar;
+            sres_   = ( eval( olhs_ ) - eval( rhs_ ) ) / scalar;
+            osres_  = ( eval( olhs_ ) - eval( rhs_ ) ) / scalar;
+            refres_ = ( eval( reflhs_ ) - eval( refrhs_ ) ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -2689,11 +3034,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   = ( eval( olhs_ ) + eval( orhs_ ) ) / scalar;
-            odres_  = ( eval( olhs_ ) + eval( orhs_ ) ) / scalar;
-            sres_   = ( eval( olhs_ ) + eval( orhs_ ) ) / scalar;
-            osres_  = ( eval( olhs_ ) + eval( orhs_ ) ) / scalar;
-            refres_ = ( eval( reflhs_ ) + eval( refrhs_ ) ) / scalar;
+            dres_   = ( eval( olhs_ ) - eval( orhs_ ) ) / scalar;
+            odres_  = ( eval( olhs_ ) - eval( orhs_ ) ) / scalar;
+            sres_   = ( eval( olhs_ ) - eval( orhs_ ) ) / scalar;
+            osres_  = ( eval( olhs_ ) - eval( orhs_ ) ) / scalar;
+            refres_ = ( eval( reflhs_ ) - eval( refrhs_ ) ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -2714,11 +3059,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += scalar * ( lhs_ + rhs_ );
-            odres_  += scalar * ( lhs_ + rhs_ );
-            sres_   += scalar * ( lhs_ + rhs_ );
-            osres_  += scalar * ( lhs_ + rhs_ );
-            refres_ += scalar * ( reflhs_ + refrhs_ );
+            dres_   += scalar * ( lhs_ - rhs_ );
+            odres_  += scalar * ( lhs_ - rhs_ );
+            sres_   += scalar * ( lhs_ - rhs_ );
+            osres_  += scalar * ( lhs_ - rhs_ );
+            refres_ += scalar * ( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -2728,11 +3073,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += scalar * ( lhs_ + orhs_ );
-            odres_  += scalar * ( lhs_ + orhs_ );
-            sres_   += scalar * ( lhs_ + orhs_ );
-            osres_  += scalar * ( lhs_ + orhs_ );
-            refres_ += scalar * ( reflhs_ + refrhs_ );
+            dres_   += scalar * ( lhs_ - orhs_ );
+            odres_  += scalar * ( lhs_ - orhs_ );
+            sres_   += scalar * ( lhs_ - orhs_ );
+            osres_  += scalar * ( lhs_ - orhs_ );
+            refres_ += scalar * ( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -2742,11 +3087,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += scalar * ( olhs_ + rhs_ );
-            odres_  += scalar * ( olhs_ + rhs_ );
-            sres_   += scalar * ( olhs_ + rhs_ );
-            osres_  += scalar * ( olhs_ + rhs_ );
-            refres_ += scalar * ( reflhs_ + refrhs_ );
+            dres_   += scalar * ( olhs_ - rhs_ );
+            odres_  += scalar * ( olhs_ - rhs_ );
+            sres_   += scalar * ( olhs_ - rhs_ );
+            osres_  += scalar * ( olhs_ - rhs_ );
+            refres_ += scalar * ( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -2756,11 +3101,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += scalar * ( olhs_ + orhs_ );
-            odres_  += scalar * ( olhs_ + orhs_ );
-            sres_   += scalar * ( olhs_ + orhs_ );
-            osres_  += scalar * ( olhs_ + orhs_ );
-            refres_ += scalar * ( reflhs_ + refrhs_ );
+            dres_   += scalar * ( olhs_ - orhs_ );
+            odres_  += scalar * ( olhs_ - orhs_ );
+            sres_   += scalar * ( olhs_ - orhs_ );
+            osres_  += scalar * ( olhs_ - orhs_ );
+            refres_ += scalar * ( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -2776,11 +3121,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += scalar * ( eval( lhs_ ) + eval( rhs_ ) );
-            odres_  += scalar * ( eval( lhs_ ) + eval( rhs_ ) );
-            sres_   += scalar * ( eval( lhs_ ) + eval( rhs_ ) );
-            osres_  += scalar * ( eval( lhs_ ) + eval( rhs_ ) );
-            refres_ += scalar * ( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   += scalar * ( eval( lhs_ ) - eval( rhs_ ) );
+            odres_  += scalar * ( eval( lhs_ ) - eval( rhs_ ) );
+            sres_   += scalar * ( eval( lhs_ ) - eval( rhs_ ) );
+            osres_  += scalar * ( eval( lhs_ ) - eval( rhs_ ) );
+            refres_ += scalar * ( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -2790,11 +3135,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += scalar * ( eval( lhs_ ) + eval( orhs_ ) );
-            odres_  += scalar * ( eval( lhs_ ) + eval( orhs_ ) );
-            sres_   += scalar * ( eval( lhs_ ) + eval( orhs_ ) );
-            osres_  += scalar * ( eval( lhs_ ) + eval( orhs_ ) );
-            refres_ += scalar * ( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   += scalar * ( eval( lhs_ ) - eval( orhs_ ) );
+            odres_  += scalar * ( eval( lhs_ ) - eval( orhs_ ) );
+            sres_   += scalar * ( eval( lhs_ ) - eval( orhs_ ) );
+            osres_  += scalar * ( eval( lhs_ ) - eval( orhs_ ) );
+            refres_ += scalar * ( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -2804,11 +3149,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += scalar * ( eval( olhs_ ) + eval( rhs_ ) );
-            odres_  += scalar * ( eval( olhs_ ) + eval( rhs_ ) );
-            sres_   += scalar * ( eval( olhs_ ) + eval( rhs_ ) );
-            osres_  += scalar * ( eval( olhs_ ) + eval( rhs_ ) );
-            refres_ += scalar * ( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   += scalar * ( eval( olhs_ ) - eval( rhs_ ) );
+            odres_  += scalar * ( eval( olhs_ ) - eval( rhs_ ) );
+            sres_   += scalar * ( eval( olhs_ ) - eval( rhs_ ) );
+            osres_  += scalar * ( eval( olhs_ ) - eval( rhs_ ) );
+            refres_ += scalar * ( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -2818,11 +3163,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += scalar * ( eval( olhs_ ) + eval( orhs_ ) );
-            odres_  += scalar * ( eval( olhs_ ) + eval( orhs_ ) );
-            sres_   += scalar * ( eval( olhs_ ) + eval( orhs_ ) );
-            osres_  += scalar * ( eval( olhs_ ) + eval( orhs_ ) );
-            refres_ += scalar * ( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   += scalar * ( eval( olhs_ ) - eval( orhs_ ) );
+            odres_  += scalar * ( eval( olhs_ ) - eval( orhs_ ) );
+            sres_   += scalar * ( eval( olhs_ ) - eval( orhs_ ) );
+            osres_  += scalar * ( eval( olhs_ ) - eval( orhs_ ) );
+            refres_ += scalar * ( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -2843,11 +3188,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += ( lhs_ + rhs_ ) * scalar;
-            odres_  += ( lhs_ + rhs_ ) * scalar;
-            sres_   += ( lhs_ + rhs_ ) * scalar;
-            osres_  += ( lhs_ + rhs_ ) * scalar;
-            refres_ += ( reflhs_ + refrhs_ ) * scalar;
+            dres_   += ( lhs_ - rhs_ ) * scalar;
+            odres_  += ( lhs_ - rhs_ ) * scalar;
+            sres_   += ( lhs_ - rhs_ ) * scalar;
+            osres_  += ( lhs_ - rhs_ ) * scalar;
+            refres_ += ( reflhs_ - refrhs_ ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -2857,11 +3202,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += ( lhs_ + orhs_ ) * scalar;
-            odres_  += ( lhs_ + orhs_ ) * scalar;
-            sres_   += ( lhs_ + orhs_ ) * scalar;
-            osres_  += ( lhs_ + orhs_ ) * scalar;
-            refres_ += ( reflhs_ + refrhs_ ) * scalar;
+            dres_   += ( lhs_ - orhs_ ) * scalar;
+            odres_  += ( lhs_ - orhs_ ) * scalar;
+            sres_   += ( lhs_ - orhs_ ) * scalar;
+            osres_  += ( lhs_ - orhs_ ) * scalar;
+            refres_ += ( reflhs_ - refrhs_ ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -2871,11 +3216,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += ( olhs_ + rhs_ ) * scalar;
-            odres_  += ( olhs_ + rhs_ ) * scalar;
-            sres_   += ( olhs_ + rhs_ ) * scalar;
-            osres_  += ( olhs_ + rhs_ ) * scalar;
-            refres_ += ( reflhs_ + refrhs_ ) * scalar;
+            dres_   += ( olhs_ - rhs_ ) * scalar;
+            odres_  += ( olhs_ - rhs_ ) * scalar;
+            sres_   += ( olhs_ - rhs_ ) * scalar;
+            osres_  += ( olhs_ - rhs_ ) * scalar;
+            refres_ += ( reflhs_ - refrhs_ ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -2885,11 +3230,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += ( olhs_ + orhs_ ) * scalar;
-            odres_  += ( olhs_ + orhs_ ) * scalar;
-            sres_   += ( olhs_ + orhs_ ) * scalar;
-            osres_  += ( olhs_ + orhs_ ) * scalar;
-            refres_ += ( reflhs_ + refrhs_ ) * scalar;
+            dres_   += ( olhs_ - orhs_ ) * scalar;
+            odres_  += ( olhs_ - orhs_ ) * scalar;
+            sres_   += ( olhs_ - orhs_ ) * scalar;
+            osres_  += ( olhs_ - orhs_ ) * scalar;
+            refres_ += ( reflhs_ - refrhs_ ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -2905,11 +3250,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += ( eval( lhs_ ) + eval( rhs_ ) ) * scalar;
-            odres_  += ( eval( lhs_ ) + eval( rhs_ ) ) * scalar;
-            sres_   += ( eval( lhs_ ) + eval( rhs_ ) ) * scalar;
-            osres_  += ( eval( lhs_ ) + eval( rhs_ ) ) * scalar;
-            refres_ += ( eval( reflhs_ ) + eval( refrhs_ ) ) * scalar;
+            dres_   += ( eval( lhs_ ) - eval( rhs_ ) ) * scalar;
+            odres_  += ( eval( lhs_ ) - eval( rhs_ ) ) * scalar;
+            sres_   += ( eval( lhs_ ) - eval( rhs_ ) ) * scalar;
+            osres_  += ( eval( lhs_ ) - eval( rhs_ ) ) * scalar;
+            refres_ += ( eval( reflhs_ ) - eval( refrhs_ ) ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -2919,11 +3264,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += ( eval( lhs_ ) + eval( orhs_ ) ) * scalar;
-            odres_  += ( eval( lhs_ ) + eval( orhs_ ) ) * scalar;
-            sres_   += ( eval( lhs_ ) + eval( orhs_ ) ) * scalar;
-            osres_  += ( eval( lhs_ ) + eval( orhs_ ) ) * scalar;
-            refres_ += ( eval( reflhs_ ) + eval( refrhs_ ) ) * scalar;
+            dres_   += ( eval( lhs_ ) - eval( orhs_ ) ) * scalar;
+            odres_  += ( eval( lhs_ ) - eval( orhs_ ) ) * scalar;
+            sres_   += ( eval( lhs_ ) - eval( orhs_ ) ) * scalar;
+            osres_  += ( eval( lhs_ ) - eval( orhs_ ) ) * scalar;
+            refres_ += ( eval( reflhs_ ) - eval( refrhs_ ) ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -2933,11 +3278,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += ( eval( olhs_ ) + eval( rhs_ ) ) * scalar;
-            odres_  += ( eval( olhs_ ) + eval( rhs_ ) ) * scalar;
-            sres_   += ( eval( olhs_ ) + eval( rhs_ ) ) * scalar;
-            osres_  += ( eval( olhs_ ) + eval( rhs_ ) ) * scalar;
-            refres_ += ( eval( reflhs_ ) + eval( refrhs_ ) ) * scalar;
+            dres_   += ( eval( olhs_ ) - eval( rhs_ ) ) * scalar;
+            odres_  += ( eval( olhs_ ) - eval( rhs_ ) ) * scalar;
+            sres_   += ( eval( olhs_ ) - eval( rhs_ ) ) * scalar;
+            osres_  += ( eval( olhs_ ) - eval( rhs_ ) ) * scalar;
+            refres_ += ( eval( reflhs_ ) - eval( refrhs_ ) ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -2947,11 +3292,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += ( eval( olhs_ ) + eval( orhs_ ) ) * scalar;
-            odres_  += ( eval( olhs_ ) + eval( orhs_ ) ) * scalar;
-            sres_   += ( eval( olhs_ ) + eval( orhs_ ) ) * scalar;
-            osres_  += ( eval( olhs_ ) + eval( orhs_ ) ) * scalar;
-            refres_ += ( eval( reflhs_ ) + eval( refrhs_ ) ) * scalar;
+            dres_   += ( eval( olhs_ ) - eval( orhs_ ) ) * scalar;
+            odres_  += ( eval( olhs_ ) - eval( orhs_ ) ) * scalar;
+            sres_   += ( eval( olhs_ ) - eval( orhs_ ) ) * scalar;
+            osres_  += ( eval( olhs_ ) - eval( orhs_ ) ) * scalar;
+            refres_ += ( eval( reflhs_ ) - eval( refrhs_ ) ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -2972,11 +3317,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += ( lhs_ + rhs_ ) / scalar;
-            odres_  += ( lhs_ + rhs_ ) / scalar;
-            sres_   += ( lhs_ + rhs_ ) / scalar;
-            osres_  += ( lhs_ + rhs_ ) / scalar;
-            refres_ += ( reflhs_ + refrhs_ ) / scalar;
+            dres_   += ( lhs_ - rhs_ ) / scalar;
+            odres_  += ( lhs_ - rhs_ ) / scalar;
+            sres_   += ( lhs_ - rhs_ ) / scalar;
+            osres_  += ( lhs_ - rhs_ ) / scalar;
+            refres_ += ( reflhs_ - refrhs_ ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -2986,11 +3331,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += ( lhs_ + orhs_ ) / scalar;
-            odres_  += ( lhs_ + orhs_ ) / scalar;
-            sres_   += ( lhs_ + orhs_ ) / scalar;
-            osres_  += ( lhs_ + orhs_ ) / scalar;
-            refres_ += ( reflhs_ + refrhs_ ) / scalar;
+            dres_   += ( lhs_ - orhs_ ) / scalar;
+            odres_  += ( lhs_ - orhs_ ) / scalar;
+            sres_   += ( lhs_ - orhs_ ) / scalar;
+            osres_  += ( lhs_ - orhs_ ) / scalar;
+            refres_ += ( reflhs_ - refrhs_ ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -3000,11 +3345,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += ( olhs_ + rhs_ ) / scalar;
-            odres_  += ( olhs_ + rhs_ ) / scalar;
-            sres_   += ( olhs_ + rhs_ ) / scalar;
-            osres_  += ( olhs_ + rhs_ ) / scalar;
-            refres_ += ( reflhs_ + refrhs_ ) / scalar;
+            dres_   += ( olhs_ - rhs_ ) / scalar;
+            odres_  += ( olhs_ - rhs_ ) / scalar;
+            sres_   += ( olhs_ - rhs_ ) / scalar;
+            osres_  += ( olhs_ - rhs_ ) / scalar;
+            refres_ += ( reflhs_ - refrhs_ ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -3014,11 +3359,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += ( olhs_ + orhs_ ) / scalar;
-            odres_  += ( olhs_ + orhs_ ) / scalar;
-            sres_   += ( olhs_ + orhs_ ) / scalar;
-            osres_  += ( olhs_ + orhs_ ) / scalar;
-            refres_ += ( reflhs_ + refrhs_ ) / scalar;
+            dres_   += ( olhs_ - orhs_ ) / scalar;
+            odres_  += ( olhs_ - orhs_ ) / scalar;
+            sres_   += ( olhs_ - orhs_ ) / scalar;
+            osres_  += ( olhs_ - orhs_ ) / scalar;
+            refres_ += ( reflhs_ - refrhs_ ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -3034,11 +3379,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += ( eval( lhs_ ) + eval( rhs_ ) ) / scalar;
-            odres_  += ( eval( lhs_ ) + eval( rhs_ ) ) / scalar;
-            sres_   += ( eval( lhs_ ) + eval( rhs_ ) ) / scalar;
-            osres_  += ( eval( lhs_ ) + eval( rhs_ ) ) / scalar;
-            refres_ += ( eval( reflhs_ ) + eval( refrhs_ ) ) / scalar;
+            dres_   += ( eval( lhs_ ) - eval( rhs_ ) ) / scalar;
+            odres_  += ( eval( lhs_ ) - eval( rhs_ ) ) / scalar;
+            sres_   += ( eval( lhs_ ) - eval( rhs_ ) ) / scalar;
+            osres_  += ( eval( lhs_ ) - eval( rhs_ ) ) / scalar;
+            refres_ += ( eval( reflhs_ ) - eval( refrhs_ ) ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -3048,11 +3393,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += ( eval( lhs_ ) + eval( orhs_ ) ) / scalar;
-            odres_  += ( eval( lhs_ ) + eval( orhs_ ) ) / scalar;
-            sres_   += ( eval( lhs_ ) + eval( orhs_ ) ) / scalar;
-            osres_  += ( eval( lhs_ ) + eval( orhs_ ) ) / scalar;
-            refres_ += ( eval( reflhs_ ) + eval( refrhs_ ) ) / scalar;
+            dres_   += ( eval( lhs_ ) - eval( orhs_ ) ) / scalar;
+            odres_  += ( eval( lhs_ ) - eval( orhs_ ) ) / scalar;
+            sres_   += ( eval( lhs_ ) - eval( orhs_ ) ) / scalar;
+            osres_  += ( eval( lhs_ ) - eval( orhs_ ) ) / scalar;
+            refres_ += ( eval( reflhs_ ) - eval( refrhs_ ) ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -3062,11 +3407,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += ( eval( olhs_ ) + eval( rhs_ ) ) / scalar;
-            odres_  += ( eval( olhs_ ) + eval( rhs_ ) ) / scalar;
-            sres_   += ( eval( olhs_ ) + eval( rhs_ ) ) / scalar;
-            osres_  += ( eval( olhs_ ) + eval( rhs_ ) ) / scalar;
-            refres_ += ( eval( reflhs_ ) + eval( refrhs_ ) ) / scalar;
+            dres_   += ( eval( olhs_ ) - eval( rhs_ ) ) / scalar;
+            odres_  += ( eval( olhs_ ) - eval( rhs_ ) ) / scalar;
+            sres_   += ( eval( olhs_ ) - eval( rhs_ ) ) / scalar;
+            osres_  += ( eval( olhs_ ) - eval( rhs_ ) ) / scalar;
+            refres_ += ( eval( reflhs_ ) - eval( refrhs_ ) ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -3076,11 +3421,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   += ( eval( olhs_ ) + eval( orhs_ ) ) / scalar;
-            odres_  += ( eval( olhs_ ) + eval( orhs_ ) ) / scalar;
-            sres_   += ( eval( olhs_ ) + eval( orhs_ ) ) / scalar;
-            osres_  += ( eval( olhs_ ) + eval( orhs_ ) ) / scalar;
-            refres_ += ( eval( reflhs_ ) + eval( refrhs_ ) ) / scalar;
+            dres_   += ( eval( olhs_ ) - eval( orhs_ ) ) / scalar;
+            odres_  += ( eval( olhs_ ) - eval( orhs_ ) ) / scalar;
+            sres_   += ( eval( olhs_ ) - eval( orhs_ ) ) / scalar;
+            osres_  += ( eval( olhs_ ) - eval( orhs_ ) ) / scalar;
+            refres_ += ( eval( reflhs_ ) - eval( refrhs_ ) ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -3101,11 +3446,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= scalar * ( lhs_ + rhs_ );
-            odres_  -= scalar * ( lhs_ + rhs_ );
-            sres_   -= scalar * ( lhs_ + rhs_ );
-            osres_  -= scalar * ( lhs_ + rhs_ );
-            refres_ -= scalar * ( reflhs_ + refrhs_ );
+            dres_   -= scalar * ( lhs_ - rhs_ );
+            odres_  -= scalar * ( lhs_ - rhs_ );
+            sres_   -= scalar * ( lhs_ - rhs_ );
+            osres_  -= scalar * ( lhs_ - rhs_ );
+            refres_ -= scalar * ( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -3115,11 +3460,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= scalar * ( lhs_ + orhs_ );
-            odres_  -= scalar * ( lhs_ + orhs_ );
-            sres_   -= scalar * ( lhs_ + orhs_ );
-            osres_  -= scalar * ( lhs_ + orhs_ );
-            refres_ -= scalar * ( reflhs_ + refrhs_ );
+            dres_   -= scalar * ( lhs_ - orhs_ );
+            odres_  -= scalar * ( lhs_ - orhs_ );
+            sres_   -= scalar * ( lhs_ - orhs_ );
+            osres_  -= scalar * ( lhs_ - orhs_ );
+            refres_ -= scalar * ( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -3129,11 +3474,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= scalar * ( olhs_ + rhs_ );
-            odres_  -= scalar * ( olhs_ + rhs_ );
-            sres_   -= scalar * ( olhs_ + rhs_ );
-            osres_  -= scalar * ( olhs_ + rhs_ );
-            refres_ -= scalar * ( reflhs_ + refrhs_ );
+            dres_   -= scalar * ( olhs_ - rhs_ );
+            odres_  -= scalar * ( olhs_ - rhs_ );
+            sres_   -= scalar * ( olhs_ - rhs_ );
+            osres_  -= scalar * ( olhs_ - rhs_ );
+            refres_ -= scalar * ( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -3143,11 +3488,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= scalar * ( olhs_ + orhs_ );
-            odres_  -= scalar * ( olhs_ + orhs_ );
-            sres_   -= scalar * ( olhs_ + orhs_ );
-            osres_  -= scalar * ( olhs_ + orhs_ );
-            refres_ -= scalar * ( reflhs_ + refrhs_ );
+            dres_   -= scalar * ( olhs_ - orhs_ );
+            odres_  -= scalar * ( olhs_ - orhs_ );
+            sres_   -= scalar * ( olhs_ - orhs_ );
+            osres_  -= scalar * ( olhs_ - orhs_ );
+            refres_ -= scalar * ( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -3163,11 +3508,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= scalar * ( eval( lhs_ ) + eval( rhs_ ) );
-            odres_  -= scalar * ( eval( lhs_ ) + eval( rhs_ ) );
-            sres_   -= scalar * ( eval( lhs_ ) + eval( rhs_ ) );
-            osres_  -= scalar * ( eval( lhs_ ) + eval( rhs_ ) );
-            refres_ -= scalar * ( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   -= scalar * ( eval( lhs_ ) - eval( rhs_ ) );
+            odres_  -= scalar * ( eval( lhs_ ) - eval( rhs_ ) );
+            sres_   -= scalar * ( eval( lhs_ ) - eval( rhs_ ) );
+            osres_  -= scalar * ( eval( lhs_ ) - eval( rhs_ ) );
+            refres_ -= scalar * ( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -3177,11 +3522,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= scalar * ( eval( lhs_ ) + eval( orhs_ ) );
-            odres_  -= scalar * ( eval( lhs_ ) + eval( orhs_ ) );
-            sres_   -= scalar * ( eval( lhs_ ) + eval( orhs_ ) );
-            osres_  -= scalar * ( eval( lhs_ ) + eval( orhs_ ) );
-            refres_ -= scalar * ( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   -= scalar * ( eval( lhs_ ) - eval( orhs_ ) );
+            odres_  -= scalar * ( eval( lhs_ ) - eval( orhs_ ) );
+            sres_   -= scalar * ( eval( lhs_ ) - eval( orhs_ ) );
+            osres_  -= scalar * ( eval( lhs_ ) - eval( orhs_ ) );
+            refres_ -= scalar * ( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -3191,11 +3536,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= scalar * ( eval( olhs_ ) + eval( rhs_ ) );
-            odres_  -= scalar * ( eval( olhs_ ) + eval( rhs_ ) );
-            sres_   -= scalar * ( eval( olhs_ ) + eval( rhs_ ) );
-            osres_  -= scalar * ( eval( olhs_ ) + eval( rhs_ ) );
-            refres_ -= scalar * ( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   -= scalar * ( eval( olhs_ ) - eval( rhs_ ) );
+            odres_  -= scalar * ( eval( olhs_ ) - eval( rhs_ ) );
+            sres_   -= scalar * ( eval( olhs_ ) - eval( rhs_ ) );
+            osres_  -= scalar * ( eval( olhs_ ) - eval( rhs_ ) );
+            refres_ -= scalar * ( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -3205,11 +3550,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= scalar * ( eval( olhs_ ) + eval( orhs_ ) );
-            odres_  -= scalar * ( eval( olhs_ ) + eval( orhs_ ) );
-            sres_   -= scalar * ( eval( olhs_ ) + eval( orhs_ ) );
-            osres_  -= scalar * ( eval( olhs_ ) + eval( orhs_ ) );
-            refres_ -= scalar * ( eval( reflhs_ ) + eval( refrhs_ ) );
+            dres_   -= scalar * ( eval( olhs_ ) - eval( orhs_ ) );
+            odres_  -= scalar * ( eval( olhs_ ) - eval( orhs_ ) );
+            sres_   -= scalar * ( eval( olhs_ ) - eval( orhs_ ) );
+            osres_  -= scalar * ( eval( olhs_ ) - eval( orhs_ ) );
+            refres_ -= scalar * ( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -3230,11 +3575,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= ( lhs_ + rhs_ ) * scalar;
-            odres_  -= ( lhs_ + rhs_ ) * scalar;
-            sres_   -= ( lhs_ + rhs_ ) * scalar;
-            osres_  -= ( lhs_ + rhs_ ) * scalar;
-            refres_ -= ( reflhs_ + refrhs_ ) * scalar;
+            dres_   -= ( lhs_ - rhs_ ) * scalar;
+            odres_  -= ( lhs_ - rhs_ ) * scalar;
+            sres_   -= ( lhs_ - rhs_ ) * scalar;
+            osres_  -= ( lhs_ - rhs_ ) * scalar;
+            refres_ -= ( reflhs_ - refrhs_ ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -3244,11 +3589,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= ( lhs_ + orhs_ ) * scalar;
-            odres_  -= ( lhs_ + orhs_ ) * scalar;
-            sres_   -= ( lhs_ + orhs_ ) * scalar;
-            osres_  -= ( lhs_ + orhs_ ) * scalar;
-            refres_ -= ( reflhs_ + refrhs_ ) * scalar;
+            dres_   -= ( lhs_ - orhs_ ) * scalar;
+            odres_  -= ( lhs_ - orhs_ ) * scalar;
+            sres_   -= ( lhs_ - orhs_ ) * scalar;
+            osres_  -= ( lhs_ - orhs_ ) * scalar;
+            refres_ -= ( reflhs_ - refrhs_ ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -3258,11 +3603,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= ( olhs_ + rhs_ ) * scalar;
-            odres_  -= ( olhs_ + rhs_ ) * scalar;
-            sres_   -= ( olhs_ + rhs_ ) * scalar;
-            osres_  -= ( olhs_ + rhs_ ) * scalar;
-            refres_ -= ( reflhs_ + refrhs_ ) * scalar;
+            dres_   -= ( olhs_ - rhs_ ) * scalar;
+            odres_  -= ( olhs_ - rhs_ ) * scalar;
+            sres_   -= ( olhs_ - rhs_ ) * scalar;
+            osres_  -= ( olhs_ - rhs_ ) * scalar;
+            refres_ -= ( reflhs_ - refrhs_ ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -3272,11 +3617,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= ( olhs_ + orhs_ ) * scalar;
-            odres_  -= ( olhs_ + orhs_ ) * scalar;
-            sres_   -= ( olhs_ + orhs_ ) * scalar;
-            osres_  -= ( olhs_ + orhs_ ) * scalar;
-            refres_ -= ( reflhs_ + refrhs_ ) * scalar;
+            dres_   -= ( olhs_ - orhs_ ) * scalar;
+            odres_  -= ( olhs_ - orhs_ ) * scalar;
+            sres_   -= ( olhs_ - orhs_ ) * scalar;
+            osres_  -= ( olhs_ - orhs_ ) * scalar;
+            refres_ -= ( reflhs_ - refrhs_ ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -3292,11 +3637,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= ( eval( lhs_ ) + eval( rhs_ ) ) * scalar;
-            odres_  -= ( eval( lhs_ ) + eval( rhs_ ) ) * scalar;
-            sres_   -= ( eval( lhs_ ) + eval( rhs_ ) ) * scalar;
-            osres_  -= ( eval( lhs_ ) + eval( rhs_ ) ) * scalar;
-            refres_ -= ( eval( reflhs_ ) + eval( refrhs_ ) ) * scalar;
+            dres_   -= ( eval( lhs_ ) - eval( rhs_ ) ) * scalar;
+            odres_  -= ( eval( lhs_ ) - eval( rhs_ ) ) * scalar;
+            sres_   -= ( eval( lhs_ ) - eval( rhs_ ) ) * scalar;
+            osres_  -= ( eval( lhs_ ) - eval( rhs_ ) ) * scalar;
+            refres_ -= ( eval( reflhs_ ) - eval( refrhs_ ) ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -3306,11 +3651,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= ( eval( lhs_ ) + eval( orhs_ ) ) * scalar;
-            odres_  -= ( eval( lhs_ ) + eval( orhs_ ) ) * scalar;
-            sres_   -= ( eval( lhs_ ) + eval( orhs_ ) ) * scalar;
-            osres_  -= ( eval( lhs_ ) + eval( orhs_ ) ) * scalar;
-            refres_ -= ( eval( reflhs_ ) + eval( refrhs_ ) ) * scalar;
+            dres_   -= ( eval( lhs_ ) - eval( orhs_ ) ) * scalar;
+            odres_  -= ( eval( lhs_ ) - eval( orhs_ ) ) * scalar;
+            sres_   -= ( eval( lhs_ ) - eval( orhs_ ) ) * scalar;
+            osres_  -= ( eval( lhs_ ) - eval( orhs_ ) ) * scalar;
+            refres_ -= ( eval( reflhs_ ) - eval( refrhs_ ) ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -3320,11 +3665,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= ( eval( olhs_ ) + eval( rhs_ ) ) * scalar;
-            odres_  -= ( eval( olhs_ ) + eval( rhs_ ) ) * scalar;
-            sres_   -= ( eval( olhs_ ) + eval( rhs_ ) ) * scalar;
-            osres_  -= ( eval( olhs_ ) + eval( rhs_ ) ) * scalar;
-            refres_ -= ( eval( reflhs_ ) + eval( refrhs_ ) ) * scalar;
+            dres_   -= ( eval( olhs_ ) - eval( rhs_ ) ) * scalar;
+            odres_  -= ( eval( olhs_ ) - eval( rhs_ ) ) * scalar;
+            sres_   -= ( eval( olhs_ ) - eval( rhs_ ) ) * scalar;
+            osres_  -= ( eval( olhs_ ) - eval( rhs_ ) ) * scalar;
+            refres_ -= ( eval( reflhs_ ) - eval( refrhs_ ) ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -3334,11 +3679,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= ( eval( olhs_ ) + eval( orhs_ ) ) * scalar;
-            odres_  -= ( eval( olhs_ ) + eval( orhs_ ) ) * scalar;
-            sres_   -= ( eval( olhs_ ) + eval( orhs_ ) ) * scalar;
-            osres_  -= ( eval( olhs_ ) + eval( orhs_ ) ) * scalar;
-            refres_ -= ( eval( reflhs_ ) + eval( refrhs_ ) ) * scalar;
+            dres_   -= ( eval( olhs_ ) - eval( orhs_ ) ) * scalar;
+            odres_  -= ( eval( olhs_ ) - eval( orhs_ ) ) * scalar;
+            sres_   -= ( eval( olhs_ ) - eval( orhs_ ) ) * scalar;
+            osres_  -= ( eval( olhs_ ) - eval( orhs_ ) ) * scalar;
+            refres_ -= ( eval( reflhs_ ) - eval( refrhs_ ) ) * scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -3359,11 +3704,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= ( lhs_ + rhs_ ) / scalar;
-            odres_  -= ( lhs_ + rhs_ ) / scalar;
-            sres_   -= ( lhs_ + rhs_ ) / scalar;
-            osres_  -= ( lhs_ + rhs_ ) / scalar;
-            refres_ -= ( reflhs_ + refrhs_ ) / scalar;
+            dres_   -= ( lhs_ - rhs_ ) / scalar;
+            odres_  -= ( lhs_ - rhs_ ) / scalar;
+            sres_   -= ( lhs_ - rhs_ ) / scalar;
+            osres_  -= ( lhs_ - rhs_ ) / scalar;
+            refres_ -= ( reflhs_ - refrhs_ ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -3373,11 +3718,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= ( lhs_ + orhs_ ) / scalar;
-            odres_  -= ( lhs_ + orhs_ ) / scalar;
-            sres_   -= ( lhs_ + orhs_ ) / scalar;
-            osres_  -= ( lhs_ + orhs_ ) / scalar;
-            refres_ -= ( reflhs_ + refrhs_ ) / scalar;
+            dres_   -= ( lhs_ - orhs_ ) / scalar;
+            odres_  -= ( lhs_ - orhs_ ) / scalar;
+            sres_   -= ( lhs_ - orhs_ ) / scalar;
+            osres_  -= ( lhs_ - orhs_ ) / scalar;
+            refres_ -= ( reflhs_ - refrhs_ ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -3387,11 +3732,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= ( olhs_ + rhs_ ) / scalar;
-            odres_  -= ( olhs_ + rhs_ ) / scalar;
-            sres_   -= ( olhs_ + rhs_ ) / scalar;
-            osres_  -= ( olhs_ + rhs_ ) / scalar;
-            refres_ -= ( reflhs_ + refrhs_ ) / scalar;
+            dres_   -= ( olhs_ - rhs_ ) / scalar;
+            odres_  -= ( olhs_ - rhs_ ) / scalar;
+            sres_   -= ( olhs_ - rhs_ ) / scalar;
+            osres_  -= ( olhs_ - rhs_ ) / scalar;
+            refres_ -= ( reflhs_ - refrhs_ ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -3401,11 +3746,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= ( olhs_ + orhs_ ) / scalar;
-            odres_  -= ( olhs_ + orhs_ ) / scalar;
-            sres_   -= ( olhs_ + orhs_ ) / scalar;
-            osres_  -= ( olhs_ + orhs_ ) / scalar;
-            refres_ -= ( reflhs_ + refrhs_ ) / scalar;
+            dres_   -= ( olhs_ - orhs_ ) / scalar;
+            odres_  -= ( olhs_ - orhs_ ) / scalar;
+            sres_   -= ( olhs_ - orhs_ ) / scalar;
+            osres_  -= ( olhs_ - orhs_ ) / scalar;
+            refres_ -= ( reflhs_ - refrhs_ ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -3421,11 +3766,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= ( eval( lhs_ ) + eval( rhs_ ) ) / scalar;
-            odres_  -= ( eval( lhs_ ) + eval( rhs_ ) ) / scalar;
-            sres_   -= ( eval( lhs_ ) + eval( rhs_ ) ) / scalar;
-            osres_  -= ( eval( lhs_ ) + eval( rhs_ ) ) / scalar;
-            refres_ -= ( eval( reflhs_ ) + eval( refrhs_ ) ) / scalar;
+            dres_   -= ( eval( lhs_ ) - eval( rhs_ ) ) / scalar;
+            odres_  -= ( eval( lhs_ ) - eval( rhs_ ) ) / scalar;
+            sres_   -= ( eval( lhs_ ) - eval( rhs_ ) ) / scalar;
+            osres_  -= ( eval( lhs_ ) - eval( rhs_ ) ) / scalar;
+            refres_ -= ( eval( reflhs_ ) - eval( refrhs_ ) ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -3435,11 +3780,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= ( eval( lhs_ ) + eval( orhs_ ) ) / scalar;
-            odres_  -= ( eval( lhs_ ) + eval( orhs_ ) ) / scalar;
-            sres_   -= ( eval( lhs_ ) + eval( orhs_ ) ) / scalar;
-            osres_  -= ( eval( lhs_ ) + eval( orhs_ ) ) / scalar;
-            refres_ -= ( eval( reflhs_ ) + eval( refrhs_ ) ) / scalar;
+            dres_   -= ( eval( lhs_ ) - eval( orhs_ ) ) / scalar;
+            odres_  -= ( eval( lhs_ ) - eval( orhs_ ) ) / scalar;
+            sres_   -= ( eval( lhs_ ) - eval( orhs_ ) ) / scalar;
+            osres_  -= ( eval( lhs_ ) - eval( orhs_ ) ) / scalar;
+            refres_ -= ( eval( reflhs_ ) - eval( refrhs_ ) ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -3449,11 +3794,11 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= ( eval( olhs_ ) + eval( rhs_ ) ) / scalar;
-            odres_  -= ( eval( olhs_ ) + eval( rhs_ ) ) / scalar;
-            sres_   -= ( eval( olhs_ ) + eval( rhs_ ) ) / scalar;
-            osres_  -= ( eval( olhs_ ) + eval( rhs_ ) ) / scalar;
-            refres_ -= ( eval( reflhs_ ) + eval( refrhs_ ) ) / scalar;
+            dres_   -= ( eval( olhs_ ) - eval( rhs_ ) ) / scalar;
+            odres_  -= ( eval( olhs_ ) - eval( rhs_ ) ) / scalar;
+            sres_   -= ( eval( olhs_ ) - eval( rhs_ ) ) / scalar;
+            osres_  -= ( eval( olhs_ ) - eval( rhs_ ) ) / scalar;
+            refres_ -= ( eval( reflhs_ ) - eval( refrhs_ ) ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -3463,11 +3808,398 @@ void OperationTest<MT1,MT2>::testScaledOperation( T scalar )
 
          try {
             initResults();
-            dres_   -= ( eval( olhs_ ) + eval( orhs_ ) ) / scalar;
-            odres_  -= ( eval( olhs_ ) + eval( orhs_ ) ) / scalar;
-            sres_   -= ( eval( olhs_ ) + eval( orhs_ ) ) / scalar;
-            osres_  -= ( eval( olhs_ ) + eval( orhs_ ) ) / scalar;
-            refres_ -= ( eval( reflhs_ ) + eval( refrhs_ ) ) / scalar;
+            dres_   -= ( eval( olhs_ ) - eval( orhs_ ) ) / scalar;
+            odres_  -= ( eval( olhs_ ) - eval( orhs_ ) ) / scalar;
+            sres_   -= ( eval( olhs_ ) - eval( orhs_ ) ) / scalar;
+            osres_  -= ( eval( olhs_ ) - eval( orhs_ ) ) / scalar;
+            refres_ -= ( eval( reflhs_ ) - eval( refrhs_ ) ) / scalar;
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Scaled subtraction with Schur product assignment (s*OP)
+      //=====================================================================================
+
+      // Scaled subtraction with Schur product assignment with the given matrices
+      {
+         test_  = "Scaled subtraction with Schur product assignment with the given matrices (s*OP)";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= scalar * ( lhs_ - rhs_ );
+            odres_  %= scalar * ( lhs_ - rhs_ );
+            sres_   %= scalar * ( lhs_ - rhs_ );
+            osres_  %= scalar * ( lhs_ - rhs_ );
+            refres_ %= scalar * ( reflhs_ - refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= scalar * ( lhs_ - orhs_ );
+            odres_  %= scalar * ( lhs_ - orhs_ );
+            sres_   %= scalar * ( lhs_ - orhs_ );
+            osres_  %= scalar * ( lhs_ - orhs_ );
+            refres_ %= scalar * ( reflhs_ - refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= scalar * ( olhs_ - rhs_ );
+            odres_  %= scalar * ( olhs_ - rhs_ );
+            sres_   %= scalar * ( olhs_ - rhs_ );
+            osres_  %= scalar * ( olhs_ - rhs_ );
+            refres_ %= scalar * ( reflhs_ - refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= scalar * ( olhs_ - orhs_ );
+            odres_  %= scalar * ( olhs_ - orhs_ );
+            sres_   %= scalar * ( olhs_ - orhs_ );
+            osres_  %= scalar * ( olhs_ - orhs_ );
+            refres_ %= scalar * ( reflhs_ - refrhs_ );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Scaled subtraction with Schur product assignment with evaluated matrices
+      {
+         test_  = "Scaled subtraction with Schur product assignment with evaluated matrices (s*OP)";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= scalar * ( eval( lhs_ ) - eval( rhs_ ) );
+            odres_  %= scalar * ( eval( lhs_ ) - eval( rhs_ ) );
+            sres_   %= scalar * ( eval( lhs_ ) - eval( rhs_ ) );
+            osres_  %= scalar * ( eval( lhs_ ) - eval( rhs_ ) );
+            refres_ %= scalar * ( eval( reflhs_ ) - eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= scalar * ( eval( lhs_ ) - eval( orhs_ ) );
+            odres_  %= scalar * ( eval( lhs_ ) - eval( orhs_ ) );
+            sres_   %= scalar * ( eval( lhs_ ) - eval( orhs_ ) );
+            osres_  %= scalar * ( eval( lhs_ ) - eval( orhs_ ) );
+            refres_ %= scalar * ( eval( reflhs_ ) - eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= scalar * ( eval( olhs_ ) - eval( rhs_ ) );
+            odres_  %= scalar * ( eval( olhs_ ) - eval( rhs_ ) );
+            sres_   %= scalar * ( eval( olhs_ ) - eval( rhs_ ) );
+            osres_  %= scalar * ( eval( olhs_ ) - eval( rhs_ ) );
+            refres_ %= scalar * ( eval( reflhs_ ) - eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= scalar * ( eval( olhs_ ) - eval( orhs_ ) );
+            odres_  %= scalar * ( eval( olhs_ ) - eval( orhs_ ) );
+            sres_   %= scalar * ( eval( olhs_ ) - eval( orhs_ ) );
+            osres_  %= scalar * ( eval( olhs_ ) - eval( orhs_ ) );
+            refres_ %= scalar * ( eval( reflhs_ ) - eval( refrhs_ ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Scaled subtraction with Schur product assignment (OP*s)
+      //=====================================================================================
+
+      // Scaled subtraction with Schur product assignment with the given matrices
+      {
+         test_  = "Scaled subtraction with Schur product assignment with the given matrices (OP*s)";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= ( lhs_ - rhs_ ) * scalar;
+            odres_  %= ( lhs_ - rhs_ ) * scalar;
+            sres_   %= ( lhs_ - rhs_ ) * scalar;
+            osres_  %= ( lhs_ - rhs_ ) * scalar;
+            refres_ %= ( reflhs_ - refrhs_ ) * scalar;
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= ( lhs_ - orhs_ ) * scalar;
+            odres_  %= ( lhs_ - orhs_ ) * scalar;
+            sres_   %= ( lhs_ - orhs_ ) * scalar;
+            osres_  %= ( lhs_ - orhs_ ) * scalar;
+            refres_ %= ( reflhs_ - refrhs_ ) * scalar;
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= ( olhs_ - rhs_ ) * scalar;
+            odres_  %= ( olhs_ - rhs_ ) * scalar;
+            sres_   %= ( olhs_ - rhs_ ) * scalar;
+            osres_  %= ( olhs_ - rhs_ ) * scalar;
+            refres_ %= ( reflhs_ - refrhs_ ) * scalar;
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= ( olhs_ - orhs_ ) * scalar;
+            odres_  %= ( olhs_ - orhs_ ) * scalar;
+            sres_   %= ( olhs_ - orhs_ ) * scalar;
+            osres_  %= ( olhs_ - orhs_ ) * scalar;
+            refres_ %= ( reflhs_ - refrhs_ ) * scalar;
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Scaled subtraction with Schur product assignment with evaluated matrices
+      {
+         test_  = "Scaled subtraction with Schur product assignment with evaluated matrices (OP*s)";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= ( eval( lhs_ ) - eval( rhs_ ) ) * scalar;
+            odres_  %= ( eval( lhs_ ) - eval( rhs_ ) ) * scalar;
+            sres_   %= ( eval( lhs_ ) - eval( rhs_ ) ) * scalar;
+            osres_  %= ( eval( lhs_ ) - eval( rhs_ ) ) * scalar;
+            refres_ %= ( eval( reflhs_ ) - eval( refrhs_ ) ) * scalar;
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= ( eval( lhs_ ) - eval( orhs_ ) ) * scalar;
+            odres_  %= ( eval( lhs_ ) - eval( orhs_ ) ) * scalar;
+            sres_   %= ( eval( lhs_ ) - eval( orhs_ ) ) * scalar;
+            osres_  %= ( eval( lhs_ ) - eval( orhs_ ) ) * scalar;
+            refres_ %= ( eval( reflhs_ ) - eval( refrhs_ ) ) * scalar;
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= ( eval( olhs_ ) - eval( rhs_ ) ) * scalar;
+            odres_  %= ( eval( olhs_ ) - eval( rhs_ ) ) * scalar;
+            sres_   %= ( eval( olhs_ ) - eval( rhs_ ) ) * scalar;
+            osres_  %= ( eval( olhs_ ) - eval( rhs_ ) ) * scalar;
+            refres_ %= ( eval( reflhs_ ) - eval( refrhs_ ) ) * scalar;
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= ( eval( olhs_ ) - eval( orhs_ ) ) * scalar;
+            odres_  %= ( eval( olhs_ ) - eval( orhs_ ) ) * scalar;
+            sres_   %= ( eval( olhs_ ) - eval( orhs_ ) ) * scalar;
+            osres_  %= ( eval( olhs_ ) - eval( orhs_ ) ) * scalar;
+            refres_ %= ( eval( reflhs_ ) - eval( refrhs_ ) ) * scalar;
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Scaled subtraction with Schur product assignment (OP/s)
+      //=====================================================================================
+
+      // Scaled subtraction with Schur product assignment with the given matrices
+      {
+         test_  = "Scaled subtraction with Schur product assignment with the given matrices (OP/s)";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= ( lhs_ - rhs_ ) / scalar;
+            odres_  %= ( lhs_ - rhs_ ) / scalar;
+            sres_   %= ( lhs_ - rhs_ ) / scalar;
+            osres_  %= ( lhs_ - rhs_ ) / scalar;
+            refres_ %= ( reflhs_ - refrhs_ ) / scalar;
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= ( lhs_ - orhs_ ) / scalar;
+            odres_  %= ( lhs_ - orhs_ ) / scalar;
+            sres_   %= ( lhs_ - orhs_ ) / scalar;
+            osres_  %= ( lhs_ - orhs_ ) / scalar;
+            refres_ %= ( reflhs_ - refrhs_ ) / scalar;
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= ( olhs_ - rhs_ ) / scalar;
+            odres_  %= ( olhs_ - rhs_ ) / scalar;
+            sres_   %= ( olhs_ - rhs_ ) / scalar;
+            osres_  %= ( olhs_ - rhs_ ) / scalar;
+            refres_ %= ( reflhs_ - refrhs_ ) / scalar;
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= ( olhs_ - orhs_ ) / scalar;
+            odres_  %= ( olhs_ - orhs_ ) / scalar;
+            sres_   %= ( olhs_ - orhs_ ) / scalar;
+            osres_  %= ( olhs_ - orhs_ ) / scalar;
+            refres_ %= ( reflhs_ - refrhs_ ) / scalar;
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Scaled subtraction with Schur product assignment with evaluated matrices
+      {
+         test_  = "Scaled subtraction with Schur product assignment with evaluated matrices (OP/s)";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= ( eval( lhs_ ) - eval( rhs_ ) ) / scalar;
+            odres_  %= ( eval( lhs_ ) - eval( rhs_ ) ) / scalar;
+            sres_   %= ( eval( lhs_ ) - eval( rhs_ ) ) / scalar;
+            osres_  %= ( eval( lhs_ ) - eval( rhs_ ) ) / scalar;
+            refres_ %= ( eval( reflhs_ ) - eval( refrhs_ ) ) / scalar;
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= ( eval( lhs_ ) - eval( orhs_ ) ) / scalar;
+            odres_  %= ( eval( lhs_ ) - eval( orhs_ ) ) / scalar;
+            sres_   %= ( eval( lhs_ ) - eval( orhs_ ) ) / scalar;
+            osres_  %= ( eval( lhs_ ) - eval( orhs_ ) ) / scalar;
+            refres_ %= ( eval( reflhs_ ) - eval( refrhs_ ) ) / scalar;
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= ( eval( olhs_ ) - eval( rhs_ ) ) / scalar;
+            odres_  %= ( eval( olhs_ ) - eval( rhs_ ) ) / scalar;
+            sres_   %= ( eval( olhs_ ) - eval( rhs_ ) ) / scalar;
+            osres_  %= ( eval( olhs_ ) - eval( rhs_ ) ) / scalar;
+            refres_ %= ( eval( reflhs_ ) - eval( refrhs_ ) ) / scalar;
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= ( eval( olhs_ ) - eval( orhs_ ) ) / scalar;
+            odres_  %= ( eval( olhs_ ) - eval( orhs_ ) ) / scalar;
+            sres_   %= ( eval( olhs_ ) - eval( orhs_ ) ) / scalar;
+            osres_  %= ( eval( olhs_ ) - eval( orhs_ ) ) / scalar;
+            refres_ %= ( eval( reflhs_ ) - eval( refrhs_ ) ) / scalar;
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -3509,11 +4241,11 @@ void OperationTest<MT1,MT2>::testTransOperation()
 
          try {
             initTransposeResults();
-            tdres_  = trans( lhs_ + rhs_ );
-            todres_ = trans( lhs_ + rhs_ );
-            tsres_  = trans( lhs_ + rhs_ );
-            tosres_ = trans( lhs_ + rhs_ );
-            refres_ = trans( reflhs_ + refrhs_ );
+            tdres_  = trans( lhs_ - rhs_ );
+            todres_ = trans( lhs_ - rhs_ );
+            tsres_  = trans( lhs_ - rhs_ );
+            tosres_ = trans( lhs_ - rhs_ );
+            refres_ = trans( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -3523,11 +4255,11 @@ void OperationTest<MT1,MT2>::testTransOperation()
 
          try {
             initTransposeResults();
-            tdres_  = trans( lhs_ + orhs_ );
-            todres_ = trans( lhs_ + orhs_ );
-            tsres_  = trans( lhs_ + orhs_ );
-            tosres_ = trans( lhs_ + orhs_ );
-            refres_ = trans( reflhs_ + refrhs_ );
+            tdres_  = trans( lhs_ - orhs_ );
+            todres_ = trans( lhs_ - orhs_ );
+            tsres_  = trans( lhs_ - orhs_ );
+            tosres_ = trans( lhs_ - orhs_ );
+            refres_ = trans( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -3537,11 +4269,11 @@ void OperationTest<MT1,MT2>::testTransOperation()
 
          try {
             initTransposeResults();
-            tdres_  = trans( olhs_ + rhs_ );
-            todres_ = trans( olhs_ + rhs_ );
-            tsres_  = trans( olhs_ + rhs_ );
-            tosres_ = trans( olhs_ + rhs_ );
-            refres_ = trans( reflhs_ + refrhs_ );
+            tdres_  = trans( olhs_ - rhs_ );
+            todres_ = trans( olhs_ - rhs_ );
+            tsres_  = trans( olhs_ - rhs_ );
+            tosres_ = trans( olhs_ - rhs_ );
+            refres_ = trans( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -3551,11 +4283,11 @@ void OperationTest<MT1,MT2>::testTransOperation()
 
          try {
             initTransposeResults();
-            tdres_  = trans( olhs_ + orhs_ );
-            todres_ = trans( olhs_ + orhs_ );
-            tsres_  = trans( olhs_ + orhs_ );
-            tosres_ = trans( olhs_ + orhs_ );
-            refres_ = trans( reflhs_ + refrhs_ );
+            tdres_  = trans( olhs_ - orhs_ );
+            todres_ = trans( olhs_ - orhs_ );
+            tsres_  = trans( olhs_ - orhs_ );
+            tosres_ = trans( olhs_ - orhs_ );
+            refres_ = trans( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -3571,11 +4303,11 @@ void OperationTest<MT1,MT2>::testTransOperation()
 
          try {
             initTransposeResults();
-            tdres_  = trans( eval( lhs_ ) + eval( rhs_ ) );
-            todres_ = trans( eval( lhs_ ) + eval( rhs_ ) );
-            tsres_  = trans( eval( lhs_ ) + eval( rhs_ ) );
-            tosres_ = trans( eval( lhs_ ) + eval( rhs_ ) );
-            refres_ = trans( eval( reflhs_ ) + eval( refrhs_ ) );
+            tdres_  = trans( eval( lhs_ ) - eval( rhs_ ) );
+            todres_ = trans( eval( lhs_ ) - eval( rhs_ ) );
+            tsres_  = trans( eval( lhs_ ) - eval( rhs_ ) );
+            tosres_ = trans( eval( lhs_ ) - eval( rhs_ ) );
+            refres_ = trans( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -3585,11 +4317,11 @@ void OperationTest<MT1,MT2>::testTransOperation()
 
          try {
             initTransposeResults();
-            tdres_  = trans( eval( lhs_ ) + eval( orhs_ ) );
-            todres_ = trans( eval( lhs_ ) + eval( orhs_ ) );
-            tsres_  = trans( eval( lhs_ ) + eval( orhs_ ) );
-            tosres_ = trans( eval( lhs_ ) + eval( orhs_ ) );
-            refres_ = trans( eval( reflhs_ ) + eval( refrhs_ ) );
+            tdres_  = trans( eval( lhs_ ) - eval( orhs_ ) );
+            todres_ = trans( eval( lhs_ ) - eval( orhs_ ) );
+            tsres_  = trans( eval( lhs_ ) - eval( orhs_ ) );
+            tosres_ = trans( eval( lhs_ ) - eval( orhs_ ) );
+            refres_ = trans( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -3599,11 +4331,11 @@ void OperationTest<MT1,MT2>::testTransOperation()
 
          try {
             initTransposeResults();
-            tdres_  = trans( eval( olhs_ ) + eval( rhs_ ) );
-            todres_ = trans( eval( olhs_ ) + eval( rhs_ ) );
-            tsres_  = trans( eval( olhs_ ) + eval( rhs_ ) );
-            tosres_ = trans( eval( olhs_ ) + eval( rhs_ ) );
-            refres_ = trans( eval( reflhs_ ) + eval( refrhs_ ) );
+            tdres_  = trans( eval( olhs_ ) - eval( rhs_ ) );
+            todres_ = trans( eval( olhs_ ) - eval( rhs_ ) );
+            tsres_  = trans( eval( olhs_ ) - eval( rhs_ ) );
+            tosres_ = trans( eval( olhs_ ) - eval( rhs_ ) );
+            refres_ = trans( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -3613,11 +4345,11 @@ void OperationTest<MT1,MT2>::testTransOperation()
 
          try {
             initTransposeResults();
-            tdres_  = trans( eval( olhs_ ) + eval( orhs_ ) );
-            todres_ = trans( eval( olhs_ ) + eval( orhs_ ) );
-            tsres_  = trans( eval( olhs_ ) + eval( orhs_ ) );
-            tosres_ = trans( eval( olhs_ ) + eval( orhs_ ) );
-            refres_ = trans( eval( reflhs_ ) + eval( refrhs_ ) );
+            tdres_  = trans( eval( olhs_ ) - eval( orhs_ ) );
+            todres_ = trans( eval( olhs_ ) - eval( orhs_ ) );
+            tsres_  = trans( eval( olhs_ ) - eval( orhs_ ) );
+            tosres_ = trans( eval( olhs_ ) - eval( orhs_ ) );
+            refres_ = trans( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -3659,11 +4391,11 @@ void OperationTest<MT1,MT2>::testCTransOperation()
 
          try {
             initTransposeResults();
-            tdres_  = ctrans( lhs_ + rhs_ );
-            todres_ = ctrans( lhs_ + rhs_ );
-            tsres_  = ctrans( lhs_ + rhs_ );
-            tosres_ = ctrans( lhs_ + rhs_ );
-            refres_ = ctrans( reflhs_ + refrhs_ );
+            tdres_  = ctrans( lhs_ - rhs_ );
+            todres_ = ctrans( lhs_ - rhs_ );
+            tsres_  = ctrans( lhs_ - rhs_ );
+            tosres_ = ctrans( lhs_ - rhs_ );
+            refres_ = ctrans( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -3673,11 +4405,11 @@ void OperationTest<MT1,MT2>::testCTransOperation()
 
          try {
             initTransposeResults();
-            tdres_  = ctrans( lhs_ + orhs_ );
-            todres_ = ctrans( lhs_ + orhs_ );
-            tsres_  = ctrans( lhs_ + orhs_ );
-            tosres_ = ctrans( lhs_ + orhs_ );
-            refres_ = ctrans( reflhs_ + refrhs_ );
+            tdres_  = ctrans( lhs_ - orhs_ );
+            todres_ = ctrans( lhs_ - orhs_ );
+            tsres_  = ctrans( lhs_ - orhs_ );
+            tosres_ = ctrans( lhs_ - orhs_ );
+            refres_ = ctrans( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -3687,11 +4419,11 @@ void OperationTest<MT1,MT2>::testCTransOperation()
 
          try {
             initTransposeResults();
-            tdres_  = ctrans( olhs_ + rhs_ );
-            todres_ = ctrans( olhs_ + rhs_ );
-            tsres_  = ctrans( olhs_ + rhs_ );
-            tosres_ = ctrans( olhs_ + rhs_ );
-            refres_ = ctrans( reflhs_ + refrhs_ );
+            tdres_  = ctrans( olhs_ - rhs_ );
+            todres_ = ctrans( olhs_ - rhs_ );
+            tsres_  = ctrans( olhs_ - rhs_ );
+            tosres_ = ctrans( olhs_ - rhs_ );
+            refres_ = ctrans( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -3701,11 +4433,11 @@ void OperationTest<MT1,MT2>::testCTransOperation()
 
          try {
             initTransposeResults();
-            tdres_  = ctrans( olhs_ + orhs_ );
-            todres_ = ctrans( olhs_ + orhs_ );
-            tsres_  = ctrans( olhs_ + orhs_ );
-            tosres_ = ctrans( olhs_ + orhs_ );
-            refres_ = ctrans( reflhs_ + refrhs_ );
+            tdres_  = ctrans( olhs_ - orhs_ );
+            todres_ = ctrans( olhs_ - orhs_ );
+            tsres_  = ctrans( olhs_ - orhs_ );
+            tosres_ = ctrans( olhs_ - orhs_ );
+            refres_ = ctrans( reflhs_ - refrhs_ );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -3721,11 +4453,11 @@ void OperationTest<MT1,MT2>::testCTransOperation()
 
          try {
             initTransposeResults();
-            tdres_  = ctrans( eval( lhs_ ) + eval( rhs_ ) );
-            todres_ = ctrans( eval( lhs_ ) + eval( rhs_ ) );
-            tsres_  = ctrans( eval( lhs_ ) + eval( rhs_ ) );
-            tosres_ = ctrans( eval( lhs_ ) + eval( rhs_ ) );
-            refres_ = ctrans( eval( reflhs_ ) + eval( refrhs_ ) );
+            tdres_  = ctrans( eval( lhs_ ) - eval( rhs_ ) );
+            todres_ = ctrans( eval( lhs_ ) - eval( rhs_ ) );
+            tsres_  = ctrans( eval( lhs_ ) - eval( rhs_ ) );
+            tosres_ = ctrans( eval( lhs_ ) - eval( rhs_ ) );
+            refres_ = ctrans( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,MT2>( ex );
@@ -3735,11 +4467,11 @@ void OperationTest<MT1,MT2>::testCTransOperation()
 
          try {
             initTransposeResults();
-            tdres_  = ctrans( eval( lhs_ ) + eval( orhs_ ) );
-            todres_ = ctrans( eval( lhs_ ) + eval( orhs_ ) );
-            tsres_  = ctrans( eval( lhs_ ) + eval( orhs_ ) );
-            tosres_ = ctrans( eval( lhs_ ) + eval( orhs_ ) );
-            refres_ = ctrans( eval( reflhs_ ) + eval( refrhs_ ) );
+            tdres_  = ctrans( eval( lhs_ ) - eval( orhs_ ) );
+            todres_ = ctrans( eval( lhs_ ) - eval( orhs_ ) );
+            tsres_  = ctrans( eval( lhs_ ) - eval( orhs_ ) );
+            tosres_ = ctrans( eval( lhs_ ) - eval( orhs_ ) );
+            refres_ = ctrans( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<MT1,OMT2>( ex );
@@ -3749,11 +4481,11 @@ void OperationTest<MT1,MT2>::testCTransOperation()
 
          try {
             initTransposeResults();
-            tdres_  = ctrans( eval( olhs_ ) + eval( rhs_ ) );
-            todres_ = ctrans( eval( olhs_ ) + eval( rhs_ ) );
-            tsres_  = ctrans( eval( olhs_ ) + eval( rhs_ ) );
-            tosres_ = ctrans( eval( olhs_ ) + eval( rhs_ ) );
-            refres_ = ctrans( eval( reflhs_ ) + eval( refrhs_ ) );
+            tdres_  = ctrans( eval( olhs_ ) - eval( rhs_ ) );
+            todres_ = ctrans( eval( olhs_ ) - eval( rhs_ ) );
+            tsres_  = ctrans( eval( olhs_ ) - eval( rhs_ ) );
+            tosres_ = ctrans( eval( olhs_ ) - eval( rhs_ ) );
+            refres_ = ctrans( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,MT2>( ex );
@@ -3763,11 +4495,11 @@ void OperationTest<MT1,MT2>::testCTransOperation()
 
          try {
             initTransposeResults();
-            tdres_  = ctrans( eval( olhs_ ) + eval( orhs_ ) );
-            todres_ = ctrans( eval( olhs_ ) + eval( orhs_ ) );
-            tsres_  = ctrans( eval( olhs_ ) + eval( orhs_ ) );
-            tosres_ = ctrans( eval( olhs_ ) + eval( orhs_ ) );
-            refres_ = ctrans( eval( reflhs_ ) + eval( refrhs_ ) );
+            tdres_  = ctrans( eval( olhs_ ) - eval( orhs_ ) );
+            todres_ = ctrans( eval( olhs_ ) - eval( orhs_ ) );
+            tsres_  = ctrans( eval( olhs_ ) - eval( orhs_ ) );
+            tosres_ = ctrans( eval( olhs_ ) - eval( orhs_ ) );
+            refres_ = ctrans( eval( reflhs_ ) - eval( refrhs_ ) );
          }
          catch( std::exception& ex ) {
             convertException<OMT1,OMT2>( ex );
@@ -3788,8 +4520,9 @@ void OperationTest<MT1,MT2>::testCTransOperation()
 // \exception std::runtime_error Subtraction error detected.
 //
 // This function tests the abs matrix subtraction with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the subtraction or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
+// subtraction assignment, and Schur product assignment. In case any error resulting from the
+// subtraction or the subsequent assignment is detected, a \a std::runtime_error exception is
+// thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -3812,8 +4545,9 @@ void OperationTest<MT1,MT2>::testAbsOperation()
 // \exception std::runtime_error Subtraction error detected.
 //
 // This function tests the conjugate matrix subtraction with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the subtraction or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
+// subtraction assignment, and Schur product assignment. In case any error resulting from the
+// subtraction or the subsequent assignment is detected, a \a std::runtime_error exception is
+// thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -3836,8 +4570,9 @@ void OperationTest<MT1,MT2>::testConjOperation()
 // \exception std::runtime_error Subtraction error detected.
 //
 // This function tests the \a real matrix subtraction with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the subtraction or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
+// subtraction assignment, and Schur product assignment. In case any error resulting from the
+// subtraction or the subsequent assignment is detected, a \a std::runtime_error exception is
+// thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -3860,8 +4595,9 @@ void OperationTest<MT1,MT2>::testRealOperation()
 // \exception std::runtime_error Subtraction error detected.
 //
 // This function tests the \a imag matrix subtraction with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the subtraction or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
+// subtraction assignment, and Schur product assignment. In case any error resulting from the
+// subtraction or the subsequent assignment is detected, a \a std::runtime_error exception is
+// thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -3869,7 +4605,7 @@ void OperationTest<MT1,MT2>::testImagOperation()
 {
 #if BLAZETEST_MATHTEST_TEST_IMAG_OPERATION
    if( BLAZETEST_MATHTEST_TEST_IMAG_OPERATION > 1 &&
-       ( !blaze::IsHermitian<SRE>::value || blaze::isSymmetric( imag( lhs_ + rhs_ ) ) ) )
+       ( !blaze::IsHermitian<SRE>::value || blaze::isSymmetric( imag( lhs_ - rhs_ ) ) ) )
    {
       testCustomOperation( blaze::Imag(), "imag" );
    }
@@ -3885,8 +4621,9 @@ void OperationTest<MT1,MT2>::testImagOperation()
 // \exception std::runtime_error Subtraction error detected.
 //
 // This function tests the evaluated matrix subtraction with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the subtraction or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
+// subtraction assignment, and Schur product assignment. In case any error resulting from the
+// subtraction or the subsequent assignment is detected, a \a std::runtime_error exception is
+// thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -3909,8 +4646,9 @@ void OperationTest<MT1,MT2>::testEvalOperation()
 // \exception std::runtime_error Subtraction error detected.
 //
 // This function tests the serialized matrix subtraction with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the subtraction or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
+// subtraction assignment, and Schur product assignment. In case any error resulting from the
+// subtraction or the subsequent assignment is detected, a \a std::runtime_error exception is
+// thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -3927,14 +4665,65 @@ void OperationTest<MT1,MT2>::testSerialOperation()
 
 
 //*************************************************************************************************
+/*!\brief Testing the non-aliased sparse matrix/sparse matrix subtraction.
+//
+// \return void
+// \exception std::runtime_error Subtraction error detected.
+//
+// This function tests the non-aliased matrix subtraction with plain assignment, addition
+// assignment, subtraction assignment, and Schur product assignment. In case any error resulting
+// from the subtraction or the subsequent assignment is detected, a \a std::runtime_error
+// exception is thrown.
+*/
+template< typename MT1    // Type of the left-hand side sparse matrix
+        , typename MT2 >  // Type of the right-hand side sparse matrix
+void OperationTest<MT1,MT2>::testNoAliasOperation()
+{
+#if BLAZETEST_MATHTEST_TEST_NOALIAS_OPERATION
+   if( BLAZETEST_MATHTEST_TEST_NOALIAS_OPERATION > 1 )
+   {
+      testCustomOperation( blaze::NoAlias(), "noalias" );
+   }
+#endif
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the non-SIMD sparse matrix/sparse matrix subtraction.
+//
+// \return void
+// \exception std::runtime_error Subtraction error detected.
+//
+// This function tests the non-SIMD matrix subtraction with plain assignment, addition
+// assignment, subtraction assignment, and Schur product assignment. In case any error resulting
+// from the subtraction or the subsequent assignment is detected, a \a std::runtime_error
+// exception is thrown.
+*/
+template< typename MT1    // Type of the left-hand side sparse matrix
+        , typename MT2 >  // Type of the right-hand side sparse matrix
+void OperationTest<MT1,MT2>::testNoSIMDOperation()
+{
+#if BLAZETEST_MATHTEST_TEST_NOSIMD_OPERATION
+   if( BLAZETEST_MATHTEST_TEST_NOSIMD_OPERATION > 1 )
+   {
+      testCustomOperation( blaze::NoSIMD(), "nosimd" );
+   }
+#endif
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Testing the symmetric sparse matrix/sparse matrix subtraction.
 //
 // \return void
 // \exception std::runtime_error Subtraction error detected.
 //
 // This function tests the symmetric matrix subtraction with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the subtraction or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
+// subtraction assignment, and Schur product assignment. In case any error resulting from the
+// subtraction or the subsequent assignment is detected, a \a std::runtime_error exception is
+// thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -3975,7 +4764,7 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
       // Declsym subtraction with the given matrices
       {
-         test_  = "Declsym subtraction the given matrices";
+         test_  = "Declsym subtraction with the given matrices";
          error_ = "Failed subtraction operation";
 
          try {
@@ -4105,7 +4894,7 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
       // Declsym subtraction with addition assignment with the given matrices
       {
          test_  = "Declsym subtraction with addition assignment with the given matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed addition assignment operation";
 
          try {
             initResults();
@@ -4167,7 +4956,7 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
       // Declsym subtraction with addition assignment with evaluated matrices
       {
          test_  = "Declsym subtraction with addition assignment with evaluated matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed addition assignment operation";
 
          try {
             initResults();
@@ -4234,7 +5023,7 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
       // Declsym subtraction with subtraction assignment with the given matrices
       {
          test_  = "Declsym subtraction with subtraction assignment with the given matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed subtraction assignment operation";
 
          try {
             initResults();
@@ -4296,7 +5085,7 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
       // Declsym subtraction with subtraction assignment with evaluated matrices
       {
          test_  = "Declsym subtraction with subtraction assignment with evaluated matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed subtraction assignment operation";
 
          try {
             initResults();
@@ -4354,6 +5143,135 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::TrueType )
 
          checkResults<OMT1,OMT2>();
       }
+
+
+      //=====================================================================================
+      // Declsym subtraction with Schur product assignment
+      //=====================================================================================
+
+      // Declsym subtraction with Schur product assignment with the given matrices
+      {
+         test_  = "Declsym subtraction with Schur product assignment with the given matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= declsym( lhs - rhs );
+            odres_  %= declsym( lhs - rhs );
+            sres_   %= declsym( lhs - rhs );
+            osres_  %= declsym( lhs - rhs );
+            refres_ %= declsym( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= declsym( lhs - orhs );
+            odres_  %= declsym( lhs - orhs );
+            sres_   %= declsym( lhs - orhs );
+            osres_  %= declsym( lhs - orhs );
+            refres_ %= declsym( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= declsym( olhs - rhs );
+            odres_  %= declsym( olhs - rhs );
+            sres_   %= declsym( olhs - rhs );
+            osres_  %= declsym( olhs - rhs );
+            refres_ %= declsym( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= declsym( olhs - orhs );
+            odres_  %= declsym( olhs - orhs );
+            sres_   %= declsym( olhs - orhs );
+            osres_  %= declsym( olhs - orhs );
+            refres_ %= declsym( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Declsym subtraction with Schur product assignment with evaluated matrices
+      {
+         test_  = "Declsym subtraction with Schur product assignment with evaluated matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= declsym( eval( lhs ) - eval( rhs ) );
+            odres_  %= declsym( eval( lhs ) - eval( rhs ) );
+            sres_   %= declsym( eval( lhs ) - eval( rhs ) );
+            osres_  %= declsym( eval( lhs ) - eval( rhs ) );
+            refres_ %= declsym( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= declsym( eval( lhs ) - eval( orhs ) );
+            odres_  %= declsym( eval( lhs ) - eval( orhs ) );
+            sres_   %= declsym( eval( lhs ) - eval( orhs ) );
+            osres_  %= declsym( eval( lhs ) - eval( orhs ) );
+            refres_ %= declsym( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= declsym( eval( olhs ) - eval( rhs ) );
+            odres_  %= declsym( eval( olhs ) - eval( rhs ) );
+            sres_   %= declsym( eval( olhs ) - eval( rhs ) );
+            osres_  %= declsym( eval( olhs ) - eval( rhs ) );
+            refres_ %= declsym( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= declsym( eval( olhs ) - eval( orhs ) );
+            odres_  %= declsym( eval( olhs ) - eval( orhs ) );
+            sres_   %= declsym( eval( olhs ) - eval( orhs ) );
+            osres_  %= declsym( eval( olhs ) - eval( orhs ) );
+            refres_ %= declsym( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
    }
 #endif
 }
@@ -4382,8 +5300,9 @@ void OperationTest<MT1,MT2>::testDeclSymOperation( blaze::FalseType )
 // \exception std::runtime_error Subtraction error detected.
 //
 // This function tests the Hermitian matrix subtraction with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the subtraction or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
+// subtraction assignment, and Schur product assignment. In case any error resulting from the
+// subtraction or the subsequent assignment is detected, a \a std::runtime_error exception is
+// thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -4424,7 +5343,7 @@ void OperationTest<MT1,MT2>::testDeclHermOperation( blaze::TrueType )
 
       // Declherm subtraction with the given matrices
       {
-         test_  = "Declherm subtraction the given matrices";
+         test_  = "Declherm subtraction with the given matrices";
          error_ = "Failed subtraction operation";
 
          try {
@@ -4554,7 +5473,7 @@ void OperationTest<MT1,MT2>::testDeclHermOperation( blaze::TrueType )
       // Declherm subtraction with addition assignment with the given matrices
       {
          test_  = "Declherm subtraction with addition assignment with the given matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed addition assignment operation";
 
          try {
             initResults();
@@ -4616,7 +5535,7 @@ void OperationTest<MT1,MT2>::testDeclHermOperation( blaze::TrueType )
       // Declherm subtraction with addition assignment with evaluated matrices
       {
          test_  = "Declherm subtraction with addition assignment with evaluated matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed addition assignment operation";
 
          try {
             initResults();
@@ -4683,7 +5602,7 @@ void OperationTest<MT1,MT2>::testDeclHermOperation( blaze::TrueType )
       // Declherm subtraction with subtraction assignment with the given matrices
       {
          test_  = "Declherm subtraction with subtraction assignment with the given matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed subtraction assignment operation";
 
          try {
             initResults();
@@ -4745,7 +5664,7 @@ void OperationTest<MT1,MT2>::testDeclHermOperation( blaze::TrueType )
       // Declherm subtraction with subtraction assignment with evaluated matrices
       {
          test_  = "Declherm subtraction with subtraction assignment with evaluated matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed subtraction assignment operation";
 
          try {
             initResults();
@@ -4803,6 +5722,135 @@ void OperationTest<MT1,MT2>::testDeclHermOperation( blaze::TrueType )
 
          checkResults<OMT1,OMT2>();
       }
+
+
+      //=====================================================================================
+      // Declherm subtraction with Schur product assignment
+      //=====================================================================================
+
+      // Declherm subtraction with Schur product assignment with the given matrices
+      {
+         test_  = "Declherm subtraction with Schur product assignment with the given matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= declherm( lhs - rhs );
+            odres_  %= declherm( lhs - rhs );
+            sres_   %= declherm( lhs - rhs );
+            osres_  %= declherm( lhs - rhs );
+            refres_ %= declherm( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= declherm( lhs - orhs );
+            odres_  %= declherm( lhs - orhs );
+            sres_   %= declherm( lhs - orhs );
+            osres_  %= declherm( lhs - orhs );
+            refres_ %= declherm( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= declherm( olhs - rhs );
+            odres_  %= declherm( olhs - rhs );
+            sres_   %= declherm( olhs - rhs );
+            osres_  %= declherm( olhs - rhs );
+            refres_ %= declherm( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= declherm( olhs - orhs );
+            odres_  %= declherm( olhs - orhs );
+            sres_   %= declherm( olhs - orhs );
+            osres_  %= declherm( olhs - orhs );
+            refres_ %= declherm( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Declherm subtraction with Schur product assignment with evaluated matrices
+      {
+         test_  = "Declherm subtraction with Schur product assignment with evaluated matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= declherm( eval( lhs ) - eval( rhs ) );
+            odres_  %= declherm( eval( lhs ) - eval( rhs ) );
+            sres_   %= declherm( eval( lhs ) - eval( rhs ) );
+            osres_  %= declherm( eval( lhs ) - eval( rhs ) );
+            refres_ %= declherm( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= declherm( eval( lhs ) - eval( orhs ) );
+            odres_  %= declherm( eval( lhs ) - eval( orhs ) );
+            sres_   %= declherm( eval( lhs ) - eval( orhs ) );
+            osres_  %= declherm( eval( lhs ) - eval( orhs ) );
+            refres_ %= declherm( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= declherm( eval( olhs ) - eval( rhs ) );
+            odres_  %= declherm( eval( olhs ) - eval( rhs ) );
+            sres_   %= declherm( eval( olhs ) - eval( rhs ) );
+            osres_  %= declherm( eval( olhs ) - eval( rhs ) );
+            refres_ %= declherm( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= declherm( eval( olhs ) - eval( orhs ) );
+            odres_  %= declherm( eval( olhs ) - eval( orhs ) );
+            sres_   %= declherm( eval( olhs ) - eval( orhs ) );
+            osres_  %= declherm( eval( olhs ) - eval( orhs ) );
+            refres_ %= declherm( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
    }
 #endif
 }
@@ -4831,8 +5879,9 @@ void OperationTest<MT1,MT2>::testDeclHermOperation( blaze::FalseType )
 // \exception std::runtime_error Subtraction error detected.
 //
 // This function tests the lower matrix subtraction with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the subtraction or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
+// subtraction assignment, and Schur product assignment. In case any error resulting from the
+// subtraction or the subsequent assignment is detected, a \a std::runtime_error exception is
+// thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -4851,11 +5900,7 @@ void OperationTest<MT1,MT2>::testDeclLowOperation( blaze::TrueType )
 
       MT1 lhs( lhs_ );
 
-      for( size_t i=0UL; i<lhs.rows(); ++i ) {
-         for( size_t j=i+1UL; j<lhs.columns(); ++j ) {
-            blaze::reset( lhs(i,j) );
-         }
-      }
+      blaze::resetUpper( lhs );
 
       OMT1 olhs  ( lhs );
       RT1  reflhs( lhs );
@@ -4867,11 +5912,7 @@ void OperationTest<MT1,MT2>::testDeclLowOperation( blaze::TrueType )
 
       MT2 rhs( rhs_ );
 
-      for( size_t i=0UL; i<rhs.rows(); ++i ) {
-         for( size_t j=i+1UL; j<rhs.columns(); ++j ) {
-            blaze::reset( rhs(i,j) );
-         }
-      }
+      blaze::resetUpper( rhs );
 
       OMT2 orhs  ( rhs );
       RT2  refrhs( rhs );
@@ -4883,7 +5924,7 @@ void OperationTest<MT1,MT2>::testDeclLowOperation( blaze::TrueType )
 
       // Decllow subtraction with the given matrices
       {
-         test_  = "Decllow subtraction the given matrices";
+         test_  = "Decllow subtraction with the given matrices";
          error_ = "Failed subtraction operation";
 
          try {
@@ -5013,7 +6054,7 @@ void OperationTest<MT1,MT2>::testDeclLowOperation( blaze::TrueType )
       // Decllow subtraction with addition assignment with the given matrices
       {
          test_  = "Decllow subtraction with addition assignment with the given matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed addition assignment operation";
 
          try {
             initResults();
@@ -5075,7 +6116,7 @@ void OperationTest<MT1,MT2>::testDeclLowOperation( blaze::TrueType )
       // Decllow subtraction with addition assignment with evaluated matrices
       {
          test_  = "Decllow subtraction with addition assignment with evaluated matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed addition assignment operation";
 
          try {
             initResults();
@@ -5142,7 +6183,7 @@ void OperationTest<MT1,MT2>::testDeclLowOperation( blaze::TrueType )
       // Decllow subtraction with subtraction assignment with the given matrices
       {
          test_  = "Decllow subtraction with subtraction assignment with the given matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed subtraction assignment operation";
 
          try {
             initResults();
@@ -5204,7 +6245,7 @@ void OperationTest<MT1,MT2>::testDeclLowOperation( blaze::TrueType )
       // Decllow subtraction with subtraction assignment with evaluated matrices
       {
          test_  = "Decllow subtraction with subtraction assignment with evaluated matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed subtraction assignment operation";
 
          try {
             initResults();
@@ -5262,6 +6303,135 @@ void OperationTest<MT1,MT2>::testDeclLowOperation( blaze::TrueType )
 
          checkResults<OMT1,OMT2>();
       }
+
+
+      //=====================================================================================
+      // Decllow subtraction with Schur product assignment
+      //=====================================================================================
+
+      // Decllow subtraction with Schur product assignment with the given matrices
+      {
+         test_  = "Decllow subtraction with Schur product assignment with the given matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= decllow( lhs - rhs );
+            odres_  %= decllow( lhs - rhs );
+            sres_   %= decllow( lhs - rhs );
+            osres_  %= decllow( lhs - rhs );
+            refres_ %= decllow( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= decllow( lhs - orhs );
+            odres_  %= decllow( lhs - orhs );
+            sres_   %= decllow( lhs - orhs );
+            osres_  %= decllow( lhs - orhs );
+            refres_ %= decllow( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= decllow( olhs - rhs );
+            odres_  %= decllow( olhs - rhs );
+            sres_   %= decllow( olhs - rhs );
+            osres_  %= decllow( olhs - rhs );
+            refres_ %= decllow( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= decllow( olhs - orhs );
+            odres_  %= decllow( olhs - orhs );
+            sres_   %= decllow( olhs - orhs );
+            osres_  %= decllow( olhs - orhs );
+            refres_ %= decllow( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Decllow subtraction with Schur product assignment with evaluated matrices
+      {
+         test_  = "Decllow subtraction with Schur product assignment with evaluated matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= decllow( eval( lhs ) - eval( rhs ) );
+            odres_  %= decllow( eval( lhs ) - eval( rhs ) );
+            sres_   %= decllow( eval( lhs ) - eval( rhs ) );
+            osres_  %= decllow( eval( lhs ) - eval( rhs ) );
+            refres_ %= decllow( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= decllow( eval( lhs ) - eval( orhs ) );
+            odres_  %= decllow( eval( lhs ) - eval( orhs ) );
+            sres_   %= decllow( eval( lhs ) - eval( orhs ) );
+            osres_  %= decllow( eval( lhs ) - eval( orhs ) );
+            refres_ %= decllow( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= decllow( eval( olhs ) - eval( rhs ) );
+            odres_  %= decllow( eval( olhs ) - eval( rhs ) );
+            sres_   %= decllow( eval( olhs ) - eval( rhs ) );
+            osres_  %= decllow( eval( olhs ) - eval( rhs ) );
+            refres_ %= decllow( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= decllow( eval( olhs ) - eval( orhs ) );
+            odres_  %= decllow( eval( olhs ) - eval( orhs ) );
+            sres_   %= decllow( eval( olhs ) - eval( orhs ) );
+            osres_  %= decllow( eval( olhs ) - eval( orhs ) );
+            refres_ %= decllow( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
    }
 #endif
 }
@@ -5290,8 +6460,9 @@ void OperationTest<MT1,MT2>::testDeclLowOperation( blaze::FalseType )
 // \exception std::runtime_error Subtraction error detected.
 //
 // This function tests the upper matrix subtraction with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the subtraction or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
+// subtraction assignment, and Schur product assignment. In case any error resulting from the
+// subtraction or the subsequent assignment is detected, a \a std::runtime_error exception is
+// thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -5310,11 +6481,7 @@ void OperationTest<MT1,MT2>::testDeclUppOperation( blaze::TrueType )
 
       MT1 lhs( lhs_ );
 
-      for( size_t j=0UL; j<lhs.columns(); ++j ) {
-         for( size_t i=j+1UL; i<lhs.rows(); ++i ) {
-            blaze::reset( lhs(i,j) );
-         }
-      }
+      blaze::resetLower( lhs );
 
       OMT1 olhs  ( lhs );
       RT1  reflhs( lhs );
@@ -5326,11 +6493,7 @@ void OperationTest<MT1,MT2>::testDeclUppOperation( blaze::TrueType )
 
       MT2 rhs( rhs_ );
 
-      for( size_t j=0UL; j<rhs.columns(); ++j ) {
-         for( size_t i=j+1UL; i<rhs.rows(); ++i ) {
-            blaze::reset( rhs(i,j) );
-         }
-      }
+      blaze::resetLower( rhs );
 
       OMT2 orhs  ( rhs );
       RT2  refrhs( rhs );
@@ -5342,7 +6505,7 @@ void OperationTest<MT1,MT2>::testDeclUppOperation( blaze::TrueType )
 
       // Declupp subtraction with the given matrices
       {
-         test_  = "Declupp subtraction the given matrices";
+         test_  = "Declupp subtraction with the given matrices";
          error_ = "Failed subtraction operation";
 
          try {
@@ -5472,7 +6635,7 @@ void OperationTest<MT1,MT2>::testDeclUppOperation( blaze::TrueType )
       // Declupp subtraction with addition assignment with the given matrices
       {
          test_  = "Declupp subtraction with addition assignment with the given matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed addition assignment operation";
 
          try {
             initResults();
@@ -5534,7 +6697,7 @@ void OperationTest<MT1,MT2>::testDeclUppOperation( blaze::TrueType )
       // Declupp subtraction with addition assignment with evaluated matrices
       {
          test_  = "Declupp subtraction with addition assignment with evaluated matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed addition assignment operation";
 
          try {
             initResults();
@@ -5601,7 +6764,7 @@ void OperationTest<MT1,MT2>::testDeclUppOperation( blaze::TrueType )
       // Declupp subtraction with subtraction assignment with the given matrices
       {
          test_  = "Declupp subtraction with subtraction assignment with the given matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed subtraction assignment operation";
 
          try {
             initResults();
@@ -5663,7 +6826,7 @@ void OperationTest<MT1,MT2>::testDeclUppOperation( blaze::TrueType )
       // Declupp subtraction with subtraction assignment with evaluated matrices
       {
          test_  = "Declupp subtraction with subtraction assignment with evaluated matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed subtraction assignment operation";
 
          try {
             initResults();
@@ -5721,6 +6884,135 @@ void OperationTest<MT1,MT2>::testDeclUppOperation( blaze::TrueType )
 
          checkResults<OMT1,OMT2>();
       }
+
+
+      //=====================================================================================
+      // Declupp subtraction with Schur product assignment
+      //=====================================================================================
+
+      // Declupp subtraction with Schur product assignment with the given matrices
+      {
+         test_  = "Declupp subtraction with Schur product assignment with the given matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= declupp( lhs - rhs );
+            odres_  %= declupp( lhs - rhs );
+            sres_   %= declupp( lhs - rhs );
+            osres_  %= declupp( lhs - rhs );
+            refres_ %= declupp( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= declupp( lhs - orhs );
+            odres_  %= declupp( lhs - orhs );
+            sres_   %= declupp( lhs - orhs );
+            osres_  %= declupp( lhs - orhs );
+            refres_ %= declupp( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= declupp( olhs - rhs );
+            odres_  %= declupp( olhs - rhs );
+            sres_   %= declupp( olhs - rhs );
+            osres_  %= declupp( olhs - rhs );
+            refres_ %= declupp( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= declupp( olhs - orhs );
+            odres_  %= declupp( olhs - orhs );
+            sres_   %= declupp( olhs - orhs );
+            osres_  %= declupp( olhs - orhs );
+            refres_ %= declupp( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Declupp subtraction with Schur product assignment with evaluated matrices
+      {
+         test_  = "Declupp subtraction with Schur product assignment with evaluated matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= declupp( eval( lhs ) - eval( rhs ) );
+            odres_  %= declupp( eval( lhs ) - eval( rhs ) );
+            sres_   %= declupp( eval( lhs ) - eval( rhs ) );
+            osres_  %= declupp( eval( lhs ) - eval( rhs ) );
+            refres_ %= declupp( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= declupp( eval( lhs ) - eval( orhs ) );
+            odres_  %= declupp( eval( lhs ) - eval( orhs ) );
+            sres_   %= declupp( eval( lhs ) - eval( orhs ) );
+            osres_  %= declupp( eval( lhs ) - eval( orhs ) );
+            refres_ %= declupp( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= declupp( eval( olhs ) - eval( rhs ) );
+            odres_  %= declupp( eval( olhs ) - eval( rhs ) );
+            sres_   %= declupp( eval( olhs ) - eval( rhs ) );
+            osres_  %= declupp( eval( olhs ) - eval( rhs ) );
+            refres_ %= declupp( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= declupp( eval( olhs ) - eval( orhs ) );
+            odres_  %= declupp( eval( olhs ) - eval( orhs ) );
+            sres_   %= declupp( eval( olhs ) - eval( orhs ) );
+            osres_  %= declupp( eval( olhs ) - eval( orhs ) );
+            refres_ %= declupp( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
    }
 #endif
 }
@@ -5749,8 +7041,9 @@ void OperationTest<MT1,MT2>::testDeclUppOperation( blaze::FalseType )
 // \exception std::runtime_error Subtraction error detected.
 //
 // This function tests the diagonal matrix subtraction with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the subtraction or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
+// subtraction assignment, and Schur product assignment. In case any error resulting from the
+// subtraction or the subsequent assignment is detected, a \a std::runtime_error exception is
+// thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -5769,15 +7062,8 @@ void OperationTest<MT1,MT2>::testDeclDiagOperation( blaze::TrueType )
 
       MT1 lhs( lhs_ );
 
-      for( size_t i=0UL; i<lhs.rows(); ++i ) {
-         const size_t jend( blaze::min( i, lhs.columns() ) );
-         for( size_t j=0UL; j<jend; ++j ) {
-            blaze::reset( lhs(i,j) );
-         }
-         for( size_t j=i+1UL; j<lhs.columns(); ++j ) {
-            blaze::reset( lhs(i,j) );
-         }
-      }
+      blaze::resetLower( lhs );
+      blaze::resetUpper( lhs );
 
       OMT1 olhs  ( lhs );
       RT1  reflhs( lhs );
@@ -5789,15 +7075,8 @@ void OperationTest<MT1,MT2>::testDeclDiagOperation( blaze::TrueType )
 
       MT2 rhs( rhs_ );
 
-      for( size_t i=0UL; i<rhs.rows(); ++i ) {
-         const size_t jend( blaze::min( i, rhs.columns() ) );
-         for( size_t j=0UL; j<jend; ++j ) {
-            blaze::reset( rhs(i,j) );
-         }
-         for( size_t j=i+1UL; j<rhs.columns(); ++j ) {
-            blaze::reset( rhs(i,j) );
-         }
-      }
+      blaze::resetLower( rhs );
+      blaze::resetUpper( rhs );
 
       OMT2 orhs  ( rhs );
       RT2  refrhs( rhs );
@@ -5809,7 +7088,7 @@ void OperationTest<MT1,MT2>::testDeclDiagOperation( blaze::TrueType )
 
       // Decldiag subtraction with the given matrices
       {
-         test_  = "Decldiag subtraction the given matrices";
+         test_  = "Decldiag subtraction with the given matrices";
          error_ = "Failed subtraction operation";
 
          try {
@@ -5939,7 +7218,7 @@ void OperationTest<MT1,MT2>::testDeclDiagOperation( blaze::TrueType )
       // Decldiag subtraction with addition assignment with the given matrices
       {
          test_  = "Decldiag subtraction with addition assignment with the given matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed addition assignment operation";
 
          try {
             initResults();
@@ -6001,7 +7280,7 @@ void OperationTest<MT1,MT2>::testDeclDiagOperation( blaze::TrueType )
       // Decldiag subtraction with addition assignment with evaluated matrices
       {
          test_  = "Decldiag subtraction with addition assignment with evaluated matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed addition assignment operation";
 
          try {
             initResults();
@@ -6068,7 +7347,7 @@ void OperationTest<MT1,MT2>::testDeclDiagOperation( blaze::TrueType )
       // Decldiag subtraction with subtraction assignment with the given matrices
       {
          test_  = "Decldiag subtraction with subtraction assignment with the given matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed subtraction assignment operation";
 
          try {
             initResults();
@@ -6130,7 +7409,7 @@ void OperationTest<MT1,MT2>::testDeclDiagOperation( blaze::TrueType )
       // Decldiag subtraction with subtraction assignment with evaluated matrices
       {
          test_  = "Decldiag subtraction with subtraction assignment with evaluated matrices";
-         error_ = "Failed subtraction operation";
+         error_ = "Failed subtraction assignment operation";
 
          try {
             initResults();
@@ -6188,6 +7467,135 @@ void OperationTest<MT1,MT2>::testDeclDiagOperation( blaze::TrueType )
 
          checkResults<OMT1,OMT2>();
       }
+
+
+      //=====================================================================================
+      // Decldiag subtraction with Schur product assignment
+      //=====================================================================================
+
+      // Decldiag subtraction with Schur product assignment with the given matrices
+      {
+         test_  = "Decldiag subtraction with Schur product assignment with the given matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= decldiag( lhs - rhs );
+            odres_  %= decldiag( lhs - rhs );
+            sres_   %= decldiag( lhs - rhs );
+            osres_  %= decldiag( lhs - rhs );
+            refres_ %= decldiag( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= decldiag( lhs - orhs );
+            odres_  %= decldiag( lhs - orhs );
+            sres_   %= decldiag( lhs - orhs );
+            osres_  %= decldiag( lhs - orhs );
+            refres_ %= decldiag( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= decldiag( olhs - rhs );
+            odres_  %= decldiag( olhs - rhs );
+            sres_   %= decldiag( olhs - rhs );
+            osres_  %= decldiag( olhs - rhs );
+            refres_ %= decldiag( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= decldiag( olhs - orhs );
+            odres_  %= decldiag( olhs - orhs );
+            sres_   %= decldiag( olhs - orhs );
+            osres_  %= decldiag( olhs - orhs );
+            refres_ %= decldiag( reflhs - refrhs );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Decldiag subtraction with Schur product assignment with evaluated matrices
+      {
+         test_  = "Decldiag subtraction with Schur product assignment with evaluated matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            dres_   %= decldiag( eval( lhs ) - eval( rhs ) );
+            odres_  %= decldiag( eval( lhs ) - eval( rhs ) );
+            sres_   %= decldiag( eval( lhs ) - eval( rhs ) );
+            osres_  %= decldiag( eval( lhs ) - eval( rhs ) );
+            refres_ %= decldiag( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= decldiag( eval( lhs ) - eval( orhs ) );
+            odres_  %= decldiag( eval( lhs ) - eval( orhs ) );
+            sres_   %= decldiag( eval( lhs ) - eval( orhs ) );
+            osres_  %= decldiag( eval( lhs ) - eval( orhs ) );
+            refres_ %= decldiag( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            dres_   %= decldiag( eval( olhs ) - eval( rhs ) );
+            odres_  %= decldiag( eval( olhs ) - eval( rhs ) );
+            sres_   %= decldiag( eval( olhs ) - eval( rhs ) );
+            osres_  %= decldiag( eval( olhs ) - eval( rhs ) );
+            refres_ %= decldiag( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            dres_   %= decldiag( eval( olhs ) - eval( orhs ) );
+            odres_  %= decldiag( eval( olhs ) - eval( orhs ) );
+            sres_   %= decldiag( eval( olhs ) - eval( orhs ) );
+            osres_  %= decldiag( eval( olhs ) - eval( orhs ) );
+            refres_ %= decldiag( eval( reflhs ) - eval( refrhs ) );
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
    }
 #endif
 }
@@ -6216,8 +7624,9 @@ void OperationTest<MT1,MT2>::testDeclDiagOperation( blaze::FalseType )
 // \exception std::runtime_error Subtraction error detected.
 //
 // This function tests the submatrix-wise matrix subtraction with plain assignment, addition
-// assignment, and subtraction assignment. In case any error resulting from the subtraction
-// or the subsequent assignment is detected, a \a std::runtime_error exception is thrown.
+// assignment, subtraction assignment, and Schur product assignment. In case any error resulting
+// from the subtraction or the subsequent assignment is detected, a \a std::runtime_error
+// exception is thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -6759,6 +8168,183 @@ void OperationTest<MT1,MT2>::testSubmatrixOperation()
 
          checkResults<OMT1,OMT2>();
       }
+
+
+      //=====================================================================================
+      // Submatrix-wise subtraction with Schur product assignment
+      //=====================================================================================
+
+      // Submatrix-wise subtraction with Schur product assignment with the given matrices
+      {
+         test_  = "Submatrix-wise subtraction with Schur product assignment with the given matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            for( size_t row=0UL, m=0UL; row<lhs_.rows(); row+=m ) {
+               m = blaze::rand<size_t>( 1UL, lhs_.rows() - row );
+               for( size_t column=0UL, n=0UL; column<rhs_.columns(); column+=n ) {
+                  n = blaze::rand<size_t>( 1UL, rhs_.columns() - column );
+                  submatrix( dres_  , row, column, m, n ) %= submatrix( lhs_ - rhs_      , row, column, m, n );
+                  submatrix( odres_ , row, column, m, n ) %= submatrix( lhs_ - rhs_      , row, column, m, n );
+                  submatrix( sres_  , row, column, m, n ) %= submatrix( lhs_ - rhs_      , row, column, m, n );
+                  submatrix( osres_ , row, column, m, n ) %= submatrix( lhs_ - rhs_      , row, column, m, n );
+                  submatrix( refres_, row, column, m, n ) %= submatrix( reflhs_ - refrhs_, row, column, m, n );
+               }
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t row=0UL, m=0UL; row<lhs_.rows(); row+=m ) {
+               m = blaze::rand<size_t>( 1UL, lhs_.rows() - row );
+               for( size_t column=0UL, n=0UL; column<orhs_.columns(); column+=n ) {
+                  n = blaze::rand<size_t>( 1UL, orhs_.columns() - column );
+                  submatrix( dres_  , row, column, m, n ) %= submatrix( lhs_ - orhs_     , row, column, m, n );
+                  submatrix( odres_ , row, column, m, n ) %= submatrix( lhs_ - orhs_     , row, column, m, n );
+                  submatrix( sres_  , row, column, m, n ) %= submatrix( lhs_ - orhs_     , row, column, m, n );
+                  submatrix( osres_ , row, column, m, n ) %= submatrix( lhs_ - orhs_     , row, column, m, n );
+                  submatrix( refres_, row, column, m, n ) %= submatrix( reflhs_ - refrhs_, row, column, m, n );
+               }
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t row=0UL, m=0UL; row<lhs_.rows(); row+=m ) {
+               m = blaze::rand<size_t>( 1UL, lhs_.rows() - row );
+               for( size_t column=0UL, n=0UL; column<rhs_.columns(); column+=n ) {
+                  n = blaze::rand<size_t>( 1UL, rhs_.columns() - column );
+                  submatrix( dres_  , row, column, m, n ) %= submatrix( olhs_ - rhs_     , row, column, m, n );
+                  submatrix( odres_ , row, column, m, n ) %= submatrix( olhs_ - rhs_     , row, column, m, n );
+                  submatrix( sres_  , row, column, m, n ) %= submatrix( olhs_ - rhs_     , row, column, m, n );
+                  submatrix( osres_ , row, column, m, n ) %= submatrix( olhs_ - rhs_     , row, column, m, n );
+                  submatrix( refres_, row, column, m, n ) %= submatrix( reflhs_ - refrhs_, row, column, m, n );
+               }
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t row=0UL, m=0UL; row<lhs_.rows(); row+=m ) {
+               m = blaze::rand<size_t>( 1UL, lhs_.rows() - row );
+               for( size_t column=0UL, n=0UL; column<orhs_.columns(); column+=n ) {
+                  n = blaze::rand<size_t>( 1UL, orhs_.columns() - column );
+                  submatrix( dres_  , row, column, m, n ) %= submatrix( olhs_ - orhs_    , row, column, m, n );
+                  submatrix( odres_ , row, column, m, n ) %= submatrix( olhs_ - orhs_    , row, column, m, n );
+                  submatrix( sres_  , row, column, m, n ) %= submatrix( olhs_ - orhs_    , row, column, m, n );
+                  submatrix( osres_ , row, column, m, n ) %= submatrix( olhs_ - orhs_    , row, column, m, n );
+                  submatrix( refres_, row, column, m, n ) %= submatrix( reflhs_ - refrhs_, row, column, m, n );
+               }
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Submatrix-wise subtraction with Schur product assignment with evaluated matrices
+      {
+         test_  = "Submatrix-wise subtraction with Schur product assignment with evaluated matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            for( size_t row=0UL, m=0UL; row<lhs_.rows(); row+=m ) {
+               m = blaze::rand<size_t>( 1UL, lhs_.rows() - row );
+               for( size_t column=0UL, n=0UL; column<rhs_.columns(); column+=n ) {
+                  n = blaze::rand<size_t>( 1UL, rhs_.columns() - column );
+                  submatrix( dres_  , row, column, m, n ) %= submatrix( eval( lhs_ ) - eval( rhs_ )      , row, column, m, n );
+                  submatrix( odres_ , row, column, m, n ) %= submatrix( eval( lhs_ ) - eval( rhs_ )      , row, column, m, n );
+                  submatrix( sres_  , row, column, m, n ) %= submatrix( eval( lhs_ ) - eval( rhs_ )      , row, column, m, n );
+                  submatrix( osres_ , row, column, m, n ) %= submatrix( eval( lhs_ ) - eval( rhs_ )      , row, column, m, n );
+                  submatrix( refres_, row, column, m, n ) %= submatrix( eval( reflhs_ ) - eval( refrhs_ ), row, column, m, n );
+               }
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t row=0UL, m=0UL; row<lhs_.rows(); row+=m ) {
+               m = blaze::rand<size_t>( 1UL, lhs_.rows() - row );
+               for( size_t column=0UL, n=0UL; column<orhs_.columns(); column+=n ) {
+                  n = blaze::rand<size_t>( 1UL, orhs_.columns() - column );
+                  submatrix( dres_  , row, column, m, n ) %= submatrix( eval( lhs_ ) - eval( orhs_ )     , row, column, m, n );
+                  submatrix( odres_ , row, column, m, n ) %= submatrix( eval( lhs_ ) - eval( orhs_ )     , row, column, m, n );
+                  submatrix( sres_  , row, column, m, n ) %= submatrix( eval( lhs_ ) - eval( orhs_ )     , row, column, m, n );
+                  submatrix( osres_ , row, column, m, n ) %= submatrix( eval( lhs_ ) - eval( orhs_ )     , row, column, m, n );
+                  submatrix( refres_, row, column, m, n ) %= submatrix( eval( reflhs_ ) - eval( refrhs_ ), row, column, m, n );
+               }
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t row=0UL, m=0UL; row<lhs_.rows(); row+=m ) {
+               m = blaze::rand<size_t>( 1UL, lhs_.rows() - row );
+               for( size_t column=0UL, n=0UL; column<rhs_.columns(); column+=n ) {
+                  n = blaze::rand<size_t>( 1UL, rhs_.columns() - column );
+                  submatrix( dres_  , row, column, m, n ) %= submatrix( eval( olhs_ ) - eval( rhs_ )     , row, column, m, n );
+                  submatrix( odres_ , row, column, m, n ) %= submatrix( eval( olhs_ ) - eval( rhs_ )     , row, column, m, n );
+                  submatrix( sres_  , row, column, m, n ) %= submatrix( eval( olhs_ ) - eval( rhs_ )     , row, column, m, n );
+                  submatrix( osres_ , row, column, m, n ) %= submatrix( eval( olhs_ ) - eval( rhs_ )     , row, column, m, n );
+                  submatrix( refres_, row, column, m, n ) %= submatrix( eval( reflhs_ ) - eval( refrhs_ ), row, column, m, n );
+               }
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t row=0UL, m=0UL; row<lhs_.rows(); row+=m ) {
+               m = blaze::rand<size_t>( 1UL, lhs_.rows() - row );
+               for( size_t column=0UL, n=0UL; column<orhs_.columns(); column+=n ) {
+                  n = blaze::rand<size_t>( 1UL, orhs_.columns() - column );
+                  submatrix( dres_  , row, column, m, n ) %= submatrix( eval( olhs_ ) - eval( orhs_ )    , row, column, m, n );
+                  submatrix( odres_ , row, column, m, n ) %= submatrix( eval( olhs_ ) - eval( orhs_ )    , row, column, m, n );
+                  submatrix( sres_  , row, column, m, n ) %= submatrix( eval( olhs_ ) - eval( orhs_ )    , row, column, m, n );
+                  submatrix( osres_ , row, column, m, n ) %= submatrix( eval( olhs_ ) - eval( orhs_ )    , row, column, m, n );
+                  submatrix( refres_, row, column, m, n ) %= submatrix( eval( reflhs_ ) - eval( refrhs_ ), row, column, m, n );
+               }
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
    }
 #endif
 }
@@ -6772,8 +8358,9 @@ void OperationTest<MT1,MT2>::testSubmatrixOperation()
 // \exception std::runtime_error Subtraction error detected.
 //
 // This function tests the row-wise matrix subtraction with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the subtraction or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
+// subtraction assignment, and multiplication assignment. In case any error resulting from the
+// subtraction or the subsequent assignment is detected, a \a std::runtime_error exception is
+// thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -6798,11 +8385,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) = row( lhs_ + rhs_, i );
-               row( odres_ , i ) = row( lhs_ + rhs_, i );
-               row( sres_  , i ) = row( lhs_ + rhs_, i );
-               row( osres_ , i ) = row( lhs_ + rhs_, i );
-               row( refres_, i ) = row( reflhs_ + refrhs_, i );
+               row( dres_  , i ) = row( lhs_ - rhs_, i );
+               row( odres_ , i ) = row( lhs_ - rhs_, i );
+               row( sres_  , i ) = row( lhs_ - rhs_, i );
+               row( osres_ , i ) = row( lhs_ - rhs_, i );
+               row( refres_, i ) = row( reflhs_ - refrhs_, i );
             }
          }
          catch( std::exception& ex ) {
@@ -6814,11 +8401,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) = row( lhs_ + orhs_, i );
-               row( odres_ , i ) = row( lhs_ + orhs_, i );
-               row( sres_  , i ) = row( lhs_ + orhs_, i );
-               row( osres_ , i ) = row( lhs_ + orhs_, i );
-               row( refres_, i ) = row( reflhs_ + refrhs_, i );
+               row( dres_  , i ) = row( lhs_ - orhs_, i );
+               row( odres_ , i ) = row( lhs_ - orhs_, i );
+               row( sres_  , i ) = row( lhs_ - orhs_, i );
+               row( osres_ , i ) = row( lhs_ - orhs_, i );
+               row( refres_, i ) = row( reflhs_ - refrhs_, i );
             }
          }
          catch( std::exception& ex ) {
@@ -6830,11 +8417,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) = row( olhs_ + rhs_, i );
-               row( odres_ , i ) = row( olhs_ + rhs_, i );
-               row( sres_  , i ) = row( olhs_ + rhs_, i );
-               row( osres_ , i ) = row( olhs_ + rhs_, i );
-               row( refres_, i ) = row( reflhs_ + refrhs_, i );
+               row( dres_  , i ) = row( olhs_ - rhs_, i );
+               row( odres_ , i ) = row( olhs_ - rhs_, i );
+               row( sres_  , i ) = row( olhs_ - rhs_, i );
+               row( osres_ , i ) = row( olhs_ - rhs_, i );
+               row( refres_, i ) = row( reflhs_ - refrhs_, i );
             }
          }
          catch( std::exception& ex ) {
@@ -6846,11 +8433,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) = row( olhs_ + orhs_, i );
-               row( odres_ , i ) = row( olhs_ + orhs_, i );
-               row( sres_  , i ) = row( olhs_ + orhs_, i );
-               row( osres_ , i ) = row( olhs_ + orhs_, i );
-               row( refres_, i ) = row( reflhs_ + refrhs_, i );
+               row( dres_  , i ) = row( olhs_ - orhs_, i );
+               row( odres_ , i ) = row( olhs_ - orhs_, i );
+               row( sres_  , i ) = row( olhs_ - orhs_, i );
+               row( osres_ , i ) = row( olhs_ - orhs_, i );
+               row( refres_, i ) = row( reflhs_ - refrhs_, i );
             }
          }
          catch( std::exception& ex ) {
@@ -6868,11 +8455,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) = row( eval( lhs_ ) + eval( rhs_ ), i );
-               row( odres_ , i ) = row( eval( lhs_ ) + eval( rhs_ ), i );
-               row( sres_  , i ) = row( eval( lhs_ ) + eval( rhs_ ), i );
-               row( osres_ , i ) = row( eval( lhs_ ) + eval( rhs_ ), i );
-               row( refres_, i ) = row( eval( reflhs_ ) + eval( refrhs_ ), i );
+               row( dres_  , i ) = row( eval( lhs_ ) - eval( rhs_ ), i );
+               row( odres_ , i ) = row( eval( lhs_ ) - eval( rhs_ ), i );
+               row( sres_  , i ) = row( eval( lhs_ ) - eval( rhs_ ), i );
+               row( osres_ , i ) = row( eval( lhs_ ) - eval( rhs_ ), i );
+               row( refres_, i ) = row( eval( reflhs_ ) - eval( refrhs_ ), i );
             }
          }
          catch( std::exception& ex ) {
@@ -6884,11 +8471,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) = row( eval( lhs_ ) + eval( orhs_ ), i );
-               row( odres_ , i ) = row( eval( lhs_ ) + eval( orhs_ ), i );
-               row( sres_  , i ) = row( eval( lhs_ ) + eval( orhs_ ), i );
-               row( osres_ , i ) = row( eval( lhs_ ) + eval( orhs_ ), i );
-               row( refres_, i ) = row( eval( reflhs_ ) + eval( refrhs_ ), i );
+               row( dres_  , i ) = row( eval( lhs_ ) - eval( orhs_ ), i );
+               row( odres_ , i ) = row( eval( lhs_ ) - eval( orhs_ ), i );
+               row( sres_  , i ) = row( eval( lhs_ ) - eval( orhs_ ), i );
+               row( osres_ , i ) = row( eval( lhs_ ) - eval( orhs_ ), i );
+               row( refres_, i ) = row( eval( reflhs_ ) - eval( refrhs_ ), i );
             }
          }
          catch( std::exception& ex ) {
@@ -6900,11 +8487,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) = row( eval( olhs_ ) + eval( rhs_ ), i );
-               row( odres_ , i ) = row( eval( olhs_ ) + eval( rhs_ ), i );
-               row( sres_  , i ) = row( eval( olhs_ ) + eval( rhs_ ), i );
-               row( osres_ , i ) = row( eval( olhs_ ) + eval( rhs_ ), i );
-               row( refres_, i ) = row( eval( reflhs_ ) + eval( refrhs_ ), i );
+               row( dres_  , i ) = row( eval( olhs_ ) - eval( rhs_ ), i );
+               row( odres_ , i ) = row( eval( olhs_ ) - eval( rhs_ ), i );
+               row( sres_  , i ) = row( eval( olhs_ ) - eval( rhs_ ), i );
+               row( osres_ , i ) = row( eval( olhs_ ) - eval( rhs_ ), i );
+               row( refres_, i ) = row( eval( reflhs_ ) - eval( refrhs_ ), i );
             }
          }
          catch( std::exception& ex ) {
@@ -6916,11 +8503,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) = row( eval( olhs_ ) + eval( orhs_ ), i );
-               row( odres_ , i ) = row( eval( olhs_ ) + eval( orhs_ ), i );
-               row( sres_  , i ) = row( eval( olhs_ ) + eval( orhs_ ), i );
-               row( osres_ , i ) = row( eval( olhs_ ) + eval( orhs_ ), i );
-               row( refres_, i ) = row( eval( reflhs_ ) + eval( refrhs_ ), i );
+               row( dres_  , i ) = row( eval( olhs_ ) - eval( orhs_ ), i );
+               row( odres_ , i ) = row( eval( olhs_ ) - eval( orhs_ ), i );
+               row( sres_  , i ) = row( eval( olhs_ ) - eval( orhs_ ), i );
+               row( osres_ , i ) = row( eval( olhs_ ) - eval( orhs_ ), i );
+               row( refres_, i ) = row( eval( reflhs_ ) - eval( refrhs_ ), i );
             }
          }
          catch( std::exception& ex ) {
@@ -6943,11 +8530,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) += row( lhs_ + rhs_, i );
-               row( odres_ , i ) += row( lhs_ + rhs_, i );
-               row( sres_  , i ) += row( lhs_ + rhs_, i );
-               row( osres_ , i ) += row( lhs_ + rhs_, i );
-               row( refres_, i ) += row( reflhs_ + refrhs_, i );
+               row( dres_  , i ) += row( lhs_ - rhs_, i );
+               row( odres_ , i ) += row( lhs_ - rhs_, i );
+               row( sres_  , i ) += row( lhs_ - rhs_, i );
+               row( osres_ , i ) += row( lhs_ - rhs_, i );
+               row( refres_, i ) += row( reflhs_ - refrhs_, i );
             }
          }
          catch( std::exception& ex ) {
@@ -6959,11 +8546,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) += row( lhs_ + orhs_, i );
-               row( odres_ , i ) += row( lhs_ + orhs_, i );
-               row( sres_  , i ) += row( lhs_ + orhs_, i );
-               row( osres_ , i ) += row( lhs_ + orhs_, i );
-               row( refres_, i ) += row( reflhs_ + refrhs_, i );
+               row( dres_  , i ) += row( lhs_ - orhs_, i );
+               row( odres_ , i ) += row( lhs_ - orhs_, i );
+               row( sres_  , i ) += row( lhs_ - orhs_, i );
+               row( osres_ , i ) += row( lhs_ - orhs_, i );
+               row( refres_, i ) += row( reflhs_ - refrhs_, i );
             }
          }
          catch( std::exception& ex ) {
@@ -6975,11 +8562,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) += row( olhs_ + rhs_, i );
-               row( odres_ , i ) += row( olhs_ + rhs_, i );
-               row( sres_  , i ) += row( olhs_ + rhs_, i );
-               row( osres_ , i ) += row( olhs_ + rhs_, i );
-               row( refres_, i ) += row( reflhs_ + refrhs_, i );
+               row( dres_  , i ) += row( olhs_ - rhs_, i );
+               row( odres_ , i ) += row( olhs_ - rhs_, i );
+               row( sres_  , i ) += row( olhs_ - rhs_, i );
+               row( osres_ , i ) += row( olhs_ - rhs_, i );
+               row( refres_, i ) += row( reflhs_ - refrhs_, i );
             }
          }
          catch( std::exception& ex ) {
@@ -6991,11 +8578,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) += row( olhs_ + orhs_, i );
-               row( odres_ , i ) += row( olhs_ + orhs_, i );
-               row( sres_  , i ) += row( olhs_ + orhs_, i );
-               row( osres_ , i ) += row( olhs_ + orhs_, i );
-               row( refres_, i ) += row( reflhs_ + refrhs_, i );
+               row( dres_  , i ) += row( olhs_ - orhs_, i );
+               row( odres_ , i ) += row( olhs_ - orhs_, i );
+               row( sres_  , i ) += row( olhs_ - orhs_, i );
+               row( osres_ , i ) += row( olhs_ - orhs_, i );
+               row( refres_, i ) += row( reflhs_ - refrhs_, i );
             }
          }
          catch( std::exception& ex ) {
@@ -7013,11 +8600,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) += row( eval( lhs_ ) + eval( rhs_ ), i );
-               row( odres_ , i ) += row( eval( lhs_ ) + eval( rhs_ ), i );
-               row( sres_  , i ) += row( eval( lhs_ ) + eval( rhs_ ), i );
-               row( osres_ , i ) += row( eval( lhs_ ) + eval( rhs_ ), i );
-               row( refres_, i ) += row( eval( reflhs_ ) + eval( refrhs_ ), i );
+               row( dres_  , i ) += row( eval( lhs_ ) - eval( rhs_ ), i );
+               row( odres_ , i ) += row( eval( lhs_ ) - eval( rhs_ ), i );
+               row( sres_  , i ) += row( eval( lhs_ ) - eval( rhs_ ), i );
+               row( osres_ , i ) += row( eval( lhs_ ) - eval( rhs_ ), i );
+               row( refres_, i ) += row( eval( reflhs_ ) - eval( refrhs_ ), i );
             }
          }
          catch( std::exception& ex ) {
@@ -7029,11 +8616,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) += row( eval( lhs_ ) + eval( orhs_ ), i );
-               row( odres_ , i ) += row( eval( lhs_ ) + eval( orhs_ ), i );
-               row( sres_  , i ) += row( eval( lhs_ ) + eval( orhs_ ), i );
-               row( osres_ , i ) += row( eval( lhs_ ) + eval( orhs_ ), i );
-               row( refres_, i ) += row( eval( reflhs_ ) + eval( refrhs_ ), i );
+               row( dres_  , i ) += row( eval( lhs_ ) - eval( orhs_ ), i );
+               row( odres_ , i ) += row( eval( lhs_ ) - eval( orhs_ ), i );
+               row( sres_  , i ) += row( eval( lhs_ ) - eval( orhs_ ), i );
+               row( osres_ , i ) += row( eval( lhs_ ) - eval( orhs_ ), i );
+               row( refres_, i ) += row( eval( reflhs_ ) - eval( refrhs_ ), i );
             }
          }
          catch( std::exception& ex ) {
@@ -7045,11 +8632,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) += row( eval( olhs_ ) + eval( rhs_ ), i );
-               row( odres_ , i ) += row( eval( olhs_ ) + eval( rhs_ ), i );
-               row( sres_  , i ) += row( eval( olhs_ ) + eval( rhs_ ), i );
-               row( osres_ , i ) += row( eval( olhs_ ) + eval( rhs_ ), i );
-               row( refres_, i ) += row( eval( reflhs_ ) + eval( refrhs_ ), i );
+               row( dres_  , i ) += row( eval( olhs_ ) - eval( rhs_ ), i );
+               row( odres_ , i ) += row( eval( olhs_ ) - eval( rhs_ ), i );
+               row( sres_  , i ) += row( eval( olhs_ ) - eval( rhs_ ), i );
+               row( osres_ , i ) += row( eval( olhs_ ) - eval( rhs_ ), i );
+               row( refres_, i ) += row( eval( reflhs_ ) - eval( refrhs_ ), i );
             }
          }
          catch( std::exception& ex ) {
@@ -7061,11 +8648,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) += row( eval( olhs_ ) + eval( orhs_ ), i );
-               row( odres_ , i ) += row( eval( olhs_ ) + eval( orhs_ ), i );
-               row( sres_  , i ) += row( eval( olhs_ ) + eval( orhs_ ), i );
-               row( osres_ , i ) += row( eval( olhs_ ) + eval( orhs_ ), i );
-               row( refres_, i ) += row( eval( reflhs_ ) + eval( refrhs_ ), i );
+               row( dres_  , i ) += row( eval( olhs_ ) - eval( orhs_ ), i );
+               row( odres_ , i ) += row( eval( olhs_ ) - eval( orhs_ ), i );
+               row( sres_  , i ) += row( eval( olhs_ ) - eval( orhs_ ), i );
+               row( osres_ , i ) += row( eval( olhs_ ) - eval( orhs_ ), i );
+               row( refres_, i ) += row( eval( reflhs_ ) - eval( refrhs_ ), i );
             }
          }
          catch( std::exception& ex ) {
@@ -7088,11 +8675,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) -= row( lhs_ + rhs_, i );
-               row( odres_ , i ) -= row( lhs_ + rhs_, i );
-               row( sres_  , i ) -= row( lhs_ + rhs_, i );
-               row( osres_ , i ) -= row( lhs_ + rhs_, i );
-               row( refres_, i ) -= row( reflhs_ + refrhs_, i );
+               row( dres_  , i ) -= row( lhs_ - rhs_, i );
+               row( odres_ , i ) -= row( lhs_ - rhs_, i );
+               row( sres_  , i ) -= row( lhs_ - rhs_, i );
+               row( osres_ , i ) -= row( lhs_ - rhs_, i );
+               row( refres_, i ) -= row( reflhs_ - refrhs_, i );
             }
          }
          catch( std::exception& ex ) {
@@ -7104,11 +8691,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) -= row( lhs_ + orhs_, i );
-               row( odres_ , i ) -= row( lhs_ + orhs_, i );
-               row( sres_  , i ) -= row( lhs_ + orhs_, i );
-               row( osres_ , i ) -= row( lhs_ + orhs_, i );
-               row( refres_, i ) -= row( reflhs_ + refrhs_, i );
+               row( dres_  , i ) -= row( lhs_ - orhs_, i );
+               row( odres_ , i ) -= row( lhs_ - orhs_, i );
+               row( sres_  , i ) -= row( lhs_ - orhs_, i );
+               row( osres_ , i ) -= row( lhs_ - orhs_, i );
+               row( refres_, i ) -= row( reflhs_ - refrhs_, i );
             }
          }
          catch( std::exception& ex ) {
@@ -7120,11 +8707,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) -= row( olhs_ + rhs_, i );
-               row( odres_ , i ) -= row( olhs_ + rhs_, i );
-               row( sres_  , i ) -= row( olhs_ + rhs_, i );
-               row( osres_ , i ) -= row( olhs_ + rhs_, i );
-               row( refres_, i ) -= row( reflhs_ + refrhs_, i );
+               row( dres_  , i ) -= row( olhs_ - rhs_, i );
+               row( odres_ , i ) -= row( olhs_ - rhs_, i );
+               row( sres_  , i ) -= row( olhs_ - rhs_, i );
+               row( osres_ , i ) -= row( olhs_ - rhs_, i );
+               row( refres_, i ) -= row( reflhs_ - refrhs_, i );
             }
          }
          catch( std::exception& ex ) {
@@ -7136,11 +8723,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) -= row( olhs_ + orhs_, i );
-               row( odres_ , i ) -= row( olhs_ + orhs_, i );
-               row( sres_  , i ) -= row( olhs_ + orhs_, i );
-               row( osres_ , i ) -= row( olhs_ + orhs_, i );
-               row( refres_, i ) -= row( reflhs_ + refrhs_, i );
+               row( dres_  , i ) -= row( olhs_ - orhs_, i );
+               row( odres_ , i ) -= row( olhs_ - orhs_, i );
+               row( sres_  , i ) -= row( olhs_ - orhs_, i );
+               row( osres_ , i ) -= row( olhs_ - orhs_, i );
+               row( refres_, i ) -= row( reflhs_ - refrhs_, i );
             }
          }
          catch( std::exception& ex ) {
@@ -7158,11 +8745,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) -= row( eval( lhs_ ) + eval( rhs_ ), i );
-               row( odres_ , i ) -= row( eval( lhs_ ) + eval( rhs_ ), i );
-               row( sres_  , i ) -= row( eval( lhs_ ) + eval( rhs_ ), i );
-               row( osres_ , i ) -= row( eval( lhs_ ) + eval( rhs_ ), i );
-               row( refres_, i ) -= row( eval( reflhs_ ) + eval( refrhs_ ), i );
+               row( dres_  , i ) -= row( eval( lhs_ ) - eval( rhs_ ), i );
+               row( odres_ , i ) -= row( eval( lhs_ ) - eval( rhs_ ), i );
+               row( sres_  , i ) -= row( eval( lhs_ ) - eval( rhs_ ), i );
+               row( osres_ , i ) -= row( eval( lhs_ ) - eval( rhs_ ), i );
+               row( refres_, i ) -= row( eval( reflhs_ ) - eval( refrhs_ ), i );
             }
          }
          catch( std::exception& ex ) {
@@ -7174,11 +8761,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) -= row( eval( lhs_ ) + eval( orhs_ ), i );
-               row( odres_ , i ) -= row( eval( lhs_ ) + eval( orhs_ ), i );
-               row( sres_  , i ) -= row( eval( lhs_ ) + eval( orhs_ ), i );
-               row( osres_ , i ) -= row( eval( lhs_ ) + eval( orhs_ ), i );
-               row( refres_, i ) -= row( eval( reflhs_ ) + eval( refrhs_ ), i );
+               row( dres_  , i ) -= row( eval( lhs_ ) - eval( orhs_ ), i );
+               row( odres_ , i ) -= row( eval( lhs_ ) - eval( orhs_ ), i );
+               row( sres_  , i ) -= row( eval( lhs_ ) - eval( orhs_ ), i );
+               row( osres_ , i ) -= row( eval( lhs_ ) - eval( orhs_ ), i );
+               row( refres_, i ) -= row( eval( reflhs_ ) - eval( refrhs_ ), i );
             }
          }
          catch( std::exception& ex ) {
@@ -7190,11 +8777,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) -= row( eval( olhs_ ) + eval( rhs_ ), i );
-               row( odres_ , i ) -= row( eval( olhs_ ) + eval( rhs_ ), i );
-               row( sres_  , i ) -= row( eval( olhs_ ) + eval( rhs_ ), i );
-               row( osres_ , i ) -= row( eval( olhs_ ) + eval( rhs_ ), i );
-               row( refres_, i ) -= row( eval( reflhs_ ) + eval( refrhs_ ), i );
+               row( dres_  , i ) -= row( eval( olhs_ ) - eval( rhs_ ), i );
+               row( odres_ , i ) -= row( eval( olhs_ ) - eval( rhs_ ), i );
+               row( sres_  , i ) -= row( eval( olhs_ ) - eval( rhs_ ), i );
+               row( osres_ , i ) -= row( eval( olhs_ ) - eval( rhs_ ), i );
+               row( refres_, i ) -= row( eval( reflhs_ ) - eval( refrhs_ ), i );
             }
          }
          catch( std::exception& ex ) {
@@ -7206,11 +8793,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) -= row( eval( olhs_ ) + eval( orhs_ ), i );
-               row( odres_ , i ) -= row( eval( olhs_ ) + eval( orhs_ ), i );
-               row( sres_  , i ) -= row( eval( olhs_ ) + eval( orhs_ ), i );
-               row( osres_ , i ) -= row( eval( olhs_ ) + eval( orhs_ ), i );
-               row( refres_, i ) -= row( eval( reflhs_ ) + eval( refrhs_ ), i );
+               row( dres_  , i ) -= row( eval( olhs_ ) - eval( orhs_ ), i );
+               row( odres_ , i ) -= row( eval( olhs_ ) - eval( orhs_ ), i );
+               row( sres_  , i ) -= row( eval( olhs_ ) - eval( orhs_ ), i );
+               row( osres_ , i ) -= row( eval( olhs_ ) - eval( orhs_ ), i );
+               row( refres_, i ) -= row( eval( reflhs_ ) - eval( refrhs_ ), i );
             }
          }
          catch( std::exception& ex ) {
@@ -7233,11 +8820,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) *= row( lhs_ + rhs_, i );
-               row( odres_ , i ) *= row( lhs_ + rhs_, i );
-               row( sres_  , i ) *= row( lhs_ + rhs_, i );
-               row( osres_ , i ) *= row( lhs_ + rhs_, i );
-               row( refres_, i ) *= row( reflhs_ + refrhs_, i );
+               row( dres_  , i ) *= row( lhs_ - rhs_, i );
+               row( odres_ , i ) *= row( lhs_ - rhs_, i );
+               row( sres_  , i ) *= row( lhs_ - rhs_, i );
+               row( osres_ , i ) *= row( lhs_ - rhs_, i );
+               row( refres_, i ) *= row( reflhs_ - refrhs_, i );
             }
          }
          catch( std::exception& ex ) {
@@ -7249,11 +8836,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) *= row( lhs_ + orhs_, i );
-               row( odres_ , i ) *= row( lhs_ + orhs_, i );
-               row( sres_  , i ) *= row( lhs_ + orhs_, i );
-               row( osres_ , i ) *= row( lhs_ + orhs_, i );
-               row( refres_, i ) *= row( reflhs_ + refrhs_, i );
+               row( dres_  , i ) *= row( lhs_ - orhs_, i );
+               row( odres_ , i ) *= row( lhs_ - orhs_, i );
+               row( sres_  , i ) *= row( lhs_ - orhs_, i );
+               row( osres_ , i ) *= row( lhs_ - orhs_, i );
+               row( refres_, i ) *= row( reflhs_ - refrhs_, i );
             }
          }
          catch( std::exception& ex ) {
@@ -7265,11 +8852,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) *= row( olhs_ + rhs_, i );
-               row( odres_ , i ) *= row( olhs_ + rhs_, i );
-               row( sres_  , i ) *= row( olhs_ + rhs_, i );
-               row( osres_ , i ) *= row( olhs_ + rhs_, i );
-               row( refres_, i ) *= row( reflhs_ + refrhs_, i );
+               row( dres_  , i ) *= row( olhs_ - rhs_, i );
+               row( odres_ , i ) *= row( olhs_ - rhs_, i );
+               row( sres_  , i ) *= row( olhs_ - rhs_, i );
+               row( osres_ , i ) *= row( olhs_ - rhs_, i );
+               row( refres_, i ) *= row( reflhs_ - refrhs_, i );
             }
          }
          catch( std::exception& ex ) {
@@ -7281,11 +8868,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) *= row( olhs_ + orhs_, i );
-               row( odres_ , i ) *= row( olhs_ + orhs_, i );
-               row( sres_  , i ) *= row( olhs_ + orhs_, i );
-               row( osres_ , i ) *= row( olhs_ + orhs_, i );
-               row( refres_, i ) *= row( reflhs_ + refrhs_, i );
+               row( dres_  , i ) *= row( olhs_ - orhs_, i );
+               row( odres_ , i ) *= row( olhs_ - orhs_, i );
+               row( sres_  , i ) *= row( olhs_ - orhs_, i );
+               row( osres_ , i ) *= row( olhs_ - orhs_, i );
+               row( refres_, i ) *= row( reflhs_ - refrhs_, i );
             }
          }
          catch( std::exception& ex ) {
@@ -7303,11 +8890,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) *= row( eval( lhs_ ) + eval( rhs_ ), i );
-               row( odres_ , i ) *= row( eval( lhs_ ) + eval( rhs_ ), i );
-               row( sres_  , i ) *= row( eval( lhs_ ) + eval( rhs_ ), i );
-               row( osres_ , i ) *= row( eval( lhs_ ) + eval( rhs_ ), i );
-               row( refres_, i ) *= row( eval( reflhs_ ) + eval( refrhs_ ), i );
+               row( dres_  , i ) *= row( eval( lhs_ ) - eval( rhs_ ), i );
+               row( odres_ , i ) *= row( eval( lhs_ ) - eval( rhs_ ), i );
+               row( sres_  , i ) *= row( eval( lhs_ ) - eval( rhs_ ), i );
+               row( osres_ , i ) *= row( eval( lhs_ ) - eval( rhs_ ), i );
+               row( refres_, i ) *= row( eval( reflhs_ ) - eval( refrhs_ ), i );
             }
          }
          catch( std::exception& ex ) {
@@ -7319,11 +8906,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) *= row( eval( lhs_ ) + eval( orhs_ ), i );
-               row( odres_ , i ) *= row( eval( lhs_ ) + eval( orhs_ ), i );
-               row( sres_  , i ) *= row( eval( lhs_ ) + eval( orhs_ ), i );
-               row( osres_ , i ) *= row( eval( lhs_ ) + eval( orhs_ ), i );
-               row( refres_, i ) *= row( eval( reflhs_ ) + eval( refrhs_ ), i );
+               row( dres_  , i ) *= row( eval( lhs_ ) - eval( orhs_ ), i );
+               row( odres_ , i ) *= row( eval( lhs_ ) - eval( orhs_ ), i );
+               row( sres_  , i ) *= row( eval( lhs_ ) - eval( orhs_ ), i );
+               row( osres_ , i ) *= row( eval( lhs_ ) - eval( orhs_ ), i );
+               row( refres_, i ) *= row( eval( reflhs_ ) - eval( refrhs_ ), i );
             }
          }
          catch( std::exception& ex ) {
@@ -7335,11 +8922,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) *= row( eval( olhs_ ) + eval( rhs_ ), i );
-               row( odres_ , i ) *= row( eval( olhs_ ) + eval( rhs_ ), i );
-               row( sres_  , i ) *= row( eval( olhs_ ) + eval( rhs_ ), i );
-               row( osres_ , i ) *= row( eval( olhs_ ) + eval( rhs_ ), i );
-               row( refres_, i ) *= row( eval( reflhs_ ) + eval( refrhs_ ), i );
+               row( dres_  , i ) *= row( eval( olhs_ ) - eval( rhs_ ), i );
+               row( odres_ , i ) *= row( eval( olhs_ ) - eval( rhs_ ), i );
+               row( sres_  , i ) *= row( eval( olhs_ ) - eval( rhs_ ), i );
+               row( osres_ , i ) *= row( eval( olhs_ ) - eval( rhs_ ), i );
+               row( refres_, i ) *= row( eval( reflhs_ ) - eval( refrhs_ ), i );
             }
          }
          catch( std::exception& ex ) {
@@ -7351,11 +8938,11 @@ void OperationTest<MT1,MT2>::testRowOperation()
          try {
             initResults();
             for( size_t i=0UL; i<lhs_.rows(); ++i ) {
-               row( dres_  , i ) *= row( eval( olhs_ ) + eval( orhs_ ), i );
-               row( odres_ , i ) *= row( eval( olhs_ ) + eval( orhs_ ), i );
-               row( sres_  , i ) *= row( eval( olhs_ ) + eval( orhs_ ), i );
-               row( osres_ , i ) *= row( eval( olhs_ ) + eval( orhs_ ), i );
-               row( refres_, i ) *= row( eval( reflhs_ ) + eval( refrhs_ ), i );
+               row( dres_  , i ) *= row( eval( olhs_ ) - eval( orhs_ ), i );
+               row( odres_ , i ) *= row( eval( olhs_ ) - eval( orhs_ ), i );
+               row( sres_  , i ) *= row( eval( olhs_ ) - eval( orhs_ ), i );
+               row( osres_ , i ) *= row( eval( olhs_ ) - eval( orhs_ ), i );
+               row( refres_, i ) *= row( eval( reflhs_ ) - eval( refrhs_ ), i );
             }
          }
          catch( std::exception& ex ) {
@@ -7371,14 +8958,673 @@ void OperationTest<MT1,MT2>::testRowOperation()
 
 
 //*************************************************************************************************
+/*!\brief Testing the rows-wise sparse matrix/sparse matrix subtraction.
+//
+// \return void
+// \exception std::runtime_error Subtraction error detected.
+//
+// This function tests the rows-wise matrix subtraction with plain assignment, addition assignment,
+// subtraction assignment, and Schur product assignment. In case any error resulting from the
+// subtraction or the subsequent assignment is detected, a \a std::runtime_error exception is
+// thrown.
+*/
+template< typename MT1    // Type of the left-hand side sparse matrix
+        , typename MT2 >  // Type of the right-hand side sparse matrix
+void OperationTest<MT1,MT2>::testRowsOperation( blaze::TrueType )
+{
+#if BLAZETEST_MATHTEST_TEST_ROWS_OPERATION
+   if( BLAZETEST_MATHTEST_TEST_ROWS_OPERATION > 1 )
+   {
+      if( lhs_.rows() == 0UL )
+         return;
+
+
+      std::vector<size_t> indices( lhs_.rows() );
+      std::iota( indices.begin(), indices.end(), 0UL );
+      std::random_shuffle( indices.begin(), indices.end() );
+
+
+      //=====================================================================================
+      // Rows-wise subtraction
+      //=====================================================================================
+
+      // Rows-wise subtraction with the given matrices
+      {
+         test_  = "Rows-wise subtraction with the given matrices";
+         error_ = "Failed subtraction operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) = rows( lhs_ - rhs_, &indices[index], n );
+               rows( odres_ , &indices[index], n ) = rows( lhs_ - rhs_, &indices[index], n );
+               rows( sres_  , &indices[index], n ) = rows( lhs_ - rhs_, &indices[index], n );
+               rows( osres_ , &indices[index], n ) = rows( lhs_ - rhs_, &indices[index], n );
+               rows( refres_, &indices[index], n ) = rows( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) = rows( lhs_ - orhs_, &indices[index], n );
+               rows( odres_ , &indices[index], n ) = rows( lhs_ - orhs_, &indices[index], n );
+               rows( sres_  , &indices[index], n ) = rows( lhs_ - orhs_, &indices[index], n );
+               rows( osres_ , &indices[index], n ) = rows( lhs_ - orhs_, &indices[index], n );
+               rows( refres_, &indices[index], n ) = rows( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) = rows( olhs_ - rhs_, &indices[index], n );
+               rows( odres_ , &indices[index], n ) = rows( olhs_ - rhs_, &indices[index], n );
+               rows( sres_  , &indices[index], n ) = rows( olhs_ - rhs_, &indices[index], n );
+               rows( osres_ , &indices[index], n ) = rows( olhs_ - rhs_, &indices[index], n );
+               rows( refres_, &indices[index], n ) = rows( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) = rows( olhs_ - orhs_, &indices[index], n );
+               rows( odres_ , &indices[index], n ) = rows( olhs_ - orhs_, &indices[index], n );
+               rows( sres_  , &indices[index], n ) = rows( olhs_ - orhs_, &indices[index], n );
+               rows( osres_ , &indices[index], n ) = rows( olhs_ - orhs_, &indices[index], n );
+               rows( refres_, &indices[index], n ) = rows( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Rows-wise subtraction with evaluated matrices
+      {
+         test_  = "Rows-wise subtraction with evaluated matrices";
+         error_ = "Failed subtraction operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) = rows( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( odres_ , &indices[index], n ) = rows( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( sres_  , &indices[index], n ) = rows( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( osres_ , &indices[index], n ) = rows( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( refres_, &indices[index], n ) = rows( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) = rows( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( odres_ , &indices[index], n ) = rows( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( sres_  , &indices[index], n ) = rows( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( osres_ , &indices[index], n ) = rows( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( refres_, &indices[index], n ) = rows( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) = rows( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( odres_ , &indices[index], n ) = rows( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( sres_  , &indices[index], n ) = rows( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( osres_ , &indices[index], n ) = rows( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( refres_, &indices[index], n ) = rows( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) = rows( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( odres_ , &indices[index], n ) = rows( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( sres_  , &indices[index], n ) = rows( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( osres_ , &indices[index], n ) = rows( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( refres_, &indices[index], n ) = rows( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Rows-wise subtraction with addition assignment
+      //=====================================================================================
+
+      // Rows-wise subtraction with addition assignment with the given matrices
+      {
+         test_  = "Rows-wise subtraction with addition assignment with the given matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) += rows( lhs_ - rhs_, &indices[index], n );
+               rows( odres_ , &indices[index], n ) += rows( lhs_ - rhs_, &indices[index], n );
+               rows( sres_  , &indices[index], n ) += rows( lhs_ - rhs_, &indices[index], n );
+               rows( osres_ , &indices[index], n ) += rows( lhs_ - rhs_, &indices[index], n );
+               rows( refres_, &indices[index], n ) += rows( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) += rows( lhs_ - orhs_, &indices[index], n );
+               rows( odres_ , &indices[index], n ) += rows( lhs_ - orhs_, &indices[index], n );
+               rows( sres_  , &indices[index], n ) += rows( lhs_ - orhs_, &indices[index], n );
+               rows( osres_ , &indices[index], n ) += rows( lhs_ - orhs_, &indices[index], n );
+               rows( refres_, &indices[index], n ) += rows( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) += rows( olhs_ - rhs_, &indices[index], n );
+               rows( odres_ , &indices[index], n ) += rows( olhs_ - rhs_, &indices[index], n );
+               rows( sres_  , &indices[index], n ) += rows( olhs_ - rhs_, &indices[index], n );
+               rows( osres_ , &indices[index], n ) += rows( olhs_ - rhs_, &indices[index], n );
+               rows( refres_, &indices[index], n ) += rows( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) += rows( olhs_ - orhs_, &indices[index], n );
+               rows( odres_ , &indices[index], n ) += rows( olhs_ - orhs_, &indices[index], n );
+               rows( sres_  , &indices[index], n ) += rows( olhs_ - orhs_, &indices[index], n );
+               rows( osres_ , &indices[index], n ) += rows( olhs_ - orhs_, &indices[index], n );
+               rows( refres_, &indices[index], n ) += rows( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Rows-wise subtraction with addition assignment with evaluated matrices
+      {
+         test_  = "Rows-wise subtraction with addition assignment with evaluated matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) += rows( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( odres_ , &indices[index], n ) += rows( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( sres_  , &indices[index], n ) += rows( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( osres_ , &indices[index], n ) += rows( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( refres_, &indices[index], n ) += rows( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) += rows( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( odres_ , &indices[index], n ) += rows( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( sres_  , &indices[index], n ) += rows( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( osres_ , &indices[index], n ) += rows( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( refres_, &indices[index], n ) += rows( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) += rows( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( odres_ , &indices[index], n ) += rows( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( sres_  , &indices[index], n ) += rows( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( osres_ , &indices[index], n ) += rows( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( refres_, &indices[index], n ) += rows( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) += rows( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( odres_ , &indices[index], n ) += rows( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( sres_  , &indices[index], n ) += rows( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( osres_ , &indices[index], n ) += rows( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( refres_, &indices[index], n ) += rows( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Rows-wise subtraction with subtraction assignment
+      //=====================================================================================
+
+      // Rows-wise subtraction with subtraction assignment with the given matrices
+      {
+         test_  = "Rows-wise subtraction with subtraction assignment with the given matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) -= rows( lhs_ - rhs_, &indices[index], n );
+               rows( odres_ , &indices[index], n ) -= rows( lhs_ - rhs_, &indices[index], n );
+               rows( sres_  , &indices[index], n ) -= rows( lhs_ - rhs_, &indices[index], n );
+               rows( osres_ , &indices[index], n ) -= rows( lhs_ - rhs_, &indices[index], n );
+               rows( refres_, &indices[index], n ) -= rows( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) -= rows( lhs_ - orhs_, &indices[index], n );
+               rows( odres_ , &indices[index], n ) -= rows( lhs_ - orhs_, &indices[index], n );
+               rows( sres_  , &indices[index], n ) -= rows( lhs_ - orhs_, &indices[index], n );
+               rows( osres_ , &indices[index], n ) -= rows( lhs_ - orhs_, &indices[index], n );
+               rows( refres_, &indices[index], n ) -= rows( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) -= rows( olhs_ - rhs_, &indices[index], n );
+               rows( odres_ , &indices[index], n ) -= rows( olhs_ - rhs_, &indices[index], n );
+               rows( sres_  , &indices[index], n ) -= rows( olhs_ - rhs_, &indices[index], n );
+               rows( osres_ , &indices[index], n ) -= rows( olhs_ - rhs_, &indices[index], n );
+               rows( refres_, &indices[index], n ) -= rows( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) -= rows( olhs_ - orhs_, &indices[index], n );
+               rows( odres_ , &indices[index], n ) -= rows( olhs_ - orhs_, &indices[index], n );
+               rows( sres_  , &indices[index], n ) -= rows( olhs_ - orhs_, &indices[index], n );
+               rows( osres_ , &indices[index], n ) -= rows( olhs_ - orhs_, &indices[index], n );
+               rows( refres_, &indices[index], n ) -= rows( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Rows-wise subtraction with subtraction assignment with evaluated matrices
+      {
+         test_  = "Rows-wise subtraction with subtraction assignment with evaluated matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) -= rows( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( odres_ , &indices[index], n ) -= rows( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( sres_  , &indices[index], n ) -= rows( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( osres_ , &indices[index], n ) -= rows( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( refres_, &indices[index], n ) -= rows( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) -= rows( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( odres_ , &indices[index], n ) -= rows( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( sres_  , &indices[index], n ) -= rows( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( osres_ , &indices[index], n ) -= rows( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( refres_, &indices[index], n ) -= rows( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) -= rows( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( odres_ , &indices[index], n ) -= rows( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( sres_  , &indices[index], n ) -= rows( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( osres_ , &indices[index], n ) -= rows( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( refres_, &indices[index], n ) -= rows( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) -= rows( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( odres_ , &indices[index], n ) -= rows( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( sres_  , &indices[index], n ) -= rows( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( osres_ , &indices[index], n ) -= rows( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( refres_, &indices[index], n ) -= rows( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Rows-wise subtraction with Schur product assignment
+      //=====================================================================================
+
+      // Rows-wise subtraction with Schur product assignment with the given matrices
+      {
+         test_  = "Rows-wise subtraction with Schur product assignment with the given matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) %= rows( lhs_ - rhs_, &indices[index], n );
+               rows( odres_ , &indices[index], n ) %= rows( lhs_ - rhs_, &indices[index], n );
+               rows( sres_  , &indices[index], n ) %= rows( lhs_ - rhs_, &indices[index], n );
+               rows( osres_ , &indices[index], n ) %= rows( lhs_ - rhs_, &indices[index], n );
+               rows( refres_, &indices[index], n ) %= rows( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) %= rows( lhs_ - orhs_, &indices[index], n );
+               rows( odres_ , &indices[index], n ) %= rows( lhs_ - orhs_, &indices[index], n );
+               rows( sres_  , &indices[index], n ) %= rows( lhs_ - orhs_, &indices[index], n );
+               rows( osres_ , &indices[index], n ) %= rows( lhs_ - orhs_, &indices[index], n );
+               rows( refres_, &indices[index], n ) %= rows( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) %= rows( olhs_ - rhs_, &indices[index], n );
+               rows( odres_ , &indices[index], n ) %= rows( olhs_ - rhs_, &indices[index], n );
+               rows( sres_  , &indices[index], n ) %= rows( olhs_ - rhs_, &indices[index], n );
+               rows( osres_ , &indices[index], n ) %= rows( olhs_ - rhs_, &indices[index], n );
+               rows( refres_, &indices[index], n ) %= rows( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) %= rows( olhs_ - orhs_, &indices[index], n );
+               rows( odres_ , &indices[index], n ) %= rows( olhs_ - orhs_, &indices[index], n );
+               rows( sres_  , &indices[index], n ) %= rows( olhs_ - orhs_, &indices[index], n );
+               rows( osres_ , &indices[index], n ) %= rows( olhs_ - orhs_, &indices[index], n );
+               rows( refres_, &indices[index], n ) %= rows( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Rows-wise subtraction with Schur product assignment with evaluated matrices
+      {
+         test_  = "Rows-wise subtraction with Schur product assignment with evaluated matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) %= rows( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( odres_ , &indices[index], n ) %= rows( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( sres_  , &indices[index], n ) %= rows( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( osres_ , &indices[index], n ) %= rows( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( refres_, &indices[index], n ) %= rows( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) %= rows( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( odres_ , &indices[index], n ) %= rows( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( sres_  , &indices[index], n ) %= rows( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( osres_ , &indices[index], n ) %= rows( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( refres_, &indices[index], n ) %= rows( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) %= rows( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( odres_ , &indices[index], n ) %= rows( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( sres_  , &indices[index], n ) %= rows( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( osres_ , &indices[index], n ) %= rows( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               rows( refres_, &indices[index], n ) %= rows( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               rows( dres_  , &indices[index], n ) %= rows( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( odres_ , &indices[index], n ) %= rows( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( sres_  , &indices[index], n ) %= rows( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( osres_ , &indices[index], n ) %= rows( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               rows( refres_, &indices[index], n ) %= rows( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+   }
+#endif
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the rows-wise sparse matrix/sparse matrix subtraction.
+//
+// \return void
+//
+// This function is called in case the rows-wise matrix/matrix subtraction operation is not
+// available for the given matrix types \a MT1 and \a MT2.
+*/
+template< typename MT1    // Type of the left-hand side sparse matrix
+        , typename MT2 >  // Type of the right-hand side sparse matrix
+void OperationTest<MT1,MT2>::testRowsOperation( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Testing the column-wise sparse matrix/sparse matrix subtraction.
 //
 // \return void
 // \exception std::runtime_error Subtraction error detected.
 //
-// This function tests the column-wise matrix subtraction with plain assignment, addition assignment,
-// and subtraction assignment. In case any error resulting from the subtraction or the subsequent
-// assignment is detected, a \a std::runtime_error exception is thrown.
+// This function tests the column-wise matrix subtraction with plain assignment, addition
+// assignment, subtraction assignment, and multiplication assignment. In case any error resulting
+// from the subtraction or the subsequent assignment is detected, a \a std::runtime_error exception
+// is thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -7403,11 +9649,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) = column( lhs_ + rhs_, j );
-               column( odres_ , j ) = column( lhs_ + rhs_, j );
-               column( sres_  , j ) = column( lhs_ + rhs_, j );
-               column( osres_ , j ) = column( lhs_ + rhs_, j );
-               column( refres_, j ) = column( reflhs_ + refrhs_, j );
+               column( dres_  , j ) = column( lhs_ - rhs_, j );
+               column( odres_ , j ) = column( lhs_ - rhs_, j );
+               column( sres_  , j ) = column( lhs_ - rhs_, j );
+               column( osres_ , j ) = column( lhs_ - rhs_, j );
+               column( refres_, j ) = column( reflhs_ - refrhs_, j );
             }
          }
          catch( std::exception& ex ) {
@@ -7419,11 +9665,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) = column( lhs_ + orhs_, j );
-               column( odres_ , j ) = column( lhs_ + orhs_, j );
-               column( sres_  , j ) = column( lhs_ + orhs_, j );
-               column( osres_ , j ) = column( lhs_ + orhs_, j );
-               column( refres_, j ) = column( reflhs_ + refrhs_, j );
+               column( dres_  , j ) = column( lhs_ - orhs_, j );
+               column( odres_ , j ) = column( lhs_ - orhs_, j );
+               column( sres_  , j ) = column( lhs_ - orhs_, j );
+               column( osres_ , j ) = column( lhs_ - orhs_, j );
+               column( refres_, j ) = column( reflhs_ - refrhs_, j );
             }
          }
          catch( std::exception& ex ) {
@@ -7435,11 +9681,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) = column( olhs_ + rhs_, j );
-               column( odres_ , j ) = column( olhs_ + rhs_, j );
-               column( sres_  , j ) = column( olhs_ + rhs_, j );
-               column( osres_ , j ) = column( olhs_ + rhs_, j );
-               column( refres_, j ) = column( reflhs_ + refrhs_, j );
+               column( dres_  , j ) = column( olhs_ - rhs_, j );
+               column( odres_ , j ) = column( olhs_ - rhs_, j );
+               column( sres_  , j ) = column( olhs_ - rhs_, j );
+               column( osres_ , j ) = column( olhs_ - rhs_, j );
+               column( refres_, j ) = column( reflhs_ - refrhs_, j );
             }
          }
          catch( std::exception& ex ) {
@@ -7451,11 +9697,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) = column( olhs_ + orhs_, j );
-               column( odres_ , j ) = column( olhs_ + orhs_, j );
-               column( sres_  , j ) = column( olhs_ + orhs_, j );
-               column( osres_ , j ) = column( olhs_ + orhs_, j );
-               column( refres_, j ) = column( reflhs_ + refrhs_, j );
+               column( dres_  , j ) = column( olhs_ - orhs_, j );
+               column( odres_ , j ) = column( olhs_ - orhs_, j );
+               column( sres_  , j ) = column( olhs_ - orhs_, j );
+               column( osres_ , j ) = column( olhs_ - orhs_, j );
+               column( refres_, j ) = column( reflhs_ - refrhs_, j );
             }
          }
          catch( std::exception& ex ) {
@@ -7473,11 +9719,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) = column( eval( lhs_ ) + eval( rhs_ ), j );
-               column( odres_ , j ) = column( eval( lhs_ ) + eval( rhs_ ), j );
-               column( sres_  , j ) = column( eval( lhs_ ) + eval( rhs_ ), j );
-               column( osres_ , j ) = column( eval( lhs_ ) + eval( rhs_ ), j );
-               column( refres_, j ) = column( eval( reflhs_ ) + eval( refrhs_ ), j );
+               column( dres_  , j ) = column( eval( lhs_ ) - eval( rhs_ ), j );
+               column( odres_ , j ) = column( eval( lhs_ ) - eval( rhs_ ), j );
+               column( sres_  , j ) = column( eval( lhs_ ) - eval( rhs_ ), j );
+               column( osres_ , j ) = column( eval( lhs_ ) - eval( rhs_ ), j );
+               column( refres_, j ) = column( eval( reflhs_ ) - eval( refrhs_ ), j );
             }
          }
          catch( std::exception& ex ) {
@@ -7489,11 +9735,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) = column( eval( lhs_ ) + eval( orhs_ ), j );
-               column( odres_ , j ) = column( eval( lhs_ ) + eval( orhs_ ), j );
-               column( sres_  , j ) = column( eval( lhs_ ) + eval( orhs_ ), j );
-               column( osres_ , j ) = column( eval( lhs_ ) + eval( orhs_ ), j );
-               column( refres_, j ) = column( eval( reflhs_ ) + eval( refrhs_ ), j );
+               column( dres_  , j ) = column( eval( lhs_ ) - eval( orhs_ ), j );
+               column( odres_ , j ) = column( eval( lhs_ ) - eval( orhs_ ), j );
+               column( sres_  , j ) = column( eval( lhs_ ) - eval( orhs_ ), j );
+               column( osres_ , j ) = column( eval( lhs_ ) - eval( orhs_ ), j );
+               column( refres_, j ) = column( eval( reflhs_ ) - eval( refrhs_ ), j );
             }
          }
          catch( std::exception& ex ) {
@@ -7505,11 +9751,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) = column( eval( olhs_ ) + eval( rhs_ ), j );
-               column( odres_ , j ) = column( eval( olhs_ ) + eval( rhs_ ), j );
-               column( sres_  , j ) = column( eval( olhs_ ) + eval( rhs_ ), j );
-               column( osres_ , j ) = column( eval( olhs_ ) + eval( rhs_ ), j );
-               column( refres_, j ) = column( eval( reflhs_ ) + eval( refrhs_ ), j );
+               column( dres_  , j ) = column( eval( olhs_ ) - eval( rhs_ ), j );
+               column( odres_ , j ) = column( eval( olhs_ ) - eval( rhs_ ), j );
+               column( sres_  , j ) = column( eval( olhs_ ) - eval( rhs_ ), j );
+               column( osres_ , j ) = column( eval( olhs_ ) - eval( rhs_ ), j );
+               column( refres_, j ) = column( eval( reflhs_ ) - eval( refrhs_ ), j );
             }
          }
          catch( std::exception& ex ) {
@@ -7521,11 +9767,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) = column( eval( olhs_ ) + eval( orhs_ ), j );
-               column( odres_ , j ) = column( eval( olhs_ ) + eval( orhs_ ), j );
-               column( sres_  , j ) = column( eval( olhs_ ) + eval( orhs_ ), j );
-               column( osres_ , j ) = column( eval( olhs_ ) + eval( orhs_ ), j );
-               column( refres_, j ) = column( eval( reflhs_ ) + eval( refrhs_ ), j );
+               column( dres_  , j ) = column( eval( olhs_ ) - eval( orhs_ ), j );
+               column( odres_ , j ) = column( eval( olhs_ ) - eval( orhs_ ), j );
+               column( sres_  , j ) = column( eval( olhs_ ) - eval( orhs_ ), j );
+               column( osres_ , j ) = column( eval( olhs_ ) - eval( orhs_ ), j );
+               column( refres_, j ) = column( eval( reflhs_ ) - eval( refrhs_ ), j );
             }
          }
          catch( std::exception& ex ) {
@@ -7548,11 +9794,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) += column( lhs_ + rhs_, j );
-               column( odres_ , j ) += column( lhs_ + rhs_, j );
-               column( sres_  , j ) += column( lhs_ + rhs_, j );
-               column( osres_ , j ) += column( lhs_ + rhs_, j );
-               column( refres_, j ) += column( reflhs_ + refrhs_, j );
+               column( dres_  , j ) += column( lhs_ - rhs_, j );
+               column( odres_ , j ) += column( lhs_ - rhs_, j );
+               column( sres_  , j ) += column( lhs_ - rhs_, j );
+               column( osres_ , j ) += column( lhs_ - rhs_, j );
+               column( refres_, j ) += column( reflhs_ - refrhs_, j );
             }
          }
          catch( std::exception& ex ) {
@@ -7564,11 +9810,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) += column( lhs_ + orhs_, j );
-               column( odres_ , j ) += column( lhs_ + orhs_, j );
-               column( sres_  , j ) += column( lhs_ + orhs_, j );
-               column( osres_ , j ) += column( lhs_ + orhs_, j );
-               column( refres_, j ) += column( reflhs_ + refrhs_, j );
+               column( dres_  , j ) += column( lhs_ - orhs_, j );
+               column( odres_ , j ) += column( lhs_ - orhs_, j );
+               column( sres_  , j ) += column( lhs_ - orhs_, j );
+               column( osres_ , j ) += column( lhs_ - orhs_, j );
+               column( refres_, j ) += column( reflhs_ - refrhs_, j );
             }
          }
          catch( std::exception& ex ) {
@@ -7580,11 +9826,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) += column( olhs_ + rhs_, j );
-               column( odres_ , j ) += column( olhs_ + rhs_, j );
-               column( sres_  , j ) += column( olhs_ + rhs_, j );
-               column( osres_ , j ) += column( olhs_ + rhs_, j );
-               column( refres_, j ) += column( reflhs_ + refrhs_, j );
+               column( dres_  , j ) += column( olhs_ - rhs_, j );
+               column( odres_ , j ) += column( olhs_ - rhs_, j );
+               column( sres_  , j ) += column( olhs_ - rhs_, j );
+               column( osres_ , j ) += column( olhs_ - rhs_, j );
+               column( refres_, j ) += column( reflhs_ - refrhs_, j );
             }
          }
          catch( std::exception& ex ) {
@@ -7596,11 +9842,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) += column( olhs_ + orhs_, j );
-               column( odres_ , j ) += column( olhs_ + orhs_, j );
-               column( sres_  , j ) += column( olhs_ + orhs_, j );
-               column( osres_ , j ) += column( olhs_ + orhs_, j );
-               column( refres_, j ) += column( reflhs_ + refrhs_, j );
+               column( dres_  , j ) += column( olhs_ - orhs_, j );
+               column( odres_ , j ) += column( olhs_ - orhs_, j );
+               column( sres_  , j ) += column( olhs_ - orhs_, j );
+               column( osres_ , j ) += column( olhs_ - orhs_, j );
+               column( refres_, j ) += column( reflhs_ - refrhs_, j );
             }
          }
          catch( std::exception& ex ) {
@@ -7618,11 +9864,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) += column( eval( lhs_ ) + eval( rhs_ ), j );
-               column( odres_ , j ) += column( eval( lhs_ ) + eval( rhs_ ), j );
-               column( sres_  , j ) += column( eval( lhs_ ) + eval( rhs_ ), j );
-               column( osres_ , j ) += column( eval( lhs_ ) + eval( rhs_ ), j );
-               column( refres_, j ) += column( eval( reflhs_ ) + eval( refrhs_ ), j );
+               column( dres_  , j ) += column( eval( lhs_ ) - eval( rhs_ ), j );
+               column( odres_ , j ) += column( eval( lhs_ ) - eval( rhs_ ), j );
+               column( sres_  , j ) += column( eval( lhs_ ) - eval( rhs_ ), j );
+               column( osres_ , j ) += column( eval( lhs_ ) - eval( rhs_ ), j );
+               column( refres_, j ) += column( eval( reflhs_ ) - eval( refrhs_ ), j );
             }
          }
          catch( std::exception& ex ) {
@@ -7634,11 +9880,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) += column( eval( lhs_ ) + eval( orhs_ ), j );
-               column( odres_ , j ) += column( eval( lhs_ ) + eval( orhs_ ), j );
-               column( sres_  , j ) += column( eval( lhs_ ) + eval( orhs_ ), j );
-               column( osres_ , j ) += column( eval( lhs_ ) + eval( orhs_ ), j );
-               column( refres_, j ) += column( eval( reflhs_ ) + eval( refrhs_ ), j );
+               column( dres_  , j ) += column( eval( lhs_ ) - eval( orhs_ ), j );
+               column( odres_ , j ) += column( eval( lhs_ ) - eval( orhs_ ), j );
+               column( sres_  , j ) += column( eval( lhs_ ) - eval( orhs_ ), j );
+               column( osres_ , j ) += column( eval( lhs_ ) - eval( orhs_ ), j );
+               column( refres_, j ) += column( eval( reflhs_ ) - eval( refrhs_ ), j );
             }
          }
          catch( std::exception& ex ) {
@@ -7650,11 +9896,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) += column( eval( olhs_ ) + eval( rhs_ ), j );
-               column( odres_ , j ) += column( eval( olhs_ ) + eval( rhs_ ), j );
-               column( sres_  , j ) += column( eval( olhs_ ) + eval( rhs_ ), j );
-               column( osres_ , j ) += column( eval( olhs_ ) + eval( rhs_ ), j );
-               column( refres_, j ) += column( eval( reflhs_ ) + eval( refrhs_ ), j );
+               column( dres_  , j ) += column( eval( olhs_ ) - eval( rhs_ ), j );
+               column( odres_ , j ) += column( eval( olhs_ ) - eval( rhs_ ), j );
+               column( sres_  , j ) += column( eval( olhs_ ) - eval( rhs_ ), j );
+               column( osres_ , j ) += column( eval( olhs_ ) - eval( rhs_ ), j );
+               column( refres_, j ) += column( eval( reflhs_ ) - eval( refrhs_ ), j );
             }
          }
          catch( std::exception& ex ) {
@@ -7666,11 +9912,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) += column( eval( olhs_ ) + eval( orhs_ ), j );
-               column( odres_ , j ) += column( eval( olhs_ ) + eval( orhs_ ), j );
-               column( sres_  , j ) += column( eval( olhs_ ) + eval( orhs_ ), j );
-               column( osres_ , j ) += column( eval( olhs_ ) + eval( orhs_ ), j );
-               column( refres_, j ) += column( eval( reflhs_ ) + eval( refrhs_ ), j );
+               column( dres_  , j ) += column( eval( olhs_ ) - eval( orhs_ ), j );
+               column( odres_ , j ) += column( eval( olhs_ ) - eval( orhs_ ), j );
+               column( sres_  , j ) += column( eval( olhs_ ) - eval( orhs_ ), j );
+               column( osres_ , j ) += column( eval( olhs_ ) - eval( orhs_ ), j );
+               column( refres_, j ) += column( eval( reflhs_ ) - eval( refrhs_ ), j );
             }
          }
          catch( std::exception& ex ) {
@@ -7693,11 +9939,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) -= column( lhs_ + rhs_, j );
-               column( odres_ , j ) -= column( lhs_ + rhs_, j );
-               column( sres_  , j ) -= column( lhs_ + rhs_, j );
-               column( osres_ , j ) -= column( lhs_ + rhs_, j );
-               column( refres_, j ) -= column( reflhs_ + refrhs_, j );
+               column( dres_  , j ) -= column( lhs_ - rhs_, j );
+               column( odres_ , j ) -= column( lhs_ - rhs_, j );
+               column( sres_  , j ) -= column( lhs_ - rhs_, j );
+               column( osres_ , j ) -= column( lhs_ - rhs_, j );
+               column( refres_, j ) -= column( reflhs_ - refrhs_, j );
             }
          }
          catch( std::exception& ex ) {
@@ -7709,11 +9955,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) -= column( lhs_ + orhs_, j );
-               column( odres_ , j ) -= column( lhs_ + orhs_, j );
-               column( sres_  , j ) -= column( lhs_ + orhs_, j );
-               column( osres_ , j ) -= column( lhs_ + orhs_, j );
-               column( refres_, j ) -= column( reflhs_ + refrhs_, j );
+               column( dres_  , j ) -= column( lhs_ - orhs_, j );
+               column( odres_ , j ) -= column( lhs_ - orhs_, j );
+               column( sres_  , j ) -= column( lhs_ - orhs_, j );
+               column( osres_ , j ) -= column( lhs_ - orhs_, j );
+               column( refres_, j ) -= column( reflhs_ - refrhs_, j );
             }
          }
          catch( std::exception& ex ) {
@@ -7725,11 +9971,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) -= column( olhs_ + rhs_, j );
-               column( odres_ , j ) -= column( olhs_ + rhs_, j );
-               column( sres_  , j ) -= column( olhs_ + rhs_, j );
-               column( osres_ , j ) -= column( olhs_ + rhs_, j );
-               column( refres_, j ) -= column( reflhs_ + refrhs_, j );
+               column( dres_  , j ) -= column( olhs_ - rhs_, j );
+               column( odres_ , j ) -= column( olhs_ - rhs_, j );
+               column( sres_  , j ) -= column( olhs_ - rhs_, j );
+               column( osres_ , j ) -= column( olhs_ - rhs_, j );
+               column( refres_, j ) -= column( reflhs_ - refrhs_, j );
             }
          }
          catch( std::exception& ex ) {
@@ -7741,11 +9987,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) -= column( olhs_ + orhs_, j );
-               column( odres_ , j ) -= column( olhs_ + orhs_, j );
-               column( sres_  , j ) -= column( olhs_ + orhs_, j );
-               column( osres_ , j ) -= column( olhs_ + orhs_, j );
-               column( refres_, j ) -= column( reflhs_ + refrhs_, j );
+               column( dres_  , j ) -= column( olhs_ - orhs_, j );
+               column( odres_ , j ) -= column( olhs_ - orhs_, j );
+               column( sres_  , j ) -= column( olhs_ - orhs_, j );
+               column( osres_ , j ) -= column( olhs_ - orhs_, j );
+               column( refres_, j ) -= column( reflhs_ - refrhs_, j );
             }
          }
          catch( std::exception& ex ) {
@@ -7763,11 +10009,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) -= column( eval( lhs_ ) + eval( rhs_ ), j );
-               column( odres_ , j ) -= column( eval( lhs_ ) + eval( rhs_ ), j );
-               column( sres_  , j ) -= column( eval( lhs_ ) + eval( rhs_ ), j );
-               column( osres_ , j ) -= column( eval( lhs_ ) + eval( rhs_ ), j );
-               column( refres_, j ) -= column( eval( reflhs_ ) + eval( refrhs_ ), j );
+               column( dres_  , j ) -= column( eval( lhs_ ) - eval( rhs_ ), j );
+               column( odres_ , j ) -= column( eval( lhs_ ) - eval( rhs_ ), j );
+               column( sres_  , j ) -= column( eval( lhs_ ) - eval( rhs_ ), j );
+               column( osres_ , j ) -= column( eval( lhs_ ) - eval( rhs_ ), j );
+               column( refres_, j ) -= column( eval( reflhs_ ) - eval( refrhs_ ), j );
             }
          }
          catch( std::exception& ex ) {
@@ -7779,11 +10025,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) -= column( eval( lhs_ ) + eval( orhs_ ), j );
-               column( odres_ , j ) -= column( eval( lhs_ ) + eval( orhs_ ), j );
-               column( sres_  , j ) -= column( eval( lhs_ ) + eval( orhs_ ), j );
-               column( osres_ , j ) -= column( eval( lhs_ ) + eval( orhs_ ), j );
-               column( refres_, j ) -= column( eval( reflhs_ ) + eval( refrhs_ ), j );
+               column( dres_  , j ) -= column( eval( lhs_ ) - eval( orhs_ ), j );
+               column( odres_ , j ) -= column( eval( lhs_ ) - eval( orhs_ ), j );
+               column( sres_  , j ) -= column( eval( lhs_ ) - eval( orhs_ ), j );
+               column( osres_ , j ) -= column( eval( lhs_ ) - eval( orhs_ ), j );
+               column( refres_, j ) -= column( eval( reflhs_ ) - eval( refrhs_ ), j );
             }
          }
          catch( std::exception& ex ) {
@@ -7795,11 +10041,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) -= column( eval( olhs_ ) + eval( rhs_ ), j );
-               column( odres_ , j ) -= column( eval( olhs_ ) + eval( rhs_ ), j );
-               column( sres_  , j ) -= column( eval( olhs_ ) + eval( rhs_ ), j );
-               column( osres_ , j ) -= column( eval( olhs_ ) + eval( rhs_ ), j );
-               column( refres_, j ) -= column( eval( reflhs_ ) + eval( refrhs_ ), j );
+               column( dres_  , j ) -= column( eval( olhs_ ) - eval( rhs_ ), j );
+               column( odres_ , j ) -= column( eval( olhs_ ) - eval( rhs_ ), j );
+               column( sres_  , j ) -= column( eval( olhs_ ) - eval( rhs_ ), j );
+               column( osres_ , j ) -= column( eval( olhs_ ) - eval( rhs_ ), j );
+               column( refres_, j ) -= column( eval( reflhs_ ) - eval( refrhs_ ), j );
             }
          }
          catch( std::exception& ex ) {
@@ -7811,11 +10057,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) -= column( eval( olhs_ ) + eval( orhs_ ), j );
-               column( odres_ , j ) -= column( eval( olhs_ ) + eval( orhs_ ), j );
-               column( sres_  , j ) -= column( eval( olhs_ ) + eval( orhs_ ), j );
-               column( osres_ , j ) -= column( eval( olhs_ ) + eval( orhs_ ), j );
-               column( refres_, j ) -= column( eval( reflhs_ ) + eval( refrhs_ ), j );
+               column( dres_  , j ) -= column( eval( olhs_ ) - eval( orhs_ ), j );
+               column( odres_ , j ) -= column( eval( olhs_ ) - eval( orhs_ ), j );
+               column( sres_  , j ) -= column( eval( olhs_ ) - eval( orhs_ ), j );
+               column( osres_ , j ) -= column( eval( olhs_ ) - eval( orhs_ ), j );
+               column( refres_, j ) -= column( eval( reflhs_ ) - eval( refrhs_ ), j );
             }
          }
          catch( std::exception& ex ) {
@@ -7838,11 +10084,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) *= column( lhs_ + rhs_, j );
-               column( odres_ , j ) *= column( lhs_ + rhs_, j );
-               column( sres_  , j ) *= column( lhs_ + rhs_, j );
-               column( osres_ , j ) *= column( lhs_ + rhs_, j );
-               column( refres_, j ) *= column( reflhs_ + refrhs_, j );
+               column( dres_  , j ) *= column( lhs_ - rhs_, j );
+               column( odres_ , j ) *= column( lhs_ - rhs_, j );
+               column( sres_  , j ) *= column( lhs_ - rhs_, j );
+               column( osres_ , j ) *= column( lhs_ - rhs_, j );
+               column( refres_, j ) *= column( reflhs_ - refrhs_, j );
             }
          }
          catch( std::exception& ex ) {
@@ -7854,11 +10100,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) *= column( lhs_ + orhs_, j );
-               column( odres_ , j ) *= column( lhs_ + orhs_, j );
-               column( sres_  , j ) *= column( lhs_ + orhs_, j );
-               column( osres_ , j ) *= column( lhs_ + orhs_, j );
-               column( refres_, j ) *= column( reflhs_ + refrhs_, j );
+               column( dres_  , j ) *= column( lhs_ - orhs_, j );
+               column( odres_ , j ) *= column( lhs_ - orhs_, j );
+               column( sres_  , j ) *= column( lhs_ - orhs_, j );
+               column( osres_ , j ) *= column( lhs_ - orhs_, j );
+               column( refres_, j ) *= column( reflhs_ - refrhs_, j );
             }
          }
          catch( std::exception& ex ) {
@@ -7870,11 +10116,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) *= column( olhs_ + rhs_, j );
-               column( odres_ , j ) *= column( olhs_ + rhs_, j );
-               column( sres_  , j ) *= column( olhs_ + rhs_, j );
-               column( osres_ , j ) *= column( olhs_ + rhs_, j );
-               column( refres_, j ) *= column( reflhs_ + refrhs_, j );
+               column( dres_  , j ) *= column( olhs_ - rhs_, j );
+               column( odres_ , j ) *= column( olhs_ - rhs_, j );
+               column( sres_  , j ) *= column( olhs_ - rhs_, j );
+               column( osres_ , j ) *= column( olhs_ - rhs_, j );
+               column( refres_, j ) *= column( reflhs_ - refrhs_, j );
             }
          }
          catch( std::exception& ex ) {
@@ -7886,11 +10132,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) *= column( olhs_ + orhs_, j );
-               column( odres_ , j ) *= column( olhs_ + orhs_, j );
-               column( sres_  , j ) *= column( olhs_ + orhs_, j );
-               column( osres_ , j ) *= column( olhs_ + orhs_, j );
-               column( refres_, j ) *= column( reflhs_ + refrhs_, j );
+               column( dres_  , j ) *= column( olhs_ - orhs_, j );
+               column( odres_ , j ) *= column( olhs_ - orhs_, j );
+               column( sres_  , j ) *= column( olhs_ - orhs_, j );
+               column( osres_ , j ) *= column( olhs_ - orhs_, j );
+               column( refres_, j ) *= column( reflhs_ - refrhs_, j );
             }
          }
          catch( std::exception& ex ) {
@@ -7908,11 +10154,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) *= column( eval( lhs_ ) + eval( rhs_ ), j );
-               column( odres_ , j ) *= column( eval( lhs_ ) + eval( rhs_ ), j );
-               column( sres_  , j ) *= column( eval( lhs_ ) + eval( rhs_ ), j );
-               column( osres_ , j ) *= column( eval( lhs_ ) + eval( rhs_ ), j );
-               column( refres_, j ) *= column( eval( reflhs_ ) + eval( refrhs_ ), j );
+               column( dres_  , j ) *= column( eval( lhs_ ) - eval( rhs_ ), j );
+               column( odres_ , j ) *= column( eval( lhs_ ) - eval( rhs_ ), j );
+               column( sres_  , j ) *= column( eval( lhs_ ) - eval( rhs_ ), j );
+               column( osres_ , j ) *= column( eval( lhs_ ) - eval( rhs_ ), j );
+               column( refres_, j ) *= column( eval( reflhs_ ) - eval( refrhs_ ), j );
             }
          }
          catch( std::exception& ex ) {
@@ -7924,11 +10170,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) *= column( eval( lhs_ ) + eval( orhs_ ), j );
-               column( odres_ , j ) *= column( eval( lhs_ ) + eval( orhs_ ), j );
-               column( sres_  , j ) *= column( eval( lhs_ ) + eval( orhs_ ), j );
-               column( osres_ , j ) *= column( eval( lhs_ ) + eval( orhs_ ), j );
-               column( refres_, j ) *= column( eval( reflhs_ ) + eval( refrhs_ ), j );
+               column( dres_  , j ) *= column( eval( lhs_ ) - eval( orhs_ ), j );
+               column( odres_ , j ) *= column( eval( lhs_ ) - eval( orhs_ ), j );
+               column( sres_  , j ) *= column( eval( lhs_ ) - eval( orhs_ ), j );
+               column( osres_ , j ) *= column( eval( lhs_ ) - eval( orhs_ ), j );
+               column( refres_, j ) *= column( eval( reflhs_ ) - eval( refrhs_ ), j );
             }
          }
          catch( std::exception& ex ) {
@@ -7940,11 +10186,11 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) *= column( eval( olhs_ ) + eval( rhs_ ), j );
-               column( odres_ , j ) *= column( eval( olhs_ ) + eval( rhs_ ), j );
-               column( sres_  , j ) *= column( eval( olhs_ ) + eval( rhs_ ), j );
-               column( osres_ , j ) *= column( eval( olhs_ ) + eval( rhs_ ), j );
-               column( refres_, j ) *= column( eval( reflhs_ ) + eval( refrhs_ ), j );
+               column( dres_  , j ) *= column( eval( olhs_ ) - eval( rhs_ ), j );
+               column( odres_ , j ) *= column( eval( olhs_ ) - eval( rhs_ ), j );
+               column( sres_  , j ) *= column( eval( olhs_ ) - eval( rhs_ ), j );
+               column( osres_ , j ) *= column( eval( olhs_ ) - eval( rhs_ ), j );
+               column( refres_, j ) *= column( eval( reflhs_ ) - eval( refrhs_ ), j );
             }
          }
          catch( std::exception& ex ) {
@@ -7956,11 +10202,1279 @@ void OperationTest<MT1,MT2>::testColumnOperation()
          try {
             initResults();
             for( size_t j=0UL; j<lhs_.columns(); ++j ) {
-               column( dres_  , j ) *= column( eval( olhs_ ) + eval( orhs_ ), j );
-               column( odres_ , j ) *= column( eval( olhs_ ) + eval( orhs_ ), j );
-               column( sres_  , j ) *= column( eval( olhs_ ) + eval( orhs_ ), j );
-               column( osres_ , j ) *= column( eval( olhs_ ) + eval( orhs_ ), j );
-               column( refres_, j ) *= column( eval( reflhs_ ) + eval( refrhs_ ), j );
+               column( dres_  , j ) *= column( eval( olhs_ ) - eval( orhs_ ), j );
+               column( odres_ , j ) *= column( eval( olhs_ ) - eval( orhs_ ), j );
+               column( sres_  , j ) *= column( eval( olhs_ ) - eval( orhs_ ), j );
+               column( osres_ , j ) *= column( eval( olhs_ ) - eval( orhs_ ), j );
+               column( refres_, j ) *= column( eval( reflhs_ ) - eval( refrhs_ ), j );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+   }
+#endif
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the columns-wise sparse matrix/sparse matrix subtraction.
+//
+// \return void
+// \exception std::runtime_error Subtraction error detected.
+//
+// This function tests the columns-wise matrix subtraction with plain assignment, addition
+// assignment, subtraction assignment, and Schur product assignment. In case any error resulting
+// from the subtraction or the subsequent assignment is detected, a \a std::runtime_error exception
+// is thrown.
+*/
+template< typename MT1    // Type of the left-hand side sparse matrix
+        , typename MT2 >  // Type of the right-hand side sparse matrix
+void OperationTest<MT1,MT2>::testColumnsOperation( blaze::TrueType )
+{
+#if BLAZETEST_MATHTEST_TEST_COLUMNS_OPERATION
+   if( BLAZETEST_MATHTEST_TEST_COLUMNS_OPERATION > 1 )
+   {
+      if( lhs_.columns() == 0UL )
+         return;
+
+
+      std::vector<size_t> indices( lhs_.columns() );
+      std::iota( indices.begin(), indices.end(), 0UL );
+      std::random_shuffle( indices.begin(), indices.end() );
+
+
+      //=====================================================================================
+      // Columns-wise subtraction
+      //=====================================================================================
+
+      // Columns-wise subtraction with the given matrices
+      {
+         test_  = "Columns-wise subtraction with the given matrices";
+         error_ = "Failed subtraction operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) = columns( lhs_ - rhs_, &indices[index], n );
+               columns( odres_ , &indices[index], n ) = columns( lhs_ - rhs_, &indices[index], n );
+               columns( sres_  , &indices[index], n ) = columns( lhs_ - rhs_, &indices[index], n );
+               columns( osres_ , &indices[index], n ) = columns( lhs_ - rhs_, &indices[index], n );
+               columns( refres_, &indices[index], n ) = columns( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) = columns( lhs_ - orhs_, &indices[index], n );
+               columns( odres_ , &indices[index], n ) = columns( lhs_ - orhs_, &indices[index], n );
+               columns( sres_  , &indices[index], n ) = columns( lhs_ - orhs_, &indices[index], n );
+               columns( osres_ , &indices[index], n ) = columns( lhs_ - orhs_, &indices[index], n );
+               columns( refres_, &indices[index], n ) = columns( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) = columns( olhs_ - rhs_, &indices[index], n );
+               columns( odres_ , &indices[index], n ) = columns( olhs_ - rhs_, &indices[index], n );
+               columns( sres_  , &indices[index], n ) = columns( olhs_ - rhs_, &indices[index], n );
+               columns( osres_ , &indices[index], n ) = columns( olhs_ - rhs_, &indices[index], n );
+               columns( refres_, &indices[index], n ) = columns( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) = columns( olhs_ - orhs_, &indices[index], n );
+               columns( odres_ , &indices[index], n ) = columns( olhs_ - orhs_, &indices[index], n );
+               columns( sres_  , &indices[index], n ) = columns( olhs_ - orhs_, &indices[index], n );
+               columns( osres_ , &indices[index], n ) = columns( olhs_ - orhs_, &indices[index], n );
+               columns( refres_, &indices[index], n ) = columns( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Columns-wise subtraction with evaluated matrices
+      {
+         test_  = "Columns-wise subtraction with evaluated matrices";
+         error_ = "Failed subtraction operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) = columns( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( odres_ , &indices[index], n ) = columns( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( sres_  , &indices[index], n ) = columns( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( osres_ , &indices[index], n ) = columns( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( refres_, &indices[index], n ) = columns( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) = columns( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( odres_ , &indices[index], n ) = columns( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( sres_  , &indices[index], n ) = columns( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( osres_ , &indices[index], n ) = columns( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( refres_, &indices[index], n ) = columns( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) = columns( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( odres_ , &indices[index], n ) = columns( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( sres_  , &indices[index], n ) = columns( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( osres_ , &indices[index], n ) = columns( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( refres_, &indices[index], n ) = columns( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) = columns( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( odres_ , &indices[index], n ) = columns( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( sres_  , &indices[index], n ) = columns( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( osres_ , &indices[index], n ) = columns( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( refres_, &indices[index], n ) = columns( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Columns-wise subtraction with addition assignment
+      //=====================================================================================
+
+      // Columns-wise subtraction with addition assignment with the given matrices
+      {
+         test_  = "Columns-wise subtraction with addition assignment with the given matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) += columns( lhs_ - rhs_, &indices[index], n );
+               columns( odres_ , &indices[index], n ) += columns( lhs_ - rhs_, &indices[index], n );
+               columns( sres_  , &indices[index], n ) += columns( lhs_ - rhs_, &indices[index], n );
+               columns( osres_ , &indices[index], n ) += columns( lhs_ - rhs_, &indices[index], n );
+               columns( refres_, &indices[index], n ) += columns( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) += columns( lhs_ - orhs_, &indices[index], n );
+               columns( odres_ , &indices[index], n ) += columns( lhs_ - orhs_, &indices[index], n );
+               columns( sres_  , &indices[index], n ) += columns( lhs_ - orhs_, &indices[index], n );
+               columns( osres_ , &indices[index], n ) += columns( lhs_ - orhs_, &indices[index], n );
+               columns( refres_, &indices[index], n ) += columns( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) += columns( olhs_ - rhs_, &indices[index], n );
+               columns( odres_ , &indices[index], n ) += columns( olhs_ - rhs_, &indices[index], n );
+               columns( sres_  , &indices[index], n ) += columns( olhs_ - rhs_, &indices[index], n );
+               columns( osres_ , &indices[index], n ) += columns( olhs_ - rhs_, &indices[index], n );
+               columns( refres_, &indices[index], n ) += columns( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) += columns( olhs_ - orhs_, &indices[index], n );
+               columns( odres_ , &indices[index], n ) += columns( olhs_ - orhs_, &indices[index], n );
+               columns( sres_  , &indices[index], n ) += columns( olhs_ - orhs_, &indices[index], n );
+               columns( osres_ , &indices[index], n ) += columns( olhs_ - orhs_, &indices[index], n );
+               columns( refres_, &indices[index], n ) += columns( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Columns-wise subtraction with addition assignment with evaluated matrices
+      {
+         test_  = "Columns-wise subtraction with addition assignment with evaluated matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) += columns( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( odres_ , &indices[index], n ) += columns( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( sres_  , &indices[index], n ) += columns( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( osres_ , &indices[index], n ) += columns( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( refres_, &indices[index], n ) += columns( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) += columns( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( odres_ , &indices[index], n ) += columns( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( sres_  , &indices[index], n ) += columns( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( osres_ , &indices[index], n ) += columns( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( refres_, &indices[index], n ) += columns( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) += columns( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( odres_ , &indices[index], n ) += columns( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( sres_  , &indices[index], n ) += columns( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( osres_ , &indices[index], n ) += columns( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( refres_, &indices[index], n ) += columns( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) += columns( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( odres_ , &indices[index], n ) += columns( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( sres_  , &indices[index], n ) += columns( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( osres_ , &indices[index], n ) += columns( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( refres_, &indices[index], n ) += columns( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Columns-wise subtraction with subtraction assignment
+      //=====================================================================================
+
+      // Columns-wise subtraction with subtraction assignment with the given matrices
+      {
+         test_  = "Columns-wise subtraction with subtraction assignment with the given matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) -= columns( lhs_ - rhs_, &indices[index], n );
+               columns( odres_ , &indices[index], n ) -= columns( lhs_ - rhs_, &indices[index], n );
+               columns( sres_  , &indices[index], n ) -= columns( lhs_ - rhs_, &indices[index], n );
+               columns( osres_ , &indices[index], n ) -= columns( lhs_ - rhs_, &indices[index], n );
+               columns( refres_, &indices[index], n ) -= columns( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) -= columns( lhs_ - orhs_, &indices[index], n );
+               columns( odres_ , &indices[index], n ) -= columns( lhs_ - orhs_, &indices[index], n );
+               columns( sres_  , &indices[index], n ) -= columns( lhs_ - orhs_, &indices[index], n );
+               columns( osres_ , &indices[index], n ) -= columns( lhs_ - orhs_, &indices[index], n );
+               columns( refres_, &indices[index], n ) -= columns( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) -= columns( olhs_ - rhs_, &indices[index], n );
+               columns( odres_ , &indices[index], n ) -= columns( olhs_ - rhs_, &indices[index], n );
+               columns( sres_  , &indices[index], n ) -= columns( olhs_ - rhs_, &indices[index], n );
+               columns( osres_ , &indices[index], n ) -= columns( olhs_ - rhs_, &indices[index], n );
+               columns( refres_, &indices[index], n ) -= columns( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) -= columns( olhs_ - orhs_, &indices[index], n );
+               columns( odres_ , &indices[index], n ) -= columns( olhs_ - orhs_, &indices[index], n );
+               columns( sres_  , &indices[index], n ) -= columns( olhs_ - orhs_, &indices[index], n );
+               columns( osres_ , &indices[index], n ) -= columns( olhs_ - orhs_, &indices[index], n );
+               columns( refres_, &indices[index], n ) -= columns( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Columns-wise subtraction with subtraction assignment with evaluated matrices
+      {
+         test_  = "Columns-wise subtraction with subtraction assignment with evaluated matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) -= columns( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( odres_ , &indices[index], n ) -= columns( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( sres_  , &indices[index], n ) -= columns( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( osres_ , &indices[index], n ) -= columns( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( refres_, &indices[index], n ) -= columns( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) -= columns( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( odres_ , &indices[index], n ) -= columns( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( sres_  , &indices[index], n ) -= columns( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( osres_ , &indices[index], n ) -= columns( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( refres_, &indices[index], n ) -= columns( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) -= columns( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( odres_ , &indices[index], n ) -= columns( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( sres_  , &indices[index], n ) -= columns( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( osres_ , &indices[index], n ) -= columns( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( refres_, &indices[index], n ) -= columns( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) -= columns( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( odres_ , &indices[index], n ) -= columns( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( sres_  , &indices[index], n ) -= columns( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( osres_ , &indices[index], n ) -= columns( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( refres_, &indices[index], n ) -= columns( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Columns-wise subtraction with Schur product assignment
+      //=====================================================================================
+
+      // Columns-wise subtraction with Schur product assignment with the given matrices
+      {
+         test_  = "Columns-wise subtraction with Schur product assignment with the given matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) %= columns( lhs_ - rhs_, &indices[index], n );
+               columns( odres_ , &indices[index], n ) %= columns( lhs_ - rhs_, &indices[index], n );
+               columns( sres_  , &indices[index], n ) %= columns( lhs_ - rhs_, &indices[index], n );
+               columns( osres_ , &indices[index], n ) %= columns( lhs_ - rhs_, &indices[index], n );
+               columns( refres_, &indices[index], n ) %= columns( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) %= columns( lhs_ - orhs_, &indices[index], n );
+               columns( odres_ , &indices[index], n ) %= columns( lhs_ - orhs_, &indices[index], n );
+               columns( sres_  , &indices[index], n ) %= columns( lhs_ - orhs_, &indices[index], n );
+               columns( osres_ , &indices[index], n ) %= columns( lhs_ - orhs_, &indices[index], n );
+               columns( refres_, &indices[index], n ) %= columns( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) %= columns( olhs_ - rhs_, &indices[index], n );
+               columns( odres_ , &indices[index], n ) %= columns( olhs_ - rhs_, &indices[index], n );
+               columns( sres_  , &indices[index], n ) %= columns( olhs_ - rhs_, &indices[index], n );
+               columns( osres_ , &indices[index], n ) %= columns( olhs_ - rhs_, &indices[index], n );
+               columns( refres_, &indices[index], n ) %= columns( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) %= columns( olhs_ - orhs_, &indices[index], n );
+               columns( odres_ , &indices[index], n ) %= columns( olhs_ - orhs_, &indices[index], n );
+               columns( sres_  , &indices[index], n ) %= columns( olhs_ - orhs_, &indices[index], n );
+               columns( osres_ , &indices[index], n ) %= columns( olhs_ - orhs_, &indices[index], n );
+               columns( refres_, &indices[index], n ) %= columns( reflhs_ - refrhs_, &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Columns-wise subtraction with Schur product assignment with evaluated matrices
+      {
+         test_  = "Columns-wise subtraction with Schur product assignment with evaluated matrices";
+         error_ = "Failed Schur product assignment operation";
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) %= columns( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( odres_ , &indices[index], n ) %= columns( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( sres_  , &indices[index], n ) %= columns( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( osres_ , &indices[index], n ) %= columns( eval( lhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( refres_, &indices[index], n ) %= columns( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) %= columns( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( odres_ , &indices[index], n ) %= columns( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( sres_  , &indices[index], n ) %= columns( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( osres_ , &indices[index], n ) %= columns( eval( lhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( refres_, &indices[index], n ) %= columns( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) %= columns( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( odres_ , &indices[index], n ) %= columns( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( sres_  , &indices[index], n ) %= columns( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( osres_ , &indices[index], n ) %= columns( eval( olhs_ ) - eval( rhs_ ), &indices[index], n );
+               columns( refres_, &indices[index], n ) %= columns( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t index=0UL, n=0UL; index<indices.size(); index+=n ) {
+               n = blaze::rand<size_t>( 1UL, indices.size() - index );
+               columns( dres_  , &indices[index], n ) %= columns( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( odres_ , &indices[index], n ) %= columns( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( sres_  , &indices[index], n ) %= columns( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( osres_ , &indices[index], n ) %= columns( eval( olhs_ ) - eval( orhs_ ), &indices[index], n );
+               columns( refres_, &indices[index], n ) %= columns( eval( reflhs_ ) - eval( refrhs_ ), &indices[index], n );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+   }
+#endif
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Skipping the columns-wise sparse matrix/sparse matrix subtraction.
+//
+// \return void
+//
+// This function is called in case the columns-wise matrix/matrix subtraction operation is not
+// available for the given matrix types \a MT1 and \a MT2.
+*/
+template< typename MT1    // Type of the left-hand side sparse matrix
+        , typename MT2 >  // Type of the right-hand side sparse matrix
+void OperationTest<MT1,MT2>::testColumnsOperation( blaze::FalseType )
+{}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Testing the band-wise sparse matrix/sparse matrix subtraction.
+//
+// \return void
+// \exception std::runtime_error Subtraction error detected.
+//
+// This function tests the band-wise matrix subtraction with plain assignment, addition assignment,
+// subtraction assignment, and multiplication assignment. In case any error resulting from the
+// subtraction or the subsequent assignment is detected, a \a std::runtime_error exception is
+// thrown.
+*/
+template< typename MT1    // Type of the left-hand side sparse matrix
+        , typename MT2 >  // Type of the right-hand side sparse matrix
+void OperationTest<MT1,MT2>::testBandOperation()
+{
+#if BLAZETEST_MATHTEST_TEST_BAND_OPERATION
+   if( BLAZETEST_MATHTEST_TEST_BAND_OPERATION > 1 )
+   {
+      if( lhs_.rows() == 0UL || lhs_.columns() == 0UL )
+         return;
+
+
+      const ptrdiff_t ibegin( 1UL - lhs_.rows() );
+      const ptrdiff_t iend  ( lhs_.columns() );
+
+
+      //=====================================================================================
+      // Band-wise subtraction
+      //=====================================================================================
+
+      // Band-wise subtraction with the given matrices
+      {
+         test_  = "Band-wise subtraction with the given matrices";
+         error_ = "Failed subtraction operation";
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) = band( lhs_ - rhs_, i );
+               band( odres_ , i ) = band( lhs_ - rhs_, i );
+               band( sres_  , i ) = band( lhs_ - rhs_, i );
+               band( osres_ , i ) = band( lhs_ - rhs_, i );
+               band( refres_, i ) = band( reflhs_ - refrhs_, i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) = band( lhs_ - orhs_, i );
+               band( odres_ , i ) = band( lhs_ - orhs_, i );
+               band( sres_  , i ) = band( lhs_ - orhs_, i );
+               band( osres_ , i ) = band( lhs_ - orhs_, i );
+               band( refres_, i ) = band( reflhs_ - refrhs_, i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) = band( olhs_ - rhs_, i );
+               band( odres_ , i ) = band( olhs_ - rhs_, i );
+               band( sres_  , i ) = band( olhs_ - rhs_, i );
+               band( osres_ , i ) = band( olhs_ - rhs_, i );
+               band( refres_, i ) = band( reflhs_ - refrhs_, i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( size_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) = band( olhs_ - orhs_, i );
+               band( odres_ , i ) = band( olhs_ - orhs_, i );
+               band( sres_  , i ) = band( olhs_ - orhs_, i );
+               band( osres_ , i ) = band( olhs_ - orhs_, i );
+               band( refres_, i ) = band( reflhs_ - refrhs_, i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Band-wise subtraction with evaluated matrices
+      {
+         test_  = "Band-wise subtraction with evaluated matrices";
+         error_ = "Failed subtraction operation";
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) = band( eval( lhs_ ) - eval( rhs_ ), i );
+               band( odres_ , i ) = band( eval( lhs_ ) - eval( rhs_ ), i );
+               band( sres_  , i ) = band( eval( lhs_ ) - eval( rhs_ ), i );
+               band( osres_ , i ) = band( eval( lhs_ ) - eval( rhs_ ), i );
+               band( refres_, i ) = band( eval( reflhs_ ) - eval( refrhs_ ), i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) = band( eval( lhs_ ) - eval( orhs_ ), i );
+               band( odres_ , i ) = band( eval( lhs_ ) - eval( orhs_ ), i );
+               band( sres_  , i ) = band( eval( lhs_ ) - eval( orhs_ ), i );
+               band( osres_ , i ) = band( eval( lhs_ ) - eval( orhs_ ), i );
+               band( refres_, i ) = band( eval( reflhs_ ) - eval( refrhs_ ), i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) = band( eval( olhs_ ) - eval( rhs_ ), i );
+               band( odres_ , i ) = band( eval( olhs_ ) - eval( rhs_ ), i );
+               band( sres_  , i ) = band( eval( olhs_ ) - eval( rhs_ ), i );
+               band( osres_ , i ) = band( eval( olhs_ ) - eval( rhs_ ), i );
+               band( refres_, i ) = band( eval( reflhs_ ) - eval( refrhs_ ), i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) = band( eval( olhs_ ) - eval( orhs_ ), i );
+               band( odres_ , i ) = band( eval( olhs_ ) - eval( orhs_ ), i );
+               band( sres_  , i ) = band( eval( olhs_ ) - eval( orhs_ ), i );
+               band( osres_ , i ) = band( eval( olhs_ ) - eval( orhs_ ), i );
+               band( refres_, i ) = band( eval( reflhs_ ) - eval( refrhs_ ), i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Band-wise subtraction with addition assignment
+      //=====================================================================================
+
+      // Band-wise subtraction with addition assignment with the given matrices
+      {
+         test_  = "Band-wise subtraction with addition assignment with the given matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) += band( lhs_ - rhs_, i );
+               band( odres_ , i ) += band( lhs_ - rhs_, i );
+               band( sres_  , i ) += band( lhs_ - rhs_, i );
+               band( osres_ , i ) += band( lhs_ - rhs_, i );
+               band( refres_, i ) += band( reflhs_ - refrhs_, i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) += band( lhs_ - orhs_, i );
+               band( odres_ , i ) += band( lhs_ - orhs_, i );
+               band( sres_  , i ) += band( lhs_ - orhs_, i );
+               band( osres_ , i ) += band( lhs_ - orhs_, i );
+               band( refres_, i ) += band( reflhs_ - refrhs_, i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) += band( olhs_ - rhs_, i );
+               band( odres_ , i ) += band( olhs_ - rhs_, i );
+               band( sres_  , i ) += band( olhs_ - rhs_, i );
+               band( osres_ , i ) += band( olhs_ - rhs_, i );
+               band( refres_, i ) += band( reflhs_ - refrhs_, i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) += band( olhs_ - orhs_, i );
+               band( odres_ , i ) += band( olhs_ - orhs_, i );
+               band( sres_  , i ) += band( olhs_ - orhs_, i );
+               band( osres_ , i ) += band( olhs_ - orhs_, i );
+               band( refres_, i ) += band( reflhs_ - refrhs_, i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Band-wise subtraction with addition assignment with evaluated matrices
+      {
+         test_  = "Band-wise subtraction with addition assignment with evaluated matrices";
+         error_ = "Failed addition assignment operation";
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) += band( eval( lhs_ ) - eval( rhs_ ), i );
+               band( odres_ , i ) += band( eval( lhs_ ) - eval( rhs_ ), i );
+               band( sres_  , i ) += band( eval( lhs_ ) - eval( rhs_ ), i );
+               band( osres_ , i ) += band( eval( lhs_ ) - eval( rhs_ ), i );
+               band( refres_, i ) += band( eval( reflhs_ ) - eval( refrhs_ ), i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) += band( eval( lhs_ ) - eval( orhs_ ), i );
+               band( odres_ , i ) += band( eval( lhs_ ) - eval( orhs_ ), i );
+               band( sres_  , i ) += band( eval( lhs_ ) - eval( orhs_ ), i );
+               band( osres_ , i ) += band( eval( lhs_ ) - eval( orhs_ ), i );
+               band( refres_, i ) += band( eval( reflhs_ ) - eval( refrhs_ ), i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) += band( eval( olhs_ ) - eval( rhs_ ), i );
+               band( odres_ , i ) += band( eval( olhs_ ) - eval( rhs_ ), i );
+               band( sres_  , i ) += band( eval( olhs_ ) - eval( rhs_ ), i );
+               band( osres_ , i ) += band( eval( olhs_ ) - eval( rhs_ ), i );
+               band( refres_, i ) += band( eval( reflhs_ ) - eval( refrhs_ ), i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) += band( eval( olhs_ ) - eval( orhs_ ), i );
+               band( odres_ , i ) += band( eval( olhs_ ) - eval( orhs_ ), i );
+               band( sres_  , i ) += band( eval( olhs_ ) - eval( orhs_ ), i );
+               band( osres_ , i ) += band( eval( olhs_ ) - eval( orhs_ ), i );
+               band( refres_, i ) += band( eval( reflhs_ ) - eval( refrhs_ ), i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Band-wise subtraction with subtraction assignment
+      //=====================================================================================
+
+      // Band-wise subtraction with subtraction assignment with the given matrices
+      {
+         test_  = "Band-wise subtraction with subtraction assignment with the given matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) -= band( lhs_ - rhs_, i );
+               band( odres_ , i ) -= band( lhs_ - rhs_, i );
+               band( sres_  , i ) -= band( lhs_ - rhs_, i );
+               band( osres_ , i ) -= band( lhs_ - rhs_, i );
+               band( refres_, i ) -= band( reflhs_ - refrhs_, i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) -= band( lhs_ - orhs_, i );
+               band( odres_ , i ) -= band( lhs_ - orhs_, i );
+               band( sres_  , i ) -= band( lhs_ - orhs_, i );
+               band( osres_ , i ) -= band( lhs_ - orhs_, i );
+               band( refres_, i ) -= band( reflhs_ - refrhs_, i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) -= band( olhs_ - rhs_, i );
+               band( odres_ , i ) -= band( olhs_ - rhs_, i );
+               band( sres_  , i ) -= band( olhs_ - rhs_, i );
+               band( osres_ , i ) -= band( olhs_ - rhs_, i );
+               band( refres_, i ) -= band( reflhs_ - refrhs_, i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) -= band( olhs_ - orhs_, i );
+               band( odres_ , i ) -= band( olhs_ - orhs_, i );
+               band( sres_  , i ) -= band( olhs_ - orhs_, i );
+               band( osres_ , i ) -= band( olhs_ - orhs_, i );
+               band( refres_, i ) -= band( reflhs_ - refrhs_, i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Band-wise subtraction with subtraction assignment with evaluated matrices
+      {
+         test_  = "Band-wise subtraction with subtraction assignment with evaluated matrices";
+         error_ = "Failed subtraction assignment operation";
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) -= band( eval( lhs_ ) - eval( rhs_ ), i );
+               band( odres_ , i ) -= band( eval( lhs_ ) - eval( rhs_ ), i );
+               band( sres_  , i ) -= band( eval( lhs_ ) - eval( rhs_ ), i );
+               band( osres_ , i ) -= band( eval( lhs_ ) - eval( rhs_ ), i );
+               band( refres_, i ) -= band( eval( reflhs_ ) - eval( refrhs_ ), i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) -= band( eval( lhs_ ) - eval( orhs_ ), i );
+               band( odres_ , i ) -= band( eval( lhs_ ) - eval( orhs_ ), i );
+               band( sres_  , i ) -= band( eval( lhs_ ) - eval( orhs_ ), i );
+               band( osres_ , i ) -= band( eval( lhs_ ) - eval( orhs_ ), i );
+               band( refres_, i ) -= band( eval( reflhs_ ) - eval( refrhs_ ), i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) -= band( eval( olhs_ ) - eval( rhs_ ), i );
+               band( odres_ , i ) -= band( eval( olhs_ ) - eval( rhs_ ), i );
+               band( sres_  , i ) -= band( eval( olhs_ ) - eval( rhs_ ), i );
+               band( osres_ , i ) -= band( eval( olhs_ ) - eval( rhs_ ), i );
+               band( refres_, i ) -= band( eval( reflhs_ ) - eval( refrhs_ ), i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) -= band( eval( olhs_ ) - eval( orhs_ ), i );
+               band( odres_ , i ) -= band( eval( olhs_ ) - eval( orhs_ ), i );
+               band( sres_  , i ) -= band( eval( olhs_ ) - eval( orhs_ ), i );
+               band( osres_ , i ) -= band( eval( olhs_ ) - eval( orhs_ ), i );
+               band( refres_, i ) -= band( eval( reflhs_ ) - eval( refrhs_ ), i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+
+      //=====================================================================================
+      // Band-wise subtraction with multiplication assignment
+      //=====================================================================================
+
+      // Band-wise subtraction with multiplication assignment with the given matrices
+      {
+         test_  = "Band-wise subtraction with multiplication assignment with the given matrices";
+         error_ = "Failed multiplication assignment operation";
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) *= band( lhs_ - rhs_, i );
+               band( odres_ , i ) *= band( lhs_ - rhs_, i );
+               band( sres_  , i ) *= band( lhs_ - rhs_, i );
+               band( osres_ , i ) *= band( lhs_ - rhs_, i );
+               band( refres_, i ) *= band( reflhs_ - refrhs_, i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) *= band( lhs_ - orhs_, i );
+               band( odres_ , i ) *= band( lhs_ - orhs_, i );
+               band( sres_  , i ) *= band( lhs_ - orhs_, i );
+               band( osres_ , i ) *= band( lhs_ - orhs_, i );
+               band( refres_, i ) *= band( reflhs_ - refrhs_, i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) *= band( olhs_ - rhs_, i );
+               band( odres_ , i ) *= band( olhs_ - rhs_, i );
+               band( sres_  , i ) *= band( olhs_ - rhs_, i );
+               band( osres_ , i ) *= band( olhs_ - rhs_, i );
+               band( refres_, i ) *= band( reflhs_ - refrhs_, i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) *= band( olhs_ - orhs_, i );
+               band( odres_ , i ) *= band( olhs_ - orhs_, i );
+               band( sres_  , i ) *= band( olhs_ - orhs_, i );
+               band( osres_ , i ) *= band( olhs_ - orhs_, i );
+               band( refres_, i ) *= band( reflhs_ - refrhs_, i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,OMT2>( ex );
+         }
+
+         checkResults<OMT1,OMT2>();
+      }
+
+      // Band-wise subtraction with multiplication assignment with evaluated matrices
+      {
+         test_  = "Band-wise subtraction with multiplication assignment with evaluated matrices";
+         error_ = "Failed multiplication assignment operation";
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) *= band( eval( lhs_ ) - eval( rhs_ ), i );
+               band( odres_ , i ) *= band( eval( lhs_ ) - eval( rhs_ ), i );
+               band( sres_  , i ) *= band( eval( lhs_ ) - eval( rhs_ ), i );
+               band( osres_ , i ) *= band( eval( lhs_ ) - eval( rhs_ ), i );
+               band( refres_, i ) *= band( eval( reflhs_ ) - eval( refrhs_ ), i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,MT2>( ex );
+         }
+
+         checkResults<MT1,MT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) *= band( eval( lhs_ ) - eval( orhs_ ), i );
+               band( odres_ , i ) *= band( eval( lhs_ ) - eval( orhs_ ), i );
+               band( sres_  , i ) *= band( eval( lhs_ ) - eval( orhs_ ), i );
+               band( osres_ , i ) *= band( eval( lhs_ ) - eval( orhs_ ), i );
+               band( refres_, i ) *= band( eval( reflhs_ ) - eval( refrhs_ ), i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<MT1,OMT2>( ex );
+         }
+
+         checkResults<MT1,OMT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) *= band( eval( olhs_ ) - eval( rhs_ ), i );
+               band( odres_ , i ) *= band( eval( olhs_ ) - eval( rhs_ ), i );
+               band( sres_  , i ) *= band( eval( olhs_ ) - eval( rhs_ ), i );
+               band( osres_ , i ) *= band( eval( olhs_ ) - eval( rhs_ ), i );
+               band( refres_, i ) *= band( eval( reflhs_ ) - eval( refrhs_ ), i );
+            }
+         }
+         catch( std::exception& ex ) {
+            convertException<OMT1,MT2>( ex );
+         }
+
+         checkResults<OMT1,MT2>();
+
+         try {
+            initResults();
+            for( ptrdiff_t i=ibegin; i<iend; ++i ) {
+               band( dres_  , i ) *= band( eval( olhs_ ) - eval( orhs_ ), i );
+               band( odres_ , i ) *= band( eval( olhs_ ) - eval( orhs_ ), i );
+               band( sres_  , i ) *= band( eval( olhs_ ) - eval( orhs_ ), i );
+               band( osres_ , i ) *= band( eval( olhs_ ) - eval( orhs_ ), i );
+               band( refres_, i ) *= band( eval( reflhs_ ) - eval( refrhs_ ), i );
             }
          }
          catch( std::exception& ex ) {
@@ -7983,10 +11497,10 @@ void OperationTest<MT1,MT2>::testColumnOperation()
 // \return void
 // \exception std::runtime_error Subtraction error detected.
 //
-// This function tests the matrix subtraction with plain assignment, addition assignment, and
-// subtraction assignment in combination with a custom operation. In case any error resulting
-// from the subtraction or the subsequent assignment is detected, a \a std::runtime_error
-// exception is thrown.
+// This function tests the matrix subtraction with plain assignment, addition assignment,
+// subtraction assignment, and Schur product assignment in combination with a custom operation.
+// In case any error resulting from the subtraction or the subsequent assignment is detected,
+// a \a std::runtime_error exception is thrown.
 */
 template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
@@ -8004,11 +11518,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   = op( lhs_ + rhs_ );
-         odres_  = op( lhs_ + rhs_ );
-         sres_   = op( lhs_ + rhs_ );
-         osres_  = op( lhs_ + rhs_ );
-         refres_ = op( reflhs_ + refrhs_ );
+         dres_   = op( lhs_ - rhs_ );
+         odres_  = op( lhs_ - rhs_ );
+         sres_   = op( lhs_ - rhs_ );
+         osres_  = op( lhs_ - rhs_ );
+         refres_ = op( reflhs_ - refrhs_ );
       }
       catch( std::exception& ex ) {
          convertException<MT1,MT2>( ex );
@@ -8018,11 +11532,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   = op( lhs_ + orhs_ );
-         odres_  = op( lhs_ + orhs_ );
-         sres_   = op( lhs_ + orhs_ );
-         osres_  = op( lhs_ + orhs_ );
-         refres_ = op( reflhs_ + refrhs_ );
+         dres_   = op( lhs_ - orhs_ );
+         odres_  = op( lhs_ - orhs_ );
+         sres_   = op( lhs_ - orhs_ );
+         osres_  = op( lhs_ - orhs_ );
+         refres_ = op( reflhs_ - refrhs_ );
       }
       catch( std::exception& ex ) {
          convertException<MT1,OMT2>( ex );
@@ -8032,11 +11546,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   = op( olhs_ + rhs_ );
-         odres_  = op( olhs_ + rhs_ );
-         sres_   = op( olhs_ + rhs_ );
-         osres_  = op( olhs_ + rhs_ );
-         refres_ = op( reflhs_ + refrhs_ );
+         dres_   = op( olhs_ - rhs_ );
+         odres_  = op( olhs_ - rhs_ );
+         sres_   = op( olhs_ - rhs_ );
+         osres_  = op( olhs_ - rhs_ );
+         refres_ = op( reflhs_ - refrhs_ );
       }
       catch( std::exception& ex ) {
          convertException<OMT1,MT2>( ex );
@@ -8046,11 +11560,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   = op( olhs_ + orhs_ );
-         odres_  = op( olhs_ + orhs_ );
-         sres_   = op( olhs_ + orhs_ );
-         osres_  = op( olhs_ + orhs_ );
-         refres_ = op( reflhs_ + refrhs_ );
+         dres_   = op( olhs_ - orhs_ );
+         odres_  = op( olhs_ - orhs_ );
+         sres_   = op( olhs_ - orhs_ );
+         osres_  = op( olhs_ - orhs_ );
+         refres_ = op( reflhs_ - refrhs_ );
       }
       catch( std::exception& ex ) {
          convertException<OMT1,OMT2>( ex );
@@ -8066,11 +11580,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   = op( eval( lhs_ ) + eval( rhs_ ) );
-         odres_  = op( eval( lhs_ ) + eval( rhs_ ) );
-         sres_   = op( eval( lhs_ ) + eval( rhs_ ) );
-         osres_  = op( eval( lhs_ ) + eval( rhs_ ) );
-         refres_ = op( eval( reflhs_ ) + eval( refrhs_ ) );
+         dres_   = op( eval( lhs_ ) - eval( rhs_ ) );
+         odres_  = op( eval( lhs_ ) - eval( rhs_ ) );
+         sres_   = op( eval( lhs_ ) - eval( rhs_ ) );
+         osres_  = op( eval( lhs_ ) - eval( rhs_ ) );
+         refres_ = op( eval( reflhs_ ) - eval( refrhs_ ) );
       }
       catch( std::exception& ex ) {
          convertException<MT1,MT2>( ex );
@@ -8080,11 +11594,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   = op( eval( lhs_ ) + eval( orhs_ ) );
-         odres_  = op( eval( lhs_ ) + eval( orhs_ ) );
-         sres_   = op( eval( lhs_ ) + eval( orhs_ ) );
-         osres_  = op( eval( lhs_ ) + eval( orhs_ ) );
-         refres_ = op( eval( reflhs_ ) + eval( refrhs_ ) );
+         dres_   = op( eval( lhs_ ) - eval( orhs_ ) );
+         odres_  = op( eval( lhs_ ) - eval( orhs_ ) );
+         sres_   = op( eval( lhs_ ) - eval( orhs_ ) );
+         osres_  = op( eval( lhs_ ) - eval( orhs_ ) );
+         refres_ = op( eval( reflhs_ ) - eval( refrhs_ ) );
       }
       catch( std::exception& ex ) {
          convertException<MT1,OMT2>( ex );
@@ -8094,11 +11608,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   = op( eval( olhs_ ) + eval( rhs_ ) );
-         odres_  = op( eval( olhs_ ) + eval( rhs_ ) );
-         sres_   = op( eval( olhs_ ) + eval( rhs_ ) );
-         osres_  = op( eval( olhs_ ) + eval( rhs_ ) );
-         refres_ = op( eval( reflhs_ ) + eval( refrhs_ ) );
+         dres_   = op( eval( olhs_ ) - eval( rhs_ ) );
+         odres_  = op( eval( olhs_ ) - eval( rhs_ ) );
+         sres_   = op( eval( olhs_ ) - eval( rhs_ ) );
+         osres_  = op( eval( olhs_ ) - eval( rhs_ ) );
+         refres_ = op( eval( reflhs_ ) - eval( refrhs_ ) );
       }
       catch( std::exception& ex ) {
          convertException<OMT1,MT2>( ex );
@@ -8108,11 +11622,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   = op( eval( olhs_ ) + eval( orhs_ ) );
-         odres_  = op( eval( olhs_ ) + eval( orhs_ ) );
-         sres_   = op( eval( olhs_ ) + eval( orhs_ ) );
-         osres_  = op( eval( olhs_ ) + eval( orhs_ ) );
-         refres_ = op( eval( reflhs_ ) + eval( refrhs_ ) );
+         dres_   = op( eval( olhs_ ) - eval( orhs_ ) );
+         odres_  = op( eval( olhs_ ) - eval( orhs_ ) );
+         sres_   = op( eval( olhs_ ) - eval( orhs_ ) );
+         osres_  = op( eval( olhs_ ) - eval( orhs_ ) );
+         refres_ = op( eval( reflhs_ ) - eval( refrhs_ ) );
       }
       catch( std::exception& ex ) {
          convertException<OMT1,OMT2>( ex );
@@ -8133,11 +11647,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   += op( lhs_ + rhs_ );
-         odres_  += op( lhs_ + rhs_ );
-         sres_   += op( lhs_ + rhs_ );
-         osres_  += op( lhs_ + rhs_ );
-         refres_ += op( reflhs_ + refrhs_ );
+         dres_   += op( lhs_ - rhs_ );
+         odres_  += op( lhs_ - rhs_ );
+         sres_   += op( lhs_ - rhs_ );
+         osres_  += op( lhs_ - rhs_ );
+         refres_ += op( reflhs_ - refrhs_ );
       }
       catch( std::exception& ex ) {
          convertException<MT1,MT2>( ex );
@@ -8147,11 +11661,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   += op( lhs_ + orhs_ );
-         odres_  += op( lhs_ + orhs_ );
-         sres_   += op( lhs_ + orhs_ );
-         osres_  += op( lhs_ + orhs_ );
-         refres_ += op( reflhs_ + refrhs_ );
+         dres_   += op( lhs_ - orhs_ );
+         odres_  += op( lhs_ - orhs_ );
+         sres_   += op( lhs_ - orhs_ );
+         osres_  += op( lhs_ - orhs_ );
+         refres_ += op( reflhs_ - refrhs_ );
       }
       catch( std::exception& ex ) {
          convertException<MT1,OMT2>( ex );
@@ -8161,11 +11675,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   += op( olhs_ + rhs_ );
-         odres_  += op( olhs_ + rhs_ );
-         sres_   += op( olhs_ + rhs_ );
-         osres_  += op( olhs_ + rhs_ );
-         refres_ += op( reflhs_ + refrhs_ );
+         dres_   += op( olhs_ - rhs_ );
+         odres_  += op( olhs_ - rhs_ );
+         sres_   += op( olhs_ - rhs_ );
+         osres_  += op( olhs_ - rhs_ );
+         refres_ += op( reflhs_ - refrhs_ );
       }
       catch( std::exception& ex ) {
          convertException<OMT1,MT2>( ex );
@@ -8175,11 +11689,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   += op( olhs_ + orhs_ );
-         odres_  += op( olhs_ + orhs_ );
-         sres_   += op( olhs_ + orhs_ );
-         osres_  += op( olhs_ + orhs_ );
-         refres_ += op( reflhs_ + refrhs_ );
+         dres_   += op( olhs_ - orhs_ );
+         odres_  += op( olhs_ - orhs_ );
+         sres_   += op( olhs_ - orhs_ );
+         osres_  += op( olhs_ - orhs_ );
+         refres_ += op( reflhs_ - refrhs_ );
       }
       catch( std::exception& ex ) {
          convertException<OMT1,OMT2>( ex );
@@ -8195,11 +11709,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   += op( eval( lhs_ ) + eval( rhs_ ) );
-         odres_  += op( eval( lhs_ ) + eval( rhs_ ) );
-         sres_   += op( eval( lhs_ ) + eval( rhs_ ) );
-         osres_  += op( eval( lhs_ ) + eval( rhs_ ) );
-         refres_ += op( eval( reflhs_ ) + eval( refrhs_ ) );
+         dres_   += op( eval( lhs_ ) - eval( rhs_ ) );
+         odres_  += op( eval( lhs_ ) - eval( rhs_ ) );
+         sres_   += op( eval( lhs_ ) - eval( rhs_ ) );
+         osres_  += op( eval( lhs_ ) - eval( rhs_ ) );
+         refres_ += op( eval( reflhs_ ) - eval( refrhs_ ) );
       }
       catch( std::exception& ex ) {
          convertException<MT1,MT2>( ex );
@@ -8209,11 +11723,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   += op( eval( lhs_ ) + eval( orhs_ ) );
-         odres_  += op( eval( lhs_ ) + eval( orhs_ ) );
-         sres_   += op( eval( lhs_ ) + eval( orhs_ ) );
-         osres_  += op( eval( lhs_ ) + eval( orhs_ ) );
-         refres_ += op( eval( reflhs_ ) + eval( refrhs_ ) );
+         dres_   += op( eval( lhs_ ) - eval( orhs_ ) );
+         odres_  += op( eval( lhs_ ) - eval( orhs_ ) );
+         sres_   += op( eval( lhs_ ) - eval( orhs_ ) );
+         osres_  += op( eval( lhs_ ) - eval( orhs_ ) );
+         refres_ += op( eval( reflhs_ ) - eval( refrhs_ ) );
       }
       catch( std::exception& ex ) {
          convertException<MT1,OMT2>( ex );
@@ -8223,11 +11737,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   += op( eval( olhs_ ) + eval( rhs_ ) );
-         odres_  += op( eval( olhs_ ) + eval( rhs_ ) );
-         sres_   += op( eval( olhs_ ) + eval( rhs_ ) );
-         osres_  += op( eval( olhs_ ) + eval( rhs_ ) );
-         refres_ += op( eval( reflhs_ ) + eval( refrhs_ ) );
+         dres_   += op( eval( olhs_ ) - eval( rhs_ ) );
+         odres_  += op( eval( olhs_ ) - eval( rhs_ ) );
+         sres_   += op( eval( olhs_ ) - eval( rhs_ ) );
+         osres_  += op( eval( olhs_ ) - eval( rhs_ ) );
+         refres_ += op( eval( reflhs_ ) - eval( refrhs_ ) );
       }
       catch( std::exception& ex ) {
          convertException<OMT1,MT2>( ex );
@@ -8237,11 +11751,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   += op( eval( olhs_ ) + eval( orhs_ ) );
-         odres_  += op( eval( olhs_ ) + eval( orhs_ ) );
-         sres_   += op( eval( olhs_ ) + eval( orhs_ ) );
-         osres_  += op( eval( olhs_ ) + eval( orhs_ ) );
-         refres_ += op( eval( reflhs_ ) + eval( refrhs_ ) );
+         dres_   += op( eval( olhs_ ) - eval( orhs_ ) );
+         odres_  += op( eval( olhs_ ) - eval( orhs_ ) );
+         sres_   += op( eval( olhs_ ) - eval( orhs_ ) );
+         osres_  += op( eval( olhs_ ) - eval( orhs_ ) );
+         refres_ += op( eval( reflhs_ ) - eval( refrhs_ ) );
       }
       catch( std::exception& ex ) {
          convertException<OMT1,OMT2>( ex );
@@ -8262,11 +11776,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   -= op( lhs_ + rhs_ );
-         odres_  -= op( lhs_ + rhs_ );
-         sres_   -= op( lhs_ + rhs_ );
-         osres_  -= op( lhs_ + rhs_ );
-         refres_ -= op( reflhs_ + refrhs_ );
+         dres_   -= op( lhs_ - rhs_ );
+         odres_  -= op( lhs_ - rhs_ );
+         sres_   -= op( lhs_ - rhs_ );
+         osres_  -= op( lhs_ - rhs_ );
+         refres_ -= op( reflhs_ - refrhs_ );
       }
       catch( std::exception& ex ) {
          convertException<MT1,MT2>( ex );
@@ -8276,11 +11790,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   -= op( lhs_ + orhs_ );
-         odres_  -= op( lhs_ + orhs_ );
-         sres_   -= op( lhs_ + orhs_ );
-         osres_  -= op( lhs_ + orhs_ );
-         refres_ -= op( reflhs_ + refrhs_ );
+         dres_   -= op( lhs_ - orhs_ );
+         odres_  -= op( lhs_ - orhs_ );
+         sres_   -= op( lhs_ - orhs_ );
+         osres_  -= op( lhs_ - orhs_ );
+         refres_ -= op( reflhs_ - refrhs_ );
       }
       catch( std::exception& ex ) {
          convertException<MT1,OMT2>( ex );
@@ -8290,11 +11804,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   -= op( olhs_ + rhs_ );
-         odres_  -= op( olhs_ + rhs_ );
-         sres_   -= op( olhs_ + rhs_ );
-         osres_  -= op( olhs_ + rhs_ );
-         refres_ -= op( reflhs_ + refrhs_ );
+         dres_   -= op( olhs_ - rhs_ );
+         odres_  -= op( olhs_ - rhs_ );
+         sres_   -= op( olhs_ - rhs_ );
+         osres_  -= op( olhs_ - rhs_ );
+         refres_ -= op( reflhs_ - refrhs_ );
       }
       catch( std::exception& ex ) {
          convertException<OMT1,MT2>( ex );
@@ -8304,11 +11818,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   -= op( olhs_ + orhs_ );
-         odres_  -= op( olhs_ + orhs_ );
-         sres_   -= op( olhs_ + orhs_ );
-         osres_  -= op( olhs_ + orhs_ );
-         refres_ -= op( reflhs_ + refrhs_ );
+         dres_   -= op( olhs_ - orhs_ );
+         odres_  -= op( olhs_ - orhs_ );
+         sres_   -= op( olhs_ - orhs_ );
+         osres_  -= op( olhs_ - orhs_ );
+         refres_ -= op( reflhs_ - refrhs_ );
       }
       catch( std::exception& ex ) {
          convertException<OMT1,OMT2>( ex );
@@ -8324,11 +11838,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   -= op( eval( lhs_ ) + eval( rhs_ ) );
-         odres_  -= op( eval( lhs_ ) + eval( rhs_ ) );
-         sres_   -= op( eval( lhs_ ) + eval( rhs_ ) );
-         osres_  -= op( eval( lhs_ ) + eval( rhs_ ) );
-         refres_ -= op( eval( reflhs_ ) + eval( refrhs_ ) );
+         dres_   -= op( eval( lhs_ ) - eval( rhs_ ) );
+         odres_  -= op( eval( lhs_ ) - eval( rhs_ ) );
+         sres_   -= op( eval( lhs_ ) - eval( rhs_ ) );
+         osres_  -= op( eval( lhs_ ) - eval( rhs_ ) );
+         refres_ -= op( eval( reflhs_ ) - eval( refrhs_ ) );
       }
       catch( std::exception& ex ) {
          convertException<MT1,MT2>( ex );
@@ -8338,11 +11852,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   -= op( eval( lhs_ ) + eval( orhs_ ) );
-         odres_  -= op( eval( lhs_ ) + eval( orhs_ ) );
-         sres_   -= op( eval( lhs_ ) + eval( orhs_ ) );
-         osres_  -= op( eval( lhs_ ) + eval( orhs_ ) );
-         refres_ -= op( eval( reflhs_ ) + eval( refrhs_ ) );
+         dres_   -= op( eval( lhs_ ) - eval( orhs_ ) );
+         odres_  -= op( eval( lhs_ ) - eval( orhs_ ) );
+         sres_   -= op( eval( lhs_ ) - eval( orhs_ ) );
+         osres_  -= op( eval( lhs_ ) - eval( orhs_ ) );
+         refres_ -= op( eval( reflhs_ ) - eval( refrhs_ ) );
       }
       catch( std::exception& ex ) {
          convertException<MT1,OMT2>( ex );
@@ -8352,11 +11866,11 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   -= op( eval( olhs_ ) + eval( rhs_ ) );
-         odres_  -= op( eval( olhs_ ) + eval( rhs_ ) );
-         sres_   -= op( eval( olhs_ ) + eval( rhs_ ) );
-         osres_  -= op( eval( olhs_ ) + eval( rhs_ ) );
-         refres_ -= op( eval( reflhs_ ) + eval( refrhs_ ) );
+         dres_   -= op( eval( olhs_ ) - eval( rhs_ ) );
+         odres_  -= op( eval( olhs_ ) - eval( rhs_ ) );
+         sres_   -= op( eval( olhs_ ) - eval( rhs_ ) );
+         osres_  -= op( eval( olhs_ ) - eval( rhs_ ) );
+         refres_ -= op( eval( reflhs_ ) - eval( refrhs_ ) );
       }
       catch( std::exception& ex ) {
          convertException<OMT1,MT2>( ex );
@@ -8366,11 +11880,140 @@ void OperationTest<MT1,MT2>::testCustomOperation( OP op, const std::string& name
 
       try {
          initResults();
-         dres_   -= op( eval( olhs_ ) + eval( orhs_ ) );
-         odres_  -= op( eval( olhs_ ) + eval( orhs_ ) );
-         sres_   -= op( eval( olhs_ ) + eval( orhs_ ) );
-         osres_  -= op( eval( olhs_ ) + eval( orhs_ ) );
-         refres_ -= op( eval( reflhs_ ) + eval( refrhs_ ) );
+         dres_   -= op( eval( olhs_ ) - eval( orhs_ ) );
+         odres_  -= op( eval( olhs_ ) - eval( orhs_ ) );
+         sres_   -= op( eval( olhs_ ) - eval( orhs_ ) );
+         osres_  -= op( eval( olhs_ ) - eval( orhs_ ) );
+         refres_ -= op( eval( reflhs_ ) - eval( refrhs_ ) );
+      }
+      catch( std::exception& ex ) {
+         convertException<OMT1,OMT2>( ex );
+      }
+
+      checkResults<OMT1,OMT2>();
+   }
+
+
+   //=====================================================================================
+   // Customized subtraction with Schur product assignment
+   //=====================================================================================
+
+   // Customized subtraction with Schur product assignment with the given matrices
+   {
+      test_  = "Customized subtraction with Schur product assignment with the given matrices (" + name + ")";
+      error_ = "Failed Schur product assignment operation";
+
+      try {
+         initResults();
+         dres_   %= op( lhs_ - rhs_ );
+         odres_  %= op( lhs_ - rhs_ );
+         sres_   %= op( lhs_ - rhs_ );
+         osres_  %= op( lhs_ - rhs_ );
+         refres_ %= op( reflhs_ - refrhs_ );
+      }
+      catch( std::exception& ex ) {
+         convertException<MT1,MT2>( ex );
+      }
+
+      checkResults<MT1,MT2>();
+
+      try {
+         initResults();
+         dres_   %= op( lhs_ - orhs_ );
+         odres_  %= op( lhs_ - orhs_ );
+         sres_   %= op( lhs_ - orhs_ );
+         osres_  %= op( lhs_ - orhs_ );
+         refres_ %= op( reflhs_ - refrhs_ );
+      }
+      catch( std::exception& ex ) {
+         convertException<MT1,OMT2>( ex );
+      }
+
+      checkResults<MT1,OMT2>();
+
+      try {
+         initResults();
+         dres_   %= op( olhs_ - rhs_ );
+         odres_  %= op( olhs_ - rhs_ );
+         sres_   %= op( olhs_ - rhs_ );
+         osres_  %= op( olhs_ - rhs_ );
+         refres_ %= op( reflhs_ - refrhs_ );
+      }
+      catch( std::exception& ex ) {
+         convertException<OMT1,MT2>( ex );
+      }
+
+      checkResults<OMT1,MT2>();
+
+      try {
+         initResults();
+         dres_   %= op( olhs_ - orhs_ );
+         odres_  %= op( olhs_ - orhs_ );
+         sres_   %= op( olhs_ - orhs_ );
+         osres_  %= op( olhs_ - orhs_ );
+         refres_ %= op( reflhs_ - refrhs_ );
+      }
+      catch( std::exception& ex ) {
+         convertException<OMT1,OMT2>( ex );
+      }
+
+      checkResults<OMT1,OMT2>();
+   }
+
+   // Customized subtraction with Schur product assignment with evaluated matrices
+   {
+      test_  = "Customized subtraction with Schur product assignment with evaluated matrices (" + name + ")";
+      error_ = "Failed Schur product assignment operation";
+
+      try {
+         initResults();
+         dres_   %= op( eval( lhs_ ) - eval( rhs_ ) );
+         odres_  %= op( eval( lhs_ ) - eval( rhs_ ) );
+         sres_   %= op( eval( lhs_ ) - eval( rhs_ ) );
+         osres_  %= op( eval( lhs_ ) - eval( rhs_ ) );
+         refres_ %= op( eval( reflhs_ ) - eval( refrhs_ ) );
+      }
+      catch( std::exception& ex ) {
+         convertException<MT1,MT2>( ex );
+      }
+
+      checkResults<MT1,MT2>();
+
+      try {
+         initResults();
+         dres_   %= op( eval( lhs_ ) - eval( orhs_ ) );
+         odres_  %= op( eval( lhs_ ) - eval( orhs_ ) );
+         sres_   %= op( eval( lhs_ ) - eval( orhs_ ) );
+         osres_  %= op( eval( lhs_ ) - eval( orhs_ ) );
+         refres_ %= op( eval( reflhs_ ) - eval( refrhs_ ) );
+      }
+      catch( std::exception& ex ) {
+         convertException<MT1,OMT2>( ex );
+      }
+
+      checkResults<MT1,OMT2>();
+
+      try {
+         initResults();
+         dres_   %= op( eval( olhs_ ) - eval( rhs_ ) );
+         odres_  %= op( eval( olhs_ ) - eval( rhs_ ) );
+         sres_   %= op( eval( olhs_ ) - eval( rhs_ ) );
+         osres_  %= op( eval( olhs_ ) - eval( rhs_ ) );
+         refres_ %= op( eval( reflhs_ ) - eval( refrhs_ ) );
+      }
+      catch( std::exception& ex ) {
+         convertException<OMT1,MT2>( ex );
+      }
+
+      checkResults<OMT1,MT2>();
+
+      try {
+         initResults();
+         dres_   %= op( eval( olhs_ ) - eval( orhs_ ) );
+         odres_  %= op( eval( olhs_ ) - eval( orhs_ ) );
+         sres_   %= op( eval( olhs_ ) - eval( orhs_ ) );
+         osres_  %= op( eval( olhs_ ) - eval( orhs_ ) );
+         refres_ %= op( eval( reflhs_ ) - eval( refrhs_ ) );
       }
       catch( std::exception& ex ) {
          convertException<OMT1,OMT2>( ex );
@@ -8415,6 +12058,7 @@ void OperationTest<MT1,MT2>::checkResults()
       oss << " Test : " << test_ << "\n"
           << " Error: Incorrect dense result detected\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side " << ( IsRowMajorMatrix<LT>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
           << "     " << typeid( LT ).name() << "\n"
           << "   Right-hand side " << ( IsRowMajorMatrix<RT>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
@@ -8431,6 +12075,7 @@ void OperationTest<MT1,MT2>::checkResults()
       oss << " Test : " << test_ << "\n"
           << " Error: Incorrect sparse result detected\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side " << ( IsRowMajorMatrix<LT>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
           << "     " << typeid( LT ).name() << "\n"
           << "   Right-hand side " << ( IsRowMajorMatrix<RT>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
@@ -8469,6 +12114,7 @@ void OperationTest<MT1,MT2>::checkTransposeResults()
       oss << " Test : " << test_ << "\n"
           << " Error: Incorrect dense result detected\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side " << ( IsRowMajorMatrix<LT>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
           << "     " << typeid( LT ).name() << "\n"
           << "   Right-hand side " << ( IsRowMajorMatrix<RT>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
@@ -8485,6 +12131,7 @@ void OperationTest<MT1,MT2>::checkTransposeResults()
       oss << " Test : " << test_ << "\n"
           << " Error: Incorrect sparse result detected\n"
           << " Details:\n"
+          << "   Random seed = " << blaze::getSeed() << "\n"
           << "   Left-hand side " << ( IsRowMajorMatrix<LT>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
           << "     " << typeid( LT ).name() << "\n"
           << "   Right-hand side " << ( IsRowMajorMatrix<RT>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
@@ -8518,8 +12165,8 @@ template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
 void OperationTest<MT1,MT2>::initResults()
 {
-   const blaze::UnderlyingBuiltin_<SRE> min( randmin );
-   const blaze::UnderlyingBuiltin_<SRE> max( randmax );
+   const blaze::UnderlyingBuiltin_t<SRE> min( randmin );
+   const blaze::UnderlyingBuiltin_t<SRE> max( randmax );
 
    resize( sres_, rows( lhs_ ), columns( lhs_ ) );
    randomize( sres_, min, max );
@@ -8544,8 +12191,8 @@ template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
 void OperationTest<MT1,MT2>::initTransposeResults()
 {
-   const blaze::UnderlyingBuiltin_<TSRE> min( randmin );
-   const blaze::UnderlyingBuiltin_<TSRE> max( randmax );
+   const blaze::UnderlyingBuiltin_t<TSRE> min( randmin );
+   const blaze::UnderlyingBuiltin_t<TSRE> max( randmax );
 
    resize( tsres_, columns( lhs_ ), rows( lhs_ ) );
    randomize( tsres_, min, max );
@@ -8582,6 +12229,7 @@ void OperationTest<MT1,MT2>::convertException( const std::exception& ex )
    oss << " Test : " << test_ << "\n"
        << " Error: " << error_ << "\n"
        << " Details:\n"
+       << "   Random seed = " << blaze::getSeed() << "\n"
        << "   Left-hand side " << ( IsRowMajorMatrix<LT>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
        << "     " << typeid( LT ).name() << "\n"
        << "   Right-hand side " << ( IsRowMajorMatrix<LT>::value ? ( "row-major" ) : ( "column-major" ) ) << " sparse matrix type:\n"
@@ -8611,9 +12259,14 @@ template< typename MT1    // Type of the left-hand side sparse matrix
         , typename MT2 >  // Type of the right-hand side sparse matrix
 void runTest( const Creator<MT1>& creator1, const Creator<MT2>& creator2 )
 {
-   for( size_t rep=0UL; rep<repetitions; ++rep ) {
-      OperationTest<MT1,MT2>( creator1, creator2 );
+#if BLAZETEST_MATHTEST_TEST_SUBTRACTION
+   if( BLAZETEST_MATHTEST_TEST_SUBTRACTION > 1 )
+   {
+      for( size_t rep=0UL; rep<repetitions; ++rep ) {
+         OperationTest<MT1,MT2>( creator1, creator2 );
+      }
    }
+#endif
 }
 //*************************************************************************************************
 

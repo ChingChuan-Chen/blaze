@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/matrixserializer/ClassTest.h
 //  \brief Header file for the MatrixSerializer class test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -192,7 +192,7 @@ void ClassTest::runStaticMatrixTests( const MT& src )
 {
    BLAZE_CONSTRAINT_MUST_BE_MATRIX_TYPE( MT );
 
-   typedef blaze::ElementType_<MT>  ET;
+   using ET = blaze::ElementType_t<MT>;
 
    {
       blaze::StaticMatrix<ET,M,N,blaze::rowMajor> dst;
@@ -225,7 +225,7 @@ void ClassTest::runDynamicMatrixTests( const MT& src )
 {
    BLAZE_CONSTRAINT_MUST_BE_MATRIX_TYPE( MT );
 
-   typedef blaze::ElementType_<MT>  ET;
+   using ET = blaze::ElementType_t<MT>;
 
    {
       blaze::DynamicMatrix<ET,blaze::rowMajor> dst;
@@ -270,9 +270,9 @@ void ClassTest::runDenseSubmatrixTests( const MT& src )
 {
    BLAZE_CONSTRAINT_MUST_BE_MATRIX_TYPE( MT );
 
-   typedef blaze::ElementType_<MT>                      ET;
-   typedef blaze::DynamicMatrix<ET,blaze::rowMajor>     RM;
-   typedef blaze::DynamicMatrix<ET,blaze::columnMajor>  CM;
+   using ET = blaze::ElementType_t<MT>;
+   using RM = blaze::DynamicMatrix<ET,blaze::rowMajor>;
+   using CM = blaze::DynamicMatrix<ET,blaze::columnMajor>;
 
    {
       RM mat( M, N );
@@ -307,7 +307,7 @@ void ClassTest::runCompressedMatrixTests( const MT& src )
 {
    BLAZE_CONSTRAINT_MUST_BE_MATRIX_TYPE( MT );
 
-   typedef blaze::ElementType_<MT>  ET;
+   using ET = blaze::ElementType_t<MT>;
 
    {
       blaze::CompressedMatrix<ET,blaze::rowMajor> dst;
@@ -352,9 +352,9 @@ void ClassTest::runSparseSubmatrixTests( const MT& src )
 {
    BLAZE_CONSTRAINT_MUST_BE_MATRIX_TYPE( MT );
 
-   typedef blaze::ElementType_<MT>                         ET;
-   typedef blaze::CompressedMatrix<ET,blaze::rowMajor>     RM;
-   typedef blaze::CompressedMatrix<ET,blaze::columnMajor>  CM;
+   using ET = blaze::ElementType_t<MT>;
+   using RM = blaze::CompressedMatrix<ET,blaze::rowMajor>;
+   using CM = blaze::CompressedMatrix<ET,blaze::columnMajor>;
 
    {
       RM mat( M, N );

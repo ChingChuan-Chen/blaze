@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/vectorserializer/ClassTest.h
 //  \brief Header file for the VectorSerializer class test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -190,7 +190,7 @@ void ClassTest::runStaticVectorTests( const VT& src )
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTOR_TYPE( VT );
 
-   typedef blaze::ElementType_<VT>  ET;
+   using ET = blaze::ElementType_t<VT>;
 
    {
       blaze::StaticVector<ET,N> dst;
@@ -222,7 +222,7 @@ void ClassTest::runDynamicVectorTests( const VT& src )
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTOR_TYPE( VT );
 
-   typedef blaze::ElementType_<VT>  ET;
+   using ET = blaze::ElementType_t<VT>;
 
    {
       blaze::DynamicVector<ET> dst;
@@ -255,8 +255,8 @@ void ClassTest::runDenseSubvectorTests( const VT& src )
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTOR_TYPE( VT );
 
-   typedef blaze::ElementType_<VT>   ET;
-   typedef blaze::DynamicVector<ET>  DV;
+   using ET = blaze::ElementType_t<VT>;
+   using DV = blaze::DynamicVector<ET>;
 
    {
       DV vec( N );
@@ -290,7 +290,7 @@ void ClassTest::runCompressedVectorTests( const VT& src )
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTOR_TYPE( VT );
 
-   typedef blaze::ElementType_<VT>  ET;
+   using ET = blaze::ElementType_t<VT>;
 
    {
       blaze::CompressedVector<ET> dst;
@@ -323,8 +323,8 @@ void ClassTest::runSparseSubvectorTests( const VT& src )
 {
    BLAZE_CONSTRAINT_MUST_BE_VECTOR_TYPE( VT );
 
-   typedef blaze::ElementType_<VT>      ET;
-   typedef blaze::CompressedVector<ET>  SV;
+   using ET = blaze::ElementType_t<VT>;
+   using SV = blaze::CompressedVector<ET>;
 
    {
       SV vec( N );

@@ -3,7 +3,7 @@
 //  \file src/mathtest/dvecdvecadd/VHaV6b.cpp
 //  \brief Source file for the VHaV6b dense vector/dense vector addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -39,11 +39,15 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <blaze/math/DynamicVector.h>
+#include <blaze/math/HybridVector.h>
 #include <blaze/math/StaticVector.h>
 #include <blazetest/mathtest/Creator.h>
 #include <blazetest/mathtest/dvecdvecadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
+
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
 
 
 //=================================================================================================
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Vector type definitions
-      typedef blaze::HybridVector<TypeA,6UL>  VHa;
-      typedef blaze::StaticVector<TypeB,6UL>  V6b;
+      using VHa = blaze::HybridVector<TypeA,6UL>;
+      using V6b = blaze::StaticVector<TypeB,6UL>;
 
       // Creator type definitions
-      typedef blazetest::Creator<VHa>  CVHa;
-      typedef blazetest::Creator<V6b>  CV6b;
+      using CVHa = blazetest::Creator<VHa>;
+      using CV6b = blazetest::Creator<V6b>;
 
       // Running the tests
       RUN_DVECDVECADD_OPERATION_TEST( CVHa( 6UL ), CV6b() );

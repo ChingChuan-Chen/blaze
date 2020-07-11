@@ -3,7 +3,7 @@
 //  \file src/mathtest/smatsmatmult/MCaMCb.cpp
 //  \brief Source file for the MCaMCb sparse matrix/sparse matrix multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -44,6 +44,10 @@
 #include <blazetest/mathtest/smatsmatmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -62,12 +66,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::CompressedMatrix<TypeA>  MCa;
-      typedef blaze::CompressedMatrix<TypeB>  MCb;
+      using MCa = blaze::CompressedMatrix<TypeA>;
+      using MCb = blaze::CompressedMatrix<TypeB>;
 
       // Creator type definitions
-      typedef blazetest::Creator<MCa>  CMCa;
-      typedef blazetest::Creator<MCb>  CMCb;
+      using CMCa = blazetest::Creator<MCa>;
+      using CMCb = blazetest::Creator<MCb>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {
@@ -87,16 +91,16 @@ int main()
       }
 
       // Running tests with large matrices
-      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 15UL,  37UL,  7UL ), CMCb(  37UL, 15UL,  7UL ) );
-      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 15UL,  37UL,  7UL ), CMCb(  37UL, 63UL, 13UL ) );
-      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 37UL,  37UL,  7UL ), CMCb(  37UL, 37UL,  7UL ) );
-      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 63UL,  37UL, 13UL ), CMCb(  37UL, 15UL,  7UL ) );
-      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 63UL,  37UL, 13UL ), CMCb(  37UL, 63UL, 13UL ) );
-      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 16UL,  32UL,  8UL ), CMCb(  32UL, 16UL,  8UL ) );
-      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 16UL,  32UL,  8UL ), CMCb(  32UL, 64UL, 16UL ) );
-      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 32UL,  32UL,  8UL ), CMCb(  32UL, 32UL,  8UL ) );
-      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 64UL,  32UL, 16UL ), CMCb(  32UL, 16UL,  8UL ) );
-      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 64UL,  32UL, 16UL ), CMCb(  32UL, 64UL, 16UL ) );
+      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 15UL, 37UL,  7UL ), CMCb( 37UL, 15UL,  7UL ) );
+      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 15UL, 37UL,  7UL ), CMCb( 37UL, 63UL, 13UL ) );
+      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 37UL, 37UL,  7UL ), CMCb( 37UL, 37UL,  7UL ) );
+      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 63UL, 37UL, 13UL ), CMCb( 37UL, 15UL,  7UL ) );
+      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 63UL, 37UL, 13UL ), CMCb( 37UL, 63UL, 13UL ) );
+      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 16UL, 32UL,  8UL ), CMCb( 32UL, 16UL,  8UL ) );
+      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 16UL, 32UL,  8UL ), CMCb( 32UL, 64UL, 16UL ) );
+      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 32UL, 32UL,  8UL ), CMCb( 32UL, 32UL,  8UL ) );
+      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 64UL, 32UL, 16UL ), CMCb( 32UL, 16UL,  8UL ) );
+      RUN_SMATSMATMULT_OPERATION_TEST( CMCa( 64UL, 32UL, 16UL ), CMCb( 32UL, 64UL, 16UL ) );
    }
    catch( std::exception& ex ) {
       std::cerr << "\n\n ERROR DETECTED during sparse matrix/sparse matrix multiplication:\n"

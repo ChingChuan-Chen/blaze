@@ -3,7 +3,7 @@
 //  \file src/mathtest/compressedmatrix/ProxyTest.cpp
 //  \brief Source file for the CompressedMatrix proxy test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -42,6 +42,10 @@
 #include <blazetest/mathtest/compressedmatrix/ProxyTest.h>
 #include <blazetest/system/LAPACK.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 namespace blazetest {
 
@@ -66,6 +70,8 @@ ProxyTest::ProxyTest()
    testAddAssign();
    testSubAssign();
    testMultAssign();
+   testDivAssign();
+   testModAssign();
    testScaling();
    testSubscript();
    testFunctionCall();
@@ -73,21 +79,21 @@ ProxyTest::ProxyTest()
    testNonZeros();
    testReset();
    testClear();
-   testSet();
-   testInsert();
-   testAppend();
    testResize();
    testExtend();
    testReserve();
    testTrim();
-   testTranspose();
-   testCTranspose();
-   testInvert();
    testSwap();
+   testSet();
+   testInsert();
+   testAppend();
    testErase();
    testFind();
    testLowerBound();
    testUpperBound();
+   testTranspose();
+   testCTranspose();
+   testInvert();
 }
 //*************************************************************************************************
 
@@ -989,11 +995,11 @@ void ProxyTest::testSubAssign()
 void ProxyTest::testMultAssign()
 {
    //=====================================================================================
-   // Row-major dense vector subtraction assignment
+   // Row-major dense vector multiplication assignment
    //=====================================================================================
 
    {
-      test_ = "Row-major MatrixAccessProxy dense vector subtraction assignment";
+      test_ = "Row-major MatrixAccessProxy dense vector multiplication assignment";
 
       DV tmp( 3UL );
       tmp[0] = 1;
@@ -1029,11 +1035,11 @@ void ProxyTest::testMultAssign()
 
 
    //=====================================================================================
-   // Row-major sparse vector subtraction assignment
+   // Row-major sparse vector multiplication assignment
    //=====================================================================================
 
    {
-      test_ = "Row-major MatrixAccessProxy sparse vector subtraction assignment";
+      test_ = "Row-major MatrixAccessProxy sparse vector multiplication assignment";
 
       SV tmp( 3UL );
       tmp[1] = 2;
@@ -1067,11 +1073,11 @@ void ProxyTest::testMultAssign()
 
 
    //=====================================================================================
-   // Column-major dense vector subtraction assignment
+   // Column-major dense vector multiplication assignment
    //=====================================================================================
 
    {
-      test_ = "Column-major MatrixAccessProxy dense vector subtraction assignment";
+      test_ = "Column-major MatrixAccessProxy dense vector multiplication assignment";
 
       DV tmp( 3UL );
       tmp[0] = 1;
@@ -1107,11 +1113,11 @@ void ProxyTest::testMultAssign()
 
 
    //=====================================================================================
-   // Column-major sparse vector subtraction assignment
+   // Column-major sparse vector multiplication assignment
    //=====================================================================================
 
    {
-      test_ = "Column-major MatrixAccessProxy sparse vector subtraction assignment";
+      test_ = "Column-major MatrixAccessProxy sparse vector multiplication assignment";
 
       SV tmp( 3UL );
       tmp[1] = 2;
@@ -1139,6 +1145,268 @@ void ProxyTest::testMultAssign()
              << " Details:\n"
              << "   Result:\n" << mat(0,1) << "\n"
              << "   Expected result:\n( 0 4 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the MatrixAccessProxy division assignment operators.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the division assignment operators of the MatrixAccessProxy
+// class template. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void ProxyTest::testDivAssign()
+{
+   //=====================================================================================
+   // Row-major dense vector division assignment
+   //=====================================================================================
+
+   {
+      test_ = "Row-major MatrixAccessProxy dense vector division assignment";
+
+      DV tmp( 3UL );
+      tmp[0] = 1;
+      tmp[1] = 2;
+      tmp[2] = 3;
+      DVM mat( 2UL, 2UL, 1UL );
+      mat(0,1) = tmp;
+
+      mat(0,1) /= tmp;
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkSize    ( mat(0,0), 0UL );
+      checkSize    ( mat(0,1), 3UL );
+      checkCapacity( mat(0,1), 3UL );
+      checkNonZeros( mat(0,1), 3UL );
+      checkSize    ( mat(1,0), 0UL );
+      checkSize    ( mat(1,1), 0UL );
+
+      if( mat(0,1)[0] != 1 || mat(0,1)[1] != 1 || mat(0,1)[2] != 1 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(0,1) << "\n"
+             << "   Expected result:\n( 1 1 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major dense vector division assignment
+   //=====================================================================================
+
+   {
+      test_ = "Column-major MatrixAccessProxy dense vector division assignment";
+
+      DV tmp( 3UL );
+      tmp[0] = 1;
+      tmp[1] = 2;
+      tmp[2] = 3;
+      DVM mat( 2UL, 2UL, 1UL );
+      mat(0,1) = tmp;
+
+      mat(0,1) /= tmp;
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkSize    ( mat(0,0), 0UL );
+      checkSize    ( mat(0,1), 3UL );
+      checkCapacity( mat(0,1), 3UL );
+      checkNonZeros( mat(0,1), 3UL );
+      checkSize    ( mat(1,0), 0UL );
+      checkSize    ( mat(1,1), 0UL );
+
+      if( mat(0,1)[0] != 1 || mat(0,1)[1] != 1 || mat(0,1)[2] != 1 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(0,1) << "\n"
+             << "   Expected result:\n( 1 1 1 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the MatrixAccessProxy modulo assignment operators.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the modulo assignment operators of the MatrixAccessProxy
+// class template. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void ProxyTest::testModAssign()
+{
+   //=====================================================================================
+   // Row-major dense vector cross product assignment
+   //=====================================================================================
+
+   {
+      test_ = "Row-major MatrixAccessProxy dense vector cross product assignment";
+
+      DV tmp( 3UL );
+      tmp[0] = 1;
+      tmp[1] = 2;
+      tmp[2] = 3;
+      DVM mat( 2UL, 2UL, 1UL );
+      mat(0,1) = tmp;
+
+      mat(0,1) %= tmp;
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkSize    ( mat(0,0), 0UL );
+      checkSize    ( mat(0,1), 3UL );
+      checkCapacity( mat(0,1), 3UL );
+      checkNonZeros( mat(0,1), 0UL );
+      checkSize    ( mat(1,0), 0UL );
+      checkSize    ( mat(1,1), 0UL );
+
+      if( mat(0,1)[0] != 0 || mat(0,1)[1] != 0 || mat(0,1)[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(0,1) << "\n"
+             << "   Expected result:\n( 0 0 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Row-major sparse vector cross product assignment
+   //=====================================================================================
+
+   {
+      test_ = "Row-major MatrixAccessProxy sparse vector cross product assignment";
+
+      SV tmp( 3UL );
+      tmp[1] = 2;
+      DVM mat( 2UL, 2UL, 1UL );
+      mat(0,1) = tmp;
+
+      mat(0,1) %= tmp;
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkSize    ( mat(0,0), 0UL );
+      checkSize    ( mat(0,1), 3UL );
+      checkCapacity( mat(0,1), 1UL );
+      checkNonZeros( mat(0,1), 0UL );
+      checkSize    ( mat(1,0), 0UL );
+      checkSize    ( mat(1,1), 0UL );
+
+      if( mat(0,1)[0] != 0 || mat(0,1)[1] != 0 || mat(0,1)[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(0,1) << "\n"
+             << "   Expected result:\n( 0 0 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major dense vector cross product assignment
+   //=====================================================================================
+
+   {
+      test_ = "Column-major MatrixAccessProxy dense vector cross product assignment";
+
+      DV tmp( 3UL );
+      tmp[0] = 1;
+      tmp[1] = 2;
+      tmp[2] = 3;
+      DVM mat( 2UL, 2UL, 1UL );
+      mat(0,1) = tmp;
+
+      mat(0,1) %= tmp;
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkSize    ( mat(0,0), 0UL );
+      checkSize    ( mat(0,1), 3UL );
+      checkCapacity( mat(0,1), 3UL );
+      checkNonZeros( mat(0,1), 0UL );
+      checkSize    ( mat(1,0), 0UL );
+      checkSize    ( mat(1,1), 0UL );
+
+      if( mat(0,1)[0] != 0 || mat(0,1)[1] != 0 || mat(0,1)[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(0,1) << "\n"
+             << "   Expected result:\n( 0 0 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major sparse vector cross product assignment
+   //=====================================================================================
+
+   {
+      test_ = "Column-major MatrixAccessProxy sparse vector cross product assignment";
+
+      SV tmp( 3UL );
+      tmp[1] = 2;
+      DVM mat( 2UL, 2UL, 1UL );
+      mat(0,1) = tmp;
+
+      mat(0,1) %= tmp;
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkSize    ( mat(0,0), 0UL );
+      checkSize    ( mat(0,1), 3UL );
+      checkCapacity( mat(0,1), 1UL );
+      checkNonZeros( mat(0,1), 0UL );
+      checkSize    ( mat(1,0), 0UL );
+      checkSize    ( mat(1,1), 0UL );
+
+      if( mat(0,1)[0] != 0 || mat(0,1)[1] != 0 || mat(0,1)[2] != 0 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Assignment failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(0,1) << "\n"
+             << "   Expected result:\n( 0 0 0 )\n";
          throw std::runtime_error( oss.str() );
       }
    }
@@ -1570,13 +1838,13 @@ void ProxyTest::testIterator()
       DVM mat( 2UL, 2UL, 1UL );
       mat(0,1) = DV( 4UL, 4 );
 
-      // Counting the number of elements via Iterator
+      // Counting the number of elements via Iterator (end-begin)
       {
          test_ = "Row-major MatrixAccessProxy::begin() and MatrixAccessProxy::end()";
 
-         const size_t number( end( mat(0,1) ) - begin( mat(0,1) ) );
+         const ptrdiff_t number( end( mat(0,1) ) - begin( mat(0,1) ) );
 
-         if( number != 4UL ) {
+         if( number != 4L ) {
             std::ostringstream oss;
             oss << " Test: " << test_ << "\n"
                 << " Error: Invalid number of elements detected\n"
@@ -1587,13 +1855,13 @@ void ProxyTest::testIterator()
          }
       }
 
-      // Counting the number of elements via ConstIterator
+      // Counting the number of elements via ConstIterator (end-begin)
       {
          test_ = "Row-major MatrixAccessProxy::cbegin() and MatrixAccessProxy::cend()";
 
-         const size_t number( cend( mat(0,1) ) - cbegin( mat(0,1) ) );
+         const ptrdiff_t number( cend( mat(0,1) ) - cbegin( mat(0,1) ) );
 
-         if( number != 4UL ) {
+         if( number != 4L ) {
             std::ostringstream oss;
             oss << " Test: " << test_ << "\n"
                 << " Error: Invalid number of elements detected\n"
@@ -1614,13 +1882,13 @@ void ProxyTest::testIterator()
       DMM mat( 2UL, 2UL, 1UL );
       mat(0,1) = DM( 4UL, 4UL, 4 );
 
-      // Counting the number of elements via Iterator
+      // Counting the number of elements via Iterator (end-begin)
       {
          test_ = "Row-major MatrixAccessProxy::begin( size_t ) and MatrixAccessProxy::end( size_t )";
 
-         const size_t number( end( mat(0,1), 1UL ) - begin( mat(0,1), 1UL ) );
+         const ptrdiff_t number( end( mat(0,1), 1UL ) - begin( mat(0,1), 1UL ) );
 
-         if( number != 4UL ) {
+         if( number != 4L ) {
             std::ostringstream oss;
             oss << " Test: " << test_ << "\n"
                 << " Error: Invalid number of elements detected\n"
@@ -1631,13 +1899,13 @@ void ProxyTest::testIterator()
          }
       }
 
-      // Counting the number of elements via ConstIterator
+      // Counting the number of elements via ConstIterator (end-begin)
       {
          test_ = "Row-major MatrixAccessProxy::cbegin( size_t ) and MatrixAccessProxy::cend( size_t )";
 
-         const size_t number( cend( mat(0,1), 1UL ) - cbegin( mat(0,1), 1UL ) );
+         const ptrdiff_t number( cend( mat(0,1), 1UL ) - cbegin( mat(0,1), 1UL ) );
 
-         if( number != 4UL ) {
+         if( number != 4L ) {
             std::ostringstream oss;
             oss << " Test: " << test_ << "\n"
                 << " Error: Invalid number of elements detected\n"
@@ -1658,13 +1926,13 @@ void ProxyTest::testIterator()
       ODVM mat( 2UL, 2UL, 1UL );
       mat(0,1) = DV( 4UL, 4 );
 
-      // Counting the number of elements via Iterator
+      // Counting the number of elements via Iterator (end-begin)
       {
          test_ = "Column-major MatrixAccessProxy::begin() and MatrixAccessProxy::end()";
 
-         const size_t number( end( mat(0,1) ) - begin( mat(0,1) ) );
+         const ptrdiff_t number( end( mat(0,1) ) - begin( mat(0,1) ) );
 
-         if( number != 4UL ) {
+         if( number != 4L ) {
             std::ostringstream oss;
             oss << " Test: " << test_ << "\n"
                 << " Error: Invalid number of elements detected\n"
@@ -1675,13 +1943,13 @@ void ProxyTest::testIterator()
          }
       }
 
-      // Counting the number of elements via ConstIterator
+      // Counting the number of elements via ConstIterator (end-begin)
       {
          test_ = "Column-major MatrixAccessProxy::cbegin() and MatrixAccessProxy::cend()";
 
-         const size_t number( cend( mat(0,1) ) - cbegin( mat(0,1) ) );
+         const ptrdiff_t number( cend( mat(0,1) ) - cbegin( mat(0,1) ) );
 
-         if( number != 4UL ) {
+         if( number != 4L ) {
             std::ostringstream oss;
             oss << " Test: " << test_ << "\n"
                 << " Error: Invalid number of elements detected\n"
@@ -1702,13 +1970,13 @@ void ProxyTest::testIterator()
       ODMM mat( 2UL, 2UL, 1UL );
       mat(0,1) = DM( 4UL, 4UL, 4 );
 
-      // Counting the number of elements via Iterator
+      // Counting the number of elements via Iterator (end-begin)
       {
          test_ = "Column-major MatrixAccessProxy::begin( size_t ) and MatrixAccessProxy::end( size_t )";
 
-         const size_t number( end( mat(0,1), 1UL ) - begin( mat(0,1), 1UL ) );
+         const ptrdiff_t number( end( mat(0,1), 1UL ) - begin( mat(0,1), 1UL ) );
 
-         if( number != 4UL ) {
+         if( number != 4L ) {
             std::ostringstream oss;
             oss << " Test: " << test_ << "\n"
                 << " Error: Invalid number of elements detected\n"
@@ -1719,13 +1987,13 @@ void ProxyTest::testIterator()
          }
       }
 
-      // Counting the number of elements via ConstIterator
+      // Counting the number of elements via ConstIterator (end-begin)
       {
          test_ = "Column-major MatrixAccessProxy::cbegin( size_t ) and MatrixAccessProxy::cend( size_t )";
 
-         const size_t number( cend( mat(0,1), 1UL ) - cbegin( mat(0,1), 1UL ) );
+         const ptrdiff_t number( cend( mat(0,1), 1UL ) - cbegin( mat(0,1), 1UL ) );
 
-         if( number != 4UL ) {
+         if( number != 4L ) {
             std::ostringstream oss;
             oss << " Test: " << test_ << "\n"
                 << " Error: Invalid number of elements detected\n"
@@ -2044,495 +2312,6 @@ void ProxyTest::testClear()
       checkSize( mat(0,1), 0UL );
       checkSize( mat(1,0), 0UL );
       checkSize( mat(1,1), 0UL );
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Test of the \c set() member functions of the MatrixAccessProxy class template.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c set() member functions of the MatrixAccessProxy
-// class template. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void ProxyTest::testSet()
-{
-   //=====================================================================================
-   // Row-major matrix tests with vector elements
-   //=====================================================================================
-
-   {
-      test_ = "Row-major MatrixAccessProxy::set( size_t, ElementType )";
-
-      SVM mat( 2UL, 2UL, 1UL );
-      mat(1,1) = SV( 3UL, 1UL );
-      mat(1,1).set( 1UL, 5 );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkSize    ( mat(0,0), 0UL );
-      checkSize    ( mat(0,1), 0UL );
-      checkSize    ( mat(1,0), 0UL );
-      checkSize    ( mat(1,1), 3UL );
-      checkCapacity( mat(1,1), 1UL );
-      checkNonZeros( mat(1,1), 1UL );
-
-      if( mat(1,1)[1] != 5 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Setting an element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat(1,1) << "\n"
-             << "   Expected result:\n( 0 5 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major matrix tests with matrix elements
-   //=====================================================================================
-
-   {
-      test_ = "Row-major MatrixAccessProxy::set( size_t, size_t, ElementType )";
-
-      SMM mat( 2UL, 2UL, 1UL );
-      mat(1,1) = SM( 2UL, 2UL, 1UL );
-      mat(1,1).set( 0UL, 1UL, 5 );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0), 0UL );
-      checkColumns ( mat(0,0), 0UL );
-      checkRows    ( mat(0,1), 0UL );
-      checkColumns ( mat(0,1), 0UL );
-      checkRows    ( mat(1,0), 0UL );
-      checkColumns ( mat(1,0), 0UL );
-      checkRows    ( mat(1,1), 2UL );
-      checkColumns ( mat(1,1), 2UL );
-      checkCapacity( mat(1,1), 1UL );
-      checkNonZeros( mat(1,1), 1UL );
-
-      if( mat(1,1)(0,1) != 5 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Setting an element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat(1,1) << "\n"
-             << "   Expected result:\n( 0 5 )\n( 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major matrix tests with vector elements
-   //=====================================================================================
-
-   {
-      test_ = "Column-major MatrixAccessProxy::set( size_t, ElementType )";
-
-      OSVM mat( 2UL, 2UL, 1UL );
-      mat(1,1) = SV( 3UL, 1UL );
-      mat(1,1).set( 1UL, 5 );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkSize    ( mat(0,0), 0UL );
-      checkSize    ( mat(0,1), 0UL );
-      checkSize    ( mat(1,0), 0UL );
-      checkSize    ( mat(1,1), 3UL );
-      checkCapacity( mat(1,1), 1UL );
-      checkNonZeros( mat(1,1), 1UL );
-
-      if( mat(1,1)[1] != 5 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Setting an element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat(1,1) << "\n"
-             << "   Expected result:\n( 0 5 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major matrix tests with matrix elements
-   //=====================================================================================
-
-   {
-      test_ = "Column-major MatrixAccessProxy::set( size_t, size_t, ElementType )";
-
-      OSMM mat( 2UL, 2UL, 1UL );
-      mat(1,1) = SM( 2UL, 2UL, 1UL );
-      mat(1,1).set( 0UL, 1UL, 5 );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0), 0UL );
-      checkColumns ( mat(0,0), 0UL );
-      checkRows    ( mat(0,1), 0UL );
-      checkColumns ( mat(0,1), 0UL );
-      checkRows    ( mat(1,0), 0UL );
-      checkColumns ( mat(1,0), 0UL );
-      checkRows    ( mat(1,1), 2UL );
-      checkColumns ( mat(1,1), 2UL );
-      checkCapacity( mat(1,1), 1UL );
-      checkNonZeros( mat(1,1), 1UL );
-
-      if( mat(1,1)(0,1) != 5 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Setting an element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat(1,1) << "\n"
-             << "   Expected result:\n( 0 5 )\n( 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Test of the \c insert() member functions of the MatrixAccessProxy class template.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c insert() member functions of the MatrixAccessProxy
-// class template. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void ProxyTest::testInsert()
-{
-   //=====================================================================================
-   // Row-major matrix tests with vector elements
-   //=====================================================================================
-
-   {
-      test_ = "Row-major MatrixAccessProxy::insert( size_t, ElementType )";
-
-      SVM mat( 2UL, 2UL, 1UL );
-      mat(1,1) = SV( 3UL, 1UL );
-      mat(1,1).insert( 1UL, 5 );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkSize    ( mat(0,0), 0UL );
-      checkSize    ( mat(0,1), 0UL );
-      checkSize    ( mat(1,0), 0UL );
-      checkSize    ( mat(1,1), 3UL );
-      checkCapacity( mat(1,1), 1UL );
-      checkNonZeros( mat(1,1), 1UL );
-
-      if( mat(1,1)[1] != 5 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Inserting an element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat(1,1) << "\n"
-             << "   Expected result:\n( 0 5 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major matrix tests with matrix elements
-   //=====================================================================================
-
-   {
-      test_ = "Row-major MatrixAccessProxy::insert( size_t, size_t, ElementType )";
-
-      SMM mat( 2UL, 2UL, 1UL );
-      mat(1,1) = SM( 2UL, 2UL, 1UL );
-      mat(1,1).insert( 0UL, 1UL, 5 );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0), 0UL );
-      checkColumns ( mat(0,0), 0UL );
-      checkRows    ( mat(0,1), 0UL );
-      checkColumns ( mat(0,1), 0UL );
-      checkRows    ( mat(1,0), 0UL );
-      checkColumns ( mat(1,0), 0UL );
-      checkRows    ( mat(1,1), 2UL );
-      checkColumns ( mat(1,1), 2UL );
-      checkCapacity( mat(1,1), 1UL );
-      checkNonZeros( mat(1,1), 1UL );
-
-      if( mat(1,1)(0,1) != 5 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Inserting an element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat(1,1) << "\n"
-             << "   Expected result:\n( 0 5 )\n( 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major matrix tests with vector elements
-   //=====================================================================================
-
-   {
-      test_ = "Column-major MatrixAccessProxy::insert( size_t, ElementType )";
-
-      OSVM mat( 2UL, 2UL, 1UL );
-      mat(1,1) = SV( 3UL, 1UL );
-      mat(1,1).insert( 1UL, 5 );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkSize    ( mat(0,0), 0UL );
-      checkSize    ( mat(0,1), 0UL );
-      checkSize    ( mat(1,0), 0UL );
-      checkSize    ( mat(1,1), 3UL );
-      checkCapacity( mat(1,1), 1UL );
-      checkNonZeros( mat(1,1), 1UL );
-
-      if( mat(1,1)[1] != 5 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Inserting an element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat(1,1) << "\n"
-             << "   Expected result:\n( 0 5 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major matrix tests with matrix elements
-   //=====================================================================================
-
-   {
-      test_ = "Column-major MatrixAccessProxy::insert( size_t, size_t, ElementType )";
-
-      OSMM mat( 2UL, 2UL, 1UL );
-      mat(1,1) = SM( 2UL, 2UL, 1UL );
-      mat(1,1).insert( 0UL, 1UL, 5 );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0), 0UL );
-      checkColumns ( mat(0,0), 0UL );
-      checkRows    ( mat(0,1), 0UL );
-      checkColumns ( mat(0,1), 0UL );
-      checkRows    ( mat(1,0), 0UL );
-      checkColumns ( mat(1,0), 0UL );
-      checkRows    ( mat(1,1), 2UL );
-      checkColumns ( mat(1,1), 2UL );
-      checkCapacity( mat(1,1), 1UL );
-      checkNonZeros( mat(1,1), 1UL );
-
-      if( mat(1,1)(0,1) != 5 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Inserting an element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat(1,1) << "\n"
-             << "   Expected result:\n( 0 5 )\n( 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Test of the \c append() member functions of the MatrixAccessProxy class template.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c append() member functions of the MatrixAccessProxy
-// class template. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void ProxyTest::testAppend()
-{
-   //=====================================================================================
-   // Row-major matrix tests with vector elements
-   //=====================================================================================
-
-   {
-      test_ = "Row-major MatrixAccessProxy::append( size_t, ElementType )";
-
-      SVM mat( 2UL, 2UL, 1UL );
-      mat(1,1) = SV( 3UL );
-      mat(1,1).reserve( 1UL );
-      mat(1,1).append( 1UL, 5 );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkSize    ( mat(0,0), 0UL );
-      checkSize    ( mat(0,1), 0UL );
-      checkSize    ( mat(1,0), 0UL );
-      checkSize    ( mat(1,1), 3UL );
-      checkCapacity( mat(1,1), 1UL );
-      checkNonZeros( mat(1,1), 1UL );
-
-      if( mat(1,1)[1] != 5 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Inserting an element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat(1,1) << "\n"
-             << "   Expected result:\n( 0 5 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Row-major matrix tests with matrix elements
-   //=====================================================================================
-
-   {
-      test_ = "Row-major MatrixAccessProxy::append( size_t, size_t, ElementType )";
-
-      SMM mat( 2UL, 2UL, 1UL );
-      mat(1,1) = SM( 2UL, 2UL );
-      mat(1,1).reserve( 0UL, 1UL );
-      mat(1,1).append( 0UL, 1UL, 5 );
-      mat(1,1).finalize( 0UL );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0), 0UL );
-      checkColumns ( mat(0,0), 0UL );
-      checkRows    ( mat(0,1), 0UL );
-      checkColumns ( mat(0,1), 0UL );
-      checkRows    ( mat(1,0), 0UL );
-      checkColumns ( mat(1,0), 0UL );
-      checkRows    ( mat(1,1), 2UL );
-      checkColumns ( mat(1,1), 2UL );
-      checkCapacity( mat(1,1), 1UL );
-      checkNonZeros( mat(1,1), 1UL );
-
-      if( mat(1,1)(0,1) != 5 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Inserting an element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat(1,1) << "\n"
-             << "   Expected result:\n( 0 5 )\n( 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major matrix tests with vector elements
-   //=====================================================================================
-
-   {
-      test_ = "Column-major MatrixAccessProxy::append( size_t, ElementType )";
-
-      OSVM mat( 2UL, 2UL, 1UL );
-      mat(1,1) = SV( 3UL );
-      mat(1,1).reserve( 1UL );
-      mat(1,1).append( 1UL, 5 );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkSize    ( mat(0,0), 0UL );
-      checkSize    ( mat(0,1), 0UL );
-      checkSize    ( mat(1,0), 0UL );
-      checkSize    ( mat(1,1), 3UL );
-      checkCapacity( mat(1,1), 1UL );
-      checkNonZeros( mat(1,1), 1UL );
-
-      if( mat(1,1)[1] != 5 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Inserting an element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat(1,1) << "\n"
-             << "   Expected result:\n( 0 5 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
-   }
-
-
-   //=====================================================================================
-   // Column-major matrix tests with matrix elements
-   //=====================================================================================
-
-   {
-      test_ = "Column-major MatrixAccessProxy::append( size_t, size_t, ElementType )";
-
-      OSMM mat( 2UL, 2UL, 1UL );
-      mat(1,1) = SM( 2UL, 2UL );
-      mat(1,1).reserve( 0UL, 1UL );
-      mat(1,1).append( 0UL, 1UL, 5 );
-      mat(1,1).finalize( 0UL );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0), 0UL );
-      checkColumns ( mat(0,0), 0UL );
-      checkRows    ( mat(0,1), 0UL );
-      checkColumns ( mat(0,1), 0UL );
-      checkRows    ( mat(1,0), 0UL );
-      checkColumns ( mat(1,0), 0UL );
-      checkRows    ( mat(1,1), 2UL );
-      checkColumns ( mat(1,1), 2UL );
-      checkCapacity( mat(1,1), 1UL );
-      checkNonZeros( mat(1,1), 1UL );
-
-      if( mat(1,1)(0,1) != 5 ) {
-         std::ostringstream oss;
-         oss << " Test: " << test_ << "\n"
-             << " Error: Inserting an element failed\n"
-             << " Details:\n"
-             << "   Result:\n" << mat(1,1) << "\n"
-             << "   Expected result:\n( 0 5 )\n( 0 0 )\n";
-         throw std::runtime_error( oss.str() );
-      }
    }
 }
 //*************************************************************************************************
@@ -3173,436 +2952,6 @@ void ProxyTest::testTrim()
 
 
 //*************************************************************************************************
-/*!\brief Test of the \c transpose() functions of the MatrixAccessProxy class template.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c transpose() functions of the MatrixAccessProxy class
-// template. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void ProxyTest::testTranspose()
-{
-   //=====================================================================================
-   // Row-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Row-major MatrixAccessProxy::transpose()";
-
-      DMM mat( 2UL, 2UL, 1UL );
-      mat(1,1).resize( 5UL, 3UL );
-      mat(1,1).transpose();
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0),  0UL );
-      checkColumns ( mat(0,0),  0UL );
-      checkRows    ( mat(0,1),  0UL );
-      checkColumns ( mat(0,1),  0UL );
-      checkRows    ( mat(1,0),  0UL );
-      checkColumns ( mat(1,0),  0UL );
-      checkRows    ( mat(1,1),  3UL );
-      checkColumns ( mat(1,1),  5UL );
-      checkCapacity( mat(1,1), 15UL );
-   }
-
-   {
-      test_ = "Row-major transpose( MatrixAccessProxy )";
-
-      DMM mat( 2UL, 2UL, 1UL );
-      mat(1,1).resize( 5UL, 3UL );
-      transpose( mat(1,1) );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0),  0UL );
-      checkColumns ( mat(0,0),  0UL );
-      checkRows    ( mat(0,1),  0UL );
-      checkColumns ( mat(0,1),  0UL );
-      checkRows    ( mat(1,0),  0UL );
-      checkColumns ( mat(1,0),  0UL );
-      checkRows    ( mat(1,1),  3UL );
-      checkColumns ( mat(1,1),  5UL );
-      checkCapacity( mat(1,1), 15UL );
-   }
-
-
-   //=====================================================================================
-   // Column-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Column-major MatrixAccessProxy::transpose()";
-
-      ODMM mat( 2UL, 2UL, 1UL );
-      mat(1,1).resize( 5UL, 3UL );
-      mat(1,1).transpose();
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0),  0UL );
-      checkColumns ( mat(0,0),  0UL );
-      checkRows    ( mat(0,1),  0UL );
-      checkColumns ( mat(0,1),  0UL );
-      checkRows    ( mat(1,0),  0UL );
-      checkColumns ( mat(1,0),  0UL );
-      checkRows    ( mat(1,1),  3UL );
-      checkColumns ( mat(1,1),  5UL );
-      checkCapacity( mat(1,1), 15UL );
-   }
-
-   {
-      test_ = "Column-major transpose( MatrixAccessProxy )";
-
-      ODMM mat( 2UL, 2UL, 1UL );
-      mat(1,1).resize( 5UL, 3UL );
-      transpose( mat(1,1) );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0),  0UL );
-      checkColumns ( mat(0,0),  0UL );
-      checkRows    ( mat(0,1),  0UL );
-      checkColumns ( mat(0,1),  0UL );
-      checkRows    ( mat(1,0),  0UL );
-      checkColumns ( mat(1,0),  0UL );
-      checkRows    ( mat(1,1),  3UL );
-      checkColumns ( mat(1,1),  5UL );
-      checkCapacity( mat(1,1), 15UL );
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Test of the \c ctranspose() functions of the MatrixAccessProxy class template.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c ctranspose() functions of the MatrixAccessProxy class
-// template. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void ProxyTest::testCTranspose()
-{
-   //=====================================================================================
-   // Row-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Row-major MatrixAccessProxy::ctranspose()";
-
-      DMM mat( 2UL, 2UL, 1UL );
-      mat(1,1).resize( 5UL, 3UL );
-      mat(1,1).ctranspose();
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0),  0UL );
-      checkColumns ( mat(0,0),  0UL );
-      checkRows    ( mat(0,1),  0UL );
-      checkColumns ( mat(0,1),  0UL );
-      checkRows    ( mat(1,0),  0UL );
-      checkColumns ( mat(1,0),  0UL );
-      checkRows    ( mat(1,1),  3UL );
-      checkColumns ( mat(1,1),  5UL );
-      checkCapacity( mat(1,1), 15UL );
-   }
-
-   {
-      test_ = "Row-major ctranspose( MatrixAccessProxy )";
-
-      DMM mat( 2UL, 2UL, 1UL );
-      mat(1,1).resize( 5UL, 3UL );
-      ctranspose( mat(1,1) );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0),  0UL );
-      checkColumns ( mat(0,0),  0UL );
-      checkRows    ( mat(0,1),  0UL );
-      checkColumns ( mat(0,1),  0UL );
-      checkRows    ( mat(1,0),  0UL );
-      checkColumns ( mat(1,0),  0UL );
-      checkRows    ( mat(1,1),  3UL );
-      checkColumns ( mat(1,1),  5UL );
-      checkCapacity( mat(1,1), 15UL );
-   }
-
-
-   //=====================================================================================
-   // Column-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Column-major MatrixAccessProxy ctranspose()";
-
-      ODMM mat( 2UL, 2UL, 1UL );
-      mat(1,1).resize( 5UL, 3UL );
-      mat(1,1).ctranspose();
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0),  0UL );
-      checkColumns ( mat(0,0),  0UL );
-      checkRows    ( mat(0,1),  0UL );
-      checkColumns ( mat(0,1),  0UL );
-      checkRows    ( mat(1,0),  0UL );
-      checkColumns ( mat(1,0),  0UL );
-      checkRows    ( mat(1,1),  3UL );
-      checkColumns ( mat(1,1),  5UL );
-      checkCapacity( mat(1,1), 15UL );
-   }
-
-   {
-      test_ = "Column-major ctranspose( MatrixAccessProxy )";
-
-      ODMM mat( 2UL, 2UL, 1UL );
-      mat(1,1).resize( 5UL, 3UL );
-      ctranspose( mat(1,1) );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0),  0UL );
-      checkColumns ( mat(0,0),  0UL );
-      checkRows    ( mat(0,1),  0UL );
-      checkColumns ( mat(0,1),  0UL );
-      checkRows    ( mat(1,0),  0UL );
-      checkColumns ( mat(1,0),  0UL );
-      checkRows    ( mat(1,1),  3UL );
-      checkColumns ( mat(1,1),  5UL );
-      checkCapacity( mat(1,1), 15UL );
-   }
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*!\brief Test of the \c invert() function with the MatrixAccessProxy class template.
-//
-// \return void
-// \exception std::runtime_error Error detected.
-//
-// This function performs a test of the \c invert() function with the MatrixAccessProxy class
-// template. In case an error is detected, a \a std::runtime_error exception is thrown.
-*/
-void ProxyTest::testInvert()
-{
-#if BLAZETEST_MATHTEST_LAPACK_MODE
-
-   using blaze::invert;
-   using blaze::byLU;
-   using blaze::byLLH;
-
-
-   //=====================================================================================
-   // Row-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Row-major invert( MatrixAccessProxy )";
-
-      blaze::CompressedMatrix< blaze::DynamicMatrix<double>, blaze::rowMajor > mat( 2UL, 2UL, 1UL );
-      mat(1,1).resize( 3UL, 3UL );
-      mat(1,1) = 0.0;
-      mat(1,1)(0,0) = 1.0;
-      mat(1,1)(1,1) = 1.0;
-      mat(1,1)(2,2) = 1.0;
-      invert( mat(1,1) );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0), 0UL );
-      checkColumns ( mat(0,0), 0UL );
-      checkRows    ( mat(0,1), 0UL );
-      checkColumns ( mat(0,1), 0UL );
-      checkRows    ( mat(1,0), 0UL );
-      checkColumns ( mat(1,0), 0UL );
-      checkRows    ( mat(1,1), 3UL );
-      checkColumns ( mat(1,1), 3UL );
-      checkCapacity( mat(1,1), 9UL );
-      checkNonZeros( mat(1,1), 3UL );
-   }
-
-   {
-      test_ = "Row-major invert<byLU>( MatrixAccessProxy )";
-
-      blaze::CompressedMatrix< blaze::DynamicMatrix<double>, blaze::rowMajor > mat( 2UL, 2UL, 1UL );
-      mat(1,1).resize( 3UL, 3UL );
-      mat(1,1) = 0.0;
-      mat(1,1)(0,0) = 1.0;
-      mat(1,1)(1,1) = 1.0;
-      mat(1,1)(2,2) = 1.0;
-      invert<byLU>( mat(1,1) );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0), 0UL );
-      checkColumns ( mat(0,0), 0UL );
-      checkRows    ( mat(0,1), 0UL );
-      checkColumns ( mat(0,1), 0UL );
-      checkRows    ( mat(1,0), 0UL );
-      checkColumns ( mat(1,0), 0UL );
-      checkRows    ( mat(1,1), 3UL );
-      checkColumns ( mat(1,1), 3UL );
-      checkCapacity( mat(1,1), 9UL );
-      checkNonZeros( mat(1,1), 3UL );
-   }
-
-   {
-      test_ = "Row-major invert<byLLH>( MatrixAccessProxy )";
-
-      blaze::CompressedMatrix< blaze::DynamicMatrix<double>, blaze::rowMajor > mat( 2UL, 2UL, 1UL );
-      mat(1,1).resize( 3UL, 3UL );
-      mat(1,1) = 0.0;
-      mat(1,1)(0,0) = 1.0;
-      mat(1,1)(1,1) = 1.0;
-      mat(1,1)(2,2) = 1.0;
-      invert<byLLH>( mat(1,1) );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0), 0UL );
-      checkColumns ( mat(0,0), 0UL );
-      checkRows    ( mat(0,1), 0UL );
-      checkColumns ( mat(0,1), 0UL );
-      checkRows    ( mat(1,0), 0UL );
-      checkColumns ( mat(1,0), 0UL );
-      checkRows    ( mat(1,1), 3UL );
-      checkColumns ( mat(1,1), 3UL );
-      checkCapacity( mat(1,1), 9UL );
-      checkNonZeros( mat(1,1), 3UL );
-   }
-
-
-   //=====================================================================================
-   // Column-major matrix tests
-   //=====================================================================================
-
-   {
-      test_ = "Column-major invert( MatrixAccessProxy )";
-
-      blaze::CompressedMatrix< blaze::DynamicMatrix<double>, blaze::columnMajor > mat( 2UL, 2UL, 1UL );
-      mat(1,1).resize( 3UL, 3UL );
-      mat(1,1) = 0.0;
-      mat(1,1)(0,0) = 1.0;
-      mat(1,1)(1,1) = 1.0;
-      mat(1,1)(2,2) = 1.0;
-      invert( mat(1,1) );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0), 0UL );
-      checkColumns ( mat(0,0), 0UL );
-      checkRows    ( mat(0,1), 0UL );
-      checkColumns ( mat(0,1), 0UL );
-      checkRows    ( mat(1,0), 0UL );
-      checkColumns ( mat(1,0), 0UL );
-      checkRows    ( mat(1,1), 3UL );
-      checkColumns ( mat(1,1), 3UL );
-      checkCapacity( mat(1,1), 9UL );
-      checkNonZeros( mat(1,1), 3UL );
-   }
-
-   {
-      test_ = "Column-major invert<byLU>( MatrixAccessProxy )";
-
-      blaze::CompressedMatrix< blaze::DynamicMatrix<double>, blaze::columnMajor > mat( 2UL, 2UL, 1UL );
-      mat(1,1).resize( 3UL, 3UL );
-      mat(1,1) = 0.0;
-      mat(1,1)(0,0) = 1.0;
-      mat(1,1)(1,1) = 1.0;
-      mat(1,1)(2,2) = 1.0;
-      invert<byLU>( mat(1,1) );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0), 0UL );
-      checkColumns ( mat(0,0), 0UL );
-      checkRows    ( mat(0,1), 0UL );
-      checkColumns ( mat(0,1), 0UL );
-      checkRows    ( mat(1,0), 0UL );
-      checkColumns ( mat(1,0), 0UL );
-      checkRows    ( mat(1,1), 3UL );
-      checkColumns ( mat(1,1), 3UL );
-      checkCapacity( mat(1,1), 9UL );
-      checkNonZeros( mat(1,1), 3UL );
-   }
-
-   {
-      test_ = "Column-major invert<byLLH>( MatrixAccessProxy )";
-
-      blaze::CompressedMatrix< blaze::DynamicMatrix<double>, blaze::columnMajor > mat( 2UL, 2UL, 1UL );
-      mat(1,1).resize( 3UL, 3UL );
-      mat(1,1) = 0.0;
-      mat(1,1)(0,0) = 1.0;
-      mat(1,1)(1,1) = 1.0;
-      mat(1,1)(2,2) = 1.0;
-      invert<byLLH>( mat(1,1) );
-
-      checkRows    ( mat, 2UL );
-      checkColumns ( mat, 2UL );
-      checkCapacity( mat, 1UL );
-      checkNonZeros( mat, 1UL );
-
-      checkRows    ( mat(0,0), 0UL );
-      checkColumns ( mat(0,0), 0UL );
-      checkRows    ( mat(0,1), 0UL );
-      checkColumns ( mat(0,1), 0UL );
-      checkRows    ( mat(1,0), 0UL );
-      checkColumns ( mat(1,0), 0UL );
-      checkRows    ( mat(1,1), 3UL );
-      checkColumns ( mat(1,1), 3UL );
-      checkCapacity( mat(1,1), 9UL );
-      checkNonZeros( mat(1,1), 3UL );
-   }
-
-#endif
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
 /*!\brief Test of the \c swap() functionality of the MatrixAccessProxy class template.
 //
 // \return void
@@ -3760,6 +3109,495 @@ void ProxyTest::testSwap()
       checkSize    ( tmp     , 2UL );
       checkCapacity( tmp     , 2UL );
       checkNonZeros( tmp     , 2UL );
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the \c set() member functions of the MatrixAccessProxy class template.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c set() member functions of the MatrixAccessProxy
+// class template. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void ProxyTest::testSet()
+{
+   //=====================================================================================
+   // Row-major matrix tests with vector elements
+   //=====================================================================================
+
+   {
+      test_ = "Row-major MatrixAccessProxy::set( size_t, ElementType )";
+
+      SVM mat( 2UL, 2UL, 1UL );
+      mat(1,1) = SV( 3UL, 1UL );
+      mat(1,1).set( 1UL, 5 );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkSize    ( mat(0,0), 0UL );
+      checkSize    ( mat(0,1), 0UL );
+      checkSize    ( mat(1,0), 0UL );
+      checkSize    ( mat(1,1), 3UL );
+      checkCapacity( mat(1,1), 1UL );
+      checkNonZeros( mat(1,1), 1UL );
+
+      if( mat(1,1)[1] != 5 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Setting an element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(1,1) << "\n"
+             << "   Expected result:\n( 0 5 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Row-major matrix tests with matrix elements
+   //=====================================================================================
+
+   {
+      test_ = "Row-major MatrixAccessProxy::set( size_t, size_t, ElementType )";
+
+      SMM mat( 2UL, 2UL, 1UL );
+      mat(1,1) = SM( 2UL, 2UL, 1UL );
+      mat(1,1).set( 0UL, 1UL, 5 );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0), 0UL );
+      checkColumns ( mat(0,0), 0UL );
+      checkRows    ( mat(0,1), 0UL );
+      checkColumns ( mat(0,1), 0UL );
+      checkRows    ( mat(1,0), 0UL );
+      checkColumns ( mat(1,0), 0UL );
+      checkRows    ( mat(1,1), 2UL );
+      checkColumns ( mat(1,1), 2UL );
+      checkCapacity( mat(1,1), 1UL );
+      checkNonZeros( mat(1,1), 1UL );
+
+      if( mat(1,1)(0,1) != 5 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Setting an element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(1,1) << "\n"
+             << "   Expected result:\n( 0 5 )\n( 0 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests with vector elements
+   //=====================================================================================
+
+   {
+      test_ = "Column-major MatrixAccessProxy::set( size_t, ElementType )";
+
+      OSVM mat( 2UL, 2UL, 1UL );
+      mat(1,1) = SV( 3UL, 1UL );
+      mat(1,1).set( 1UL, 5 );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkSize    ( mat(0,0), 0UL );
+      checkSize    ( mat(0,1), 0UL );
+      checkSize    ( mat(1,0), 0UL );
+      checkSize    ( mat(1,1), 3UL );
+      checkCapacity( mat(1,1), 1UL );
+      checkNonZeros( mat(1,1), 1UL );
+
+      if( mat(1,1)[1] != 5 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Setting an element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(1,1) << "\n"
+             << "   Expected result:\n( 0 5 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests with matrix elements
+   //=====================================================================================
+
+   {
+      test_ = "Column-major MatrixAccessProxy::set( size_t, size_t, ElementType )";
+
+      OSMM mat( 2UL, 2UL, 1UL );
+      mat(1,1) = SM( 2UL, 2UL, 1UL );
+      mat(1,1).set( 0UL, 1UL, 5 );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0), 0UL );
+      checkColumns ( mat(0,0), 0UL );
+      checkRows    ( mat(0,1), 0UL );
+      checkColumns ( mat(0,1), 0UL );
+      checkRows    ( mat(1,0), 0UL );
+      checkColumns ( mat(1,0), 0UL );
+      checkRows    ( mat(1,1), 2UL );
+      checkColumns ( mat(1,1), 2UL );
+      checkCapacity( mat(1,1), 1UL );
+      checkNonZeros( mat(1,1), 1UL );
+
+      if( mat(1,1)(0,1) != 5 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Setting an element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(1,1) << "\n"
+             << "   Expected result:\n( 0 5 )\n( 0 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the \c insert() member functions of the MatrixAccessProxy class template.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c insert() member functions of the MatrixAccessProxy
+// class template. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void ProxyTest::testInsert()
+{
+   //=====================================================================================
+   // Row-major matrix tests with vector elements
+   //=====================================================================================
+
+   {
+      test_ = "Row-major MatrixAccessProxy::insert( size_t, ElementType )";
+
+      SVM mat( 2UL, 2UL, 1UL );
+      mat(1,1) = SV( 3UL, 1UL );
+      mat(1,1).insert( 1UL, 5 );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkSize    ( mat(0,0), 0UL );
+      checkSize    ( mat(0,1), 0UL );
+      checkSize    ( mat(1,0), 0UL );
+      checkSize    ( mat(1,1), 3UL );
+      checkCapacity( mat(1,1), 1UL );
+      checkNonZeros( mat(1,1), 1UL );
+
+      if( mat(1,1)[1] != 5 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Inserting an element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(1,1) << "\n"
+             << "   Expected result:\n( 0 5 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Row-major matrix tests with matrix elements
+   //=====================================================================================
+
+   {
+      test_ = "Row-major MatrixAccessProxy::insert( size_t, size_t, ElementType )";
+
+      SMM mat( 2UL, 2UL, 1UL );
+      mat(1,1) = SM( 2UL, 2UL, 1UL );
+      mat(1,1).insert( 0UL, 1UL, 5 );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0), 0UL );
+      checkColumns ( mat(0,0), 0UL );
+      checkRows    ( mat(0,1), 0UL );
+      checkColumns ( mat(0,1), 0UL );
+      checkRows    ( mat(1,0), 0UL );
+      checkColumns ( mat(1,0), 0UL );
+      checkRows    ( mat(1,1), 2UL );
+      checkColumns ( mat(1,1), 2UL );
+      checkCapacity( mat(1,1), 1UL );
+      checkNonZeros( mat(1,1), 1UL );
+
+      if( mat(1,1)(0,1) != 5 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Inserting an element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(1,1) << "\n"
+             << "   Expected result:\n( 0 5 )\n( 0 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests with vector elements
+   //=====================================================================================
+
+   {
+      test_ = "Column-major MatrixAccessProxy::insert( size_t, ElementType )";
+
+      OSVM mat( 2UL, 2UL, 1UL );
+      mat(1,1) = SV( 3UL, 1UL );
+      mat(1,1).insert( 1UL, 5 );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkSize    ( mat(0,0), 0UL );
+      checkSize    ( mat(0,1), 0UL );
+      checkSize    ( mat(1,0), 0UL );
+      checkSize    ( mat(1,1), 3UL );
+      checkCapacity( mat(1,1), 1UL );
+      checkNonZeros( mat(1,1), 1UL );
+
+      if( mat(1,1)[1] != 5 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Inserting an element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(1,1) << "\n"
+             << "   Expected result:\n( 0 5 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests with matrix elements
+   //=====================================================================================
+
+   {
+      test_ = "Column-major MatrixAccessProxy::insert( size_t, size_t, ElementType )";
+
+      OSMM mat( 2UL, 2UL, 1UL );
+      mat(1,1) = SM( 2UL, 2UL, 1UL );
+      mat(1,1).insert( 0UL, 1UL, 5 );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0), 0UL );
+      checkColumns ( mat(0,0), 0UL );
+      checkRows    ( mat(0,1), 0UL );
+      checkColumns ( mat(0,1), 0UL );
+      checkRows    ( mat(1,0), 0UL );
+      checkColumns ( mat(1,0), 0UL );
+      checkRows    ( mat(1,1), 2UL );
+      checkColumns ( mat(1,1), 2UL );
+      checkCapacity( mat(1,1), 1UL );
+      checkNonZeros( mat(1,1), 1UL );
+
+      if( mat(1,1)(0,1) != 5 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Inserting an element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(1,1) << "\n"
+             << "   Expected result:\n( 0 5 )\n( 0 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the \c append() member functions of the MatrixAccessProxy class template.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c append() member functions of the MatrixAccessProxy
+// class template. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void ProxyTest::testAppend()
+{
+   //=====================================================================================
+   // Row-major matrix tests with vector elements
+   //=====================================================================================
+
+   {
+      test_ = "Row-major MatrixAccessProxy::append( size_t, ElementType )";
+
+      SVM mat( 2UL, 2UL, 1UL );
+      mat(1,1) = SV( 3UL );
+      mat(1,1).reserve( 1UL );
+      mat(1,1).append( 1UL, 5 );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkSize    ( mat(0,0), 0UL );
+      checkSize    ( mat(0,1), 0UL );
+      checkSize    ( mat(1,0), 0UL );
+      checkSize    ( mat(1,1), 3UL );
+      checkCapacity( mat(1,1), 1UL );
+      checkNonZeros( mat(1,1), 1UL );
+
+      if( mat(1,1)[1] != 5 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Inserting an element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(1,1) << "\n"
+             << "   Expected result:\n( 0 5 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Row-major matrix tests with matrix elements
+   //=====================================================================================
+
+   {
+      test_ = "Row-major MatrixAccessProxy::append( size_t, size_t, ElementType )";
+
+      SMM mat( 2UL, 2UL, 1UL );
+      mat(1,1) = SM( 2UL, 2UL );
+      mat(1,1).reserve( 0UL, 1UL );
+      mat(1,1).append( 0UL, 1UL, 5 );
+      mat(1,1).finalize( 0UL );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0), 0UL );
+      checkColumns ( mat(0,0), 0UL );
+      checkRows    ( mat(0,1), 0UL );
+      checkColumns ( mat(0,1), 0UL );
+      checkRows    ( mat(1,0), 0UL );
+      checkColumns ( mat(1,0), 0UL );
+      checkRows    ( mat(1,1), 2UL );
+      checkColumns ( mat(1,1), 2UL );
+      checkCapacity( mat(1,1), 1UL );
+      checkNonZeros( mat(1,1), 1UL );
+
+      if( mat(1,1)(0,1) != 5 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Inserting an element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(1,1) << "\n"
+             << "   Expected result:\n( 0 5 )\n( 0 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests with vector elements
+   //=====================================================================================
+
+   {
+      test_ = "Column-major MatrixAccessProxy::append( size_t, ElementType )";
+
+      OSVM mat( 2UL, 2UL, 1UL );
+      mat(1,1) = SV( 3UL );
+      mat(1,1).reserve( 1UL );
+      mat(1,1).append( 1UL, 5 );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkSize    ( mat(0,0), 0UL );
+      checkSize    ( mat(0,1), 0UL );
+      checkSize    ( mat(1,0), 0UL );
+      checkSize    ( mat(1,1), 3UL );
+      checkCapacity( mat(1,1), 1UL );
+      checkNonZeros( mat(1,1), 1UL );
+
+      if( mat(1,1)[1] != 5 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Inserting an element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(1,1) << "\n"
+             << "   Expected result:\n( 0 5 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests with matrix elements
+   //=====================================================================================
+
+   {
+      test_ = "Column-major MatrixAccessProxy::append( size_t, size_t, ElementType )";
+
+      OSMM mat( 2UL, 2UL, 1UL );
+      mat(1,1) = SM( 2UL, 2UL );
+      mat(1,1).reserve( 0UL, 1UL );
+      mat(1,1).append( 0UL, 1UL, 5 );
+      mat(1,1).finalize( 0UL );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0), 0UL );
+      checkColumns ( mat(0,0), 0UL );
+      checkRows    ( mat(0,1), 0UL );
+      checkColumns ( mat(0,1), 0UL );
+      checkRows    ( mat(1,0), 0UL );
+      checkColumns ( mat(1,0), 0UL );
+      checkRows    ( mat(1,1), 2UL );
+      checkColumns ( mat(1,1), 2UL );
+      checkCapacity( mat(1,1), 1UL );
+      checkNonZeros( mat(1,1), 1UL );
+
+      if( mat(1,1)(0,1) != 5 ) {
+         std::ostringstream oss;
+         oss << " Test: " << test_ << "\n"
+             << " Error: Inserting an element failed\n"
+             << " Details:\n"
+             << "   Result:\n" << mat(1,1) << "\n"
+             << "   Expected result:\n( 0 5 )\n( 0 0 )\n";
+         throw std::runtime_error( oss.str() );
+      }
    }
 }
 //*************************************************************************************************
@@ -4913,6 +4751,436 @@ void ProxyTest::testUpperBound()
          throw std::runtime_error( oss.str() );
       }
    }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the \c transpose() functions of the MatrixAccessProxy class template.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c transpose() functions of the MatrixAccessProxy class
+// template. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void ProxyTest::testTranspose()
+{
+   //=====================================================================================
+   // Row-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Row-major MatrixAccessProxy::transpose()";
+
+      DMM mat( 2UL, 2UL, 1UL );
+      mat(1,1).resize( 5UL, 3UL );
+      mat(1,1).transpose();
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0),  0UL );
+      checkColumns ( mat(0,0),  0UL );
+      checkRows    ( mat(0,1),  0UL );
+      checkColumns ( mat(0,1),  0UL );
+      checkRows    ( mat(1,0),  0UL );
+      checkColumns ( mat(1,0),  0UL );
+      checkRows    ( mat(1,1),  3UL );
+      checkColumns ( mat(1,1),  5UL );
+      checkCapacity( mat(1,1), 15UL );
+   }
+
+   {
+      test_ = "Row-major transpose( MatrixAccessProxy )";
+
+      DMM mat( 2UL, 2UL, 1UL );
+      mat(1,1).resize( 5UL, 3UL );
+      transpose( mat(1,1) );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0),  0UL );
+      checkColumns ( mat(0,0),  0UL );
+      checkRows    ( mat(0,1),  0UL );
+      checkColumns ( mat(0,1),  0UL );
+      checkRows    ( mat(1,0),  0UL );
+      checkColumns ( mat(1,0),  0UL );
+      checkRows    ( mat(1,1),  3UL );
+      checkColumns ( mat(1,1),  5UL );
+      checkCapacity( mat(1,1), 15UL );
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Column-major MatrixAccessProxy::transpose()";
+
+      ODMM mat( 2UL, 2UL, 1UL );
+      mat(1,1).resize( 5UL, 3UL );
+      mat(1,1).transpose();
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0),  0UL );
+      checkColumns ( mat(0,0),  0UL );
+      checkRows    ( mat(0,1),  0UL );
+      checkColumns ( mat(0,1),  0UL );
+      checkRows    ( mat(1,0),  0UL );
+      checkColumns ( mat(1,0),  0UL );
+      checkRows    ( mat(1,1),  3UL );
+      checkColumns ( mat(1,1),  5UL );
+      checkCapacity( mat(1,1), 15UL );
+   }
+
+   {
+      test_ = "Column-major transpose( MatrixAccessProxy )";
+
+      ODMM mat( 2UL, 2UL, 1UL );
+      mat(1,1).resize( 5UL, 3UL );
+      transpose( mat(1,1) );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0),  0UL );
+      checkColumns ( mat(0,0),  0UL );
+      checkRows    ( mat(0,1),  0UL );
+      checkColumns ( mat(0,1),  0UL );
+      checkRows    ( mat(1,0),  0UL );
+      checkColumns ( mat(1,0),  0UL );
+      checkRows    ( mat(1,1),  3UL );
+      checkColumns ( mat(1,1),  5UL );
+      checkCapacity( mat(1,1), 15UL );
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the \c ctranspose() functions of the MatrixAccessProxy class template.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c ctranspose() functions of the MatrixAccessProxy class
+// template. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void ProxyTest::testCTranspose()
+{
+   //=====================================================================================
+   // Row-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Row-major MatrixAccessProxy::ctranspose()";
+
+      DMM mat( 2UL, 2UL, 1UL );
+      mat(1,1).resize( 5UL, 3UL );
+      mat(1,1).ctranspose();
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0),  0UL );
+      checkColumns ( mat(0,0),  0UL );
+      checkRows    ( mat(0,1),  0UL );
+      checkColumns ( mat(0,1),  0UL );
+      checkRows    ( mat(1,0),  0UL );
+      checkColumns ( mat(1,0),  0UL );
+      checkRows    ( mat(1,1),  3UL );
+      checkColumns ( mat(1,1),  5UL );
+      checkCapacity( mat(1,1), 15UL );
+   }
+
+   {
+      test_ = "Row-major ctranspose( MatrixAccessProxy )";
+
+      DMM mat( 2UL, 2UL, 1UL );
+      mat(1,1).resize( 5UL, 3UL );
+      ctranspose( mat(1,1) );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0),  0UL );
+      checkColumns ( mat(0,0),  0UL );
+      checkRows    ( mat(0,1),  0UL );
+      checkColumns ( mat(0,1),  0UL );
+      checkRows    ( mat(1,0),  0UL );
+      checkColumns ( mat(1,0),  0UL );
+      checkRows    ( mat(1,1),  3UL );
+      checkColumns ( mat(1,1),  5UL );
+      checkCapacity( mat(1,1), 15UL );
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Column-major MatrixAccessProxy ctranspose()";
+
+      ODMM mat( 2UL, 2UL, 1UL );
+      mat(1,1).resize( 5UL, 3UL );
+      mat(1,1).ctranspose();
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0),  0UL );
+      checkColumns ( mat(0,0),  0UL );
+      checkRows    ( mat(0,1),  0UL );
+      checkColumns ( mat(0,1),  0UL );
+      checkRows    ( mat(1,0),  0UL );
+      checkColumns ( mat(1,0),  0UL );
+      checkRows    ( mat(1,1),  3UL );
+      checkColumns ( mat(1,1),  5UL );
+      checkCapacity( mat(1,1), 15UL );
+   }
+
+   {
+      test_ = "Column-major ctranspose( MatrixAccessProxy )";
+
+      ODMM mat( 2UL, 2UL, 1UL );
+      mat(1,1).resize( 5UL, 3UL );
+      ctranspose( mat(1,1) );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0),  0UL );
+      checkColumns ( mat(0,0),  0UL );
+      checkRows    ( mat(0,1),  0UL );
+      checkColumns ( mat(0,1),  0UL );
+      checkRows    ( mat(1,0),  0UL );
+      checkColumns ( mat(1,0),  0UL );
+      checkRows    ( mat(1,1),  3UL );
+      checkColumns ( mat(1,1),  5UL );
+      checkCapacity( mat(1,1), 15UL );
+   }
+}
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Test of the \c invert() function with the MatrixAccessProxy class template.
+//
+// \return void
+// \exception std::runtime_error Error detected.
+//
+// This function performs a test of the \c invert() function with the MatrixAccessProxy class
+// template. In case an error is detected, a \a std::runtime_error exception is thrown.
+*/
+void ProxyTest::testInvert()
+{
+#if BLAZETEST_MATHTEST_LAPACK_MODE
+
+   using blaze::invert;
+   using blaze::byLU;
+   using blaze::byLLH;
+
+
+   //=====================================================================================
+   // Row-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Row-major invert( MatrixAccessProxy )";
+
+      blaze::CompressedMatrix< blaze::DynamicMatrix<double>, blaze::rowMajor > mat( 2UL, 2UL, 1UL );
+      mat(1,1).resize( 3UL, 3UL );
+      mat(1,1) = 0.0;
+      mat(1,1)(0,0) = 1.0;
+      mat(1,1)(1,1) = 1.0;
+      mat(1,1)(2,2) = 1.0;
+      invert( mat(1,1) );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0), 0UL );
+      checkColumns ( mat(0,0), 0UL );
+      checkRows    ( mat(0,1), 0UL );
+      checkColumns ( mat(0,1), 0UL );
+      checkRows    ( mat(1,0), 0UL );
+      checkColumns ( mat(1,0), 0UL );
+      checkRows    ( mat(1,1), 3UL );
+      checkColumns ( mat(1,1), 3UL );
+      checkCapacity( mat(1,1), 9UL );
+      checkNonZeros( mat(1,1), 3UL );
+   }
+
+   {
+      test_ = "Row-major invert<byLU>( MatrixAccessProxy )";
+
+      blaze::CompressedMatrix< blaze::DynamicMatrix<double>, blaze::rowMajor > mat( 2UL, 2UL, 1UL );
+      mat(1,1).resize( 3UL, 3UL );
+      mat(1,1) = 0.0;
+      mat(1,1)(0,0) = 1.0;
+      mat(1,1)(1,1) = 1.0;
+      mat(1,1)(2,2) = 1.0;
+      invert<byLU>( mat(1,1) );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0), 0UL );
+      checkColumns ( mat(0,0), 0UL );
+      checkRows    ( mat(0,1), 0UL );
+      checkColumns ( mat(0,1), 0UL );
+      checkRows    ( mat(1,0), 0UL );
+      checkColumns ( mat(1,0), 0UL );
+      checkRows    ( mat(1,1), 3UL );
+      checkColumns ( mat(1,1), 3UL );
+      checkCapacity( mat(1,1), 9UL );
+      checkNonZeros( mat(1,1), 3UL );
+   }
+
+   {
+      test_ = "Row-major invert<byLLH>( MatrixAccessProxy )";
+
+      blaze::CompressedMatrix< blaze::DynamicMatrix<double>, blaze::rowMajor > mat( 2UL, 2UL, 1UL );
+      mat(1,1).resize( 3UL, 3UL );
+      mat(1,1) = 0.0;
+      mat(1,1)(0,0) = 1.0;
+      mat(1,1)(1,1) = 1.0;
+      mat(1,1)(2,2) = 1.0;
+      invert<byLLH>( mat(1,1) );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0), 0UL );
+      checkColumns ( mat(0,0), 0UL );
+      checkRows    ( mat(0,1), 0UL );
+      checkColumns ( mat(0,1), 0UL );
+      checkRows    ( mat(1,0), 0UL );
+      checkColumns ( mat(1,0), 0UL );
+      checkRows    ( mat(1,1), 3UL );
+      checkColumns ( mat(1,1), 3UL );
+      checkCapacity( mat(1,1), 9UL );
+      checkNonZeros( mat(1,1), 3UL );
+   }
+
+
+   //=====================================================================================
+   // Column-major matrix tests
+   //=====================================================================================
+
+   {
+      test_ = "Column-major invert( MatrixAccessProxy )";
+
+      blaze::CompressedMatrix< blaze::DynamicMatrix<double>, blaze::columnMajor > mat( 2UL, 2UL, 1UL );
+      mat(1,1).resize( 3UL, 3UL );
+      mat(1,1) = 0.0;
+      mat(1,1)(0,0) = 1.0;
+      mat(1,1)(1,1) = 1.0;
+      mat(1,1)(2,2) = 1.0;
+      invert( mat(1,1) );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0), 0UL );
+      checkColumns ( mat(0,0), 0UL );
+      checkRows    ( mat(0,1), 0UL );
+      checkColumns ( mat(0,1), 0UL );
+      checkRows    ( mat(1,0), 0UL );
+      checkColumns ( mat(1,0), 0UL );
+      checkRows    ( mat(1,1), 3UL );
+      checkColumns ( mat(1,1), 3UL );
+      checkCapacity( mat(1,1), 9UL );
+      checkNonZeros( mat(1,1), 3UL );
+   }
+
+   {
+      test_ = "Column-major invert<byLU>( MatrixAccessProxy )";
+
+      blaze::CompressedMatrix< blaze::DynamicMatrix<double>, blaze::columnMajor > mat( 2UL, 2UL, 1UL );
+      mat(1,1).resize( 3UL, 3UL );
+      mat(1,1) = 0.0;
+      mat(1,1)(0,0) = 1.0;
+      mat(1,1)(1,1) = 1.0;
+      mat(1,1)(2,2) = 1.0;
+      invert<byLU>( mat(1,1) );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0), 0UL );
+      checkColumns ( mat(0,0), 0UL );
+      checkRows    ( mat(0,1), 0UL );
+      checkColumns ( mat(0,1), 0UL );
+      checkRows    ( mat(1,0), 0UL );
+      checkColumns ( mat(1,0), 0UL );
+      checkRows    ( mat(1,1), 3UL );
+      checkColumns ( mat(1,1), 3UL );
+      checkCapacity( mat(1,1), 9UL );
+      checkNonZeros( mat(1,1), 3UL );
+   }
+
+   {
+      test_ = "Column-major invert<byLLH>( MatrixAccessProxy )";
+
+      blaze::CompressedMatrix< blaze::DynamicMatrix<double>, blaze::columnMajor > mat( 2UL, 2UL, 1UL );
+      mat(1,1).resize( 3UL, 3UL );
+      mat(1,1) = 0.0;
+      mat(1,1)(0,0) = 1.0;
+      mat(1,1)(1,1) = 1.0;
+      mat(1,1)(2,2) = 1.0;
+      invert<byLLH>( mat(1,1) );
+
+      checkRows    ( mat, 2UL );
+      checkColumns ( mat, 2UL );
+      checkCapacity( mat, 1UL );
+      checkNonZeros( mat, 1UL );
+
+      checkRows    ( mat(0,0), 0UL );
+      checkColumns ( mat(0,0), 0UL );
+      checkRows    ( mat(0,1), 0UL );
+      checkColumns ( mat(0,1), 0UL );
+      checkRows    ( mat(1,0), 0UL );
+      checkColumns ( mat(1,0), 0UL );
+      checkRows    ( mat(1,1), 3UL );
+      checkColumns ( mat(1,1), 3UL );
+      checkCapacity( mat(1,1), 9UL );
+      checkNonZeros( mat(1,1), 3UL );
+   }
+
+#endif
 }
 //*************************************************************************************************
 

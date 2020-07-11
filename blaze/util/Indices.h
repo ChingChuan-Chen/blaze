@@ -3,7 +3,7 @@
 //  \file blaze/util/Indices.h
 //  \brief Header file for the Indices class
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -66,7 +66,7 @@ class Indices
 {
  public:
    //**Type definitions****************************************************************************
-   typedef std::vector<size_t>::const_iterator  ConstIterator;  //!< Iterator over the generated indices.
+   using ConstIterator = std::vector<size_t>::const_iterator;  //!< Iterator over the generated indices.
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
@@ -74,10 +74,6 @@ class Indices
    //@{
    inline Indices( size_t min, size_t max, size_t number );
    //@}
-   //**********************************************************************************************
-
-   //**Destructor**********************************************************************************
-   // No explicitly declared destructor.
    //**********************************************************************************************
 
    //**Utility functions***************************************************************************

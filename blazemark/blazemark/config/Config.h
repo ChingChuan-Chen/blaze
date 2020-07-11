@@ -3,7 +3,7 @@
 //  \file blazemark/config/Config.h
 //  \brief General configuration file for the blaze benchmark suite
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -75,7 +75,7 @@ const double deviation( 5.0 );  //!< Maximum allowed deviation of the average be
 // float, double, long double and complex</a> with the previously named types as element type.
 // The default setting is \a double.
 */
-typedef double  element_t;
+using element_t = double;
 //*************************************************************************************************
 
 
@@ -121,5 +121,5 @@ const size_t seed( 128753984 );  //!< Seed for the random number generator.
 // This type definition offers the possibility to specify the index type for the sparse matrices
 // in all Eigen benchmarks.
 */
-typedef int  EigenSparseIndexType;
+using EigenSparseIndexType = int;
 //*************************************************************************************************

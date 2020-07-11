@@ -3,7 +3,7 @@
 //  \file blaze/util/TypeTraits.h
 //  \brief Header file for all type traits
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -47,6 +47,8 @@
 #include <blaze/util/typetraits/AddVolatile.h>
 #include <blaze/util/typetraits/AlignmentOf.h>
 #include <blaze/util/typetraits/All.h>
+#include <blaze/util/typetraits/AlwaysFalse.h>
+#include <blaze/util/typetraits/AlwaysTrue.h>
 #include <blaze/util/typetraits/Any.h>
 #include <blaze/util/typetraits/CommonType.h>
 #include <blaze/util/typetraits/Decay.h>
@@ -101,9 +103,11 @@
 #include <blaze/util/typetraits/RemoveAllExtents.h>
 #include <blaze/util/typetraits/RemoveConst.h>
 #include <blaze/util/typetraits/RemoveCV.h>
+#include <blaze/util/typetraits/RemoveCVRef.h>
 #include <blaze/util/typetraits/RemoveExtent.h>
 #include <blaze/util/typetraits/RemovePointer.h>
 #include <blaze/util/typetraits/RemoveReference.h>
 #include <blaze/util/typetraits/RemoveVolatile.h>
+#include <blaze/util/typetraits/Void.h>
 
 #endif

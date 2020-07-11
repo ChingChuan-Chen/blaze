@@ -3,7 +3,7 @@
 //  \file src/mathtest/dvecdveccross/VHbVDa.cpp
 //  \brief Source file for the VHbVDa dense vector/dense vector cross product math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,10 +40,14 @@
 #include <cstdlib>
 #include <iostream>
 #include <blaze/math/DynamicVector.h>
-#include <blaze/math/StaticVector.h>
+#include <blaze/math/HybridVector.h>
 #include <blazetest/mathtest/Creator.h>
 #include <blazetest/mathtest/dvecdveccross/OperationTest.h>
 #include <blazetest/system/MathTest.h>
+
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
 
 
 //=================================================================================================
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Vector type definitions
-      typedef blaze::HybridVector<TypeB,3UL>  VHb;
-      typedef blaze::DynamicVector<TypeA>     VDa;
+      using VHb = blaze::HybridVector<TypeB,3UL>;
+      using VDa = blaze::DynamicVector<TypeA>;
 
       // Creator type definitions
-      typedef blazetest::Creator<VHb>  CVHb;
-      typedef blazetest::Creator<VDa>  CVDa;
+      using CVHb = blazetest::Creator<VHb>;
+      using CVDa = blazetest::Creator<VDa>;
 
       // Running the tests
       RUN_DVECDVECCROSS_OPERATION_TEST( CVHb(), CVDa( 3UL ) );

@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatdmatmult/M9x7aM7x9b.cpp
 //  \brief Source file for the M9x7aM7x9b dense matrix/dense matrix multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -44,6 +44,10 @@
 #include <blazetest/mathtest/dmatdmatmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -62,12 +66,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StaticMatrix<TypeA,9UL,7UL>  M9x7a;
-      typedef blaze::StaticMatrix<TypeB,7UL,9UL>  M7x9b;
+      using M9x7a = blaze::StaticMatrix<TypeA,9UL,7UL>;
+      using M7x9b = blaze::StaticMatrix<TypeB,7UL,9UL>;
 
       // Creator type definitions
-      typedef blazetest::Creator<M9x7a>  CM9x7a;
-      typedef blazetest::Creator<M7x9b>  CM7x9b;
+      using CM9x7a = blazetest::Creator<M9x7a>;
+      using CM7x9b = blazetest::Creator<M7x9b>;
 
       // Running the tests
       RUN_DMATDMATMULT_OPERATION_TEST( CM9x7a(), CM7x9b() );

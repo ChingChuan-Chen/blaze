@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/custommatrix/AlignedUnpaddedTest.h
 //  \brief Header file for the aligned/unpadded CustomMatrix class test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -50,8 +50,6 @@
 #include <blaze/math/CustomMatrix.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blaze/util/constraints/SameType.h>
-#include <blaze/util/Memory.h>
-#include <blaze/util/policies/Deallocate.h>
 #include <blazetest/system/Types.h>
 
 
@@ -97,6 +95,7 @@ class AlignedUnpaddedTest
    void testAssignment  ();
    void testAddAssign   ();
    void testSubAssign   ();
+   void testSchurAssign ();
    void testMultAssign  ();
    void testScaling     ();
    void testFunctionCall();
@@ -105,9 +104,9 @@ class AlignedUnpaddedTest
    void testNonZeros    ();
    void testReset       ();
    void testClear       ();
+   void testSwap        ();
    void testTranspose   ();
    void testCTranspose  ();
-   void testSwap        ();
    void testIsDefault   ();
 
    template< typename Type >
@@ -136,13 +135,13 @@ class AlignedUnpaddedTest
 
    //**Type definitions****************************************************************************
    //! Type of the row-major custom matrix.
-   typedef blaze::CustomMatrix<int,blaze::aligned,blaze::unpadded,blaze::rowMajor>  MT;
+   using MT = blaze::CustomMatrix<int,blaze::aligned,blaze::unpadded,blaze::rowMajor>;
 
    //! Type of the column-major custom matrix.
-   typedef blaze::CustomMatrix<int,blaze::aligned,blaze::unpadded,blaze::columnMajor>  OMT;
+   using OMT = blaze::CustomMatrix<int,blaze::aligned,blaze::unpadded,blaze::columnMajor>;
 
-   typedef MT::Rebind<double>::Other   RMT;   //!< Rebound row-major custom matrix type.
-   typedef OMT::Rebind<double>::Other  ORMT;  //!< Rebound column-major custom matrix type.
+   using RMT  = MT::Rebind<const double>::Other;   //!< Rebound row-major custom matrix type.
+   using ORMT = OMT::Rebind<const double>::Other;  //!< Rebound column-major custom matrix type.
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************

@@ -3,7 +3,7 @@
 //  \file blaze/math/InversionFlag.h
 //  \brief Header file for the dense matrix inversion flags
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,13 +40,13 @@ namespace blaze {
 
 //=================================================================================================
 //
-//  DECOMPOSITION FLAG VALUES
+//  INVERSION FLAG VALUES
 //
 //=================================================================================================
 
 //*************************************************************************************************
 /*!\brief Inversion flag.
-// \ingroup dense_matrix
+// \ingroup math
 //
 // The InversionFlag type enumeration represents the different types of matrix inversion algorithms
 // that are available within the Blaze library. The following flags are available:

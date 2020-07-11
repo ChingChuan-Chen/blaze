@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsmatmult/HHbHCb.cpp
 //  \brief Source file for the HHbHCb dense matrix/sparse matrix multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/dmatsmatmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::HermitianMatrix< blaze::HybridMatrix<NumericB,128UL,128UL> >  HHb;
-      typedef blaze::HermitianMatrix< blaze::CompressedMatrix<NumericB> >          HCb;
+      using HHb = blaze::HermitianMatrix< blaze::HybridMatrix<NumericB,128UL,128UL> >;
+      using HCb = blaze::HermitianMatrix< blaze::CompressedMatrix<NumericB> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<HHb>  CHHb;
-      typedef blazetest::Creator<HCb>  CHCb;
+      using CHHb = blazetest::Creator<HHb>;
+      using CHCb = blazetest::Creator<HCb>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {

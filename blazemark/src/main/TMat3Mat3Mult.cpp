@@ -3,7 +3,7 @@
 //  \file src/main/TMat3Mat3Mult.cpp
 //  \brief Source file for the 3D transpose matrix/matrix multiplication benchmark
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -43,9 +43,9 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <blaze/math/Functions.h>
 #include <blaze/math/Infinity.h>
 #include <blaze/math/StaticMatrix.h>
+#include <blaze/util/algorithms/Max.h>
 #include <blaze/util/AlignedAllocator.h>
 #include <blaze/util/Random.h>
 #include <blaze/util/Timing.h>
@@ -57,6 +57,7 @@
 #include <blazemark/flens/TMat3Mat3Mult.h>
 #include <blazemark/mtl/TMat3Mat3Mult.h>
 #include <blazemark/system/Blitz.h>
+#include <blazemark/system/Boost.h>
 #include <blazemark/system/Config.h>
 #include <blazemark/system/Eigen.h>
 #include <blazemark/system/FLENS.h>
@@ -65,6 +66,10 @@
 #include <blazemark/util/Benchmarks.h>
 #include <blazemark/util/Parser.h>
 #include <blazemark/util/StaticDenseRun.h>
+
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
 
 
 //*************************************************************************************************
@@ -90,7 +95,7 @@ using blazemark::StaticDenseRun;
 // This type definition specifies the type of a single benchmark run for the 3D transpose
 // matrix/matrix multiplication benchmark.
 */
-typedef StaticDenseRun<3UL>  Run;
+using Run = StaticDenseRun<3UL>;
 //*************************************************************************************************
 
 
@@ -117,10 +122,10 @@ void estimateSteps( Run& run )
    using blaze::rowMajor;
    using blaze::columnMajor;
 
-   typedef blaze::StaticMatrix<element_t,3UL,3UL,columnMajor>  ColumnMajorMatrixType;
-   typedef blaze::StaticMatrix<element_t,3UL,3UL,rowMajor>     RowMajorMatrixType;
-   typedef blaze::AlignedAllocator<ColumnMajorMatrixType>      ColumnMajorAllocatorType;
-   typedef blaze::AlignedAllocator<RowMajorMatrixType>         RowMajorAllocatorType;
+   using ColumnMajorMatrixType    = blaze::StaticMatrix<element_t,3UL,3UL,columnMajor>;
+   using RowMajorMatrixType       = blaze::StaticMatrix<element_t,3UL,3UL,rowMajor>;
+   using ColumnMajorAllocatorType = blaze::AlignedAllocator<ColumnMajorMatrixType>;
+   using RowMajorAllocatorType    = blaze::AlignedAllocator<RowMajorMatrixType>;
 
    blaze::setSeed( blazemark::seed );
 
@@ -151,7 +156,8 @@ void estimateSteps( Run& run )
       if( C[i](0,0) < element_t(0) )
          std::cerr << " Line " << __LINE__ << ": ERROR detected!!!\n";
 
-   run.setSteps( blaze::max( 1UL, ( blazemark::runtime * steps ) / timer.last() ) );
+   const size_t estimatedSteps( ( blazemark::runtime * steps ) / timer.last() );
+   run.setSteps( blaze::max( 1UL, estimatedSteps ) );
 }
 //*************************************************************************************************
 
@@ -219,6 +225,7 @@ void tmat3mat3mult( std::vector<Run>& runs, Benchmarks benchmarks )
       }
    }
 
+#if BLAZEMARK_BOOST_MODE
    if( benchmarks.runBoost ) {
       std::cout << "   Boost uBLAS [MFlop/s]:\n";
       for( std::vector<Run>::iterator run=runs.begin(); run!=runs.end(); ++run ) {
@@ -229,6 +236,7 @@ void tmat3mat3mult( std::vector<Run>& runs, Benchmarks benchmarks )
          std::cout << "     " << std::setw(12) << N << mflops << std::endl;
       }
    }
+#endif
 
 #if BLAZEMARK_BLITZ_MODE
    if( benchmarks.runBlitz ) {
@@ -339,5 +347,7 @@ int main( int argc, char** argv )
       std::cerr << "   Error during benchmark execution: " << ex.what() << "\n";
       return EXIT_FAILURE;
    }
+
+   return EXIT_SUCCESS;
 }
 //*************************************************************************************************

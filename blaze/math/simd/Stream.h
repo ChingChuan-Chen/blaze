@@ -3,7 +3,7 @@
 //  \file blaze/math/simd/Stream.h
 //  \brief Header file for the SIMD stream functionality
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -47,7 +47,6 @@
 #include <blaze/util/Assert.h>
 #include <blaze/util/Complex.h>
 #include <blaze/util/EnableIf.h>
-#include <blaze/util/mpl/And.h>
 #include <blaze/util/StaticAssert.h>
 #include <blaze/util/typetraits/HasSize.h>
 #include <blaze/util/typetraits/IsIntegral.h>
@@ -71,12 +70,14 @@ namespace blaze {
 */
 template< typename T1    // Type of the integral value
         , typename T2 >  // Type of the SIMD data type
-BLAZE_ALWAYS_INLINE EnableIf_< And< IsIntegral<T1>, HasSize<T1,1UL> > >
+BLAZE_ALWAYS_INLINE EnableIf_t< IsIntegral_v<T1> && HasSize_v<T1,1UL> >
    stream( T1* address, const SIMDi8<T2>& value ) noexcept
 {
    BLAZE_INTERNAL_ASSERT( checkAlignment( address ), "Invalid alignment detected" );
 
-#if BLAZE_AVX2_MODE
+#if BLAZE_AVX512BW_MODE
+   _mm512_stream_si512( reinterpret_cast<__m512i*>( address ), (~value).value );
+#elif BLAZE_AVX2_MODE
    _mm256_stream_si256( reinterpret_cast<__m256i*>( address ), (~value).value );
 #elif BLAZE_SSE2_MODE
    _mm_stream_si128( reinterpret_cast<__m128i*>( address ), (~value).value );
@@ -97,13 +98,15 @@ BLAZE_ALWAYS_INLINE EnableIf_< And< IsIntegral<T1>, HasSize<T1,1UL> > >
 */
 template< typename T1    // Type of the integral value
         , typename T2 >  // Type of the SIMD data type
-BLAZE_ALWAYS_INLINE EnableIf_< And< IsIntegral<T1>, HasSize<T1,1UL> > >
+BLAZE_ALWAYS_INLINE EnableIf_t< IsIntegral_v<T1> && HasSize_v<T1,1UL> >
    stream( complex<T1>* address, const SIMDci8<T2>& value ) noexcept
 {
    BLAZE_STATIC_ASSERT( sizeof( complex<T1> ) == 2UL*sizeof( T1 ) );
    BLAZE_INTERNAL_ASSERT( checkAlignment( address ), "Invalid alignment detected" );
 
-#if BLAZE_AVX2_MODE
+#if BLAZE_AVX512BW_MODE
+   _mm512_stream_si512( reinterpret_cast<__m512i*>( address ), (~value).value );
+#elif BLAZE_AVX2_MODE
    _mm256_stream_si256( reinterpret_cast<__m256i*>( address ), (~value).value );
 #elif BLAZE_SSE2_MODE
    _mm_stream_si128( reinterpret_cast<__m128i*>( address ), (~value).value );
@@ -132,12 +135,14 @@ BLAZE_ALWAYS_INLINE EnableIf_< And< IsIntegral<T1>, HasSize<T1,1UL> > >
 */
 template< typename T1    // Type of the integral value
         , typename T2 >  // Type of the SIMD data type
-BLAZE_ALWAYS_INLINE EnableIf_< And< IsIntegral<T1>, HasSize<T1,2UL> > >
+BLAZE_ALWAYS_INLINE EnableIf_t< IsIntegral_v<T1> && HasSize_v<T1,2UL> >
    stream( T1* address, const SIMDi16<T2>& value ) noexcept
 {
    BLAZE_INTERNAL_ASSERT( checkAlignment( address ), "Invalid alignment detected" );
 
-#if BLAZE_AVX2_MODE
+#if BLAZE_AVX512BW_MODE
+   _mm512_stream_si512( reinterpret_cast<__m512i*>( address ), (~value).value );
+#elif BLAZE_AVX2_MODE
    _mm256_stream_si256( reinterpret_cast<__m256i*>( address ), (~value).value );
 #elif BLAZE_SSE2_MODE
    _mm_stream_si128( reinterpret_cast<__m128i*>( address ), (~value).value );
@@ -158,13 +163,15 @@ BLAZE_ALWAYS_INLINE EnableIf_< And< IsIntegral<T1>, HasSize<T1,2UL> > >
 */
 template< typename T1    // Type of the integral value
         , typename T2 >  // Type of the SIMD data type
-BLAZE_ALWAYS_INLINE EnableIf_< And< IsIntegral<T1>, HasSize<T1,2UL> > >
+BLAZE_ALWAYS_INLINE EnableIf_t< IsIntegral_v<T1> && HasSize_v<T1,2UL> >
    stream( complex<T1>* address, const SIMDci16<T2>& value ) noexcept
 {
    BLAZE_STATIC_ASSERT( sizeof( complex<T1> ) == 2UL*sizeof( T1 ) );
    BLAZE_INTERNAL_ASSERT( checkAlignment( address ), "Invalid alignment detected" );
 
-#if BLAZE_AVX2_MODE
+#if BLAZE_AVX512BW_MODE
+   _mm512_stream_si512( reinterpret_cast<__m512i*>( address ), (~value).value );
+#elif BLAZE_AVX2_MODE
    _mm256_stream_si256( reinterpret_cast<__m256i*>( address ), (~value).value );
 #elif BLAZE_SSE2_MODE
    _mm_stream_si128( reinterpret_cast<__m128i*>( address ), (~value).value );
@@ -193,12 +200,14 @@ BLAZE_ALWAYS_INLINE EnableIf_< And< IsIntegral<T1>, HasSize<T1,2UL> > >
 */
 template< typename T1    // Type of the integral value
         , typename T2 >  // Type of the SIMD data type
-BLAZE_ALWAYS_INLINE EnableIf_< And< IsIntegral<T1>, HasSize<T1,4UL> > >
+BLAZE_ALWAYS_INLINE EnableIf_t< IsIntegral_v<T1> && HasSize_v<T1,4UL> >
    stream( T1* address, const SIMDi32<T2>& value ) noexcept
 {
    BLAZE_INTERNAL_ASSERT( checkAlignment( address ), "Invalid alignment detected" );
 
-#if BLAZE_MIC_MODE
+#if BLAZE_AVX512F_MODE
+   _mm512_stream_si512( reinterpret_cast<__m512i*>( address ), (~value).value );
+#elif BLAZE_MIC_MODE
    _mm512_store_epi32( address, (~value).value );
 #elif BLAZE_AVX2_MODE
    _mm256_stream_si256( reinterpret_cast<__m256i*>( address ), (~value).value );
@@ -221,13 +230,15 @@ BLAZE_ALWAYS_INLINE EnableIf_< And< IsIntegral<T1>, HasSize<T1,4UL> > >
 */
 template< typename T1    // Type of the integral value
         , typename T2 >  // Type of the SIMD data type
-BLAZE_ALWAYS_INLINE EnableIf_< And< IsIntegral<T1>, HasSize<T1,4UL> > >
+BLAZE_ALWAYS_INLINE EnableIf_t< IsIntegral_v<T1> && HasSize_v<T1,4UL> >
    stream( complex<T1>* address, const SIMDci32<T2>& value ) noexcept
 {
    BLAZE_STATIC_ASSERT( sizeof( complex<T1> ) == 2UL*sizeof( T1 ) );
    BLAZE_INTERNAL_ASSERT( checkAlignment( address ), "Invalid alignment detected" );
 
-#if BLAZE_MIC_MODE
+#if BLAZE_AVX512F_MODE
+   _mm512_stream_si512( reinterpret_cast<__m512i*>( address ), (~value).value );
+#elif BLAZE_MIC_MODE
    _mm512_store_epi32( address, (~value).value );
 #elif BLAZE_AVX2_MODE
    _mm256_stream_si256( reinterpret_cast<__m256i*>( address ), (~value).value );
@@ -258,12 +269,14 @@ BLAZE_ALWAYS_INLINE EnableIf_< And< IsIntegral<T1>, HasSize<T1,4UL> > >
 */
 template< typename T1    // Type of the integral value
         , typename T2 >  // Type of the SIMD data type
-BLAZE_ALWAYS_INLINE EnableIf_< And< IsIntegral<T1>, HasSize<T1,8UL> > >
+BLAZE_ALWAYS_INLINE EnableIf_t< IsIntegral_v<T1> && HasSize_v<T1,8UL> >
    stream( T1* address, const SIMDi64<T2>& value ) noexcept
 {
    BLAZE_INTERNAL_ASSERT( checkAlignment( address ), "Invalid alignment detected" );
 
-#if BLAZE_MIC_MODE
+#if BLAZE_AVX512F_MODE
+   _mm512_stream_si512( reinterpret_cast<__m512i*>( address ), (~value).value );
+#elif BLAZE_MIC_MODE
    _mm512_store_epi64( address, (~value).value );
 #elif BLAZE_AVX2_MODE
    _mm256_stream_si256( reinterpret_cast<__m256i*>( address ), (~value).value );
@@ -286,13 +299,15 @@ BLAZE_ALWAYS_INLINE EnableIf_< And< IsIntegral<T1>, HasSize<T1,8UL> > >
 */
 template< typename T1    // Type of the integral value
         , typename T2 >  // Type of the SIMD data type
-BLAZE_ALWAYS_INLINE EnableIf_< And< IsIntegral<T1>, HasSize<T1,8UL> > >
+BLAZE_ALWAYS_INLINE EnableIf_t< IsIntegral_v<T1> && HasSize_v<T1,8UL> >
    stream( complex<T1>* address, const SIMDci64<T2>& value ) noexcept
 {
    BLAZE_STATIC_ASSERT( sizeof( complex<T1> ) == 2UL*sizeof( T1 ) );
    BLAZE_INTERNAL_ASSERT( checkAlignment( address ), "Invalid alignment detected" );
 
-#if BLAZE_MIC_MODE
+#if BLAZE_AVX512F_MODE
+   _mm512_stream_si512( reinterpret_cast<__m512i*>( address ), (~value).value );
+#elif BLAZE_MIC_MODE
    _mm512_store_epi64( address, (~value).value );
 #elif BLAZE_AVX2_MODE
    _mm256_stream_si256( reinterpret_cast<__m256i*>( address ), (~value).value );
@@ -326,7 +341,9 @@ BLAZE_ALWAYS_INLINE void stream( float* address, const SIMDf32<T>& value ) noexc
 {
    BLAZE_INTERNAL_ASSERT( checkAlignment( address ), "Invalid alignment detected" );
 
-#if BLAZE_MIC_MODE
+#if BLAZE_AVX512F_MODE
+   _mm512_stream_ps( address, (~value).value );
+#elif BLAZE_MIC_MODE
    _mm512_storenr_ps( address, (~value).eval().value );
 #elif BLAZE_AVX_MODE
    _mm256_stream_ps( address, (~value).eval().value );
@@ -352,7 +369,9 @@ BLAZE_ALWAYS_INLINE void stream( complex<float>* address, const SIMDcfloat& valu
    BLAZE_STATIC_ASSERT  ( sizeof( complex<float> ) == 2UL*sizeof( float ) );
    BLAZE_INTERNAL_ASSERT( checkAlignment( address ), "Invalid alignment detected" );
 
-#if BLAZE_MIC_MODE
+#if BLAZE_AVX512F_MODE
+   _mm512_stream_ps( reinterpret_cast<float*>( address ), (~value).value );
+#elif BLAZE_MIC_MODE
    _mm512_storenr_ps( reinterpret_cast<float*>( address ), value.value );
 #elif BLAZE_AVX_MODE
    _mm256_stream_ps( reinterpret_cast<float*>( address ), value.value );
@@ -386,7 +405,9 @@ BLAZE_ALWAYS_INLINE void stream( double* address, const SIMDf64<T>& value ) noex
 {
    BLAZE_INTERNAL_ASSERT( checkAlignment( address ), "Invalid alignment detected" );
 
-#if BLAZE_MIC_MODE
+#if BLAZE_AVX512F_MODE
+   _mm512_stream_pd( address, (~value).value );
+#elif BLAZE_MIC_MODE
    _mm512_storenr_pd( address, (~value).eval().value );
 #elif BLAZE_AVX_MODE
    _mm256_stream_pd( address, (~value).eval().value );
@@ -412,7 +433,9 @@ BLAZE_ALWAYS_INLINE void stream( complex<double>* address, const SIMDcdouble& va
    BLAZE_STATIC_ASSERT  ( sizeof( complex<double> ) == 2UL*sizeof( double ) );
    BLAZE_INTERNAL_ASSERT( checkAlignment( address ), "Invalid alignment detected" );
 
-#if BLAZE_MIC_MODE
+#if BLAZE_AVX512F_MODE
+   _mm512_stream_pd( reinterpret_cast<double*>( address ), (~value).value );
+#elif BLAZE_MIC_MODE
    _mm512_storenr_pd( reinterpret_cast<double*>( address ), value.value );
 #elif BLAZE_AVX_MODE
    _mm256_stream_pd( reinterpret_cast<double*>( address ), value.value );

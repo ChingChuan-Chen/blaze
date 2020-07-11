@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/typetraits/OperationTest.h
 //  \brief Header file for the mathematical type traits operation test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -34,6 +34,13 @@
 
 #ifndef _BLAZETEST_MATHTEST_TYPETRAITS_OPERATIONTEST_H_
 #define _BLAZETEST_MATHTEST_TYPETRAITS_OPERATIONTEST_H_
+
+
+//*************************************************************************************************
+// Includes
+//*************************************************************************************************
+
+#include <blaze/util/Complex.h>
 
 
 namespace blazetest {
@@ -75,21 +82,50 @@ class OperationTest
    //@{
    void testIsColumnMajorMatrix();
    void testIsColumnVector();
+   void testIsCommutative();
+   void testIsCUDAAssignable();
    void testIsDiagonal();
+   void testIsHermitian();
    void testIsIdentity();
    void testIsLower();
    void testIsMatrix();
+   void testIsPaddingEnabled();
    void testIsRowMajorMatrix();
    void testIsRowVector();
+   void testIsSIMDEnabled();
+   void testIsStrictlyLower();
+   void testIsStrictlyUpper();
    void testIsSymmetric();
+   void testIsUniform();
    void testIsUniLower();
    void testIsUniUpper();
    void testIsUpper();
    void testIsVector();
+   void testIsZero();
+   void testMakeComplex();
    void testRemoveAdaptor();
    void testUnderlyingBuiltin();
+   void testUnderlyingElement();
    void testUnderlyingNumeric();
    //@}
+   //**********************************************************************************************
+
+   //**Test type setup*****************************************************************************
+   /*! \cond BLAZE_INTERNAL */
+   struct A {};
+   struct B { using ElementType = int; };
+   struct C { using value_type = blaze::complex<float>; };
+   struct D { using ElementType = double; using value_type = double; };
+
+   struct E { static constexpr bool paddingEnabled() { return false; } };
+   struct F { static constexpr bool paddingEnabled() { return true; } };
+
+   struct G { static constexpr bool simdEnabled() { return false; } };
+   struct H { static constexpr bool simdEnabled() { return true; } };
+
+   struct I { static constexpr bool cudaAssignable = false; };
+   struct J { static constexpr bool cudaAssignable = true; };
+   /*! \endcond */
    //**********************************************************************************************
 };
 //*************************************************************************************************

@@ -3,7 +3,7 @@
 //  \file src/flens/TMat3Vec3Mult.cpp
 //  \brief Source file for the FLENS 3D transpose matrix/vector multiplication kernel
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -71,8 +71,8 @@ double tmat3vec3mult( size_t N, size_t steps )
 {
    using ::blazemark::element_t;
 
-   typedef ::flens::GeMatrix< ::flens::FullStorage<element_t,::flens::ColMajor> >  ColGeMatrix;
-   typedef ::flens::DenseVector< ::flens::Array<element_t> >  DenseVector;
+   using ColGeMatrix = ::flens::GeMatrix< ::flens::FullStorage<element_t,::flens::ColMajor> >;
+   using DenseVector = ::flens::DenseVector< ::flens::Array<element_t> >;
 
    ::blaze::setSeed( seed );
 

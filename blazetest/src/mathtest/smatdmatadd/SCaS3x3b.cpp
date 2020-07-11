@@ -3,7 +3,7 @@
 //  \file src/mathtest/smatdmatadd/SCaS3x3b.cpp
 //  \brief Source file for the SCaS3x3b sparse matrix/dense matrix addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/smatdmatadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -64,12 +68,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::SymmetricMatrix< blaze::CompressedMatrix<TypeA> >      SCa;
-      typedef blaze::SymmetricMatrix< blaze::StaticMatrix<TypeB,3UL,3UL> >  S3x3b;
+      using SCa = blaze::SymmetricMatrix< blaze::CompressedMatrix<TypeA> >;
+      using S3x3b = blaze::SymmetricMatrix< blaze::StaticMatrix<TypeB,3UL,3UL> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<SCa>    CSCa;
-      typedef blazetest::Creator<S3x3b>  CS3x3b;
+      using CSCa = blazetest::Creator<SCa>;
+      using CS3x3b = blazetest::Creator<S3x3b>;
 
       // Running the tests
       for( size_t i=0UL; i<=9UL; ++i ) {

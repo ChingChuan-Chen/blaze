@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/submatrix/SparseTest.h
 //  \brief Header file for the Submatrix sparse test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -87,32 +87,36 @@ class SparseTest
    /*!\name Test functions */
    //@{
    void testConstructors();
-   void testAssignment  ();
-   void testAddAssign   ();
-   void testSubAssign   ();
-   void testMultAssign  ();
-   void testScaling     ();
+   void testAssignment();
+   void testAddAssign();
+   void testSubAssign();
+   void testSchurAssign();
+   void testMultAssign();
+   void testScaling();
    void testFunctionCall();
-   void testIterator    ();
-   void testNonZeros    ();
-   void testReset       ();
-   void testClear       ();
-   void testSet         ();
-   void testInsert      ();
-   void testAppend      ();
-   void testReserve     ();
-   void testTrim        ();
-   void testTranspose   ();
-   void testCTranspose  ();
-   void testErase       ();
-   void testFind        ();
-   void testLowerBound  ();
-   void testUpperBound  ();
-   void testIsDefault   ();
-   void testIsSame      ();
-   void testSubmatrix   ();
-   void testRow         ();
-   void testColumn      ();
+   void testIterator();
+   void testNonZeros();
+   void testReset();
+   void testClear();
+   void testReserve();
+   void testTrim();
+   void testSet();
+   void testInsert();
+   void testAppend();
+   void testErase();
+   void testFind();
+   void testLowerBound();
+   void testUpperBound();
+   void testTranspose();
+   void testCTranspose();
+   void testIsDefault();
+   void testIsSame();
+   void testSubmatrix();
+   void testRow();
+   void testRows();
+   void testColumn();
+   void testColumns();
+   void testBand();
 
    template< typename Type >
    void checkRows( const Type& matrix, size_t expectedRows ) const;
@@ -142,10 +146,10 @@ class SparseTest
    //**********************************************************************************************
 
    //**Type definitions****************************************************************************
-   typedef blaze::CompressedMatrix<int,blaze::rowMajor>  MT;    //!< Row-major compressed matrix type
-   typedef MT::OppositeType                              OMT;   //!< Column-major compressed matrix type
-   typedef blaze::Submatrix<MT>                          SMT;   //!< Sparse submatrix type for row-major matrices.
-   typedef blaze::Submatrix<OMT>                         OSMT;  //!< Sparse submatrix type for column-major matrices.
+   using MT   = blaze::CompressedMatrix<int,blaze::rowMajor>;  //!< Row-major compressed matrix type
+   using OMT  = MT::OppositeType;                              //!< Column-major compressed matrix type
+   using SMT  = blaze::Submatrix<MT>;                          //!< Sparse submatrix type for row-major matrices.
+   using OSMT = blaze::Submatrix<OMT>;                         //!< Sparse submatrix type for column-major matrices.
    //**********************************************************************************************
 
    //**Member variables****************************************************************************
@@ -225,7 +229,7 @@ void SparseTest::checkRows( const Type& matrix, size_t expectedRows ) const
 /*!\brief Checking the number of columns of the given sparse matrix.
 //
 // \param matrix The sparse matrix to be checked.
-// \param expectedRows The expected number of columns of the sparse matrix.
+// \param expectedColumns The expected number of columns of the sparse matrix.
 // \return void
 // \exception std::runtime_error Error detected.
 //

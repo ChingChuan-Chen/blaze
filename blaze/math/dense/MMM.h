@@ -3,7 +3,7 @@
 //  \file blaze/math/dense/MMM.h
 //  \brief Header file for the dense matrix multiplication kernels
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -57,18 +57,18 @@
 #include <blaze/math/constraints/Upper.h>
 #include <blaze/math/dense/DynamicMatrix.h>
 #include <blaze/math/expressions/DenseMatrix.h>
-#include <blaze/math/Functions.h>
 #include <blaze/math/shims/IsDefault.h>
 #include <blaze/math/shims/IsOne.h>
+#include <blaze/math/shims/PrevMultiple.h>
 #include <blaze/math/shims/Serial.h>
 #include <blaze/math/SIMD.h>
-#include <blaze/math/traits/DerestrictTrait.h>
 #include <blaze/math/typetraits/IsLower.h>
 #include <blaze/math/typetraits/IsPadded.h>
-#include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blaze/math/typetraits/IsUpper.h>
+#include <blaze/math/views/Check.h>
 #include <blaze/math/views/Submatrix.h>
 #include <blaze/system/Blocking.h>
+#include <blaze/util/algorithms/Min.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/StaticAssert.h>
 #include <blaze/util/Types.h>
@@ -105,10 +105,10 @@ namespace blaze {
 template< typename MT1, typename MT2, typename MT3, typename ST >
 void mmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST beta )
 {
-   using ET1 = ElementType_<MT1>;
-   using ET2 = ElementType_<MT2>;
-   using ET3 = ElementType_<MT3>;
-   using SIMDType = SIMDTrait_<ET1>;
+   using ET1 = ElementType_t<MT1>;
+   using ET2 = ElementType_t<MT2>;
+   using ET3 = ElementType_t<MT3>;
+   using SIMDType = SIMDTrait_t<ET1>;
 
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE    ( MT1 );
    BLAZE_CONSTRAINT_MUST_BE_ROW_MAJOR_MATRIX_TYPE( MT1 );
@@ -124,9 +124,9 @@ void mmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST be
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET2 );
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET3 );
 
-   enum : size_t { SIMDSIZE = SIMDTrait<ET1>::size };
+   constexpr size_t SIMDSIZE( SIMDTrait<ET1>::size );
 
-   constexpr bool remainder( !IsPadded<MT2>::value || !IsPadded<MT3>::value );
+   constexpr bool remainder( !IsPadded_v<MT2> || !IsPadded_v<MT3> );
 
    constexpr size_t KBLOCK( MMM_OUTER_BLOCK_SIZE * ( 16UL/sizeof(ET1) ) );
    constexpr size_t JBLOCK( MMM_INNER_BLOCK_SIZE );
@@ -156,17 +156,17 @@ void mmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST be
    while( kk + ( remainder ? SIMDSIZE-1UL : 0UL ) < K )
    {
       if( remainder ) {
-         kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( ( K - kk ) & size_t(-SIMDSIZE) ) );
+         kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( prevMultiple( K - kk, SIMDSIZE ) ) );
       }
       else {
          kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( K - kk ) );
       }
 
-      const size_t ibegin( IsLower<MT2>::value ? kk : 0UL );
-      const size_t iend  ( IsUpper<MT2>::value ? kk+kblock : M );
+      const size_t ibegin( IsLower_v<MT2> ? kk : 0UL );
+      const size_t iend  ( IsUpper_v<MT2> ? kk+kblock : M );
       const size_t isize ( iend - ibegin );
 
-      A2 = serial( submatrix<!remainder>( A, ibegin, kk, isize, kblock ) );
+      A2 = serial( submatrix< remainder ? unaligned : aligned >( A, ibegin, kk, isize, kblock, unchecked ) );
 
       size_t jj( 0UL );
       size_t jblock( 0UL );
@@ -175,17 +175,17 @@ void mmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST be
       {
          jblock = ( ( jj+JBLOCK <= N )?( JBLOCK ):( N - jj ) );
 
-         if( ( IsLower<MT3>::value && kk+kblock <= jj ) ||
-             ( IsUpper<MT3>::value && jj+jblock <= kk ) ) {
+         if( ( IsLower_v<MT3> && kk+kblock <= jj ) ||
+             ( IsUpper_v<MT3> && jj+jblock <= kk ) ) {
             jj += jblock;
             continue;
          }
 
-         B2 = serial( submatrix<!remainder>( B, kk, jj, kblock, jblock ) );
+         B2 = serial( submatrix< remainder ? unaligned : aligned >( B, kk, jj, kblock, jblock, unchecked ) );
 
          size_t i( 0UL );
 
-         if( IsFloatingPoint<ET1>::value )
+         if( IsFloatingPoint_v<ET1> )
          {
             for( ; (i+5UL) <= isize; i+=5UL )
             {
@@ -453,10 +453,10 @@ void mmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST be
    {
       const size_t ksize( K - kk );
 
-      const size_t ibegin( IsLower<MT2>::value ? kk : 0UL );
+      const size_t ibegin( IsLower_v<MT2> ? kk : 0UL );
       const size_t isize ( M - ibegin );
 
-      A2 = serial( submatrix( A, ibegin, kk, isize, ksize ) );
+      A2 = serial( submatrix( A, ibegin, kk, isize, ksize, unchecked ) );
 
       size_t jj( 0UL );
       size_t jblock( 0UL );
@@ -465,16 +465,16 @@ void mmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST be
       {
          jblock = ( ( jj+JBLOCK <= N )?( JBLOCK ):( N - jj ) );
 
-         if( IsUpper<MT3>::value && jj+jblock <= kk ) {
+         if( IsUpper_v<MT3> && jj+jblock <= kk ) {
             jj += jblock;
             continue;
          }
 
-         B2 = serial( submatrix( B, kk, jj, ksize, jblock ) );
+         B2 = serial( submatrix( B, kk, jj, ksize, jblock, unchecked ) );
 
          size_t i( 0UL );
 
-         if( IsFloatingPoint<ET1>::value )
+         if( IsFloatingPoint_v<ET1> )
          {
             for( ; (i+5UL) <= isize; i+=5UL )
             {
@@ -605,10 +605,10 @@ void mmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST be
 template< typename MT1, typename MT2, typename MT3, typename ST >
 void mmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST beta )
 {
-   using ET1 = ElementType_<MT1>;
-   using ET2 = ElementType_<MT2>;
-   using ET3 = ElementType_<MT3>;
-   using SIMDType = SIMDTrait_<ET1>;
+   using ET1 = ElementType_t<MT1>;
+   using ET2 = ElementType_t<MT2>;
+   using ET3 = ElementType_t<MT3>;
+   using SIMDType = SIMDTrait_t<ET1>;
 
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE       ( MT1 );
    BLAZE_CONSTRAINT_MUST_BE_COLUMN_MAJOR_MATRIX_TYPE( MT1 );
@@ -624,9 +624,9 @@ void mmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST bet
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET2 );
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET3 );
 
-   enum : size_t { SIMDSIZE = SIMDTrait<ET1>::size };
+   constexpr size_t SIMDSIZE( SIMDTrait<ET1>::size );
 
-   constexpr bool remainder( !IsPadded<MT2>::value || !IsPadded<MT3>::value );
+   constexpr bool remainder( !IsPadded_v<MT2> || !IsPadded_v<MT3> );
 
    constexpr size_t KBLOCK( MMM_OUTER_BLOCK_SIZE * ( 16UL/sizeof(ET1) ) );
    constexpr size_t IBLOCK( MMM_INNER_BLOCK_SIZE );
@@ -656,17 +656,17 @@ void mmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST bet
    while( kk + ( remainder ? SIMDSIZE-1UL : 0UL ) < K )
    {
       if( remainder ) {
-         kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( ( K - kk ) & size_t(-SIMDSIZE) ) );
+         kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( prevMultiple( K - kk, SIMDSIZE ) ) );
       }
       else {
          kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( K - kk ) );
       }
 
-      const size_t jbegin( IsUpper<MT3>::value ? kk : 0UL );
-      const size_t jend  ( IsLower<MT3>::value ? kk+kblock : N );
+      const size_t jbegin( IsUpper_v<MT3> ? kk : 0UL );
+      const size_t jend  ( IsLower_v<MT3> ? kk+kblock : N );
       const size_t jsize ( jend - jbegin );
 
-      B2 = serial( submatrix<!remainder>( B, kk, jbegin, kblock, jsize ) );
+      B2 = serial( submatrix< remainder ? unaligned : aligned >( B, kk, jbegin, kblock, jsize, unchecked ) );
 
       size_t ii( 0UL );
       size_t iblock( 0UL );
@@ -675,17 +675,17 @@ void mmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST bet
       {
          iblock = ( ( ii+IBLOCK <= M )?( IBLOCK ):( M - ii ) );
 
-         if( ( IsLower<MT2>::value && ii+iblock <= kk ) ||
-             ( IsUpper<MT2>::value && kk+kblock <= ii ) ) {
+         if( ( IsLower_v<MT2> && ii+iblock <= kk ) ||
+             ( IsUpper_v<MT2> && kk+kblock <= ii ) ) {
             ii += iblock;
             continue;
          }
 
-         A2 = serial( submatrix<!remainder>( A, ii, kk, iblock, kblock ) );
+         A2 = serial( submatrix< remainder ? unaligned : aligned >( A, ii, kk, iblock, kblock, unchecked ) );
 
          size_t j( 0UL );
 
-         if( IsFloatingPoint<ET3>::value )
+         if( IsFloatingPoint_v<ET3> )
          {
             for( ; (j+5UL) <= jsize; j+=5UL )
             {
@@ -937,10 +937,10 @@ void mmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST bet
    {
       const size_t ksize( K - kk );
 
-      const size_t jbegin( IsUpper<MT3>::value ? kk : 0UL );
+      const size_t jbegin( IsUpper_v<MT3> ? kk : 0UL );
       const size_t jsize ( N - jbegin );
 
-      B2 = serial( submatrix( B, kk, jbegin, ksize, jsize ) );
+      B2 = serial( submatrix( B, kk, jbegin, ksize, jsize, unchecked ) );
 
       size_t ii( 0UL );
       size_t iblock( 0UL );
@@ -949,16 +949,16 @@ void mmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST bet
       {
          iblock = ( ( ii+IBLOCK <= M )?( IBLOCK ):( M - ii ) );
 
-         if( IsLower<MT2>::value && ii+iblock <= kk ) {
+         if( IsLower_v<MT2> && ii+iblock <= kk ) {
             ii += iblock;
             continue;
          }
 
-         A2 = serial( submatrix( A, ii, kk, iblock, ksize ) );
+         A2 = serial( submatrix( A, ii, kk, iblock, ksize, unchecked ) );
 
          size_t j( 0UL );
 
-         if( IsFloatingPoint<ET1>::value )
+         if( IsFloatingPoint_v<ET1> )
          {
             for( ; (j+5UL) <= jsize; j+=5UL )
             {
@@ -1086,9 +1086,9 @@ void mmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST bet
 template< typename MT1, typename MT2, typename MT3 >
 inline void mmm( MT1& C, const MT2& A, const MT3& B )
 {
-   using ET1 = ElementType_<MT1>;
-   using ET2 = ElementType_<MT2>;
-   using ET3 = ElementType_<MT3>;
+   using ET1 = ElementType_t<MT1>;
+   using ET2 = ElementType_t<MT2>;
+   using ET3 = ElementType_t<MT3>;
 
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET2 );
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET3 );
@@ -1129,10 +1129,10 @@ inline void mmm( MT1& C, const MT2& A, const MT3& B )
 template< typename MT1, typename MT2, typename MT3, typename ST >
 void lmmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST beta )
 {
-   using ET1 = ElementType_<MT1>;
-   using ET2 = ElementType_<MT2>;
-   using ET3 = ElementType_<MT3>;
-   using SIMDType = SIMDTrait_<ET1>;
+   using ET1 = ElementType_t<MT1>;
+   using ET2 = ElementType_t<MT2>;
+   using ET3 = ElementType_t<MT3>;
+   using SIMDType = SIMDTrait_t<ET1>;
 
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE             ( MT1 );
    BLAZE_CONSTRAINT_MUST_BE_ROW_MAJOR_MATRIX_TYPE         ( MT1 );
@@ -1152,9 +1152,9 @@ void lmmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST b
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET2 );
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET3 );
 
-   enum : size_t { SIMDSIZE = SIMDTrait<ET1>::size };
+   constexpr size_t SIMDSIZE( SIMDTrait<ET1>::size );
 
-   constexpr bool remainder( !IsPadded<MT2>::value || !IsPadded<MT3>::value );
+   constexpr bool remainder( !IsPadded_v<MT2> || !IsPadded_v<MT3> );
 
    constexpr size_t KBLOCK( MMM_OUTER_BLOCK_SIZE * ( 16UL/sizeof(ET1) ) );
    constexpr size_t JBLOCK( MMM_INNER_BLOCK_SIZE );
@@ -1171,7 +1171,7 @@ void lmmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST b
    DynamicMatrix<ET2,false> A2( M, KBLOCK );
    DynamicMatrix<ET3,true>  B2( KBLOCK, JBLOCK );
 
-   DerestrictTrait_<MT1> c( derestrict( ~C ) );
+   decltype(auto) c( derestrict( ~C ) );
 
    if( isDefault( beta ) ) {
       reset( c );
@@ -1186,17 +1186,17 @@ void lmmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST b
    while( kk + ( remainder ? SIMDSIZE-1UL : 0UL ) < K )
    {
       if( remainder ) {
-         kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( ( K - kk ) & size_t(-SIMDSIZE) ) );
+         kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( prevMultiple( K - kk, SIMDSIZE ) ) );
       }
       else {
          kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( K - kk ) );
       }
 
-      const size_t ibegin( IsLower<MT2>::value ? kk : 0UL );
-      const size_t iend  ( IsUpper<MT2>::value ? kk+kblock : M );
+      const size_t ibegin( IsLower_v<MT2> ? kk : 0UL );
+      const size_t iend  ( IsUpper_v<MT2> ? kk+kblock : M );
       const size_t isize ( iend - ibegin );
 
-      A2 = serial( submatrix<!remainder>( A, ibegin, kk, isize, kblock ) );
+      A2 = serial( submatrix< remainder ? unaligned : aligned >( A, ibegin, kk, isize, kblock, unchecked ) );
 
       size_t jj( 0UL );
       size_t jblock( 0UL );
@@ -1205,17 +1205,17 @@ void lmmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST b
       {
          jblock = ( ( jj+JBLOCK <= N )?( JBLOCK ):( N - jj ) );
 
-         if( ( IsLower<MT3>::value && kk+kblock <= jj ) ||
-             ( IsUpper<MT3>::value && jj+jblock <= kk ) ) {
+         if( ( IsLower_v<MT3> && kk+kblock <= jj ) ||
+             ( IsUpper_v<MT3> && jj+jblock <= kk ) ) {
             jj += jblock;
             continue;
          }
 
-         B2 = serial( submatrix<!remainder>( B, kk, jj, kblock, jblock ) );
+         B2 = serial( submatrix< remainder ? unaligned : aligned >( B, kk, jj, kblock, jblock, unchecked ) );
 
          size_t i( 0UL );
 
-         if( IsFloatingPoint<ET1>::value )
+         if( IsFloatingPoint_v<ET1> )
          {
             for( ; (i+5UL) <= isize; i+=5UL )
             {
@@ -1493,10 +1493,10 @@ void lmmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST b
    {
       const size_t ksize( K - kk );
 
-      const size_t ibegin( IsLower<MT2>::value ? kk : 0UL );
+      const size_t ibegin( IsLower_v<MT2> ? kk : 0UL );
       const size_t isize ( M - ibegin );
 
-      A2 = serial( submatrix( A, ibegin, kk, isize, ksize ) );
+      A2 = serial( submatrix( A, ibegin, kk, isize, ksize, unchecked ) );
 
       size_t jj( 0UL );
       size_t jblock( 0UL );
@@ -1505,16 +1505,16 @@ void lmmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST b
       {
          jblock = ( ( jj+JBLOCK <= N )?( JBLOCK ):( N - jj ) );
 
-         if( IsUpper<MT3>::value && jj+jblock <= kk ) {
+         if( IsUpper_v<MT3> && jj+jblock <= kk ) {
             jj += jblock;
             continue;
          }
 
-         B2 = serial( submatrix( B, kk, jj, ksize, jblock ) );
+         B2 = serial( submatrix( B, kk, jj, ksize, jblock, unchecked ) );
 
          size_t i( 0UL );
 
-         if( IsFloatingPoint<ET1>::value )
+         if( IsFloatingPoint_v<ET1> )
          {
             for( ; (i+5UL) <= isize; i+=5UL )
             {
@@ -1655,10 +1655,10 @@ void lmmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST b
 template< typename MT1, typename MT2, typename MT3, typename ST >
 void lmmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST beta )
 {
-   using ET1 = ElementType_<MT1>;
-   using ET2 = ElementType_<MT2>;
-   using ET3 = ElementType_<MT3>;
-   using SIMDType = SIMDTrait_<ET1>;
+   using ET1 = ElementType_t<MT1>;
+   using ET2 = ElementType_t<MT2>;
+   using ET3 = ElementType_t<MT3>;
+   using SIMDType = SIMDTrait_t<ET1>;
 
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE             ( MT1 );
    BLAZE_CONSTRAINT_MUST_BE_COLUMN_MAJOR_MATRIX_TYPE      ( MT1 );
@@ -1678,9 +1678,9 @@ void lmmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST be
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET2 );
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET3 );
 
-   enum : size_t { SIMDSIZE = SIMDTrait<ET1>::size };
+   constexpr size_t SIMDSIZE( SIMDTrait<ET1>::size );
 
-   constexpr bool remainder( !IsPadded<MT2>::value || !IsPadded<MT3>::value );
+   constexpr bool remainder( !IsPadded_v<MT2> || !IsPadded_v<MT3> );
 
    constexpr size_t KBLOCK( MMM_OUTER_BLOCK_SIZE * ( 16UL/sizeof(ET1) ) );
    constexpr size_t IBLOCK( MMM_INNER_BLOCK_SIZE );
@@ -1697,7 +1697,7 @@ void lmmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST be
    DynamicMatrix<ET2,false> A2( IBLOCK, KBLOCK );
    DynamicMatrix<ET3,true>  B2( KBLOCK, N );
 
-   DerestrictTrait_<MT1> c( derestrict( ~C ) );
+   decltype(auto) c( derestrict( ~C ) );
 
    if( isDefault( beta ) ) {
       reset( c );
@@ -1712,17 +1712,17 @@ void lmmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST be
    while( kk + ( remainder ? SIMDSIZE-1UL : 0UL ) < K )
    {
       if( remainder ) {
-         kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( ( K - kk ) & size_t(-SIMDSIZE) ) );
+         kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( prevMultiple( K - kk, SIMDSIZE ) ) );
       }
       else {
          kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( K - kk ) );
       }
 
-      const size_t jbegin( IsUpper<MT3>::value ? kk : 0UL );
-      const size_t jend  ( IsLower<MT3>::value ? kk+kblock : N );
+      const size_t jbegin( IsUpper_v<MT3> ? kk : 0UL );
+      const size_t jend  ( IsLower_v<MT3> ? kk+kblock : N );
       const size_t jsize ( jend - jbegin );
 
-      B2 = serial( submatrix<!remainder>( B, kk, jbegin, kblock, jsize ) );
+      B2 = serial( submatrix< remainder ? unaligned : aligned >( B, kk, jbegin, kblock, jsize, unchecked ) );
 
       size_t ii( 0UL );
       size_t iblock( 0UL );
@@ -1731,17 +1731,17 @@ void lmmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST be
       {
          iblock = ( ( ii+IBLOCK <= M )?( IBLOCK ):( M - ii ) );
 
-         if( ( IsLower<MT2>::value && ii+iblock <= kk ) ||
-             ( IsUpper<MT2>::value && kk+kblock <= ii ) ) {
+         if( ( IsLower_v<MT2> && ii+iblock <= kk ) ||
+             ( IsUpper_v<MT2> && kk+kblock <= ii ) ) {
             ii += iblock;
             continue;
          }
 
-         A2 = serial( submatrix<!remainder>( A, ii, kk, iblock, kblock ) );
+         A2 = serial( submatrix< remainder ? unaligned : aligned >( A, ii, kk, iblock, kblock, unchecked ) );
 
          size_t j( 0UL );
 
-         if( IsFloatingPoint<ET3>::value )
+         if( IsFloatingPoint_v<ET3> )
          {
             for( ; (j+5UL) <= jsize; j+=5UL )
             {
@@ -1999,10 +1999,10 @@ void lmmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST be
    {
       const size_t ksize( K - kk );
 
-      const size_t jbegin( IsUpper<MT3>::value ? kk : 0UL );
+      const size_t jbegin( IsUpper_v<MT3> ? kk : 0UL );
       const size_t jsize ( N - jbegin );
 
-      B2 = serial( submatrix( B, kk, jbegin, ksize, jsize ) );
+      B2 = serial( submatrix( B, kk, jbegin, ksize, jsize, unchecked ) );
 
       size_t ii( 0UL );
       size_t iblock( 0UL );
@@ -2011,16 +2011,16 @@ void lmmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST be
       {
          iblock = ( ( ii+IBLOCK <= M )?( IBLOCK ):( M - ii ) );
 
-         if( IsLower<MT2>::value && ii+iblock <= kk ) {
+         if( IsLower_v<MT2> && ii+iblock <= kk ) {
             ii += iblock;
             continue;
          }
 
-         A2 = serial( submatrix( A, ii, kk, iblock, ksize ) );
+         A2 = serial( submatrix( A, ii, kk, iblock, ksize, unchecked ) );
 
          size_t j( 0UL );
 
-         if( IsFloatingPoint<ET1>::value )
+         if( IsFloatingPoint_v<ET1> )
          {
             for( ; (j+5UL) <= jsize; j+=5UL )
             {
@@ -2156,9 +2156,9 @@ void lmmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST be
 template< typename MT1, typename MT2, typename MT3 >
 inline void lmmm( MT1& C, const MT2& A, const MT3& B )
 {
-   using ET1 = ElementType_<MT1>;
-   using ET2 = ElementType_<MT2>;
-   using ET3 = ElementType_<MT3>;
+   using ET1 = ElementType_t<MT1>;
+   using ET2 = ElementType_t<MT2>;
+   using ET3 = ElementType_t<MT3>;
 
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET2 );
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET3 );
@@ -2199,10 +2199,10 @@ inline void lmmm( MT1& C, const MT2& A, const MT3& B )
 template< typename MT1, typename MT2, typename MT3, typename ST >
 void ummm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST beta )
 {
-   using ET1 = ElementType_<MT1>;
-   using ET2 = ElementType_<MT2>;
-   using ET3 = ElementType_<MT3>;
-   using SIMDType = SIMDTrait_<ET1>;
+   using ET1 = ElementType_t<MT1>;
+   using ET2 = ElementType_t<MT2>;
+   using ET3 = ElementType_t<MT3>;
+   using SIMDType = SIMDTrait_t<ET1>;
 
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE             ( MT1 );
    BLAZE_CONSTRAINT_MUST_BE_ROW_MAJOR_MATRIX_TYPE         ( MT1 );
@@ -2222,9 +2222,9 @@ void ummm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST b
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET2 );
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET3 );
 
-   enum : size_t { SIMDSIZE = SIMDTrait<ET1>::size };
+   constexpr size_t SIMDSIZE( SIMDTrait<ET1>::size );
 
-   constexpr bool remainder( !IsPadded<MT2>::value || !IsPadded<MT3>::value );
+   constexpr bool remainder( !IsPadded_v<MT2> || !IsPadded_v<MT3> );
 
    constexpr size_t KBLOCK( MMM_OUTER_BLOCK_SIZE * ( 16UL/sizeof(ET1) ) );
    constexpr size_t JBLOCK( MMM_INNER_BLOCK_SIZE );
@@ -2241,7 +2241,7 @@ void ummm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST b
    DynamicMatrix<ET2,false> A2( M, KBLOCK );
    DynamicMatrix<ET3,true>  B2( KBLOCK, JBLOCK );
 
-   DerestrictTrait_<MT1> c( derestrict( ~C ) );
+   decltype(auto) c( derestrict( ~C ) );
 
    if( isDefault( beta ) ) {
       reset( c );
@@ -2256,17 +2256,17 @@ void ummm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST b
    while( kk + ( remainder ? SIMDSIZE-1UL : 0UL ) < K )
    {
       if( remainder ) {
-         kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( ( K - kk ) & size_t(-SIMDSIZE) ) );
+         kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( prevMultiple( K - kk, SIMDSIZE ) ) );
       }
       else {
          kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( K - kk ) );
       }
 
-      const size_t ibegin( IsLower<MT2>::value ? kk : 0UL );
-      const size_t iend  ( IsUpper<MT2>::value ? kk+kblock : M );
+      const size_t ibegin( IsLower_v<MT2> ? kk : 0UL );
+      const size_t iend  ( IsUpper_v<MT2> ? kk+kblock : M );
       const size_t isize ( iend - ibegin );
 
-      A2 = serial( submatrix<!remainder>( A, ibegin, kk, isize, kblock ) );
+      A2 = serial( submatrix< remainder ? unaligned : aligned >( A, ibegin, kk, isize, kblock, unchecked ) );
 
       size_t jj( 0UL );
       size_t jblock( 0UL );
@@ -2275,17 +2275,17 @@ void ummm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST b
       {
          jblock = ( ( jj+JBLOCK <= N )?( JBLOCK ):( N - jj ) );
 
-         if( ( IsLower<MT3>::value && kk+kblock <= jj ) ||
-             ( IsUpper<MT3>::value && jj+jblock <= kk ) ) {
+         if( ( IsLower_v<MT3> && kk+kblock <= jj ) ||
+             ( IsUpper_v<MT3> && jj+jblock <= kk ) ) {
             jj += jblock;
             continue;
          }
 
-         B2 = serial( submatrix<!remainder>( B, kk, jj, kblock, jblock ) );
+         B2 = serial( submatrix< remainder ? unaligned : aligned >( B, kk, jj, kblock, jblock, unchecked ) );
 
          size_t i( 0UL );
 
-         if( IsFloatingPoint<ET1>::value )
+         if( IsFloatingPoint_v<ET1> )
          {
             for( ; (i+5UL) <= isize; i+=5UL )
             {
@@ -2559,10 +2559,10 @@ void ummm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST b
    {
       const size_t ksize( K - kk );
 
-      const size_t ibegin( IsLower<MT2>::value ? kk : 0UL );
+      const size_t ibegin( IsLower_v<MT2> ? kk : 0UL );
       const size_t isize ( M - ibegin );
 
-      A2 = serial( submatrix( A, ibegin, kk, isize, ksize ) );
+      A2 = serial( submatrix( A, ibegin, kk, isize, ksize, unchecked ) );
 
       size_t jj( 0UL );
       size_t jblock( 0UL );
@@ -2571,16 +2571,16 @@ void ummm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST b
       {
          jblock = ( ( jj+JBLOCK <= N )?( JBLOCK ):( N - jj ) );
 
-         if( IsUpper<MT3>::value && jj+jblock <= kk ) {
+         if( IsUpper_v<MT3> && jj+jblock <= kk ) {
             jj += jblock;
             continue;
          }
 
-         B2 = serial( submatrix( B, kk, jj, ksize, jblock ) );
+         B2 = serial( submatrix( B, kk, jj, ksize, jblock, unchecked ) );
 
          size_t i( 0UL );
 
-         if( IsFloatingPoint<ET1>::value )
+         if( IsFloatingPoint_v<ET1> )
          {
             for( ; (i+5UL) <= isize; i+=5UL )
             {
@@ -2717,10 +2717,10 @@ void ummm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha, ST b
 template< typename MT1, typename MT2, typename MT3, typename ST >
 void ummm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST beta )
 {
-   using ET1 = ElementType_<MT1>;
-   using ET2 = ElementType_<MT2>;
-   using ET3 = ElementType_<MT3>;
-   using SIMDType = SIMDTrait_<ET1>;
+   using ET1 = ElementType_t<MT1>;
+   using ET2 = ElementType_t<MT2>;
+   using ET3 = ElementType_t<MT3>;
+   using SIMDType = SIMDTrait_t<ET1>;
 
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE             ( MT1 );
    BLAZE_CONSTRAINT_MUST_BE_COLUMN_MAJOR_MATRIX_TYPE      ( MT1 );
@@ -2740,9 +2740,9 @@ void ummm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST be
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET2 );
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET3 );
 
-   enum : size_t { SIMDSIZE = SIMDTrait<ET1>::size };
+   constexpr size_t SIMDSIZE( SIMDTrait<ET1>::size );
 
-   constexpr bool remainder( !IsPadded<MT2>::value || !IsPadded<MT3>::value );
+   constexpr bool remainder( !IsPadded_v<MT2> || !IsPadded_v<MT3> );
 
    constexpr size_t KBLOCK( MMM_OUTER_BLOCK_SIZE * ( 16UL/sizeof(ET1) ) );
    constexpr size_t IBLOCK( MMM_INNER_BLOCK_SIZE );
@@ -2759,7 +2759,7 @@ void ummm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST be
    DynamicMatrix<ET2,false> A2( IBLOCK, KBLOCK );
    DynamicMatrix<ET3,true>  B2( KBLOCK, N );
 
-   DerestrictTrait_<MT1> c( derestrict( ~C ) );
+   decltype(auto) c( derestrict( ~C ) );
 
    if( isDefault( beta ) ) {
       reset( c );
@@ -2774,17 +2774,17 @@ void ummm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST be
    while( kk + ( remainder ? SIMDSIZE-1UL : 0UL ) < K )
    {
       if( remainder ) {
-         kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( ( K - kk ) & size_t(-SIMDSIZE) ) );
+         kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( prevMultiple( K - kk, SIMDSIZE ) ) );
       }
       else {
          kblock = ( ( kk+KBLOCK <= K )?( KBLOCK ):( K - kk ) );
       }
 
-      const size_t jbegin( IsUpper<MT3>::value ? kk : 0UL );
-      const size_t jend  ( IsLower<MT3>::value ? kk+kblock : N );
+      const size_t jbegin( IsUpper_v<MT3> ? kk : 0UL );
+      const size_t jend  ( IsLower_v<MT3> ? kk+kblock : N );
       const size_t jsize ( jend - jbegin );
 
-      B2 = serial( submatrix<!remainder>( B, kk, jbegin, kblock, jsize ) );
+      B2 = serial( submatrix< remainder ? unaligned : aligned >( B, kk, jbegin, kblock, jsize, unchecked ) );
 
       size_t ii( 0UL );
       size_t iblock( 0UL );
@@ -2793,17 +2793,17 @@ void ummm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST be
       {
          iblock = ( ( ii+IBLOCK <= M )?( IBLOCK ):( M - ii ) );
 
-         if( ( IsLower<MT2>::value && ii+iblock <= kk ) ||
-             ( IsUpper<MT2>::value && kk+kblock <= ii ) ) {
+         if( ( IsLower_v<MT2> && ii+iblock <= kk ) ||
+             ( IsUpper_v<MT2> && kk+kblock <= ii ) ) {
             ii += iblock;
             continue;
          }
 
-         A2 = serial( submatrix<!remainder>( A, ii, kk, iblock, kblock ) );
+         A2 = serial( submatrix< remainder ? unaligned : aligned >( A, ii, kk, iblock, kblock, unchecked ) );
 
          size_t j( 0UL );
 
-         if( IsFloatingPoint<ET3>::value )
+         if( IsFloatingPoint_v<ET3> )
          {
             for( ; (j+5UL) <= jsize; j+=5UL )
             {
@@ -3065,10 +3065,10 @@ void ummm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST be
    {
       const size_t ksize( K - kk );
 
-      const size_t jbegin( IsUpper<MT3>::value ? kk : 0UL );
+      const size_t jbegin( IsUpper_v<MT3> ? kk : 0UL );
       const size_t jsize ( N - jbegin );
 
-      B2 = serial( submatrix( B, kk, jbegin, ksize, jsize ) );
+      B2 = serial( submatrix( B, kk, jbegin, ksize, jsize, unchecked ) );
 
       size_t ii( 0UL );
       size_t iblock( 0UL );
@@ -3077,16 +3077,16 @@ void ummm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST be
       {
          iblock = ( ( ii+IBLOCK <= M )?( IBLOCK ):( M - ii ) );
 
-         if( IsLower<MT2>::value && ii+iblock <= kk ) {
+         if( IsLower_v<MT2> && ii+iblock <= kk ) {
             ii += iblock;
             continue;
          }
 
-         A2 = serial( submatrix( A, ii, kk, iblock, ksize ) );
+         A2 = serial( submatrix( A, ii, kk, iblock, ksize, unchecked ) );
 
          size_t j( 0UL );
 
-         if( IsFloatingPoint<ET1>::value )
+         if( IsFloatingPoint_v<ET1> )
          {
             for( ; (j+5UL) <= jsize; j+=5UL )
             {
@@ -3224,9 +3224,9 @@ void ummm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha, ST be
 template< typename MT1, typename MT2, typename MT3 >
 inline void ummm( MT1& C, const MT2& A, const MT3& B )
 {
-   using ET1 = ElementType_<MT1>;
-   using ET2 = ElementType_<MT2>;
-   using ET3 = ElementType_<MT3>;
+   using ET1 = ElementType_t<MT1>;
+   using ET2 = ElementType_t<MT2>;
+   using ET3 = ElementType_t<MT3>;
 
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET2 );
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET3 );
@@ -3266,9 +3266,9 @@ inline void ummm( MT1& C, const MT2& A, const MT3& B )
 template< typename MT1, typename MT2, typename MT3, typename ST >
 void smmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha )
 {
-   using ET1 = ElementType_<MT1>;
-   using ET2 = ElementType_<MT2>;
-   using ET3 = ElementType_<MT3>;
+   using ET1 = ElementType_t<MT1>;
+   using ET2 = ElementType_t<MT2>;
+   using ET3 = ElementType_t<MT3>;
 
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE    ( MT1 );
    BLAZE_CONSTRAINT_MUST_BE_ROW_MAJOR_MATRIX_TYPE( MT1 );
@@ -3336,9 +3336,9 @@ void smmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha )
 template< typename MT1, typename MT2, typename MT3, typename ST >
 void smmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha )
 {
-   using ET1 = ElementType_<MT1>;
-   using ET2 = ElementType_<MT2>;
-   using ET3 = ElementType_<MT3>;
+   using ET1 = ElementType_t<MT1>;
+   using ET2 = ElementType_t<MT2>;
+   using ET3 = ElementType_t<MT3>;
 
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE       ( MT1 );
    BLAZE_CONSTRAINT_MUST_BE_COLUMN_MAJOR_MATRIX_TYPE( MT1 );
@@ -3404,9 +3404,9 @@ void smmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha )
 template< typename MT1, typename MT2, typename MT3 >
 inline void smmm( MT1& C, const MT2& A, const MT3& B )
 {
-   using ET1 = ElementType_<MT1>;
-   using ET2 = ElementType_<MT2>;
-   using ET3 = ElementType_<MT3>;
+   using ET1 = ElementType_t<MT1>;
+   using ET2 = ElementType_t<MT2>;
+   using ET3 = ElementType_t<MT3>;
 
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET2 );
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET3 );
@@ -3446,9 +3446,9 @@ inline void smmm( MT1& C, const MT2& A, const MT3& B )
 template< typename MT1, typename MT2, typename MT3, typename ST >
 void hmmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha )
 {
-   using ET1 = ElementType_<MT1>;
-   using ET2 = ElementType_<MT2>;
-   using ET3 = ElementType_<MT3>;
+   using ET1 = ElementType_t<MT1>;
+   using ET2 = ElementType_t<MT2>;
+   using ET3 = ElementType_t<MT3>;
 
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE    ( MT1 );
    BLAZE_CONSTRAINT_MUST_BE_ROW_MAJOR_MATRIX_TYPE( MT1 );
@@ -3516,9 +3516,9 @@ void hmmm( DenseMatrix<MT1,false>& C, const MT2& A, const MT3& B, ST alpha )
 template< typename MT1, typename MT2, typename MT3, typename ST >
 void hmmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha )
 {
-   using ET1 = ElementType_<MT1>;
-   using ET2 = ElementType_<MT2>;
-   using ET3 = ElementType_<MT3>;
+   using ET1 = ElementType_t<MT1>;
+   using ET2 = ElementType_t<MT2>;
+   using ET3 = ElementType_t<MT3>;
 
    BLAZE_CONSTRAINT_MUST_BE_DENSE_MATRIX_TYPE       ( MT1 );
    BLAZE_CONSTRAINT_MUST_BE_COLUMN_MAJOR_MATRIX_TYPE( MT1 );
@@ -3584,9 +3584,9 @@ void hmmm( DenseMatrix<MT1,true>& C, const MT2& A, const MT3& B, ST alpha )
 template< typename MT1, typename MT2, typename MT3 >
 inline void hmmm( MT1& C, const MT2& A, const MT3& B )
 {
-   using ET1 = ElementType_<MT1>;
-   using ET2 = ElementType_<MT2>;
-   using ET3 = ElementType_<MT3>;
+   using ET1 = ElementType_t<MT1>;
+   using ET2 = ElementType_t<MT2>;
+   using ET3 = ElementType_t<MT3>;
 
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET2 );
    BLAZE_CONSTRAINT_MUST_BE_SIMD_COMBINABLE_TYPES( ET1, ET3 );

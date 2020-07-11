@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsmatadd/H3x3aHCa.cpp
 //  \brief Source file for the H3x3aHCa dense matrix/sparse matrix addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/dmatsmatadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::HermitianMatrix< blaze::StaticMatrix<NumericA,3UL,3UL> >  H3x3a;
-      typedef blaze::HermitianMatrix< blaze::CompressedMatrix<NumericA> >      HCa;
+      using H3x3a = blaze::HermitianMatrix< blaze::StaticMatrix<NumericA,3UL,3UL> >;
+      using HCa = blaze::HermitianMatrix< blaze::CompressedMatrix<NumericA> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<H3x3a>  CH3x3a;
-      typedef blazetest::Creator<HCa>    CHCa;
+      using CH3x3a = blazetest::Creator<H3x3a>;
+      using CHCa = blazetest::Creator<HCa>;
 
       // Running the tests
       for( size_t i=0UL; i<=9UL; ++i ) {

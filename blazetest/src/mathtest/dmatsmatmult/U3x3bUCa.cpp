@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsmatmult/U3x3bUCa.cpp
 //  \brief Source file for the U3x3bUCa dense matrix/sparse matrix multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/dmatsmatmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -64,12 +68,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::UpperMatrix< blaze::StaticMatrix<TypeB,3UL,3UL> >  U3x3b;
-      typedef blaze::UpperMatrix< blaze::CompressedMatrix<TypeA> >      UCa;
+      using U3x3b = blaze::UpperMatrix< blaze::StaticMatrix<TypeB,3UL,3UL> >;
+      using UCa = blaze::UpperMatrix< blaze::CompressedMatrix<TypeA> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<U3x3b>  CU3x3b;
-      typedef blazetest::Creator<UCa>    CUCa;
+      using CU3x3b = blazetest::Creator<U3x3b>;
+      using CUCa = blazetest::Creator<UCa>;
 
       // Running the tests
       for( size_t i=0UL; i<=6UL; ++i ) {

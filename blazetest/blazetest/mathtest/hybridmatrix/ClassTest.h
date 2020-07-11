@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/hybridmatrix/ClassTest.h
 //  \brief Header file for the HybridMatrix class test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,19 +40,24 @@
 // Includes
 //*************************************************************************************************
 
+#include <array>
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <boost/container/static_vector.hpp>
-#include <boost/container/vector.hpp>
+#include <vector>
 #include <blaze/math/constraints/ColumnMajorMatrix.h>
 #include <blaze/math/constraints/DenseMatrix.h>
 #include <blaze/math/constraints/RequiresEvaluation.h>
 #include <blaze/math/constraints/RowMajorMatrix.h>
 #include <blaze/math/HybridMatrix.h>
+#include <blaze/math/simd/SIMDTrait.h>
+#include <blaze/math/typetraits/IsAligned.h>
+#include <blaze/math/typetraits/IsPadded.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
+#include <blaze/util/algorithms/Max.h>
 #include <blaze/util/AlignedAllocator.h>
 #include <blaze/util/constraints/SameType.h>
+#include <blaze/util/StaticAssert.h>
 #include <blaze/util/typetraits/AlignmentOf.h>
 #include <blazetest/system/Types.h>
 
@@ -101,6 +106,7 @@ class ClassTest
    void testAssignment  ();
    void testAddAssign   ();
    void testSubAssign   ();
+   void testSchurAssign ();
    void testMultAssign  ();
    void testScaling     ();
    void testFunctionCall();
@@ -111,9 +117,9 @@ class ClassTest
    void testClear       ();
    void testResize      ();
    void testExtend      ();
+   void testSwap        ();
    void testTranspose   ();
    void testCTranspose  ();
-   void testSwap        ();
    void testIsDefault   ();
 
    template< typename Type >
@@ -141,11 +147,11 @@ class ClassTest
    //**********************************************************************************************
 
    //**Type definitions****************************************************************************
-   typedef blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor>     MT;   //!< Type of the row-major hybrid matrix.
-   typedef blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor>  OMT;  //!< Type of the column-major hybrid matrix.
+   using MT  = blaze::HybridMatrix<int,2UL,3UL,blaze::rowMajor>;     //!< Type of the row-major hybrid matrix.
+   using OMT = blaze::HybridMatrix<int,2UL,3UL,blaze::columnMajor>;  //!< Type of the column-major hybrid matrix.
 
-   typedef MT::Rebind<double>::Other   RMT;   //!< Rebound row-major hybrid matrix type.
-   typedef OMT::Rebind<double>::Other  ORMT;  //!< Rebound column-major hybrid matrix type.
+   using RMT  = MT::Rebind<double>::Other;   //!< Rebound row-major hybrid matrix type.
+   using ORMT = OMT::Rebind<double>::Other;  //!< Rebound column-major hybrid matrix type.
    //**********************************************************************************************
 
    //**Compile time checks*************************************************************************
@@ -237,23 +243,26 @@ class ClassTest
 template< typename Type >
 void ClassTest::testAlignment( const std::string& type )
 {
-   typedef blaze::HybridMatrix<Type,7UL,5UL,blaze::rowMajor>     RowMajorMatrixType;
-   typedef blaze::HybridMatrix<Type,7UL,5UL,blaze::columnMajor>  ColumnMajorMatrixType;
-
-   typedef blaze::AlignedAllocator<RowMajorMatrixType>     RowMajorAllocatorType;
-   typedef blaze::AlignedAllocator<ColumnMajorMatrixType>  ColumnMajorAllocatorType;
-
-   const size_t alignment( blaze::AlignmentOf<Type>::value );
+   constexpr size_t SIMDSIZE ( blaze::SIMDTrait<Type>::size );
+   constexpr size_t alignment( blaze::max( blaze::AlignmentOf_v<Type>, alignof(size_t) ) );
+   constexpr size_t overhead ( blaze::max( alignof(Type), alignof(size_t) ) );
 
 
    //=====================================================================================
-   // Single matrix alignment test
+   // Single matrix alignment test (aligned/padded)
    //=====================================================================================
 
    {
-      const RowMajorMatrixType mat;
+      using AlignedPadded =
+         blaze::HybridMatrix<Type,7UL,5UL,blaze::rowMajor,blaze::aligned,blaze::padded>;
 
-      const size_t rows( blaze::usePadding ? mat.rows() : 1UL );
+      BLAZE_STATIC_ASSERT( blaze::IsAligned_v<AlignedPadded> );
+      BLAZE_STATIC_ASSERT( blaze::IsPadded_v<AlignedPadded> );
+      BLAZE_STATIC_ASSERT( sizeof(AlignedPadded) == sizeof(Type)*7UL*blaze::nextMultiple( 5UL, SIMDSIZE ) + alignment );
+
+      const AlignedPadded mat( 7UL, 5UL );
+
+      const size_t rows( mat.rows() );
 
       for( size_t i=0UL; i<rows; ++i )
       {
@@ -273,9 +282,16 @@ void ClassTest::testAlignment( const std::string& type )
    }
 
    {
-      const ColumnMajorMatrixType mat;
+      using AlignedPadded =
+         blaze::HybridMatrix<Type,7UL,5UL,blaze::columnMajor,blaze::aligned,blaze::padded>;
 
-      const size_t columns( blaze::usePadding ? mat.columns() : 1UL );
+      BLAZE_STATIC_ASSERT( blaze::IsAligned_v<AlignedPadded> );
+      BLAZE_STATIC_ASSERT( blaze::IsPadded_v<AlignedPadded> );
+      BLAZE_STATIC_ASSERT( sizeof(AlignedPadded) == sizeof(Type)*5UL*blaze::nextMultiple( 7UL, SIMDSIZE ) + alignment );
+
+      const AlignedPadded mat( 7UL, 5UL );
+
+      const size_t columns( mat.columns() );
 
       for( size_t j=0UL; j<columns; ++j )
       {
@@ -296,15 +312,128 @@ void ClassTest::testAlignment( const std::string& type )
 
 
    //=====================================================================================
-   // Static array alignment test
+   // Single matrix alignment test (aligned/unpadded)
    //=====================================================================================
 
    {
-      const boost::container::static_vector<RowMajorMatrixType,7UL> mats( 7UL );
+      using AlignedUnpadded =
+         blaze::HybridMatrix<Type,7UL,64UL,blaze::rowMajor,blaze::aligned,blaze::unpadded>;
+
+      BLAZE_STATIC_ASSERT( blaze::IsAligned_v<AlignedUnpadded> );
+      BLAZE_STATIC_ASSERT( !blaze::IsPadded_v<AlignedUnpadded> );
+      BLAZE_STATIC_ASSERT( sizeof(AlignedUnpadded) == sizeof(Type)*7UL*blaze::nextMultiple( 64UL, SIMDSIZE ) + alignment );
+
+      const AlignedUnpadded mat( 7UL, 64UL );
+
+      const size_t rows( mat.rows() );
+
+      for( size_t i=0UL; i<rows; ++i )
+      {
+         const size_t deviation( reinterpret_cast<size_t>( &mat(i,0UL) ) % alignment );
+
+         if( deviation != 0UL ) {
+            std::ostringstream oss;
+            oss << " Test: Single matrix alignment test (row-major)\n"
+                << " Error: Invalid alignment in row " << i << " detected\n"
+                << " Details:\n"
+                << "   Element type      : " << type << "\n"
+                << "   Expected alignment: " << alignment << "\n"
+                << "   Deviation         : " << deviation << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+   {
+      using AlignedUnpadded =
+         blaze::HybridMatrix<Type,64UL,5UL,blaze::columnMajor,blaze::aligned,blaze::unpadded>;
+
+      BLAZE_STATIC_ASSERT( blaze::IsAligned_v<AlignedUnpadded> );
+      BLAZE_STATIC_ASSERT( !blaze::IsPadded_v<AlignedUnpadded> );
+      BLAZE_STATIC_ASSERT( sizeof(AlignedUnpadded) == sizeof(Type)*5UL*blaze::nextMultiple( 64UL, SIMDSIZE ) + alignment );
+
+      const AlignedUnpadded mat( 64UL, 5UL );
+
+      const size_t columns( mat.columns() );
+
+      for( size_t j=0UL; j<columns; ++j )
+      {
+         const size_t deviation( reinterpret_cast<size_t>( &mat(0UL,j) ) % alignment );
+
+         if( deviation != 0UL ) {
+            std::ostringstream oss;
+            oss << " Test: Single matrix alignment test (column-major)\n"
+                << " Error: Invalid alignment in column " << j << " detected\n"
+                << " Details:\n"
+                << "   Element type      : " << type << "\n"
+                << "   Expected alignment: " << alignment << "\n"
+                << "   Deviation         : " << deviation << "\n";
+            throw std::runtime_error( oss.str() );
+         }
+      }
+   }
+
+
+   //=====================================================================================
+   // Single matrix alignment test (unaligned/padded)
+   //=====================================================================================
+
+   {
+      using UnalignedPadded =
+         blaze::HybridMatrix<Type,7UL,5UL,blaze::rowMajor,blaze::unaligned,blaze::padded>;
+
+      BLAZE_STATIC_ASSERT( !blaze::IsAligned_v<UnalignedPadded> );
+      BLAZE_STATIC_ASSERT( blaze::IsPadded_v<UnalignedPadded> );
+      BLAZE_STATIC_ASSERT( sizeof(UnalignedPadded) == sizeof(Type)*7UL*blaze::nextMultiple( 5UL, SIMDSIZE ) + 2UL*overhead );
+   }
+
+   {
+      using UnalignedPadded =
+         blaze::HybridMatrix<Type,7UL,5UL,blaze::columnMajor,blaze::unaligned,blaze::padded>;
+
+      BLAZE_STATIC_ASSERT( !blaze::IsAligned_v<UnalignedPadded> );
+      BLAZE_STATIC_ASSERT( blaze::IsPadded_v<UnalignedPadded> );
+      BLAZE_STATIC_ASSERT( sizeof(UnalignedPadded) == sizeof(Type)*5UL*blaze::nextMultiple( 7UL, SIMDSIZE ) + 2UL*overhead );
+   }
+
+
+   //=====================================================================================
+   // Single matrix alignment test (unaligned/unpadded)
+   //=====================================================================================
+
+   {
+      using UnalignedUnpadded =
+         blaze::HybridMatrix<Type,7UL,5UL,blaze::rowMajor,blaze::unaligned,blaze::unpadded>;
+
+      BLAZE_STATIC_ASSERT( !blaze::IsAligned_v<UnalignedUnpadded> );
+      BLAZE_STATIC_ASSERT( !blaze::IsPadded_v<UnalignedUnpadded> );
+      BLAZE_STATIC_ASSERT( sizeof(UnalignedUnpadded) == blaze::nextMultiple( sizeof(Type)*7UL*5UL, overhead ) + 2UL*overhead );
+   }
+
+   {
+      using UnalignedUnpadded =
+         blaze::HybridMatrix<Type,7UL,5UL,blaze::columnMajor,blaze::unaligned,blaze::unpadded>;
+
+      BLAZE_STATIC_ASSERT( !blaze::IsAligned_v<UnalignedUnpadded> );
+      BLAZE_STATIC_ASSERT( !blaze::IsPadded_v<UnalignedUnpadded> );
+      BLAZE_STATIC_ASSERT( sizeof(UnalignedUnpadded) == blaze::nextMultiple( sizeof(Type)*7UL*5UL, overhead ) + 2UL*overhead );
+   }
+
+
+   //=====================================================================================
+   // Static array alignment test (aligned/padded)
+   //=====================================================================================
+
+   {
+      using AlignedPadded =
+         blaze::HybridMatrix<Type,7UL,5UL,blaze::rowMajor,blaze::aligned,blaze::padded>;
+
+      const AlignedPadded init( 7UL, 5UL );
+      const std::array<AlignedPadded,7UL> mats{ init, init, init, init, init, init, init };
 
       for( size_t i=0UL; i<mats.size(); ++i )
       {
-         const size_t rows( blaze::usePadding ? mats[i].rows() : 1UL );
+         const size_t rows( mats[i].rows() );
 
          for( size_t j=0UL; j<rows; ++j )
          {
@@ -325,11 +454,15 @@ void ClassTest::testAlignment( const std::string& type )
    }
 
    {
-      const boost::container::static_vector<ColumnMajorMatrixType,7UL> mats( 7UL );
+      using AlignedPadded =
+         blaze::HybridMatrix<Type,7UL,5UL,blaze::columnMajor,blaze::aligned,blaze::padded>;
+
+      const AlignedPadded init( 7UL, 5UL );
+      const std::array<AlignedPadded,7UL> mats{ init, init, init, init, init, init, init };
 
       for( size_t i=0UL; i<mats.size(); ++i )
       {
-         const size_t columns( blaze::usePadding ? mats[i].columns() : 1UL );
+         const size_t columns( mats[i].columns() );
 
          for( size_t j=0UL; j<columns; ++j )
          {
@@ -351,15 +484,83 @@ void ClassTest::testAlignment( const std::string& type )
 
 
    //=====================================================================================
-   // Dynamic array alignment test
+   // Static array alignment test (aligned/unpadded)
    //=====================================================================================
 
    {
-      const boost::container::vector<RowMajorMatrixType,RowMajorAllocatorType> mats( 7UL );
+      using AlignedUnpadded =
+         blaze::HybridMatrix<Type,7UL,64UL,blaze::rowMajor,blaze::aligned,blaze::unpadded>;
+
+      const AlignedUnpadded init( 7UL, 64UL );
+      const std::array<AlignedUnpadded,7UL> mats{ init, init, init, init, init, init, init };
 
       for( size_t i=0UL; i<mats.size(); ++i )
       {
-         const size_t rows( blaze::usePadding ? mats[i].rows() : 1UL );
+         const size_t rows( mats[i].rows() );
+
+         for( size_t j=0UL; j<rows; ++j )
+         {
+            const size_t deviation( reinterpret_cast<size_t>( &mats[i](j,0UL) ) % alignment );
+
+            if( deviation != 0UL ) {
+               std::ostringstream oss;
+               oss << " Test: Static array alignment test (row-major)\n"
+                   << " Error: Invalid alignment at index " << i << " in row " << j << " detected\n"
+                   << " Details:\n"
+                   << "   Element type      : " << type << "\n"
+                   << "   Expected alignment: " << alignment << "\n"
+                   << "   Deviation         : " << deviation << "\n";
+               throw std::runtime_error( oss.str() );
+            }
+         }
+      }
+   }
+
+   {
+      using AlignedUnpadded =
+         blaze::HybridMatrix<Type,64UL,5UL,blaze::columnMajor,blaze::aligned,blaze::unpadded>;
+
+      const AlignedUnpadded init( 64UL, 5UL );
+      const std::array<AlignedUnpadded,7UL> mats{ init, init, init, init, init, init, init };
+
+      for( size_t i=0UL; i<mats.size(); ++i )
+      {
+         const size_t columns( mats[i].columns() );
+
+         for( size_t j=0UL; j<columns; ++j )
+         {
+            const size_t deviation( reinterpret_cast<size_t>( &mats[i](0UL,j) ) % alignment );
+
+            if( deviation != 0UL ) {
+               std::ostringstream oss;
+               oss << " Test: Static array alignment test (column-major)\n"
+                   << " Error: Invalid alignment at index " << i << " in column " << j << " detected\n"
+                   << " Details:\n"
+                   << "   Element type      : " << type << "\n"
+                   << "   Expected alignment: " << alignment << "\n"
+                   << "   Deviation         : " << deviation << "\n";
+               throw std::runtime_error( oss.str() );
+            }
+         }
+      }
+   }
+
+
+   //=====================================================================================
+   // Dynamic array alignment test (aligned/padded)
+   //=====================================================================================
+
+   {
+      using AlignedPadded =
+         blaze::HybridMatrix<Type,7UL,5UL,blaze::rowMajor,blaze::aligned,blaze::padded>;
+      using AllocatorType = blaze::AlignedAllocator<AlignedPadded>;
+
+      const AlignedPadded init( 7UL, 5UL );
+      const std::vector<AlignedPadded,AllocatorType> mats( 7UL, init );
+
+      for( size_t i=0UL; i<mats.size(); ++i )
+      {
+         const size_t rows( mats[i].rows() );
 
          for( size_t j=0UL; j<rows; ++j )
          {
@@ -380,11 +581,81 @@ void ClassTest::testAlignment( const std::string& type )
    }
 
    {
-      const boost::container::vector<ColumnMajorMatrixType,ColumnMajorAllocatorType> mats( 7UL );
+      using AlignedPadded =
+         blaze::HybridMatrix<Type,7UL,5UL,blaze::columnMajor,blaze::aligned,blaze::padded>;
+      using AllocatorType = blaze::AlignedAllocator<AlignedPadded>;
+
+      const AlignedPadded init( 7UL, 5UL );
+      const std::vector<AlignedPadded,AllocatorType> mats( 7UL, init );
 
       for( size_t i=0UL; i<mats.size(); ++i )
       {
-         const size_t columns( blaze::usePadding ? mats[i].columns() : 1UL );
+         const size_t columns( mats[i].columns() );
+
+         for( size_t j=0UL; j<columns; ++j )
+         {
+            const size_t deviation( reinterpret_cast<size_t>( &mats[i](0UL,j) ) % alignment );
+
+            if( deviation != 0UL ) {
+               std::ostringstream oss;
+               oss << " Test: Dynamic array alignment test (column-major)\n"
+                   << " Error: Invalid alignment at index " << i << " in column " << j << " detected\n"
+                   << " Details:\n"
+                   << "   Element type      : " << type << "\n"
+                   << "   Expected alignment: " << alignment << "\n"
+                   << "   Deviation         : " << deviation << "\n";
+               throw std::runtime_error( oss.str() );
+            }
+         }
+      }
+   }
+
+
+   //=====================================================================================
+   // Dynamic array alignment test (aligned/unpadded)
+   //=====================================================================================
+
+   {
+      using AlignedPadded =
+         blaze::HybridMatrix<Type,7UL,64UL,blaze::rowMajor,blaze::aligned,blaze::padded>;
+      using AllocatorType = blaze::AlignedAllocator<AlignedPadded>;
+
+      const AlignedPadded init( 7UL, 64UL );
+      const std::vector<AlignedPadded,AllocatorType> mats( 7UL, init );
+
+      for( size_t i=0UL; i<mats.size(); ++i )
+      {
+         const size_t rows( mats[i].rows() );
+
+         for( size_t j=0UL; j<rows; ++j )
+         {
+            const size_t deviation( reinterpret_cast<size_t>( &mats[i](j,0UL) ) % alignment );
+
+            if( deviation != 0UL ) {
+               std::ostringstream oss;
+               oss << " Test: Dynamic array alignment test (row-major)\n"
+                   << " Error: Invalid alignment at index " << i << " in row " << j << " detected\n"
+                   << " Details:\n"
+                   << "   Element type      : " << type << "\n"
+                   << "   Expected alignment: " << alignment << "\n"
+                   << "   Deviation         : " << deviation << "\n";
+               throw std::runtime_error( oss.str() );
+            }
+         }
+      }
+   }
+
+   {
+      using AlignedPadded =
+         blaze::HybridMatrix<Type,64UL,5UL,blaze::columnMajor,blaze::aligned,blaze::padded>;
+      using AllocatorType = blaze::AlignedAllocator<AlignedPadded>;
+
+      const AlignedPadded init( 64UL, 5UL );
+      const std::vector<AlignedPadded,AllocatorType> mats( 7UL, init );
+
+      for( size_t i=0UL; i<mats.size(); ++i )
+      {
+         const size_t columns( mats[i].columns() );
 
          for( size_t j=0UL; j<columns; ++j )
          {

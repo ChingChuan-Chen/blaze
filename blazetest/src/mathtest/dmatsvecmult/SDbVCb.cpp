@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsvecmult/SDbVCb.cpp
 //  \brief Source file for the SDbVCb dense matrix/sparse vector multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -46,6 +46,10 @@
 #include <blazetest/mathtest/dmatsvecmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::SymmetricMatrix< blaze::DynamicMatrix<TypeB> >  SDb;
-      typedef blaze::CompressedVector<TypeB>                         VCb;
+      using SDb = blaze::SymmetricMatrix< blaze::DynamicMatrix<TypeB> >;
+      using VCb = blaze::CompressedVector<TypeB>;
 
       // Creator type definitions
-      typedef blazetest::Creator<SDb>  CSDb;
-      typedef blazetest::Creator<VCb>  CVCb;
+      using CSDb = blazetest::Creator<SDb>;
+      using CVCb = blazetest::Creator<VCb>;
 
       // Running tests with large matrices and vectors
       for( size_t i=0UL; i<=6UL; ++i ) {

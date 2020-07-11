@@ -3,7 +3,7 @@
 //  \file blaze/math/dense/Inversion.h
 //  \brief Header file for the dense matrix in-place inversion kernels
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,10 +45,10 @@
 #include <blaze/math/constraints/Adaptor.h>
 #include <blaze/math/constraints/BLASCompatible.h>
 #include <blaze/math/constraints/StrictlyTriangular.h>
+#include <blaze/math/constraints/Uniform.h>
 #include <blaze/math/dense/StaticMatrix.h>
 #include <blaze/math/Exception.h>
 #include <blaze/math/expressions/DenseMatrix.h>
-#include <blaze/math/Functions.h>
 #include <blaze/math/InversionFlag.h>
 #include <blaze/math/lapack/getrf.h>
 #include <blaze/math/lapack/getri.h>
@@ -63,6 +63,14 @@
 #include <blaze/math/shims/IsDivisor.h>
 #include <blaze/math/shims/Invert.h>
 #include <blaze/math/shims/Real.h>
+#include <blaze/math/typetraits/IsDiagonal.h>
+#include <blaze/math/typetraits/IsHermitian.h>
+#include <blaze/math/typetraits/IsLower.h>
+#include <blaze/math/typetraits/IsSymmetric.h>
+#include <blaze/math/typetraits/IsUniLower.h>
+#include <blaze/math/typetraits/IsUniUpper.h>
+#include <blaze/math/typetraits/IsUpper.h>
+#include <blaze/util/algorithms/Min.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/EnableIf.h>
 #include <blaze/util/Types.h>
@@ -71,6 +79,36 @@
 
 
 namespace blaze {
+
+//=================================================================================================
+//
+//  AUXILIARY FUNCTIONS
+//
+//=================================================================================================
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Returns the proper inversion flag for the given matrix type \a MT.
+//
+// \return The proper inversion flag for the matrix type \a MT.
+*/
+template< typename MT >
+constexpr InversionFlag getInversionFlag() noexcept
+{
+   return ( IsDiagonal_v<MT>  ? asDiagonal
+          : IsUniUpper_v<MT>  ? asUniUpper
+          : IsUpper_v<MT>     ? asUpper
+          : IsUniLower_v<MT>  ? asUniLower
+          : IsLower_v<MT>     ? asLower
+          : IsSymmetric_v<MT> ? asSymmetric
+          : IsHermitian_v<MT> ? asHermitian
+          :                     asGeneral );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+
 
 //=================================================================================================
 //
@@ -100,12 +138,12 @@ template< typename MT  // Type of the dense matrix
 inline void invertGeneral2x2( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 2UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 2UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    MT& A( ~dm );
 
@@ -148,12 +186,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertSymmetric2x2( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 2UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 2UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const MT& A( ~dm );
    MT& B( ~dm );
@@ -196,12 +234,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertHermitian2x2( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 2UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 2UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const MT& A( ~dm );
    MT& B( ~dm );
@@ -244,12 +282,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertLower2x2( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 2UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 2UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    MT& A( ~dm );
 
@@ -288,7 +326,7 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertUniLower2x2( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 2UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 2UL, "Invalid number of columns detected" );
@@ -321,12 +359,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertUpper2x2( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 2UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 2UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    MT& A( ~dm );
 
@@ -365,7 +403,7 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertUniUpper2x2( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 2UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 2UL, "Invalid number of columns detected" );
@@ -398,12 +436,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertDiagonal2x2( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 2UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 2UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    MT& A( ~dm );
 
@@ -440,7 +478,7 @@ inline void invertDiagonal2x2( DenseMatrix<MT,SO>& dm )
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -452,7 +490,7 @@ template< InversionFlag IF  // Inversion algorithm
 inline void invert2x2( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_STRICTLY_TRIANGULAR_MATRIX_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( isSquare( ~dm ), "Non-square matrix detected" );
 
@@ -508,12 +546,12 @@ template< typename MT  // Type of the dense matrix
 inline void invertGeneral3x3( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 3UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 3UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,3UL,3UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -562,12 +600,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertSymmetric3x3( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 3UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 3UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,3UL,3UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -615,12 +653,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertHermitian3x3( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 3UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 3UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,3UL,3UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -668,12 +706,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertLower3x3( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 3UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 3UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,3UL,3UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -716,12 +754,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertUniLower3x3( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 3UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 3UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,3UL,3UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -754,12 +792,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertUpper3x3( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 3UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 3UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,3UL,3UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -802,12 +840,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertUniUpper3x3( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 3UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 3UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,3UL,3UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -840,12 +878,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertDiagonal3x3( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 3UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 3UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    MT& A( ~dm );
 
@@ -885,7 +923,7 @@ inline void invertDiagonal3x3( DenseMatrix<MT,SO>& dm )
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -897,7 +935,7 @@ template< InversionFlag IF  // Inversion algorithm
 inline void invert3x3( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_STRICTLY_TRIANGULAR_MATRIX_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( isSquare( ~dm ), "Non-square matrix detected" );
 
@@ -953,12 +991,12 @@ template< typename MT  // Type of the dense matrix
 inline void invertGeneral4x4( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 4UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 4UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,4UL,4UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -1036,12 +1074,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertSymmetric4x4( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 4UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 4UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,4UL,4UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -1114,12 +1152,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertHermitian4x4( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 4UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 4UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,4UL,4UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -1192,12 +1230,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertLower4x4( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 4UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 4UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,4UL,4UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -1248,12 +1286,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertUniLower4x4( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 4UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 4UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,4UL,4UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -1291,12 +1329,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertUpper4x4( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 4UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 4UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,4UL,4UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -1347,12 +1385,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertUniUpper4x4( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 4UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 4UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,4UL,4UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -1390,12 +1428,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertDiagonal4x4( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 4UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 4UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    MT& A( ~dm );
 
@@ -1438,7 +1476,7 @@ inline void invertDiagonal4x4( DenseMatrix<MT,SO>& dm )
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -1450,7 +1488,7 @@ template< InversionFlag IF  // Inversion algorithm
 inline void invert4x4( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_STRICTLY_TRIANGULAR_MATRIX_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( isSquare( ~dm ), "Non-square matrix detected" );
 
@@ -1506,12 +1544,12 @@ template< typename MT  // Type of the dense matrix
 inline void invertGeneral5x5( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 5UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 5UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,5UL,5UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -1645,12 +1683,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertSymmetric5x5( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 5UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 5UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,5UL,5UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -1766,12 +1804,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertHermitian5x5( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 5UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 5UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,5UL,5UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -1887,12 +1925,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertLower5x5( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 5UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 5UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,5UL,5UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -1955,12 +1993,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertUniLower5x5( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 5UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 5UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,5UL,5UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -2004,12 +2042,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertUpper5x5( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 5UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 5UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,5UL,5UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -2073,30 +2111,28 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertUniUpper5x5( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 5UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 5UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,5UL,5UL,SO> A( ~dm );
    MT& B( ~dm );
 
-   const ET tmp2( A(0,1)*A(1,2) - A(0,2) );
-
-   const ET tmp8 ( A(2,3)*tmp2 - A(0,1)*A(1,3) + A(0,3) );
-   const ET tmp9 ( A(2,3)*A(1,2) - A(1,3) );
-   const ET tmp10( A(2,3) );
+   const ET tmp1( A(0,1)*A(1,2) - A(0,2) );
+   const ET tmp2( A(2,3)*A(1,2) - A(1,3) );
+   const ET tmp3( A(2,3)*tmp1 - A(0,1)*A(1,3) + A(0,3) );
 
    B(0,1) = - A(0,1);
    B(0,2) =   A(0,1)*A(1,2) - A(0,2);
    B(1,2) = - A(1,2);
-   B(0,3) = - tmp8;
-   B(1,3) =   tmp9;
+   B(0,3) = - tmp3;
+   B(1,3) =   tmp2;
    B(2,3) = - A(2,3);
-   B(0,4) =   A(3,4)*tmp8 - A(2,4)*tmp2 + A(0,1)*A(1,4) - A(0,4);
-   B(1,4) =   A(2,4)*A(1,2) - A(1,4) - A(3,4)*tmp9;
+   B(0,4) =   A(3,4)*tmp3 - A(2,4)*tmp1 + A(0,1)*A(1,4) - A(0,4);
+   B(1,4) =   A(2,4)*A(1,2) - A(1,4) - A(3,4)*tmp2;
    B(2,4) =   A(3,4)*A(2,3) - A(2,4);
    B(3,4) = - A(3,4);
 }
@@ -2124,12 +2160,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertDiagonal5x5( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 5UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 5UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    MT& A( ~dm );
 
@@ -2174,7 +2210,7 @@ inline void invertDiagonal5x5( DenseMatrix<MT,SO>& dm )
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -2186,7 +2222,7 @@ template< InversionFlag IF  // Inversion algorithm
 inline void invert5x5( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_STRICTLY_TRIANGULAR_MATRIX_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( isSquare( ~dm ), "Non-square matrix detected" );
 
@@ -2242,12 +2278,12 @@ template< typename MT  // Type of the dense matrix
 inline void invertGeneral6x6( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 6UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 6UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,6UL,6UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -2472,12 +2508,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertSymmetric6x6( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 6UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 6UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,6UL,6UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -2683,12 +2719,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertHermitian6x6( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 6UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 6UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,6UL,6UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -2894,12 +2930,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertLower6x6( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 6UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 6UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,6UL,6UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -2975,12 +3011,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertUniLower6x6( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 6UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 6UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,6UL,6UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -3032,12 +3068,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertUpper6x6( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 6UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 6UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,6UL,6UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -3113,12 +3149,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertUniUpper6x6( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 6UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 6UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    const StaticMatrix<ET,6UL,6UL,SO> A( ~dm );
    MT& B( ~dm );
@@ -3170,12 +3206,12 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invertDiagonal6x6( DenseMatrix<MT,SO>& dm )
 {
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( (~dm).rows()    == 6UL, "Invalid number of rows detected"    );
    BLAZE_INTERNAL_ASSERT( (~dm).columns() == 6UL, "Invalid number of columns detected" );
 
-   typedef ElementType_<MT>  ET;
+   using ET = ElementType_t<MT>;
 
    MT& A( ~dm );
 
@@ -3222,7 +3258,7 @@ inline void invertDiagonal6x6( DenseMatrix<MT,SO>& dm )
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -3234,7 +3270,7 @@ template< InversionFlag IF  // Inversion algorithm
 inline void invert6x6( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_STRICTLY_TRIANGULAR_MATRIX_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( isSquare( ~dm ), "Non-square matrix detected" );
 
@@ -3290,7 +3326,7 @@ inline void invert6x6( DenseMatrix<MT,SO>& dm )
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -3301,10 +3337,10 @@ template< typename MT  // Type of the dense matrix
 inline void invertByLU( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    const size_t n( min( (~dm).rows(), (~dm).columns() ) );
-   const std::unique_ptr<int[]> ipiv( new int[n] );
+   const std::unique_ptr<blas_int_t[]> ipiv( new blas_int_t[n] );
 
    getrf( ~dm, ipiv.get() );
    getri( ~dm, ipiv.get() );
@@ -3335,7 +3371,7 @@ inline void invertByLU( DenseMatrix<MT,SO>& dm )
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -3346,12 +3382,12 @@ template< typename MT  // Type of the dense matrix
 inline void invertByLDLT( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_USER_ASSERT( isSymmetric( ~dm ), "Invalid non-symmetric matrix detected" );
 
    const char uplo( ( SO )?( 'L' ):( 'U' ) );
-   const std::unique_ptr<int[]> ipiv( new int[(~dm).rows()] );
+   const std::unique_ptr<blas_int_t[]> ipiv( new blas_int_t[(~dm).rows()] );
 
    sytrf( ~dm, uplo, ipiv.get() );
    sytri( ~dm, uplo, ipiv.get() );
@@ -3397,7 +3433,7 @@ inline void invertByLDLT( DenseMatrix<MT,SO>& dm )
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -3405,8 +3441,8 @@ inline void invertByLDLT( DenseMatrix<MT,SO>& dm )
 */
 template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
-inline EnableIf_< IsBuiltin< ElementType_<MT> > >
-   invertByLDLH( DenseMatrix<MT,SO>& dm )
+inline auto invertByLDLH( DenseMatrix<MT,SO>& dm )
+   -> EnableIf_t< IsBuiltin_v< ElementType_t<MT> > >
 {
    invertByLDLT( ~dm );
 }
@@ -3436,7 +3472,7 @@ inline EnableIf_< IsBuiltin< ElementType_<MT> > >
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -3444,16 +3480,16 @@ inline EnableIf_< IsBuiltin< ElementType_<MT> > >
 */
 template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
-inline EnableIf_< IsComplex< ElementType_<MT> > >
-   invertByLDLH( DenseMatrix<MT,SO>& dm )
+inline auto invertByLDLH( DenseMatrix<MT,SO>& dm )
+   -> EnableIf_t< IsComplex_v< ElementType_t<MT> > >
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_USER_ASSERT( isHermitian( ~dm ), "Invalid non-Hermitian matrix detected" );
 
    const char uplo( ( SO )?( 'L' ):( 'U' ) );
-   const std::unique_ptr<int[]> ipiv( new int[(~dm).rows()] );
+   const std::unique_ptr<blas_int_t[]> ipiv( new blas_int_t[(~dm).rows()] );
 
    hetrf( ~dm, uplo, ipiv.get() );
    hetri( ~dm, uplo, ipiv.get() );
@@ -3499,7 +3535,7 @@ inline EnableIf_< IsComplex< ElementType_<MT> > >
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -3510,7 +3546,7 @@ template< typename MT  // Type of the dense matrix
 inline void invertByLLH( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_USER_ASSERT( isHermitian( ~dm ), "Invalid non-symmetric matrix detected" );
 
@@ -3560,7 +3596,7 @@ inline void invertByLLH( DenseMatrix<MT,SO>& dm )
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -3571,7 +3607,7 @@ template< typename MT  // Type of the dense matrix
 inline void invertLowerNxN( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    trtri( ~dm, 'L', 'N' );
 }
@@ -3601,7 +3637,7 @@ inline void invertLowerNxN( DenseMatrix<MT,SO>& dm )
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -3612,7 +3648,7 @@ template< typename MT  // Type of the dense matrix
 inline void invertUniLowerNxN( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    trtri( ~dm, 'L', 'U' );
 }
@@ -3642,7 +3678,7 @@ inline void invertUniLowerNxN( DenseMatrix<MT,SO>& dm )
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -3653,7 +3689,7 @@ template< typename MT  // Type of the dense matrix
 inline void invertUpperNxN( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    trtri( ~dm, 'U', 'N' );
 }
@@ -3683,7 +3719,7 @@ inline void invertUpperNxN( DenseMatrix<MT,SO>& dm )
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -3694,7 +3730,7 @@ template< typename MT  // Type of the dense matrix
 inline void invertUniUpperNxN( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    trtri( ~dm, 'U', 'U' );
 }
@@ -3724,7 +3760,7 @@ inline void invertUniUpperNxN( DenseMatrix<MT,SO>& dm )
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -3735,7 +3771,7 @@ template< typename MT  // Type of the dense matrix
 inline void invertDiagonalNxN( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    for( size_t i=0UL; i<(~dm).rows(); ++i )
    {
@@ -3767,7 +3803,7 @@ inline void invertDiagonalNxN( DenseMatrix<MT,SO>& dm )
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -3779,7 +3815,7 @@ template< InversionFlag IF  // Inversion algorithm
 inline void invertNxN( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_STRICTLY_TRIANGULAR_MATRIX_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    BLAZE_INTERNAL_ASSERT( isSquare( ~dm ), "Non-square matrix detected" );
 
@@ -3845,7 +3881,7 @@ inline void invert( DenseMatrix<MT,SO>& dm );
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -3855,8 +3891,8 @@ template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
 inline void invert( DenseMatrix<MT,SO>& dm )
 {
-   invert<byLU>( ~dm );
-};
+   invert< getInversionFlag<MT>() >( ~dm );
+}
 //*************************************************************************************************
 
 
@@ -3892,7 +3928,7 @@ inline void invert( DenseMatrix<MT,SO>& dm )
 // \c complex<float> or \c complex<double> element type. The attempt to call the function with
 // matrices of any other element type results in a compile time error!
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
+// \note This function can only be used if a fitting LAPACK library is available and linked to
 // the executable. Otherwise a linker error will be created.
 //
 // \note This function does only provide the basic exception safety guarantee, i.e. in case of an
@@ -3904,7 +3940,8 @@ template< InversionFlag IF  // Inversion algorithm
 inline void invert( DenseMatrix<MT,SO>& dm )
 {
    BLAZE_CONSTRAINT_MUST_NOT_BE_STRICTLY_TRIANGULAR_MATRIX_TYPE( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_UNIFORM_TYPE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
    if( !isSquare( ~dm ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid non-square matrix provided" );
@@ -3922,7 +3959,7 @@ inline void invert( DenseMatrix<MT,SO>& dm )
    }
 
    BLAZE_INTERNAL_ASSERT( isIntact( ~dm ), "Broken invariant detected" );
-};
+}
 //*************************************************************************************************
 
 } // namespace blaze

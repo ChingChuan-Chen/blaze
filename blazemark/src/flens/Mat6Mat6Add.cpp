@@ -3,7 +3,7 @@
 //  \file src/flens/Mat6Mat6Add.cpp
 //  \brief Source file for the FLENS 6D matrix/matrix addition kernel
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -70,7 +70,7 @@ double mat6mat6add( size_t N, size_t steps )
 {
    using ::blazemark::element_t;
 
-   typedef ::flens::GeMatrix< ::flens::FullStorage<element_t,::flens::RowMajor> >  RowGeMatrix;
+   using RowGeMatrix = ::flens::GeMatrix< ::flens::FullStorage<element_t,::flens::RowMajor> >;
 
    ::blaze::setSeed( seed );
 

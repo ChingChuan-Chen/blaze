@@ -3,7 +3,7 @@
 //  \file src/blitz/DMatDMatMult.cpp
 //  \brief Source file for the Blitz++ dense matrix/dense matrix multiplication kernel
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -39,7 +39,7 @@
 
 #include <iostream>
 #include <blitz/array.h>
-#include <boost/cast.hpp>
+#include <blaze/util/NumericCast.h>
 #include <blaze/util/Timing.h>
 #include <blazemark/blitz/DMatDMatMult.h>
 #include <blazemark/blitz/init/Array.h>
@@ -69,7 +69,7 @@ namespace blitz {
 double dmatdmatmult( size_t N, size_t steps )
 {
    using ::blazemark::element_t;
-   using ::boost::numeric_cast;
+   using ::blaze::numeric_cast;
 
    ::blaze::setSeed( seed );
 

@@ -3,7 +3,7 @@
 //  \file src/mathtest/dvecsvecmult/VDbVCb.cpp
 //  \brief Source file for the VDbVCb dense vector/sparse vector multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dvecsvecmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -62,12 +66,12 @@ int main()
    try
    {
       // Vector type definitions
-      typedef blaze::DynamicVector<TypeB>     VDb;
-      typedef blaze::CompressedVector<TypeB>  VCb;
+      using VDb = blaze::DynamicVector<TypeB>;
+      using VCb = blaze::CompressedVector<TypeB>;
 
       // Creator type definitions
-      typedef blazetest::Creator<VDb>  CVDb;
-      typedef blazetest::Creator<VCb>  CVCb;
+      using CVDb = blazetest::Creator<VDb>;
+      using CVCb = blazetest::Creator<VCb>;
 
       // Running tests with small vectors
       for( size_t i=0UL; i<=6UL; ++i ) {

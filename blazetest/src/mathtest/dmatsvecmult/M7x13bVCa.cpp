@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsvecmult/M7x13bVCa.cpp
 //  \brief Source file for the M7x13bVCa dense matrix/sparse vector multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dmatsvecmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::StaticMatrix<TypeB,7UL,13UL>  M7x13b;
-      typedef blaze::CompressedVector<TypeA>       VCa;
+      using M7x13b = blaze::StaticMatrix<TypeB,7UL,13UL>;
+      using VCa = blaze::CompressedVector<TypeA>;
 
       // Creator type definitions
-      typedef blazetest::Creator<M7x13b>  CM7x13b;
-      typedef blazetest::Creator<VCa>     CVCa;
+      using CM7x13b = blazetest::Creator<M7x13b>;
+      using CVCa = blazetest::Creator<VCa>;
 
       // Running the tests
       RUN_DMATSVECMULT_OPERATION_TEST( CM7x13b(), CVCa( 13UL,  0UL ) );

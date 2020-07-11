@@ -3,7 +3,7 @@
 //  \file blaze/math/typetraits/IsVecVecDivExpr.h
 //  \brief Header file for the IsVecVecDivExpr type trait class
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -42,9 +42,6 @@
 
 #include <blaze/math/expressions/VecVecDivExpr.h>
 #include <blaze/util/IntegralConstant.h>
-#include <blaze/util/mpl/And.h>
-#include <blaze/util/mpl/Not.h>
-#include <blaze/util/typetraits/IsBaseOf.h>
 
 
 namespace blaze {
@@ -56,22 +53,83 @@ namespace blaze {
 //=================================================================================================
 
 //*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Auxiliary helper struct for the IsVecVecDivExpr type trait.
+// \ingroup math_type_traits
+*/
+template< typename T >
+struct IsVecVecDivExprHelper
+{
+ private:
+   //**********************************************************************************************
+   static T* create();
+
+   template< typename VT >
+   static TrueType test( const VecVecDivExpr<VT>* );
+
+   template< typename VT >
+   static TrueType test( const volatile VecVecDivExpr<VT>* );
+
+   static FalseType test( ... );
+   //**********************************************************************************************
+
+ public:
+   //**********************************************************************************************
+   using Type = decltype( test( create() ) );
+   //**********************************************************************************************
+};
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
 /*!\brief Compile time check whether the given type is a vector/vector division expression
 //        template.
 // \ingroup math_type_traits
 //
 // This type trait class tests whether or not the given type \a Type is a vector/vector division
 // expression template. In order to qualify as a valid vector division expression template, the
-// given type has to derive (publicly or privately) from the VecVecDivExpr base class. In case
-// the given type is a valid vector division expression template, the \a value member constant
-// is set to \a true, the nested type definition \a Type is \a TrueType, and the class derives
-// from \a TrueType. Otherwise \a value is set to \a false, \a Type is \a FalseType, and the
-// class derives from \a FalseType.
+// given type has to derive publicly from the VecVecDivExpr base class. In case the given type is
+// a valid vector division expression template, the \a value member constant is set to \a true,
+// the nested type definition \a Type is \a TrueType, and the class derives from \a TrueType.
+// Otherwise \a value is set to \a false, \a Type is \a FalseType, and the class derives from
+// \a FalseType.
 */
 template< typename T >
 struct IsVecVecDivExpr
-   : public BoolConstant< And< IsBaseOf<VecVecDivExpr,T>, Not< IsBaseOf<T,VecVecDivExpr> > >::value >
+   : public IsVecVecDivExprHelper<T>::Type
 {};
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Specialization of the IsVecVecDivExpr type trait for references.
+// \ingroup math_type_traits
+*/
+template< typename T >
+struct IsVecVecDivExpr<T&>
+   : public FalseType
+{};
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Auxiliary variable template for the IsVecVecDivExpr type trait.
+// \ingroup math_type_traits
+//
+// The IsVecVecDivExpr_v variable template provides a convenient shortcut to access the nested
+// \a value of the IsVecVecDivExpr class template. For instance, given the type \a T the
+// following two statements are identical:
+
+   \code
+   constexpr bool value1 = blaze::IsVecVecDivExpr<T>::value;
+   constexpr bool value2 = blaze::IsVecVecDivExpr_v<T>;
+   \endcode
+*/
+template< typename T >
+constexpr bool IsVecVecDivExpr_v = IsVecVecDivExpr<T>::value;
 //*************************************************************************************************
 
 } // namespace blaze

@@ -3,7 +3,7 @@
 //  \file src/mathtest/smatdvecmult/MCbV3b.cpp
 //  \brief Source file for the MCbV3b sparse matrix/dense vector multiplication math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/smatdvecmult/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -62,12 +66,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::CompressedMatrix<TypeB>  MCb;
-      typedef blaze::StaticVector<TypeB,3UL>  V3b;
+      using MCb = blaze::CompressedMatrix<TypeB>;
+      using V3b = blaze::StaticVector<TypeB,3UL>;
 
       // Creator type definitions
-      typedef blazetest::Creator<MCb>  CMCb;
-      typedef blazetest::Creator<V3b>  CV3b;
+      using CMCb = blazetest::Creator<MCb>;
+      using CV3b = blazetest::Creator<V3b>;
 
       // Running the tests
       for( size_t i=0UL; i<=6UL; ++i ) {

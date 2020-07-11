@@ -3,7 +3,7 @@
 //  \file src/mtl/Mat3Mat3Add.cpp
 //  \brief Source file for the MTL 3D matrix/matrix addition kernel
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -70,9 +70,9 @@ double mat3mat3add( size_t N, size_t steps )
 {
    using ::blazemark::element_t;
 
-   typedef ::mtl::tag::row_major  row_major;
-   typedef ::mtl::mat::parameters<row_major>  parameters;
-   typedef ::mtl::dense2D<element_t,parameters>  dense2D;
+   using row_major  = ::mtl::tag::row_major;
+   using parameters = ::mtl::mat::parameters<row_major>;
+   using dense2D    = ::mtl::dense2D<element_t,parameters>;
 
    ::blaze::setSeed( seed );
 

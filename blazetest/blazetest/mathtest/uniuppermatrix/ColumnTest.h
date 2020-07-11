@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/uniuppermatrix/ColumnTest.h
 //  \brief Header file for the UniUpperMatrix column test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -48,7 +48,6 @@
 #include <blaze/math/Column.h>
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/DynamicVector.h>
-#include <blaze/math/traits/ColumnExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blaze/math/UniUpperMatrix.h>
 #include <blazetest/system/Types.h>
@@ -77,16 +76,16 @@ class ColumnTest
  private:
    //**Type definitions****************************************************************************
    //! Type of the dense upper unitriangular matrix.
-   typedef blaze::UniUpperMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> >  DUT;
+   using DUT = blaze::UniUpperMatrix< blaze::DynamicMatrix<int,blaze::rowMajor> >;
 
    //! Opposite dense upper unitriangular matrix type.
-   typedef DUT::OppositeType  DOUT;
+   using DOUT = DUT::OppositeType;
 
    //! Type of the sparse upper unitriangular matrix.
-   typedef blaze::UniUpperMatrix< blaze::CompressedMatrix<int,blaze::rowMajor> >  SUT;
+   using SUT = blaze::UniUpperMatrix< blaze::CompressedMatrix<int,blaze::rowMajor> >;
 
    //! Opposite sparse upper unitriangular matrix type.
-   typedef SUT::OppositeType  SOUT;
+   using SOUT = SUT::OppositeType;
    //**********************************************************************************************
 
  public:
@@ -159,9 +158,6 @@ class ColumnTest
 template< typename UT >  // Type of the uniupper matrix
 void ColumnTest::testAssignment()
 {
-   typedef blaze::ColumnExprTrait_<UT>  CT;
-
-
    //=====================================================================================
    // Dense vector assignment
    //=====================================================================================
@@ -179,7 +175,7 @@ void ColumnTest::testAssignment()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
       col1 = vec;
 
       checkRows    ( upper, 3UL );
@@ -221,7 +217,7 @@ void ColumnTest::testAssignment()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
 
       try {
          col1 = vec;
@@ -250,7 +246,7 @@ void ColumnTest::testAssignment()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
 
       try {
          col1 = vec;
@@ -284,7 +280,7 @@ void ColumnTest::testAssignment()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
       col1 = vec;
 
       checkRows    ( upper, 3UL );
@@ -326,7 +322,7 @@ void ColumnTest::testAssignment()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
 
       try {
          col1 = vec;
@@ -355,7 +351,7 @@ void ColumnTest::testAssignment()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
 
       try {
          col1 = vec;
@@ -385,9 +381,6 @@ void ColumnTest::testAssignment()
 template< typename UT >  // Type of the uniupper matrix
 void ColumnTest::testAddAssign()
 {
-   typedef blaze::ColumnExprTrait_<UT>  CT;
-
-
    //=====================================================================================
    // Dense vector addition assignment
    //=====================================================================================
@@ -404,7 +397,7 @@ void ColumnTest::testAddAssign()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
       col1 += vec;
 
       checkRows    ( upper, 3UL );
@@ -447,7 +440,7 @@ void ColumnTest::testAddAssign()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
 
       try {
          col1 += vec;
@@ -475,7 +468,7 @@ void ColumnTest::testAddAssign()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
 
       try {
          col1 += vec;
@@ -508,7 +501,7 @@ void ColumnTest::testAddAssign()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
       col1 += vec;
 
       checkRows    ( upper, 3UL );
@@ -551,7 +544,7 @@ void ColumnTest::testAddAssign()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
 
       try {
          col1 += vec;
@@ -579,7 +572,7 @@ void ColumnTest::testAddAssign()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
 
       try {
          col1 += vec;
@@ -609,9 +602,6 @@ void ColumnTest::testAddAssign()
 template< typename UT >  // Type of the uniupper matrix
 void ColumnTest::testSubAssign()
 {
-   typedef blaze::ColumnExprTrait_<UT>  CT;
-
-
    //=====================================================================================
    // Dense vector subtraction assignment
    //=====================================================================================
@@ -628,7 +618,7 @@ void ColumnTest::testSubAssign()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
       col1 -= vec;
 
       checkRows    ( upper, 3UL );
@@ -671,7 +661,7 @@ void ColumnTest::testSubAssign()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
 
       try {
          col1 -= vec;
@@ -699,7 +689,7 @@ void ColumnTest::testSubAssign()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
 
       try {
          col1 -= vec;
@@ -732,7 +722,7 @@ void ColumnTest::testSubAssign()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
       col1 -= vec;
 
       checkRows    ( upper, 3UL );
@@ -775,7 +765,7 @@ void ColumnTest::testSubAssign()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
 
       try {
          col1 -= vec;
@@ -803,7 +793,7 @@ void ColumnTest::testSubAssign()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
 
       try {
          col1 -= vec;
@@ -833,9 +823,6 @@ void ColumnTest::testSubAssign()
 template< typename UT >  // Type of the uniupper matrix
 void ColumnTest::testMultAssign()
 {
-   typedef blaze::ColumnExprTrait_<UT>  CT;
-
-
    //=====================================================================================
    // Dense vector multiplication assignment
    //=====================================================================================
@@ -854,7 +841,7 @@ void ColumnTest::testMultAssign()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
       col1 *= vec;
 
       checkRows    ( upper, 3UL );
@@ -895,7 +882,7 @@ void ColumnTest::testMultAssign()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
 
       try {
          col1 *= vec;
@@ -929,7 +916,7 @@ void ColumnTest::testMultAssign()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
       col1 *= vec;
 
       checkRows    ( upper, 3UL );
@@ -970,7 +957,7 @@ void ColumnTest::testMultAssign()
       UT upper;
       init( upper );
 
-      CT col1 = column( upper, 1UL );
+      auto col1 = column( upper, 1UL );
 
       try {
          col1 *= vec;

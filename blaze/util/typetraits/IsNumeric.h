@@ -3,7 +3,7 @@
 //  \file blaze/util/typetraits/IsNumeric.h
 //  \brief Header file for the IsNumeric type trait
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -76,7 +76,8 @@ namespace blaze {
    \endcode
 */
 template< typename T >
-struct IsNumeric : public BoolConstant< IsBuiltin<T>::value && !IsBoolean<T>::value && !IsVoid<T>::value >
+struct IsNumeric
+   : public BoolConstant< IsBuiltin_v<T> && !IsBoolean_v<T> && !IsVoid_v<T> >
 {};
 //*************************************************************************************************
 
@@ -85,7 +86,8 @@ struct IsNumeric : public BoolConstant< IsBuiltin<T>::value && !IsBoolean<T>::va
 /*! \cond BLAZE_INTERNAL */
 //! Specialization of the IsNumeric type trait for the plain 'complex' type.
 template< typename T >
-struct IsNumeric< complex<T> > : public IsNumeric<T>::Type
+struct IsNumeric< complex<T> >
+   : public IsNumeric<T>::Type
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -95,7 +97,8 @@ struct IsNumeric< complex<T> > : public IsNumeric<T>::Type
 /*! \cond BLAZE_INTERNAL */
 //! Specialization of the IsNumeric type trait for 'const complex'.
 template< typename T >
-struct IsNumeric< const complex<T> > : public IsNumeric<T>::Type
+struct IsNumeric< const complex<T> >
+   : public IsNumeric<T>::Type
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -105,7 +108,8 @@ struct IsNumeric< const complex<T> > : public IsNumeric<T>::Type
 /*! \cond BLAZE_INTERNAL */
 //! Specialization of the IsNumeric type trait for 'volatile complex'.
 template< typename T >
-struct IsNumeric< volatile complex<T> > : public IsNumeric<T>::Type
+struct IsNumeric< volatile complex<T> >
+   : public IsNumeric<T>::Type
 {};
 /*! \endcond */
 //*************************************************************************************************
@@ -115,9 +119,28 @@ struct IsNumeric< volatile complex<T> > : public IsNumeric<T>::Type
 /*! \cond BLAZE_INTERNAL */
 //! Specialization of the IsNumeric type trait for 'const volatile complex'.
 template< typename T >
-struct IsNumeric< const volatile complex<T> > : public IsNumeric<T>::Type
+struct IsNumeric< const volatile complex<T> >
+   : public IsNumeric<T>::Type
 {};
 /*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*!\brief Auxiliary variable template for the IsNumeric type trait.
+// \ingroup type_traits
+//
+// The IsNumeric_v variable template provides a convenient shortcut to access the nested
+// \a value of the IsNumeric class template. For instance, given the type \a T the following
+// two statements are identical:
+
+   \code
+   constexpr bool value1 = blaze::IsNumeric<T>::value;
+   constexpr bool value2 = blaze::IsNumeric_v<T>;
+   \endcode
+*/
+template< typename T >
+constexpr bool IsNumeric_v = IsNumeric<T>::value;
 //*************************************************************************************************
 
 } // namespace blaze

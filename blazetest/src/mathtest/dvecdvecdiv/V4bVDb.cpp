@@ -3,7 +3,7 @@
 //  \file src/mathtest/dvecdvecdiv/V4bVDb.cpp
 //  \brief Source file for the V4bVDb dense vector/dense vector division math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,6 +45,10 @@
 #include <blazetest/mathtest/dvecdvecdiv/OperationTest.h>
 #include <blazetest/system/MathTest.h>
 
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
+
 
 //=================================================================================================
 //
@@ -62,12 +66,12 @@ int main()
    try
    {
       // Vector type definitions
-      typedef blaze::StaticVector<TypeB,4UL>  V4b;
-      typedef blaze::DynamicVector<TypeB>     VDb;
+      using V4b = blaze::StaticVector<TypeB,4UL>;
+      using VDb = blaze::DynamicVector<TypeB>;
 
       // Creator type definitions
-      typedef blazetest::Creator<V4b>  CV4b;
-      typedef blazetest::Creator<VDb>  CVDb;
+      using CV4b = blazetest::Creator<V4b>;
+      using CVDb = blazetest::Creator<VDb>;
 
       // Running the tests
       RUN_DVECDVECDIV_OPERATION_TEST( CV4b(), CVDb( 4UL ) );

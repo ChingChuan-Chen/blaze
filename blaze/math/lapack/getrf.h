@@ -3,7 +3,7 @@
 //  \file blaze/math/lapack/getrf.h
 //  \brief Header file for the LAPACK LU decomposition functions (getrf)
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -40,15 +40,16 @@
 // Includes
 //*************************************************************************************************
 
-#include <boost/cast.hpp>
 #include <blaze/math/Aliases.h>
 #include <blaze/math/constraints/Adaptor.h>
 #include <blaze/math/constraints/BLASCompatible.h>
 #include <blaze/math/constraints/Computation.h>
+#include <blaze/math/constraints/Contiguous.h>
 #include <blaze/math/constraints/MutableDataAccess.h>
 #include <blaze/math/expressions/DenseMatrix.h>
 #include <blaze/math/lapack/clapack/getrf.h>
 #include <blaze/util/Assert.h>
+#include <blaze/util/NumericCast.h>
 
 
 namespace blaze {
@@ -63,13 +64,12 @@ namespace blaze {
 /*!\name LAPACK LU decomposition functions (getrf) */
 //@{
 template< typename MT, bool SO >
-inline void getrf( DenseMatrix<MT,SO>& A, int* ipiv );
+void getrf( DenseMatrix<MT,SO>& A, blas_int_t* ipiv );
 //@}
 //*************************************************************************************************
 
 
 //*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
 /*!\brief LAPACK kernel for the LU decomposition of the given dense general matrix.
 // \ingroup lapack_decomposition
 //
@@ -77,7 +77,7 @@ inline void getrf( DenseMatrix<MT,SO>& A, int* ipiv );
 // \param ipiv Auxiliary array for the pivot indices; size >= min( \a m, \a n ).
 // \return void
 //
-// This function performs the dense matrix LU decomposition of a general m-by-n matrix based
+// This function performs the dense matrix LU decomposition of a general \a m-by-\a n matrix based
 // on the LAPACK \c getrf() functions, which use partial pivoting with row/column interchanges.
 // Note that the function only works for general, non-adapted matrices with \c float, \c double,
 // \c complex<float>, or \c complex<double> element type. The attempt to call the function with
@@ -95,9 +95,9 @@ inline void getrf( DenseMatrix<MT,SO>& A, int* ipiv );
 
                           \f[ A = L \cdot U \cdot P, \f]
 
-// where \c P is an n-by-n permutation matrix, which represents the pivoting indices for the applied
-// column interchanges, \c L is a lower triangular matrix (lower trapezoidal if \a m > \a n), and
-// \c U is an upper unitriangular matrix (upper trapezoidal if \a m < \a n).
+// where \c P is an \a n-by-\a n permutation matrix, which represents the pivoting indices for
+// the applied column interchanges, \c L is a lower triangular matrix (lower trapezoidal if
+// \a m > \a n), and \c U is an upper unitriangular matrix (upper trapezoidal if \a m < \a n).
 //
 // The resulting decomposition is stored within the matrix \a A: \c L is stored in the lower part
 // of \a A and \c U is stored in the upper part. The unit diagonal elements of \c L or \c U are
@@ -108,8 +108,9 @@ inline void getrf( DenseMatrix<MT,SO>& A, int* ipiv );
 //
 //        http://www.netlib.org/lapack/explore-html/
 //
-// \note This function can only be used if the fitting LAPACK library is available and linked to
-// the executable. Otherwise a call to this function will result in a linker error.
+// \note This function can only be used if a fitting LAPACK library, which supports this function,
+// is available and linked to the executable. Otherwise a call to this function will result in a
+// linker error.
 //
 // \note The LU decomposition will never fail, even for singular matrices. However, in case of a
 // singular matrix the resulting decomposition cannot be used for a matrix inversion or solving
@@ -117,19 +118,18 @@ inline void getrf( DenseMatrix<MT,SO>& A, int* ipiv );
 */
 template< typename MT  // Type of the dense matrix
         , bool SO >    // Storage order of the dense matrix
-inline void getrf( DenseMatrix<MT,SO>& A, int* ipiv )
+inline void getrf( DenseMatrix<MT,SO>& A, blas_int_t* ipiv )
 {
-   using boost::numeric_cast;
-
    BLAZE_CONSTRAINT_MUST_NOT_BE_ADAPTOR_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_COMPUTATION_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_HAVE_MUTABLE_DATA_ACCESS( MT );
-   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_<MT> );
+   BLAZE_CONSTRAINT_MUST_BE_CONTIGUOUS_TYPE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_BLAS_COMPATIBLE_TYPE( ElementType_t<MT> );
 
-   int m   ( numeric_cast<int>( SO ? (~A).rows() : (~A).columns() ) );
-   int n   ( numeric_cast<int>( SO ? (~A).columns() : (~A).rows() ) );
-   int lda ( numeric_cast<int>( (~A).spacing() ) );
-   int info( 0 );
+   blas_int_t m   ( numeric_cast<blas_int_t>( SO ? (~A).rows() : (~A).columns() ) );
+   blas_int_t n   ( numeric_cast<blas_int_t>( SO ? (~A).columns() : (~A).rows() ) );
+   blas_int_t lda ( numeric_cast<blas_int_t>( (~A).spacing() ) );
+   blas_int_t info( 0 );
 
    if( m == 0 || n == 0 ) {
       return;
@@ -139,7 +139,6 @@ inline void getrf( DenseMatrix<MT,SO>& A, int* ipiv )
 
    BLAZE_INTERNAL_ASSERT( info >= 0, "Invalid argument for LU decomposition" );
 }
-/*! \endcond */
 //*************************************************************************************************
 
 } // namespace blaze

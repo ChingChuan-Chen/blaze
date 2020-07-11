@@ -3,7 +3,7 @@
 //  \file src/mathtest/dmatsmatadd/UDaUCa.cpp
 //  \brief Source file for the UDaUCa dense matrix/sparse matrix addition math test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -41,10 +41,14 @@
 #include <iostream>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/DynamicMatrix.h>
-#include <blaze/math/LowerMatrix.h>
+#include <blaze/math/UpperMatrix.h>
 #include <blazetest/mathtest/Creator.h>
 #include <blazetest/mathtest/dmatsmatadd/OperationTest.h>
 #include <blazetest/system/MathTest.h>
+
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
 
 
 //=================================================================================================
@@ -63,12 +67,12 @@ int main()
    try
    {
       // Matrix type definitions
-      typedef blaze::LowerMatrix< blaze::DynamicMatrix<TypeA> >     UDa;
-      typedef blaze::LowerMatrix< blaze::CompressedMatrix<TypeA> >  UCa;
+      using UDa = blaze::UpperMatrix< blaze::DynamicMatrix<TypeA> >;
+      using UCa = blaze::UpperMatrix< blaze::CompressedMatrix<TypeA> >;
 
       // Creator type definitions
-      typedef blazetest::Creator<UDa>  CUDa;
-      typedef blazetest::Creator<UCa>  CUCa;
+      using CUDa = blazetest::Creator<UDa>;
+      using CUCa = blazetest::Creator<UCa>;
 
       // Running tests with small matrices
       for( size_t i=0UL; i<=6UL; ++i ) {

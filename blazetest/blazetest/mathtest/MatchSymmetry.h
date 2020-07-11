@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/MatchSymmetry.h
 //  \brief Header file for the MatchSymmetry type trait
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -76,20 +76,20 @@ struct MatchSymmetry
  private:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Tmp = blaze::RemoveAdaptor_<T2>;
+   using Tmp = blaze::RemoveAdaptor_t<T2>;
    /*! \endcond */
    //**********************************************************************************************
 
  public:
    //**********************************************************************************************
    /*! \cond BLAZE_INTERNAL */
-   using Type = blaze::If_< blaze::IsDiagonal<T1>
-                          , blaze::DiagonalMatrix<Tmp>
-                          , blaze::If_< blaze::IsSymmetric<T1>
-                                      , blaze::SymmetricMatrix<Tmp>
-                                      , blaze::If_< blaze::IsHermitian<T1>
-                                                  , blaze::HermitianMatrix<Tmp>
-                                                  , T2 > > >;
+   using Type = blaze::If_t< blaze::IsDiagonal_v<T1>
+                           , blaze::DiagonalMatrix<Tmp>
+                           , blaze::If_t< blaze::IsSymmetric_v<T1>
+                                        , blaze::SymmetricMatrix<Tmp>
+                                        , blaze::If_t< blaze::IsHermitian_v<T1>
+                                                     , blaze::HermitianMatrix<Tmp>
+                                                     , T2 > > >;
    /*! \endcond */
    //**********************************************************************************************
 
@@ -107,18 +107,18 @@ struct MatchSymmetry
 //*************************************************************************************************
 /*!\brief Auxiliary alias declaration for the MatchSymmetry class template.
 //
-// The MatchSymmetry_ alias declaration provides a convenient shortcut to access the nested \a Type
+// The MatchSymmetry_t alias declaration provides a convenient shortcut to access the nested \a Type
 // of the MatchSymmetry class template. For instance, given the types \a T1 and \a T2 the following
 // two type definitions are identical:
 
    \code
-   using Type1 = typename MatchSymmetry<T>::Type;
-   using Type2 = MatchSymmetry_<T>;
+   using Type1 = typename MatchSymmetry<T1,T2>::Type;
+   using Type2 = MatchSymmetry_t<T1,T2>;
    \endcode
 */
 template< typename T1    // The adapted type
         , typename T2 >  // The type to be adapted
-using MatchSymmetry_ = typename MatchSymmetry<T1,T2>::Type;
+using MatchSymmetry_t = typename MatchSymmetry<T1,T2>::Type;
 //*************************************************************************************************
 
 } // namespace blazetest

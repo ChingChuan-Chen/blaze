@@ -3,7 +3,7 @@
 //  \file blaze/math/adaptors/diagonalmatrix/Sparse.h
 //  \brief DiagonalMatrix specialization for sparse matrices
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,33 +45,35 @@
 #include <blaze/math/adaptors/diagonalmatrix/BaseTemplate.h>
 #include <blaze/math/adaptors/diagonalmatrix/DiagonalProxy.h>
 #include <blaze/math/Aliases.h>
-#include <blaze/math/constraints/Expression.h>
+#include <blaze/math/constraints/Computation.h>
 #include <blaze/math/constraints/Hermitian.h>
 #include <blaze/math/constraints/Lower.h>
 #include <blaze/math/constraints/Resizable.h>
 #include <blaze/math/constraints/SparseMatrix.h>
 #include <blaze/math/constraints/StorageOrder.h>
 #include <blaze/math/constraints/Symmetric.h>
+#include <blaze/math/constraints/Transformation.h>
 #include <blaze/math/constraints/Upper.h>
+#include <blaze/math/constraints/View.h>
+#include <blaze/math/dense/InitializerMatrix.h>
 #include <blaze/math/Exception.h>
 #include <blaze/math/expressions/SparseMatrix.h>
+#include <blaze/math/InitializerList.h>
+#include <blaze/math/RelaxationFlag.h>
 #include <blaze/math/shims/Clear.h>
 #include <blaze/math/shims/IsDefault.h>
 #include <blaze/math/sparse/SparseMatrix.h>
-#include <blaze/math/typetraits/Columns.h>
 #include <blaze/math/typetraits/IsComputation.h>
 #include <blaze/math/typetraits/IsDiagonal.h>
 #include <blaze/math/typetraits/IsSquare.h>
-#include <blaze/math/typetraits/Rows.h>
+#include <blaze/math/typetraits/Size.h>
 #include <blaze/util/Assert.h>
 #include <blaze/util/constraints/Const.h>
 #include <blaze/util/constraints/Pointer.h>
 #include <blaze/util/constraints/Reference.h>
 #include <blaze/util/constraints/Volatile.h>
-#include <blaze/util/DisableIf.h>
 #include <blaze/util/EnableIf.h>
 #include <blaze/util/StaticAssert.h>
-#include <blaze/util/typetraits/IsNumeric.h>
 #include <blaze/util/Types.h>
 
 
@@ -98,49 +100,61 @@ class DiagonalMatrix<MT,SO,false>
 {
  private:
    //**Type definitions****************************************************************************
-   typedef OppositeType_<MT>   OT;  //!< Opposite type of the sparse matrix.
-   typedef TransposeType_<MT>  TT;  //!< Transpose type of the sparse matrix.
-   typedef ElementType_<MT>    ET;  //!< Element type of the sparse matrix.
+   using OT = OppositeType_t<MT>;   //!< Opposite type of the sparse matrix.
+   using TT = TransposeType_t<MT>;  //!< Transpose type of the sparse matrix.
+   using ET = ElementType_t<MT>;    //!< Element type of the sparse matrix.
    //**********************************************************************************************
 
  public:
    //**Type definitions****************************************************************************
-   typedef DiagonalMatrix<MT,SO,false>   This;            //!< Type of this DiagonalMatrix instance.
-   typedef SparseMatrix<This,SO>         BaseType;        //!< Base type of this DiagonalMatrix instance.
-   typedef This                          ResultType;      //!< Result type for expression template evaluations.
-   typedef DiagonalMatrix<OT,!SO,false>  OppositeType;    //!< Result type with opposite storage order for expression template evaluations.
-   typedef DiagonalMatrix<TT,!SO,false>  TransposeType;   //!< Transpose type for expression template evaluations.
-   typedef ET                            ElementType;     //!< Type of the matrix elements.
-   typedef ReturnType_<MT>               ReturnType;      //!< Return type for expression template evaluations.
-   typedef const This&                   CompositeType;   //!< Data type for composite expression templates.
-   typedef DiagonalProxy<MT>             Reference;       //!< Reference to a non-constant matrix value.
-   typedef ConstReference_<MT>           ConstReference;  //!< Reference to a constant matrix value.
-   typedef Iterator_<MT>                 Iterator;        //!< Iterator over non-constant elements.
-   typedef ConstIterator_<MT>            ConstIterator;   //!< Iterator over constant elements.
+   using This           = DiagonalMatrix<MT,SO,false>;   //!< Type of this DiagonalMatrix instance.
+   using BaseType       = SparseMatrix<This,SO>;         //!< Base type of this DiagonalMatrix instance.
+   using ResultType     = This;                          //!< Result type for expression template evaluations.
+   using OppositeType   = DiagonalMatrix<OT,!SO,false>;  //!< Result type with opposite storage order for expression template evaluations.
+   using TransposeType  = DiagonalMatrix<TT,!SO,false>;  //!< Transpose type for expression template evaluations.
+   using ElementType    = ET;                            //!< Type of the matrix elements.
+   using ReturnType     = ReturnType_t<MT>;              //!< Return type for expression template evaluations.
+   using CompositeType  = const This&;                   //!< Data type for composite expression templates.
+   using Reference      = DiagonalProxy<MT>;             //!< Reference to a non-constant matrix value.
+   using ConstReference = ConstReference_t<MT>;          //!< Reference to a constant matrix value.
+   using Iterator       = Iterator_t<MT>;                //!< Iterator over non-constant elements.
+   using ConstIterator  = ConstIterator_t<MT>;           //!< Iterator over constant elements.
    //**********************************************************************************************
 
    //**Rebind struct definition********************************************************************
    /*!\brief Rebind mechanism to obtain a DiagonalMatrix with different data/element type.
    */
-   template< typename ET >  // Data type of the other matrix
+   template< typename NewType >  // Data type of the other matrix
    struct Rebind {
       //! The type of the other DiagonalMatrix.
-      typedef DiagonalMatrix< typename MT::template Rebind<ET>::Other >  Other;
+      using Other = DiagonalMatrix< typename MT::template Rebind<NewType>::Other >;
+   };
+   //**********************************************************************************************
+
+   //**Resize struct definition********************************************************************
+   /*!\brief Resize mechanism to obtain a DiagonalMatrix with different fixed dimensions.
+   */
+   template< size_t NewM    // Number of rows of the other matrix
+           , size_t NewN >  // Number of columns of the other matrix
+   struct Resize {
+      //! The type of the other DiagonalMatrix.
+      using Other = DiagonalMatrix< typename MT::template Resize<NewM,NewN>::Other >;
    };
    //**********************************************************************************************
 
    //**Compilation flags***************************************************************************
    //! Compilation switch for the expression template assignment strategy.
-   enum : bool { smpAssignable = false };
+   static constexpr bool smpAssignable = false;
    //**********************************************************************************************
 
    //**Constructors********************************************************************************
    /*!\name Constructors */
    //@{
-   explicit inline DiagonalMatrix();
+            inline DiagonalMatrix();
    explicit inline DiagonalMatrix( size_t n );
-   explicit inline DiagonalMatrix( size_t n, size_t nonzeros );
-   explicit inline DiagonalMatrix( size_t n, const std::vector<size_t>& nonzeros );
+            inline DiagonalMatrix( size_t n, size_t nonzeros );
+            inline DiagonalMatrix( size_t n, const std::vector<size_t>& nonzeros );
+            inline DiagonalMatrix( initializer_list< initializer_list<ElementType> > list );
 
    inline DiagonalMatrix( const DiagonalMatrix& m );
    inline DiagonalMatrix( DiagonalMatrix&& m ) noexcept;
@@ -151,7 +165,10 @@ class DiagonalMatrix<MT,SO,false>
    //**********************************************************************************************
 
    //**Destructor**********************************************************************************
-   // No explicitly declared destructor.
+   /*!\name Destructor */
+   //@{
+   ~DiagonalMatrix() = default;
+   //@}
    //**********************************************************************************************
 
    //**Data access functions***********************************************************************
@@ -173,60 +190,69 @@ class DiagonalMatrix<MT,SO,false>
    //**Assignment operators************************************************************************
    /*!\name Assignment operators */
    //@{
+   inline DiagonalMatrix& operator=( initializer_list< initializer_list<ElementType> > list );
+
    inline DiagonalMatrix& operator=( const DiagonalMatrix& rhs );
    inline DiagonalMatrix& operator=( DiagonalMatrix&& rhs ) noexcept;
 
    template< typename MT2, bool SO2 >
-   inline DisableIf_< IsComputation<MT2>, DiagonalMatrix& > operator=( const Matrix<MT2,SO2>& rhs );
+   inline auto operator=( const Matrix<MT2,SO2>& rhs )
+      -> DisableIf_t< IsComputation_v<MT2>, DiagonalMatrix& >;
 
    template< typename MT2, bool SO2 >
-   inline EnableIf_< IsComputation<MT2>, DiagonalMatrix& > operator=( const Matrix<MT2,SO2>& rhs );
+   inline auto operator=( const Matrix<MT2,SO2>& rhs )
+      -> EnableIf_t< IsComputation_v<MT2>, DiagonalMatrix& >;
 
    template< typename MT2, bool SO2 >
-   inline DisableIf_< IsComputation<MT2>, DiagonalMatrix& > operator+=( const Matrix<MT2,SO2>& rhs );
+   inline auto operator+=( const Matrix<MT2,SO2>& rhs )
+      -> DisableIf_t< IsComputation_v<MT2>, DiagonalMatrix& >;
 
    template< typename MT2, bool SO2 >
-   inline EnableIf_< IsComputation<MT2>, DiagonalMatrix& > operator+=( const Matrix<MT2,SO2>& rhs );
+   inline auto operator+=( const Matrix<MT2,SO2>& rhs )
+      -> EnableIf_t< IsComputation_v<MT2>, DiagonalMatrix& >;
 
    template< typename MT2, bool SO2 >
-   inline DisableIf_< IsComputation<MT2>, DiagonalMatrix& > operator-=( const Matrix<MT2,SO2>& rhs );
+   inline auto operator-=( const Matrix<MT2,SO2>& rhs )
+      -> DisableIf_t< IsComputation_v<MT2>, DiagonalMatrix& >;
 
    template< typename MT2, bool SO2 >
-   inline EnableIf_< IsComputation<MT2>, DiagonalMatrix& > operator-=( const Matrix<MT2,SO2>& rhs );
+   inline auto operator-=( const Matrix<MT2,SO2>& rhs )
+      -> EnableIf_t< IsComputation_v<MT2>, DiagonalMatrix& >;
 
    template< typename MT2, bool SO2 >
-   inline DiagonalMatrix& operator*=( const Matrix<MT2,SO2>& rhs );
-
-   template< typename Other >
-   inline EnableIf_< IsNumeric<Other>, DiagonalMatrix >& operator*=( Other rhs );
-
-   template< typename Other >
-   inline EnableIf_< IsNumeric<Other>, DiagonalMatrix >& operator/=( Other rhs );
+   inline auto operator%=( const Matrix<MT2,SO2>& rhs ) -> DiagonalMatrix&;
    //@}
    //**********************************************************************************************
 
    //**Utility functions***************************************************************************
    /*!\name Utility functions */
    //@{
-                              inline size_t          rows() const noexcept;
-                              inline size_t          columns() const noexcept;
-                              inline size_t          capacity() const noexcept;
-                              inline size_t          capacity( size_t i ) const noexcept;
-                              inline size_t          nonZeros() const;
-                              inline size_t          nonZeros( size_t i ) const;
-                              inline void            reset();
-                              inline void            reset( size_t i );
-                              inline void            clear();
-                              inline Iterator        set( size_t i, size_t j, const ElementType& value );
-                              inline Iterator        insert( size_t i, size_t j, const ElementType& value );
-                              inline void            resize ( size_t n, bool preserve=true );
-                              inline void            reserve( size_t nonzeros );
-                              inline void            reserve( size_t i, size_t nonzeros );
-                              inline void            trim();
-                              inline void            trim( size_t i );
-   template< typename Other > inline DiagonalMatrix& scale( const Other& scalar );
-   template< typename Other > inline DiagonalMatrix& scaleDiagonal( Other scale );
-                              inline void            swap( DiagonalMatrix& m ) noexcept;
+   inline size_t rows() const noexcept;
+   inline size_t columns() const noexcept;
+   inline size_t capacity() const noexcept;
+   inline size_t capacity( size_t i ) const noexcept;
+   inline size_t nonZeros() const;
+   inline size_t nonZeros( size_t i ) const;
+   inline void   reset();
+   inline void   reset( size_t i );
+   inline void   clear();
+   inline void   resize ( size_t n, bool preserve=true );
+   inline void   reserve( size_t nonzeros );
+   inline void   reserve( size_t i, size_t nonzeros );
+   inline void   trim();
+   inline void   trim( size_t i );
+   inline void   shrinkToFit();
+   inline void   swap( DiagonalMatrix& m ) noexcept;
+   //@}
+   //**********************************************************************************************
+
+   //**Insertion functions*************************************************************************
+   /*!\name Insertion functions */
+   //@{
+   inline Iterator set     ( size_t i, size_t j, const ElementType& value );
+   inline Iterator insert  ( size_t i, size_t j, const ElementType& value );
+   inline void     append  ( size_t i, size_t j, const ElementType& value, bool check=false );
+   inline void     finalize( size_t i );
    //@}
    //**********************************************************************************************
 
@@ -257,11 +283,10 @@ class DiagonalMatrix<MT,SO,false>
    //@}
    //**********************************************************************************************
 
-   //**Low-level utility functions*****************************************************************
-   /*!\name Low-level utility functions */
+   //**Numeric functions***************************************************************************
+   /*!\name Numeric functions */
    //@{
-   inline void append  ( size_t i, size_t j, const ElementType& value, bool check=false );
-   inline void finalize( size_t i );
+   template< typename Other > inline DiagonalMatrix& scale( const Other& scalar );
    //@}
    //**********************************************************************************************
 
@@ -298,7 +323,7 @@ class DiagonalMatrix<MT,SO,false>
    //**********************************************************************************************
 
    //**Friend declarations*************************************************************************
-   template< typename MT2, bool SO2, bool DF2 >
+   template< RelaxationFlag RF, typename MT2, bool SO2, bool DF2 >
    friend bool isDefault( const DiagonalMatrix<MT2,SO2,DF2>& m );
 
    template< typename MT2, bool SO2, bool DF2 >
@@ -311,14 +336,16 @@ class DiagonalMatrix<MT,SO,false>
    BLAZE_CONSTRAINT_MUST_NOT_BE_POINTER_TYPE         ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_CONST                ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_VOLATILE             ( MT );
-   BLAZE_CONSTRAINT_MUST_NOT_BE_EXPRESSION_TYPE      ( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_VIEW_TYPE            ( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_COMPUTATION_TYPE     ( MT );
+   BLAZE_CONSTRAINT_MUST_NOT_BE_TRANSFORMATION_TYPE  ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_SYMMETRIC_MATRIX_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_HERMITIAN_MATRIX_TYPE( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_LOWER_MATRIX_TYPE    ( MT );
    BLAZE_CONSTRAINT_MUST_NOT_BE_UPPER_MATRIX_TYPE    ( MT );
    BLAZE_CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER( OT, !SO );
    BLAZE_CONSTRAINT_MUST_BE_MATRIX_WITH_STORAGE_ORDER( TT, !SO );
-   BLAZE_STATIC_ASSERT( Rows<MT>::value == Columns<MT>::value );
+   BLAZE_STATIC_ASSERT( ( Size_v<MT,0UL> == Size_v<MT,1UL> ) );
    //**********************************************************************************************
 };
 /*! \endcond */
@@ -361,7 +388,7 @@ template< typename MT  // Type of the adapted sparse matrix
 inline DiagonalMatrix<MT,SO,false>::DiagonalMatrix( size_t n )
    : matrix_( n, n )  // The adapted sparse matrix
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE( MT );
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square diagonal matrix detected" );
 }
@@ -383,7 +410,7 @@ template< typename MT  // Type of the adapted sparse matrix
 inline DiagonalMatrix<MT,SO,false>::DiagonalMatrix( size_t n, size_t nonzeros )
    : matrix_( n, n, nonzeros )  // The adapted sparse matrix
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE( MT );
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square diagonal matrix detected" );
 }
@@ -407,9 +434,48 @@ template< typename MT  // Type of the adapted sparse matrix
 inline DiagonalMatrix<MT,SO,false>::DiagonalMatrix( size_t n, const std::vector<size_t>& nonzeros )
    : matrix_( n, n, nonzeros )  // The adapted sparse matrix
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE( MT );
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square diagonal matrix detected" );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief List initialization of all matrix elements.
+//
+// \param list The initializer list.
+// \exception std::invalid_argument Invalid setup of diagonal matrix.
+//
+// This constructor provides the option to explicitly initialize the elements of the diagonal
+// matrix by means of an initializer list:
+
+   \code
+   using blaze::rowMajor;
+
+   blaze::DiagonalMatrix< blaze::CompressedMatrix<int,rowMajor> > A{ { 1, 0, 0 },
+                                                                     { 0, 2 },
+                                                                     { 0, 0, 3 } };
+   \endcode
+
+// The matrix is sized according to the size of the initializer list and all matrix elements are
+// initialized with the values from the given list. Missing values are initialized with default
+// values. In case the matrix cannot be resized and the dimensions of the initializer list don't
+// match or if the given list does not represent a diagonal matrix, a \a std::invalid_argument
+// exception is thrown.
+*/
+template< typename MT  // Type of the adapted sparse matrix
+        , bool SO >    // Storage order of the adapted sparse matrix
+inline DiagonalMatrix<MT,SO,false>::DiagonalMatrix( initializer_list< initializer_list<ElementType> > list )
+   : matrix_( list )  // The adapted sparse matrix
+{
+   if( !isDiagonal( matrix_ ) ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid setup of diagonal matrix" );
+   }
+
+   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -468,11 +534,11 @@ template< typename MT2  // Type of the foreign matrix
 inline DiagonalMatrix<MT,SO,false>::DiagonalMatrix( const Matrix<MT2,SO2>& m )
    : matrix_( ~m )  // The adapted sparse matrix
 {
-   if( !IsDiagonal<MT2>::value && !isDiagonal( matrix_ ) ) {
+   if( !IsDiagonal_v<MT2> && !isDiagonal( matrix_ ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid setup of diagonal matrix" );
    }
 
-   if( !IsDiagonal<MT2>::value )
+   if( !IsDiagonal_v<MT2> )
       resetNonDiagonal();
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square diagonal matrix detected" );
@@ -766,6 +832,53 @@ inline typename DiagonalMatrix<MT,SO,false>::ConstIterator
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
+/*!\brief List assignment to all matrix elements.
+//
+// \param list The initializer list.
+// \exception std::invalid_argument Invalid assignment to diagonal matrix.
+//
+// This assignment operator offers the option to directly assign to all elements of the diagonal
+// matrix by means of an initializer list:
+
+   \code
+   using blaze::rowMajor;
+
+   blaze::DiagonalMatrix< blaze::CompressedMatrix<int,rowMajor> > A;
+   A = { { 1, 0, 0 },
+         { 0, 2 },
+         { 0, 0, 3 } };
+   \endcode
+
+// The matrix is resized according to the size of the initializer list and all matrix elements
+// are assigned the values from the given list. Missing values are assigned default values. In
+// case the matrix cannot be resized and the dimensions of the initializer list don't match or
+// if the given list does not represent a diagonal matrix, a \a std::invalid_argument exception
+// is thrown.
+*/
+template< typename MT  // Type of the adapted sparse matrix
+        , bool SO >    // Storage order of the adapted sparse matrix
+inline DiagonalMatrix<MT,SO,false>&
+   DiagonalMatrix<MT,SO,false>::operator=( initializer_list< initializer_list<ElementType> > list )
+{
+   const InitializerMatrix<ElementType> tmp( list, list.size() );
+
+   if( !isDiagonal( tmp ) ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix" );
+   }
+
+   matrix_ = list;
+
+   BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square diagonal matrix detected" );
+   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
+
+   return *this;
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
 /*!\brief Copy assignment operator for DiagonalMatrix.
 //
 // \param rhs Matrix to be copied.
@@ -830,16 +943,16 @@ template< typename MT   // Type of the adapted sparse matrix
         , bool SO >     // Storage order of the adapted sparse matrix
 template< typename MT2  // Type of the right-hand side matrix
         , bool SO2 >    // Storage order of the right-hand side matrix
-inline DisableIf_< IsComputation<MT2>, DiagonalMatrix<MT,SO,false>& >
-   DiagonalMatrix<MT,SO,false>::operator=( const Matrix<MT2,SO2>& rhs )
+inline auto DiagonalMatrix<MT,SO,false>::operator=( const Matrix<MT2,SO2>& rhs )
+   -> DisableIf_t< IsComputation_v<MT2>, DiagonalMatrix& >
 {
-   if( !IsDiagonal<MT2>::value && !isDiagonal( ~rhs ) ) {
+   if( !IsDiagonal_v<MT2> && !isDiagonal( ~rhs ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix" );
    }
 
-   matrix_ = ~rhs;
+   matrix_ = decldiag( ~rhs );
 
-   if( !IsDiagonal<MT2>::value )
+   if( !IsDiagonal_v<MT2> )
       resetNonDiagonal();
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square diagonal matrix detected" );
@@ -868,14 +981,14 @@ template< typename MT   // Type of the adapted sparse matrix
         , bool SO >     // Storage order of the adapted sparse matrix
 template< typename MT2  // Type of the right-hand side matrix
         , bool SO2 >    // Storage order of the right-hand side matrix
-inline EnableIf_< IsComputation<MT2>, DiagonalMatrix<MT,SO,false>& >
-   DiagonalMatrix<MT,SO,false>::operator=( const Matrix<MT2,SO2>& rhs )
+inline auto DiagonalMatrix<MT,SO,false>::operator=( const Matrix<MT2,SO2>& rhs )
+   -> EnableIf_t< IsComputation_v<MT2>, DiagonalMatrix& >
 {
-   if( !IsSquare<MT2>::value && !isSquare( ~rhs ) ) {
+   if( !IsSquare_v<MT2> && !isSquare( ~rhs ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix" );
    }
 
-   if( IsDiagonal<MT2>::value ) {
+   if( IsDiagonal_v<MT2> ) {
       matrix_ = ~rhs;
    }
    else {
@@ -888,7 +1001,7 @@ inline EnableIf_< IsComputation<MT2>, DiagonalMatrix<MT,SO,false>& >
       matrix_ = std::move( tmp );
    }
 
-   if( !IsDiagonal<MT2>::value )
+   if( !IsDiagonal_v<MT2> )
       resetNonDiagonal();
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square diagonal matrix detected" );
@@ -917,16 +1030,16 @@ template< typename MT   // Type of the adapted sparse matrix
         , bool SO >     // Storage order of the adapted sparse matrix
 template< typename MT2  // Type of the right-hand side matrix
         , bool SO2 >    // Storage order of the right-hand side matrix
-inline DisableIf_< IsComputation<MT2>, DiagonalMatrix<MT,SO,false>& >
-   DiagonalMatrix<MT,SO,false>::operator+=( const Matrix<MT2,SO2>& rhs )
+inline auto DiagonalMatrix<MT,SO,false>::operator+=( const Matrix<MT2,SO2>& rhs )
+   -> DisableIf_t< IsComputation_v<MT2>, DiagonalMatrix& >
 {
-   if( !IsDiagonal<MT2>::value && !isDiagonal( ~rhs ) ) {
+   if( !IsDiagonal_v<MT2> && !isDiagonal( ~rhs ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix" );
    }
 
-   matrix_ += ~rhs;
+   matrix_ += decldiag( ~rhs );
 
-   if( !IsDiagonal<MT2>::value )
+   if( !IsDiagonal_v<MT2> )
       resetNonDiagonal();
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square diagonal matrix detected" );
@@ -955,27 +1068,27 @@ template< typename MT   // Type of the adapted sparse matrix
         , bool SO >     // Storage order of the adapted sparse matrix
 template< typename MT2  // Type of the right-hand side matrix
         , bool SO2 >    // Storage order of the right-hand side matrix
-inline EnableIf_< IsComputation<MT2>, DiagonalMatrix<MT,SO,false>& >
-   DiagonalMatrix<MT,SO,false>::operator+=( const Matrix<MT2,SO2>& rhs )
+inline auto DiagonalMatrix<MT,SO,false>::operator+=( const Matrix<MT2,SO2>& rhs )
+   -> EnableIf_t< IsComputation_v<MT2>, DiagonalMatrix& >
 {
-   if( !IsSquare<MT2>::value && !isSquare( ~rhs ) ) {
+   if( !IsSquare_v<MT2> && !isSquare( ~rhs ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix" );
    }
 
-   if( IsDiagonal<MT2>::value ) {
+   if( IsDiagonal_v<MT2> ) {
       matrix_ += ~rhs;
    }
    else {
-      const ResultType_<MT2> tmp( ~rhs );
+      const ResultType_t<MT2> tmp( ~rhs );
 
       if( !isDiagonal( tmp ) ) {
          BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix" );
       }
 
-      matrix_ += tmp;
+      matrix_ += decldiag( tmp );
    }
 
-   if( !IsDiagonal<MT2>::value )
+   if( !IsDiagonal_v<MT2> )
       resetNonDiagonal();
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square diagonal matrix detected" );
@@ -1004,16 +1117,16 @@ template< typename MT   // Type of the adapted sparse matrix
         , bool SO >     // Storage order of the adapted sparse matrix
 template< typename MT2  // Type of the right-hand side matrix
         , bool SO2 >    // Storage order of the right-hand side matrix
-inline DisableIf_< IsComputation<MT2>, DiagonalMatrix<MT,SO,false>& >
-   DiagonalMatrix<MT,SO,false>::operator-=( const Matrix<MT2,SO2>& rhs )
+inline auto DiagonalMatrix<MT,SO,false>::operator-=( const Matrix<MT2,SO2>& rhs )
+   -> DisableIf_t< IsComputation_v<MT2>, DiagonalMatrix& >
 {
-   if( !IsDiagonal<MT2>::value && !isDiagonal( ~rhs ) ) {
+   if( !IsDiagonal_v<MT2> && !isDiagonal( ~rhs ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix" );
    }
 
-   matrix_ -= ~rhs;
+   matrix_ -= decldiag( ~rhs );
 
-   if( !IsDiagonal<MT2>::value )
+   if( !IsDiagonal_v<MT2> )
       resetNonDiagonal();
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square diagonal matrix detected" );
@@ -1042,27 +1155,27 @@ template< typename MT   // Type of the adapted sparse matrix
         , bool SO >     // Storage order of the adapted sparse matrix
 template< typename MT2  // Type of the right-hand side matrix
         , bool SO2 >    // Storage order of the right-hand side matrix
-inline EnableIf_< IsComputation<MT2>, DiagonalMatrix<MT,SO,false>& >
-   DiagonalMatrix<MT,SO,false>::operator-=( const Matrix<MT2,SO2>& rhs )
+inline auto DiagonalMatrix<MT,SO,false>::operator-=( const Matrix<MT2,SO2>& rhs )
+   -> EnableIf_t< IsComputation_v<MT2>, DiagonalMatrix& >
 {
-   if( !IsSquare<MT2>::value && !isSquare( ~rhs ) ) {
+   if( !IsSquare_v<MT2> && !isSquare( ~rhs ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix" );
    }
 
-   if( IsDiagonal<MT2>::value ) {
+   if( IsDiagonal_v<MT2> ) {
       matrix_ -= ~rhs;
    }
    else {
-      const ResultType_<MT2> tmp( ~rhs );
+      const ResultType_t<MT2> tmp( ~rhs );
 
       if( !isDiagonal( tmp ) ) {
          BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix" );
       }
 
-      matrix_ -= tmp;
+      matrix_ -= decldiag( tmp );
    }
 
-   if( !IsDiagonal<MT2>::value )
+   if( !IsDiagonal_v<MT2> )
       resetNonDiagonal();
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square diagonal matrix detected" );
@@ -1076,84 +1189,34 @@ inline EnableIf_< IsComputation<MT2>, DiagonalMatrix<MT,SO,false>& >
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Multiplication assignment operator for the multiplication of a matrix (\f$ A*=B \f$).
+/*!\brief Schur product assignment operator for the multiplication of a matrix (\f$ A\circ=B \f$).
 //
-// \param rhs The right-hand side matrix for the multiplication.
+// \param rhs The right-hand side general matrix for the Schur product.
 // \return Reference to the matrix.
-// \exception std::invalid_argument Matrix sizes do not match.
+// \exception std::invalid_argument Invalid assignment to diagonal matrix.
 //
 // In case the current sizes of the two matrices don't match, a \a std::invalid_argument exception
-// is thrown. Also note that the result of the multiplication operation must be a diagonal matrix.
-// In case it is not, a \a std::invalid_argument exception is thrown.
+// is thrown.
 */
 template< typename MT   // Type of the adapted sparse matrix
         , bool SO >     // Storage order of the adapted sparse matrix
 template< typename MT2  // Type of the right-hand side matrix
         , bool SO2 >    // Storage order of the right-hand side matrix
-inline DiagonalMatrix<MT,SO,false>&
-   DiagonalMatrix<MT,SO,false>::operator*=( const Matrix<MT2,SO2>& rhs )
+inline auto DiagonalMatrix<MT,SO,false>::operator%=( const Matrix<MT2,SO2>& rhs )
+   -> DiagonalMatrix&
 {
-   if( matrix_.rows() != (~rhs).columns() ) {
+   if( !IsSquare_v<MT2> && !isSquare( ~rhs ) ) {
       BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix" );
    }
 
-   MT tmp( matrix_ * ~rhs );
+   matrix_ %= ~rhs;
 
-   if( !isDiagonal( tmp ) ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid assignment to diagonal matrix" );
-   }
-
-   matrix_ = std::move( tmp );
-
-   if( !IsDiagonal<MT2>::value )
+   if( !IsDiagonal_v<MT2> )
       resetNonDiagonal();
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square diagonal matrix detected" );
    BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
 
-   return *this;
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Multiplication assignment operator for the multiplication between a matrix and
-//        a scalar value (\f$ A*=s \f$).
-//
-// \param rhs The right-hand side scalar value for the multiplication.
-// \return Reference to the matrix.
-*/
-template< typename MT       // Type of the adapted sparse matrix
-        , bool SO >         // Storage order of the adapted sparse matrix
-template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_< IsNumeric<Other>, DiagonalMatrix<MT,SO,false> >&
-   DiagonalMatrix<MT,SO,false>::operator*=( Other rhs )
-{
-   matrix_ *= rhs;
-   return *this;
-}
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Division assignment operator for the division of a matrix by a scalar value
-//        (\f$ A/=s \f$).
-//
-// \param rhs The right-hand side scalar value for the division.
-// \return Reference to the matrix.
-*/
-template< typename MT       // Type of the adapted sparse matrix
-        , bool SO >         // Storage order of the adapted sparse matrix
-template< typename Other >  // Data type of the right-hand side scalar
-inline EnableIf_< IsNumeric<Other>, DiagonalMatrix<MT,SO,false> >&
-   DiagonalMatrix<MT,SO,false>::operator/=( Other rhs )
-{
-   BLAZE_USER_ASSERT( rhs != Other(0), "Division by zero detected" );
-
-   matrix_ /= rhs;
    return *this;
 }
 /*! \endcond */
@@ -1337,69 +1400,6 @@ inline void DiagonalMatrix<MT,SO,false>::clear()
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Setting elements of the diagonal matrix.
-//
-// \param i The row index of the new element. The index has to be in the range \f$[0..N-1]\f$.
-// \param j The column index of the new element. The index has to be in the range \f$[0..N-1]\f$.
-// \param value The value of the element to be set.
-// \return Iterator to the set element.
-// \exception std::invalid_argument Invalid access to upper matrix element.
-//
-// This function sets the value of an element of the diagonal matrix. In case the diagonal matrix
-// already contains an element with row index \a i and column index \a j its value is modified,
-// else a new element with the given \a value is inserted. The attempt to set an element in the
-// upper part of the matrix (i.e. above the diagonal) will result in a \a std::invalid_argument
-// exception.
-*/
-template< typename MT  // Type of the adapted sparse matrix
-        , bool SO >    // Storage order of the adapted sparse matrix
-inline typename DiagonalMatrix<MT,SO,false>::Iterator
-   DiagonalMatrix<MT,SO,false>::set( size_t i, size_t j, const ElementType& value )
-{
-   if( i < j ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid access to upper matrix element" );
-   }
-
-   return matrix_.set( i, j, value );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Inserting elements into the diagonal matrix.
-//
-// \param i The row index of the new element. The index has to be in the range \f$[0..N-1]\f$.
-// \param j The column index of the new element. The index has to be in the range \f$[0..N-1]\f$.
-// \param value The value of the element to be inserted.
-// \return Iterator to the newly inserted element.
-// \exception std::invalid_argument Invalid sparse matrix access index.
-// \exception std::invalid_argument Invalid access to upper matrix element.
-//
-// This function inserts a new element into the diagonal matrix. However, duplicate elements
-// are not allowed. In case the diagonal matrix already contains an element with row index \a i
-// and column index \a j, a \a std::invalid_argument exception is thrown. Also, the attempt to
-// insert an element in the upper part of the matrix (i.e. above the diagonal) will result in
-// a \a std::invalid_argument exception.
-*/
-template< typename MT  // Type of the adapted sparse matrix
-        , bool SO >    // Storage order of the adapted sparse matrix
-inline typename DiagonalMatrix<MT,SO,false>::Iterator
-   DiagonalMatrix<MT,SO,false>::insert( size_t i, size_t j, const ElementType& value )
-{
-   if( i < j ) {
-      BLAZE_THROW_INVALID_ARGUMENT( "Invalid access to upper matrix element" );
-   }
-
-   return matrix_.insert( i, j, value );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
 /*!\brief Changing the size of the diagonal matrix.
 //
 // \param n The new number of rows and columns of the matrix.
@@ -1417,7 +1417,7 @@ template< typename MT  // Type of the adapted sparse matrix
         , bool SO >    // Storage order of the adapted sparse matrix
 void DiagonalMatrix<MT,SO,false>::resize( size_t n, bool preserve )
 {
-   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE( MT );
+   BLAZE_CONSTRAINT_MUST_BE_RESIZABLE_TYPE( MT );
 
    BLAZE_INTERNAL_ASSERT( isSquare( matrix_ ), "Non-square diagonal matrix detected" );
 
@@ -1517,39 +1517,19 @@ inline void DiagonalMatrix<MT,SO,false>::trim( size_t i )
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Scaling of the matrix by the scalar value \a scalar (\f$ A=B*s \f$).
+/*!\brief Requesting the removal of unused capacity.
 //
-// \param scalar The scalar value for the matrix scaling.
-// \return Reference to the matrix.
-*/
-template< typename MT       // Type of the adapted sparse matrix
-        , bool SO >         // Storage order of the adapted sparse matrix
-template< typename Other >  // Data type of the scalar value
-inline DiagonalMatrix<MT,SO,false>&
-   DiagonalMatrix<MT,SO,false>::scale( const Other& scalar )
-{
-   matrix_.scale( scalar );
-   return *this;
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Scaling the diagonal of the diagonal matrix by the scalar value \a scalar.
+// \return void
 //
-// \param scalar The scalar value for the diagonal scaling.
-// \return Reference to the diagonal matrix.
+// This function minimizes the capacity of the matrix by removing unused capacity. Please note
+// that in case a reallocation occurs, all iterators (including end() iterators), all pointers
+// and references to elements of this matrix are invalidated.
 */
-template< typename MT       // Type of the adapted sparse matrix
-        , bool SO >         // Storage order of the adapted sparse matrix
-template< typename Other >  // Data type of the scalar value
-inline DiagonalMatrix<MT,SO,false>&
-   DiagonalMatrix<MT,SO,false>::scaleDiagonal( Other scalar )
+template< typename MT  // Type of the adapted sparse matrix
+        , bool SO >    // Storage order of the adapted sparse matrix
+inline void DiagonalMatrix<MT,SO,false>::shrinkToFit()
 {
-   matrix_.scaleDiagonal( scalar );
-   return *this;
+   matrix_.shrinkToFit();
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1576,17 +1556,19 @@ inline void DiagonalMatrix<MT,SO,false>::swap( DiagonalMatrix& m ) noexcept
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Reset the complete upper part of the matrix to the default initial values.
+/*!\brief Reset the complete lower and upper parts of the matrix to the default initial values.
 //
 // \return void
 */
-template< typename MT  // Type of the adapted dense matrix
-        , bool SO >    // Storage order of the adapted dense matrix
+template< typename MT  // Type of the adapted sparse matrix
+        , bool SO >    // Storage order of the adapted sparse matrix
 inline void DiagonalMatrix<MT,SO,false>::resetNonDiagonal()
 {
+   using blaze::erase;
+
    for( size_t i=0UL; i<rows(); ++i ) {
-      matrix_.erase( i, matrix_.begin( i ), matrix_.lowerBound( i, i ) );
-      matrix_.erase( i, matrix_.upperBound( i, i ), matrix_.end( i ) );
+      erase( matrix_, i, matrix_.begin( i ), matrix_.lowerBound( i, i ) );
+      erase( matrix_, i, matrix_.upperBound( i, i ), matrix_.end( i ) );
    }
 }
 /*! \endcond */
@@ -1597,48 +1579,36 @@ inline void DiagonalMatrix<MT,SO,false>::resetNonDiagonal()
 
 //=================================================================================================
 //
-//  ERASE FUNCTIONS
+//  INSERTION FUNCTIONS
 //
 //=================================================================================================
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Erasing elements from the diagonal matrix.
+/*!\brief Setting elements of the diagonal matrix.
 //
-// \param i The row index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
-// \param j The column index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
-// \return void
+// \param i The row index of the new element. The index has to be in the range \f$[0..N-1]\f$.
+// \param j The column index of the new element. The index has to be in the range \f$[0..N-1]\f$.
+// \param value The value of the element to be set.
+// \return Iterator to the set element.
+// \exception std::invalid_argument Invalid access to upper matrix element.
 //
-// This function erases an element from the diagonal matrix.
-*/
-template< typename MT  // Type of the adapted sparse matrix
-        , bool SO >    // Storage order of the adapted sparse matrix
-inline void DiagonalMatrix<MT,SO,false>::erase( size_t i, size_t j )
-{
-   matrix_.erase( i, j );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Erasing elements from the diagonal matrix.
-//
-// \param i The row/column index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
-// \param pos Iterator to the element to be erased.
-// \return Iterator to the element after the erased element.
-//
-// This function erases an element from the diagonal matrix. In case the diagonal matrix adapts
-// a \a rowMajor sparse matrix the function erases an element from row \a i, in case it adapts
-// a \a columnMajor sparse matrix the function erases an element from column \a i.
+// This function sets the value of an element of the diagonal matrix. In case the diagonal matrix
+// already contains an element with row index \a i and column index \a j its value is modified,
+// else a new element with the given \a value is inserted. The attempt to set an element in the
+// upper part of the matrix (i.e. above the diagonal) will result in a \a std::invalid_argument
+// exception.
 */
 template< typename MT  // Type of the adapted sparse matrix
         , bool SO >    // Storage order of the adapted sparse matrix
 inline typename DiagonalMatrix<MT,SO,false>::Iterator
-   DiagonalMatrix<MT,SO,false>::erase( size_t i, Iterator pos )
+   DiagonalMatrix<MT,SO,false>::set( size_t i, size_t j, const ElementType& value )
 {
-   return matrix_.erase( i, pos );
+   if( i < j ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid access to upper matrix element" );
+   }
+
+   return matrix_.set( i, j, value );
 }
 /*! \endcond */
 //*************************************************************************************************
@@ -1646,282 +1616,35 @@ inline typename DiagonalMatrix<MT,SO,false>::Iterator
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
-/*!\brief Erasing a range of elements from the diagonal matrix.
+/*!\brief Inserting elements into the diagonal matrix.
 //
-// \param i The row/column index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
-// \param first Iterator to first element to be erased.
-// \param last Iterator just past the last element to be erased.
-// \return Iterator to the element after the erased element.
+// \param i The row index of the new element. The index has to be in the range \f$[0..N-1]\f$.
+// \param j The column index of the new element. The index has to be in the range \f$[0..N-1]\f$.
+// \param value The value of the element to be inserted.
+// \return Iterator to the newly inserted element.
+// \exception std::invalid_argument Invalid sparse matrix access index.
+// \exception std::invalid_argument Invalid access to upper matrix element.
 //
-// This function erases a range of elements from the diagonal matrix. In case the diagonal matrix
-// adapts a \a rowMajor sparse matrix the function erases a range of elements from row \a i, in
-// case it adapts a \a columnMajor matrix the function erases a range of elements from column
-// \a i.
+// This function inserts a new element into the diagonal matrix. However, duplicate elements
+// are not allowed. In case the diagonal matrix already contains an element with row index \a i
+// and column index \a j, a \a std::invalid_argument exception is thrown. Also, the attempt to
+// insert an element in the upper part of the matrix (i.e. above the diagonal) will result in
+// a \a std::invalid_argument exception.
 */
 template< typename MT  // Type of the adapted sparse matrix
         , bool SO >    // Storage order of the adapted sparse matrix
 inline typename DiagonalMatrix<MT,SO,false>::Iterator
-   DiagonalMatrix<MT,SO,false>::erase( size_t i, Iterator first, Iterator last )
+   DiagonalMatrix<MT,SO,false>::insert( size_t i, size_t j, const ElementType& value )
 {
-   return matrix_.erase( i, first, last );
+   if( i < j ) {
+      BLAZE_THROW_INVALID_ARGUMENT( "Invalid access to upper matrix element" );
+   }
+
+   return matrix_.insert( i, j, value );
 }
 /*! \endcond */
 //*************************************************************************************************
 
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Erasing specific elements from the diagonal matrix.
-//
-// \param predicate The unary predicate for the element selection.
-// \return void.
-//
-// This function erases specific elements from the diagonal matrix. The elements are selected by
-// the given unary predicate \a predicate, which is expected to accept a single argument of the
-// type of the elements and to be pure. The following example demonstrates how to remove all
-// elements that are smaller than a certain threshold value:
-
-   \code
-   blaze::DiagonalMatrix< CompressedMatrix<double,blaze::rowMajor> > A;
-   // ... Resizing and initialization
-
-   A.erase( []( double value ){ return value < 1E-8; } );
-   \endcode
-
-// \note The predicate is required to be pure, i.e. to produce deterministic results for elements
-// with the same value. The attempt to use an impure predicate leads to undefined behavior!
-*/
-template< typename MT      // Type of the adapted sparse matrix
-        , bool SO >        // Storage order of the adapted sparse matrix
-template< typename Pred >  // Type of the unary predicate
-inline void DiagonalMatrix<MT,SO,false>::erase( Pred predicate )
-{
-   matrix_.erase( predicate );
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Erasing specific elements from a range of the diagonal matrix.
-//
-// \param i The row/column index of the elements to be erased. The index has to be in the range \f$[0..M-1]\f$.
-// \param first Iterator to first element of the range.
-// \param last Iterator just past the last element of the range.
-// \param predicate The unary predicate for the element selection.
-// \return void
-//
-// This function erases specific elements from a range of elements of the diagonal matrix. The
-// elements are selected by the given unary predicate \a predicate, which is expected to accept
-// a single argument of the type of the elements and to be pure. In case the storage order is
-// set to \a rowMajor the function erases a range of elements from row \a i, in case the storage
-// flag is set to \a columnMajor the function erases a range of elements from column \a i. The
-// following example demonstrates how to remove all elements that are smaller than a certain
-// threshold value:
-
-   \code
-   blaze::DiagonalMatrix< CompressedMatrix<double,blaze::rowMajor> > A;
-   // ... Resizing and initialization
-
-   A.erase( 2UL, A.begin(2UL), A.end(2UL), []( double value ){ return value < 1E-8; } );
-   \endcode
-
-// \note The predicate is required to be pure, i.e. to produce deterministic results for elements
-// with the same value. The attempt to use an impure predicate leads to undefined behavior!
-*/
-template< typename MT      // Type of the adapted sparse matrix
-        , bool SO >        // Storage order of the adapted sparse matrix
-template< typename Pred >  // Type of the unary predicate
-inline void DiagonalMatrix<MT,SO,false>::erase( size_t i, Iterator first, Iterator last, Pred predicate )
-{
-   matrix_.erase( i, first, last, predicate );
-
-   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  LOOKUP FUNCTIONS
-//
-//=================================================================================================
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Searches for a specific matrix element.
-//
-// \param i The row index of the search element. The index has to be in the range \f$[0..N-1]\f$.
-// \param j The column index of the search element. The index has to be in the range \f$[0..N-1]\f$.
-// \return Iterator to the element in case the index is found, end() iterator otherwise.
-//
-// This function can be used to check whether a specific element is contained in the diagonal
-// matrix. It specifically searches for the element with row index \a i and column index \a j.
-// In case the element is found, the function returns an row/column iterator to the element.
-// Otherwise an iterator just past the last non-zero element of row \a i or column \a j (the
-// end() iterator) is returned. Note that the returned diagonal matrix iterator is subject to
-// invalidation due to inserting operations via the function call operator or the insert()
-// function!
-*/
-template< typename MT  // Type of the adapted sparse matrix
-        , bool SO >    // Storage order of the adapted sparse matrix
-inline typename DiagonalMatrix<MT,SO,false>::Iterator
-   DiagonalMatrix<MT,SO,false>::find( size_t i, size_t j )
-{
-   return matrix_.find( i, j );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Searches for a specific matrix element.
-//
-// \param i The row index of the search element. The index has to be in the range \f$[0..N-1]\f$.
-// \param j The column index of the search element. The index has to be in the range \f$[0..N-1]\f$.
-// \return Iterator to the element in case the index is found, end() iterator otherwise.
-//
-// This function can be used to check whether a specific element is contained in the diagonal
-// matrix. It specifically searches for the element with row index \a i and column index \a j.
-// In case the element is found, the function returns an row/column iterator to the element.
-// Otherwise an iterator just past the last non-zero element of row \a i or column \a j (the
-// end() iterator) is returned. Note that the returned diagonal matrix iterator is subject to
-// invalidation due to inserting operations via the function call operator or the insert()
-// function!
-*/
-template< typename MT  // Type of the adapted sparse matrix
-        , bool SO >    // Storage order of the adapted sparse matrix
-inline typename DiagonalMatrix<MT,SO,false>::ConstIterator
-   DiagonalMatrix<MT,SO,false>::find( size_t i, size_t j ) const
-{
-   return matrix_.find( i, j );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Returns an iterator to the first index not less then the given index.
-//
-// \param i The row index of the search element. The index has to be in the range \f$[0..N-1]\f$.
-// \param j The column index of the search element. The index has to be in the range \f$[0..N-1]\f$.
-// \return Iterator to the first index not less then the given index, end() iterator otherwise.
-//
-// In case of a row-major matrix, this function returns a row iterator to the first element with
-// an index not less then the given column index. In case of a column-major matrix, the function
-// returns a column iterator to the first element with an index not less then the given row
-// index. In combination with the upperBound() function this function can be used to create
-// a pair of iterators specifying a range of indices. Note that the returned diagonal matrix
-// iterator is subject to invalidation due to inserting operations via the function call
-// operator or the insert() function!
-*/
-template< typename MT  // Type of the adapted sparse matrix
-        , bool SO >    // Storage order of the adapted sparse matrix
-inline typename DiagonalMatrix<MT,SO,false>::Iterator
-   DiagonalMatrix<MT,SO,false>::lowerBound( size_t i, size_t j )
-{
-   return matrix_.lowerBound( i, j );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Returns an iterator to the first index not less then the given index.
-//
-// \param i The row index of the search element. The index has to be in the range \f$[0..N-1]\f$.
-// \param j The column index of the search element. The index has to be in the range \f$[0..N-1]\f$.
-// \return Iterator to the first index not less then the given index, end() iterator otherwise.
-//
-// In case of a row-major matrix, this function returns a row iterator to the first element with
-// an index not less then the given column index. In case of a column-major matrix, the function
-// returns a column iterator to the first element with an index not less then the given row
-// index. In combination with the upperBound() function this function can be used to create
-// a pair of iterators specifying a range of indices. Note that the returned diagonal matrix
-// iterator is subject to invalidation due to inserting operations via the function call
-// operator or the insert() function!
-*/
-template< typename MT  // Type of the adapted sparse matrix
-        , bool SO >    // Storage order of the adapted sparse matrix
-inline typename DiagonalMatrix<MT,SO,false>::ConstIterator
-   DiagonalMatrix<MT,SO,false>::lowerBound( size_t i, size_t j ) const
-{
-   return matrix_.lowerBound( i, j );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Returns an iterator to the first index greater then the given index.
-//
-// \param i The row index of the search element. The index has to be in the range \f$[0..N-1]\f$.
-// \param j The column index of the search element. The index has to be in the range \f$[0..N-1]\f$.
-// \return Iterator to the first index greater then the given index, end() iterator otherwise.
-//
-// In case of a row-major matrix, this function returns a row iterator to the first element with
-// an index greater then the given column index. In case of a column-major matrix, the function
-// returns a column iterator to the first element with an index greater then the given row
-// index. In combination with the upperBound() function this function can be used to create
-// a pair of iterators specifying a range of indices. Note that the returned diagonal matrix
-// iterator is subject to invalidation due to inserting operations via the function call
-// operator or the insert() function!
-*/
-template< typename MT  // Type of the adapted sparse matrix
-        , bool SO >    // Storage order of the adapted sparse matrix
-inline typename DiagonalMatrix<MT,SO,false>::Iterator
-   DiagonalMatrix<MT,SO,false>::upperBound( size_t i, size_t j )
-{
-   return matrix_.upperBound( i, j );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-//*************************************************************************************************
-/*! \cond BLAZE_INTERNAL */
-/*!\brief Returns an iterator to the first index greater then the given index.
-//
-// \param i The row index of the search element. The index has to be in the range \f$[0..N-1]\f$.
-// \param j The column index of the search element. The index has to be in the range \f$[0..N-1]\f$.
-// \return Iterator to the first index greater then the given index, end() iterator otherwise.
-//
-// In case of a row-major matrix, this function returns a row iterator to the first element with
-// an index greater then the given column index. In case of a column-major matrix, the function
-// returns a column iterator to the first element with an index greater then the given row
-// index. In combination with the upperBound() function this function can be used to create
-// a pair of iterators specifying a range of indices. Note that the returned diagonal matrix
-// iterator is subject to invalidation due to inserting operations via the function call
-// operator or the insert() function!
-*/
-template< typename MT  // Type of the adapted sparse matrix
-        , bool SO >    // Storage order of the adapted sparse matrix
-inline typename DiagonalMatrix<MT,SO,false>::ConstIterator
-   DiagonalMatrix<MT,SO,false>::upperBound( size_t i, size_t j ) const
-{
-   return matrix_.upperBound( i, j );
-}
-/*! \endcond */
-//*************************************************************************************************
-
-
-
-
-//=================================================================================================
-//
-//  LOW-LEVEL UTILITY FUNCTIONS
-//
-//=================================================================================================
 
 //*************************************************************************************************
 /*! \cond BLAZE_INTERNAL */
@@ -2006,6 +1729,377 @@ template< typename MT  // Type of the adapted sparse matrix
 inline void DiagonalMatrix<MT,SO,false>::finalize( size_t i )
 {
    matrix_.finalize( i );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+
+
+//=================================================================================================
+//
+//  ERASE FUNCTIONS
+//
+//=================================================================================================
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Erasing elements from the diagonal matrix.
+//
+// \param i The row index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
+// \param j The column index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
+// \return void
+//
+// This function erases an element from the diagonal matrix.
+*/
+template< typename MT  // Type of the adapted sparse matrix
+        , bool SO >    // Storage order of the adapted sparse matrix
+inline void DiagonalMatrix<MT,SO,false>::erase( size_t i, size_t j )
+{
+   using blaze::erase;
+
+   erase( matrix_, i, j );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Erasing elements from the diagonal matrix.
+//
+// \param i The row/column index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
+// \param pos Iterator to the element to be erased.
+// \return Iterator to the element after the erased element.
+//
+// This function erases an element from the diagonal matrix. In case the diagonal matrix adapts
+// a \a rowMajor sparse matrix the function erases an element from row \a i, in case it adapts
+// a \a columnMajor sparse matrix the function erases an element from column \a i.
+*/
+template< typename MT  // Type of the adapted sparse matrix
+        , bool SO >    // Storage order of the adapted sparse matrix
+inline typename DiagonalMatrix<MT,SO,false>::Iterator
+   DiagonalMatrix<MT,SO,false>::erase( size_t i, Iterator pos )
+{
+   using blaze::erase;
+
+   return erase( matrix_, i, pos );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Erasing a range of elements from the diagonal matrix.
+//
+// \param i The row/column index of the element to be erased. The index has to be in the range \f$[0..N-1]\f$.
+// \param first Iterator to first element to be erased.
+// \param last Iterator just past the last element to be erased.
+// \return Iterator to the element after the erased element.
+//
+// This function erases a range of elements from the diagonal matrix. In case the diagonal matrix
+// adapts a \a rowMajor sparse matrix the function erases a range of elements from row \a i, in
+// case it adapts a \a columnMajor matrix the function erases a range of elements from column
+// \a i.
+*/
+template< typename MT  // Type of the adapted sparse matrix
+        , bool SO >    // Storage order of the adapted sparse matrix
+inline typename DiagonalMatrix<MT,SO,false>::Iterator
+   DiagonalMatrix<MT,SO,false>::erase( size_t i, Iterator first, Iterator last )
+{
+   using blaze::erase;
+
+   return erase( matrix_, i, first, last );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Erasing specific elements from the diagonal matrix.
+//
+// \param predicate The unary predicate for the element selection.
+// \return void.
+//
+// This function erases specific elements from the diagonal matrix. The elements are selected by
+// the given unary predicate \a predicate, which is expected to accept a single argument of the
+// type of the elements and to be pure. The following example demonstrates how to remove all
+// elements that are smaller than a certain threshold value:
+
+   \code
+   blaze::DiagonalMatrix< CompressedMatrix<double,blaze::rowMajor> > A;
+   // ... Resizing and initialization
+
+   A.erase( []( double value ){ return value < 1E-8; } );
+   \endcode
+
+// \note The predicate is required to be pure, i.e. to produce deterministic results for elements
+// with the same value. The attempt to use an impure predicate leads to undefined behavior!
+*/
+template< typename MT      // Type of the adapted sparse matrix
+        , bool SO >        // Storage order of the adapted sparse matrix
+template< typename Pred >  // Type of the unary predicate
+inline void DiagonalMatrix<MT,SO,false>::erase( Pred predicate )
+{
+   using blaze::erase;
+
+   erase( matrix_, predicate );
+
+   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Erasing specific elements from a range of the diagonal matrix.
+//
+// \param i The row/column index of the elements to be erased. The index has to be in the range \f$[0..M-1]\f$.
+// \param first Iterator to first element of the range.
+// \param last Iterator just past the last element of the range.
+// \param predicate The unary predicate for the element selection.
+// \return void
+//
+// This function erases specific elements from a range of elements of the diagonal matrix. The
+// elements are selected by the given unary predicate \a predicate, which is expected to accept
+// a single argument of the type of the elements and to be pure. In case the storage order is
+// set to \a rowMajor the function erases a range of elements from row \a i, in case the storage
+// flag is set to \a columnMajor the function erases a range of elements from column \a i. The
+// following example demonstrates how to remove all elements that are smaller than a certain
+// threshold value:
+
+   \code
+   blaze::DiagonalMatrix< CompressedMatrix<double,blaze::rowMajor> > A;
+   // ... Resizing and initialization
+
+   A.erase( 2UL, A.begin(2UL), A.end(2UL), []( double value ){ return value < 1E-8; } );
+   \endcode
+
+// \note The predicate is required to be pure, i.e. to produce deterministic results for elements
+// with the same value. The attempt to use an impure predicate leads to undefined behavior!
+*/
+template< typename MT      // Type of the adapted sparse matrix
+        , bool SO >        // Storage order of the adapted sparse matrix
+template< typename Pred >  // Type of the unary predicate
+inline void DiagonalMatrix<MT,SO,false>::erase( size_t i, Iterator first, Iterator last, Pred predicate )
+{
+   using blaze::erase;
+
+   erase( matrix_, i, first, last, predicate );
+
+   BLAZE_INTERNAL_ASSERT( isIntact(), "Broken invariant detected" );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+
+
+//=================================================================================================
+//
+//  LOOKUP FUNCTIONS
+//
+//=================================================================================================
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Searches for a specific matrix element.
+//
+// \param i The row index of the search element. The index has to be in the range \f$[0..N-1]\f$.
+// \param j The column index of the search element. The index has to be in the range \f$[0..N-1]\f$.
+// \return Iterator to the element in case the index is found, end() iterator otherwise.
+//
+// This function can be used to check whether a specific element is contained in the diagonal
+// matrix. It specifically searches for the element with row index \a i and column index \a j.
+// In case the element is found, the function returns an row/column iterator to the element.
+// Otherwise an iterator just past the last non-zero element of row \a i or column \a j (the
+// end() iterator) is returned. Note that the returned diagonal matrix iterator is subject to
+// invalidation due to inserting operations via the function call operator, the set() function
+// or the insert() function!
+*/
+template< typename MT  // Type of the adapted sparse matrix
+        , bool SO >    // Storage order of the adapted sparse matrix
+inline typename DiagonalMatrix<MT,SO,false>::Iterator
+   DiagonalMatrix<MT,SO,false>::find( size_t i, size_t j )
+{
+   return matrix_.find( i, j );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Searches for a specific matrix element.
+//
+// \param i The row index of the search element. The index has to be in the range \f$[0..N-1]\f$.
+// \param j The column index of the search element. The index has to be in the range \f$[0..N-1]\f$.
+// \return Iterator to the element in case the index is found, end() iterator otherwise.
+//
+// This function can be used to check whether a specific element is contained in the diagonal
+// matrix. It specifically searches for the element with row index \a i and column index \a j.
+// In case the element is found, the function returns an row/column iterator to the element.
+// Otherwise an iterator just past the last non-zero element of row \a i or column \a j (the
+// end() iterator) is returned. Note that the returned diagonal matrix iterator is subject to
+// invalidation due to inserting operations via the function call operator, the set() function
+// or the insert() function!
+*/
+template< typename MT  // Type of the adapted sparse matrix
+        , bool SO >    // Storage order of the adapted sparse matrix
+inline typename DiagonalMatrix<MT,SO,false>::ConstIterator
+   DiagonalMatrix<MT,SO,false>::find( size_t i, size_t j ) const
+{
+   return matrix_.find( i, j );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Returns an iterator to the first index not less then the given index.
+//
+// \param i The row index of the search element. The index has to be in the range \f$[0..N-1]\f$.
+// \param j The column index of the search element. The index has to be in the range \f$[0..N-1]\f$.
+// \return Iterator to the first index not less then the given index, end() iterator otherwise.
+//
+// In case of a row-major matrix, this function returns a row iterator to the first element with
+// an index not less then the given column index. In case of a column-major matrix, the function
+// returns a column iterator to the first element with an index not less then the given row
+// index. In combination with the upperBound() function this function can be used to create
+// a pair of iterators specifying a range of indices. Note that the returned diagonal matrix
+// iterator is subject to invalidation due to inserting operations via the function call
+// operator, the set() function or the insert() function!
+*/
+template< typename MT  // Type of the adapted sparse matrix
+        , bool SO >    // Storage order of the adapted sparse matrix
+inline typename DiagonalMatrix<MT,SO,false>::Iterator
+   DiagonalMatrix<MT,SO,false>::lowerBound( size_t i, size_t j )
+{
+   return matrix_.lowerBound( i, j );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Returns an iterator to the first index not less then the given index.
+//
+// \param i The row index of the search element. The index has to be in the range \f$[0..N-1]\f$.
+// \param j The column index of the search element. The index has to be in the range \f$[0..N-1]\f$.
+// \return Iterator to the first index not less then the given index, end() iterator otherwise.
+//
+// In case of a row-major matrix, this function returns a row iterator to the first element with
+// an index not less then the given column index. In case of a column-major matrix, the function
+// returns a column iterator to the first element with an index not less then the given row
+// index. In combination with the upperBound() function this function can be used to create
+// a pair of iterators specifying a range of indices. Note that the returned diagonal matrix
+// iterator is subject to invalidation due to inserting operations via the function call
+// operator, the set() function or the insert() function!
+*/
+template< typename MT  // Type of the adapted sparse matrix
+        , bool SO >    // Storage order of the adapted sparse matrix
+inline typename DiagonalMatrix<MT,SO,false>::ConstIterator
+   DiagonalMatrix<MT,SO,false>::lowerBound( size_t i, size_t j ) const
+{
+   return matrix_.lowerBound( i, j );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Returns an iterator to the first index greater then the given index.
+//
+// \param i The row index of the search element. The index has to be in the range \f$[0..N-1]\f$.
+// \param j The column index of the search element. The index has to be in the range \f$[0..N-1]\f$.
+// \return Iterator to the first index greater then the given index, end() iterator otherwise.
+//
+// In case of a row-major matrix, this function returns a row iterator to the first element with
+// an index greater then the given column index. In case of a column-major matrix, the function
+// returns a column iterator to the first element with an index greater then the given row
+// index. In combination with the lowerBound() function this function can be used to create
+// a pair of iterators specifying a range of indices. Note that the returned diagonal matrix
+// iterator is subject to invalidation due to inserting operations via the function call
+// operator, the set() function or the insert() function!
+*/
+template< typename MT  // Type of the adapted sparse matrix
+        , bool SO >    // Storage order of the adapted sparse matrix
+inline typename DiagonalMatrix<MT,SO,false>::Iterator
+   DiagonalMatrix<MT,SO,false>::upperBound( size_t i, size_t j )
+{
+   return matrix_.upperBound( i, j );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Returns an iterator to the first index greater then the given index.
+//
+// \param i The row index of the search element. The index has to be in the range \f$[0..N-1]\f$.
+// \param j The column index of the search element. The index has to be in the range \f$[0..N-1]\f$.
+// \return Iterator to the first index greater then the given index, end() iterator otherwise.
+//
+// In case of a row-major matrix, this function returns a row iterator to the first element with
+// an index greater then the given column index. In case of a column-major matrix, the function
+// returns a column iterator to the first element with an index greater then the given row
+// index. In combination with the lowerBound() function this function can be used to create
+// a pair of iterators specifying a range of indices. Note that the returned diagonal matrix
+// iterator is subject to invalidation due to inserting operations via the function call
+// operator, the set() function or the insert() function!
+*/
+template< typename MT  // Type of the adapted sparse matrix
+        , bool SO >    // Storage order of the adapted sparse matrix
+inline typename DiagonalMatrix<MT,SO,false>::ConstIterator
+   DiagonalMatrix<MT,SO,false>::upperBound( size_t i, size_t j ) const
+{
+   return matrix_.upperBound( i, j );
+}
+/*! \endcond */
+//*************************************************************************************************
+
+
+
+
+//=================================================================================================
+//
+//  NUMERIC FUNCTIONS
+//
+//=================================================================================================
+
+//*************************************************************************************************
+/*! \cond BLAZE_INTERNAL */
+/*!\brief Scaling of the matrix by the scalar value \a scalar (\f$ A=B*s \f$).
+//
+// \param scalar The scalar value for the matrix scaling.
+// \return Reference to the matrix.
+//
+// This function scales the matrix by applying the given scalar value \a scalar to each element
+// of the matrix. For built-in and \c complex data types it has the same effect as using the
+// multiplication assignment operator:
+
+   \code
+   blaze::DiagonalMatrix< blaze::CompressedMatrix<int> > A;
+   // ... Resizing and initialization
+   A *= 4;        // Scaling of the matrix
+   A.scale( 4 );  // Same effect as above
+   \endcode
+*/
+template< typename MT       // Type of the adapted sparse matrix
+        , bool SO >         // Storage order of the adapted sparse matrix
+template< typename Other >  // Data type of the scalar value
+inline DiagonalMatrix<MT,SO,false>&
+   DiagonalMatrix<MT,SO,false>::scale( const Other& scalar )
+{
+   matrix_.scale( scalar );
+   return *this;
 }
 /*! \endcond */
 //*************************************************************************************************

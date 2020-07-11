@@ -2,7 +2,7 @@
 #
 #  Makefile for the symmetricmatrix module of the Blaze test suite
 #
-#  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved - All Rights Reserved
+#  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved - All Rights Reserved
 #
 #  This file is part of the Blaze library. You can redistribute it and/or modify it under
 #  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -33,8 +33,10 @@
 
 
 # Including the compiler and library settings
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include ../../Makeconfig
+endif
 endif
 
 
@@ -58,9 +60,13 @@ ColumnNonNumericTest: ColumnNonNumericTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 ColumnNumericTest: ColumnNumericTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
-DenseNonNumericTest: DenseNonNumericTest.o
+DenseNonNumericTest1: DenseNonNumericTest1.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
-DenseNumericTest: DenseNumericTest.o
+DenseNonNumericTest2: DenseNonNumericTest2.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+DenseNumericTest1: DenseNumericTest1.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+DenseNumericTest2: DenseNumericTest2.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 IncludeTest: IncludeTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
@@ -68,9 +74,13 @@ RowNonNumericTest: RowNonNumericTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 RowNumericTest: RowNumericTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
-SparseNonNumericTest: SparseNonNumericTest.o
+SparseNonNumericTest1: SparseNonNumericTest1.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
-SparseNumericTest: SparseNumericTest.o
+SparseNonNumericTest2: SparseNonNumericTest2.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+SparseNumericTest1: SparseNumericTest1.o
+	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
+SparseNumericTest2: SparseNumericTest2.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
 SubmatrixNonNumericTest: SubmatrixNonNumericTest.o
 	@$(CXX) $(CXXFLAGS) -o $@ $< $(LIBRARIES)
@@ -79,13 +89,17 @@ SubmatrixNumericTest: SubmatrixNumericTest.o
 
 
 # Cleanup
+reset:
+	@$(RM) $(OBJ) $(BIN)
 clean:
-	@$(RM) $(DEP) $(OBJ) $(BIN)
+	@$(RM) $(OBJ) $(BIN) $(DEP)
 
 
 # Makefile includes
+ifneq ($(MAKECMDGOALS),reset)
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP)
+endif
 endif
 
 
@@ -95,4 +109,4 @@ endif
 
 
 # Setting the independent commands
-.PHONY: default all essential single noop clean
+.PHONY: default all essential single noop reset clean

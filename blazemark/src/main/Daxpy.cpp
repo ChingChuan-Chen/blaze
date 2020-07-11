@@ -3,7 +3,7 @@
 //  \file src/main/Daxpy.cpp
 //  \brief Source file for the daxpy product benchmark
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -44,8 +44,8 @@
 #include <string>
 #include <vector>
 #include <blaze/math/DynamicVector.h>
-#include <blaze/math/Functions.h>
 #include <blaze/math/Infinity.h>
+#include <blaze/util/algorithms/Max.h>
 #include <blaze/util/Random.h>
 #include <blaze/util/Timing.h>
 #include <blazemark/armadillo/Daxpy.h>
@@ -63,6 +63,7 @@
 #include <blazemark/system/Armadillo.h>
 #include <blazemark/system/BLAS.h>
 #include <blazemark/system/Blitz.h>
+#include <blazemark/system/Boost.h>
 #include <blazemark/system/Config.h>
 #include <blazemark/system/Eigen.h>
 #include <blazemark/system/FLENS.h>
@@ -72,6 +73,10 @@
 #include <blazemark/util/Benchmarks.h>
 #include <blazemark/util/DynamicDenseRun.h>
 #include <blazemark/util/Parser.h>
+
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
 
 
 //*************************************************************************************************
@@ -97,7 +102,7 @@ using blazemark::Parser;
 // This type definition specifies the type of a single benchmark run for the daxpy product
 // benchmark
 */
-typedef DynamicDenseRun  Run;
+using Run = DynamicDenseRun;
 //*************************************************************************************************
 
 
@@ -148,7 +153,8 @@ void estimateSteps( Run& run )
    if( b.size() != N )
       std::cerr << " Line " << __LINE__ << ": ERROR detected!!!\n";
 
-   run.setSteps( blaze::max( 1UL, ( blazemark::runtime * steps ) / timer.last() ) );
+   const size_t estimatedSteps( ( blazemark::runtime * steps ) / timer.last() );
+   run.setSteps( blaze::max( 1UL, estimatedSteps ) );
 }
 //*************************************************************************************************
 
@@ -253,6 +259,7 @@ void daxpy( std::vector<Run>& runs, Benchmarks benchmarks )
       }
    }
 
+#if BLAZEMARK_BOOST_MODE
    if( benchmarks.runBoost ) {
       std::cout << "   Boost uBLAS [MFlop/s]:\n";
       for( std::vector<Run>::iterator run=runs.begin(); run!=runs.end(); ++run ) {
@@ -263,6 +270,7 @@ void daxpy( std::vector<Run>& runs, Benchmarks benchmarks )
          std::cout << "     " << std::setw(12) << N << mflops << std::endl;
       }
    }
+#endif
 
 #if BLAZEMARK_BLITZ_MODE
    if( benchmarks.runBlitz ) {
@@ -398,5 +406,7 @@ int main( int argc, char** argv )
       std::cerr << "   Error during benchmark execution: " << ex.what() << "\n";
       return EXIT_FAILURE;
    }
+
+   return EXIT_SUCCESS;
 }
 //*************************************************************************************************

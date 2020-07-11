@@ -3,7 +3,7 @@
 //  \file blazetest/mathtest/symmetricmatrix/ColumnNonNumericTest.h
 //  \brief Header file for the SymmetricMatrix column non-numeric test
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -49,7 +49,6 @@
 #include <blaze/math/DynamicMatrix.h>
 #include <blaze/math/DynamicVector.h>
 #include <blaze/math/SymmetricMatrix.h>
-#include <blaze/math/traits/ColumnExprTrait.h>
 #include <blaze/math/typetraits/IsRowMajorMatrix.h>
 #include <blazetest/system/Types.h>
 
@@ -77,19 +76,19 @@ class ColumnNonNumericTest
  private:
    //**Type definitions****************************************************************************
    //! Type of a resizable, non-numeric element.
-   typedef blaze::DynamicVector<int,blaze::rowVector>  VT;
+   using VT = blaze::DynamicVector<int,blaze::rowVector>;
 
    //! Type of the dense non-numeric symmetric matrix.
-   typedef blaze::SymmetricMatrix< blaze::DynamicMatrix<VT,blaze::rowMajor> >  DST;
+   using DST = blaze::SymmetricMatrix< blaze::DynamicMatrix<VT,blaze::rowMajor> >;
 
    //! Opposite dense non-numeric symmetric matrix type.
-   typedef DST::OppositeType  DOST;
+   using DOST = DST::OppositeType;
 
    //! Type of the sparse non-numeric symmetric matrix.
-   typedef blaze::SymmetricMatrix< blaze::CompressedMatrix<VT,blaze::rowMajor> >  SST;
+   using SST = blaze::SymmetricMatrix< blaze::CompressedMatrix<VT,blaze::rowMajor> >;
 
    //! Opposite sparse non-numeric symmetric matrix type.
-   typedef SST::OppositeType  SOST;
+   using SOST = SST::OppositeType;
    //**********************************************************************************************
 
  public:
@@ -160,9 +159,6 @@ class ColumnNonNumericTest
 template< typename ST >  // Type of the symmetric matrix
 void ColumnNonNumericTest::testAssignment()
 {
-   typedef blaze::ColumnExprTrait_<ST>  CT;
-
-
    //=====================================================================================
    // Dense vector assignment
    //=====================================================================================
@@ -181,7 +177,7 @@ void ColumnNonNumericTest::testAssignment()
       ST sym;
       init( sym );
 
-      CT col1 = column( sym, 1UL );
+      auto col1 = column( sym, 1UL );
       col1 = tmp;
 
       checkRows    ( sym, 3UL );
@@ -232,7 +228,7 @@ void ColumnNonNumericTest::testAssignment()
       ST sym;
       init( sym );
 
-      CT col1 = column( sym, 1UL );
+      auto col1 = column( sym, 1UL );
       col1 = tmp;
 
       checkRows    ( sym, 3UL );

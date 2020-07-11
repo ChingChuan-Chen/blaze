@@ -3,7 +3,7 @@
 //  \file src/main/CG.cpp
 //  \brief Source file for the conjugate gradient benchmark
 //
-//  Copyright (C) 2013 Klaus Iglberger - All Rights Reserved
+//  Copyright (C) 2012-2020 Klaus Iglberger - All Rights Reserved
 //
 //  This file is part of the Blaze library. You can redistribute it and/or modify it under
 //  the terms of the New (Revised) BSD License. Redistribution and use in source and binary
@@ -45,7 +45,7 @@
 #include <vector>
 #include <blaze/math/CompressedMatrix.h>
 #include <blaze/math/DynamicVector.h>
-#include <blaze/math/Functions.h>
+#include <blaze/util/algorithms/Max.h>
 #include <blaze/util/Random.h>
 #include <blaze/util/Timing.h>
 #include <blazemark/blaze/CG.h>
@@ -53,6 +53,7 @@
 #include <blazemark/eigen/CG.h>
 #include <blazemark/gmm/CG.h>
 #include <blazemark/mtl/CG.h>
+#include <blazemark/system/Boost.h>
 #include <blazemark/system/Config.h>
 #include <blazemark/system/Eigen.h>
 #include <blazemark/system/GMM.h>
@@ -61,6 +62,10 @@
 #include <blazemark/util/Benchmarks.h>
 #include <blazemark/util/Parser.h>
 #include <blazemark/util/SolverRun.h>
+
+#ifdef BLAZE_USE_HPX_THREADS
+#  include <hpx/hpx_main.hpp>
+#endif
 
 
 //*************************************************************************************************
@@ -86,7 +91,7 @@ using blazemark::SolverRun;
 // This type definition specifies the type of a single benchmark run for the conjugate gradient
 // benchmark.
 */
-typedef SolverRun  Run;
+using Run = SolverRun;
 //*************************************************************************************************
 
 
@@ -176,15 +181,19 @@ void estimateSteps( Run& run )
       std::cerr << " Line " << __LINE__ << ": ERROR detected!!!\n";
 
    if( timer.last() > blazemark::runtime ) {
-      iteration = blaze::max( 1UL, iteration * ( blazemark::runtime / timer.last() ) );
+      const size_t maxIterations( iteration * ( blazemark::runtime / timer.last() ) );
+      iteration = blaze::max( 1UL, maxIterations );
    }
    run.setIterations( iteration );
 
    if( run.getSteps() == 0UL ) {
-      if( timer.last() != 0.0 )
-         run.setSteps( blaze::max( 1UL, blazemark::runtime / timer.last() ) );
-      else
+      if( timer.last() != 0.0 ) {
+         const size_t estimatedSteps( blazemark::runtime / timer.last() );
+         run.setSteps( blaze::max( 1UL, estimatedSteps ) );
+      }
+      else {
          run.setSteps( static_cast<size_t>( blazemark::runtime / 1E-8 ) );
+      }
    }
 }
 //*************************************************************************************************
@@ -228,6 +237,7 @@ void cg( std::vector<Run>& runs, Benchmarks benchmarks )
       }
    }
 
+#if BLAZEMARK_BOOST_MODE
    if( benchmarks.runBoost ) {
       std::cout << "   Boost uBLAS [MFlop/s]:\n";
       for( std::vector<Run>::iterator run=runs.begin(); run!=runs.end(); ++run ) {
@@ -240,6 +250,7 @@ void cg( std::vector<Run>& runs, Benchmarks benchmarks )
          std::cout << "     " << std::setw(12) << N << mflops << std::endl;
       }
    }
+#endif
 
 #if BLAZEMARK_GMM_MODE
    if( benchmarks.runGMM ) {
@@ -342,5 +353,7 @@ int main( int argc, char** argv )
       std::cerr << "   Error during benchmark execution: " << ex.what() << "\n";
       return EXIT_FAILURE;
    }
+
+   return EXIT_SUCCESS;
 }
 //*************************************************************************************************
